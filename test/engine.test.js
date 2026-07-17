@@ -1,0 +1,116 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { simulateOrder, simulate } from '../src/engine.js';
+
+// Candle shorthand: c(time, open, high, low, close)
+const c = (time, open, high, low, close) => ({ time, open, high, low, close });
+
+const longOrder = { id: 'l', side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, qty: 1 };
+const shortOrder = { id: 's', side: 'short', entry: 100, stopLoss: 105, takeProfit: 90, qty: 1 };
+
+test('order never touched is NOT_FILLED', () => {
+  const candles = [c(1, 120, 125, 115, 120)];
+  assert.deepEqual(simulateOrder(longOrder, candles), {
+    status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+  });
+});
+
+test('long fills on touch then exits at take profit', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),  // low touches entry 100 -> fill
+    c(2, 101, 111, 101, 110),  // high >= 110 -> TP
+  ];
+  assert.deepEqual(simulateOrder(longOrder, candles), {
+    status: 'TP', fillTime: 1, exitTime: 2, exitPrice: 110,
+  });
+});
+
+test('long exits at stop loss', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),
+    c(2, 101, 102, 94, 95),    // low <= 95 -> SL
+  ];
+  assert.deepEqual(simulateOrder(longOrder, candles), {
+    status: 'SL', fillTime: 1, exitTime: 2, exitPrice: 95,
+  });
+});
+
+test('candle spanning both SL and TP resolves to SL (worst case)', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),
+    c(2, 101, 111, 94, 108),   // spans both 95 and 110
+  ];
+  assert.equal(simulateOrder(longOrder, candles).status, 'SL');
+});
+
+test('fill and exit can happen on the same candle', () => {
+  const candles = [c(1, 108, 111, 100, 110)]; // touches entry 100 AND high >= 110
+  assert.deepEqual(simulateOrder(longOrder, candles), {
+    status: 'TP', fillTime: 1, exitTime: 1, exitPrice: 110,
+  });
+});
+
+test('position open at end of day closes at last close as EOD', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),
+    c(2, 101, 104, 99, 103),
+  ];
+  assert.deepEqual(simulateOrder(longOrder, candles), {
+    status: 'EOD', fillTime: 1, exitTime: 2, exitPrice: 103,
+  });
+});
+
+test('short exits at take profit when price falls', () => {
+  const candles = [
+    c(1, 99, 101, 98, 99),     // touches entry 100 -> fill
+    c(2, 99, 99, 89, 90),      // low <= 90 -> TP
+  ];
+  assert.deepEqual(simulateOrder(shortOrder, candles), {
+    status: 'TP', fillTime: 1, exitTime: 2, exitPrice: 90,
+  });
+});
+
+test('short exits at stop loss when price rises', () => {
+  const candles = [
+    c(1, 99, 101, 98, 99),
+    c(2, 99, 106, 99, 105),    // high >= 105 -> SL
+  ];
+  assert.deepEqual(simulateOrder(shortOrder, candles), {
+    status: 'SL', fillTime: 1, exitTime: 2, exitPrice: 105,
+  });
+});
+
+test('simulate computes P/L and summary', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),
+    c(2, 101, 111, 101, 110),  // long TP at 110
+  ];
+  const orders = [
+    longOrder,                                                             // +10 pts
+    { id: 'q2', side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, qty: 2 }, // +20 pts
+    { id: 'miss', side: 'long', entry: 50, stopLoss: 45, takeProfit: 60, qty: 1 }, // not filled
+  ];
+  const { results, summary } = simulate(candles, orders, 5);
+  assert.equal(results[0].points, 10);
+  assert.equal(results[0].dollars, 50);
+  assert.equal(results[1].points, 20);
+  assert.equal(results[1].dollars, 100);
+  assert.equal(results[2].status, 'NOT_FILLED');
+  assert.equal(results[2].points, null);
+  assert.deepEqual(summary, {
+    orders: 3, filled: 2, wins: 2, losses: 0, netPoints: 30, netDollars: 150,
+  });
+});
+
+test('a losing short counts as a loss in the summary', () => {
+  const candles = [
+    c(1, 99, 101, 98, 99),
+    c(2, 99, 106, 99, 105),    // short SL at 105 -> -5 pts
+  ];
+  const { results, summary } = simulate(candles, [shortOrder], 5);
+  assert.equal(results[0].points, -5);
+  assert.equal(results[0].dollars, -25);
+  assert.deepEqual(summary, {
+    orders: 1, filled: 1, wins: 0, losses: 1, netPoints: -5, netDollars: -25,
+  });
+});
