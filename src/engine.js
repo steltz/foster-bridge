@@ -11,10 +11,18 @@ import { minutesOfDayForTimestamp } from './session.js';
 // openMinutes and none at or after cutoffMinutes. An order that could only
 // fill outside that window is NOT_FILLED. Exits on an already-filled position
 // are never blocked. A null bound disables that side of the window.
+//
+// Entries are resting LIMIT orders and fill only on a touch from the correct
+// side: a long fills when price trades DOWN to the entry (a pullback into
+// support), a short when price trades UP to the entry (a rally into
+// resistance). Price already past the entry on the wrong side when it becomes
+// active does not fill; it only becomes eligible again after returning to the
+// correct side ("armed"). Only in-window candles arm or fill an order.
 export function simulateOrder(order, candles, options = {}) {
   const { side, entry, stopLoss, takeProfit } = order;
   const { openMinutes = null, cutoffMinutes = null, tz = 'UTC' } = options;
   let fillTime = null;
+  let armed = false; // has price been on the entry's correct side, in-window?
 
   for (const candle of candles) {
     if (fillTime === null) {
@@ -24,10 +32,24 @@ export function simulateOrder(order, candles, options = {}) {
           : minutesOfDayForTimestamp(candle.time, tz);
       const afterOpen = openMinutes === null || localMinutes >= openMinutes;
       const beforeCutoff = cutoffMinutes === null || localMinutes < cutoffMinutes;
-      if (afterOpen && beforeCutoff && candle.low <= entry && entry <= candle.high) {
-        fillTime = candle.time;
+      if (!afterOpen || !beforeCutoff) continue; // not active for entry
+
+      if (side === 'long') {
+        const touch = candle.low <= entry;
+        if (touch && (armed || candle.open >= entry)) {
+          fillTime = candle.time;
+        } else {
+          if (candle.high >= entry) armed = true; // price reached the correct side
+          continue;
+        }
       } else {
-        continue;
+        const touch = candle.high >= entry;
+        if (touch && (armed || candle.open <= entry)) {
+          fillTime = candle.time;
+        } else {
+          if (candle.low <= entry) armed = true;
+          continue;
+        }
       }
     }
     const slHit = side === 'long' ? candle.low <= stopLoss : candle.high >= stopLoss;

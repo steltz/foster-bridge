@@ -106,6 +106,47 @@ test('no cutoff (default) fills regardless of time of day', () => {
   assert.equal(simulateOrder(longOrder, candles).status, 'TP');
 });
 
+test('long does NOT fill when price floats up through the entry from below', () => {
+  // Price is below the entry, then rises up through it — a buy limit should
+  // not fill on a wrong-side (upward) crossing.
+  const candles = [
+    c(1, 96, 98, 95, 97),    // entirely below entry 100
+    c(2, 98, 105, 97, 104),  // rises up through 100 (open 98 < 100)
+  ];
+  assert.equal(simulateOrder(longOrder, candles).status, 'NOT_FILLED');
+});
+
+test('long fills on a genuine pullback after price rallies above the entry', () => {
+  const candles = [
+    c(1, 96, 98, 95, 97),      // below entry
+    c(2, 98, 112, 97, 110),    // rallies above 100 -> now on the correct side
+    c(3, 103, 105, 100, 104),  // pulls back down to 100 -> fill
+  ];
+  const r = simulateOrder(longOrder, candles);
+  assert.notEqual(r.status, 'NOT_FILLED');
+  assert.equal(r.fillTime, 3);
+});
+
+test('long that opens below and stays below never fills', () => {
+  const candles = [c(1, 96, 99, 95, 98), c(2, 97, 99, 94, 96)];
+  assert.equal(simulateOrder(longOrder, candles).status, 'NOT_FILLED');
+});
+
+test('long still fills on a normal downward touch from above', () => {
+  const candles = [c(1, 105, 106, 100, 101), c(2, 101, 111, 101, 110)];
+  const r = simulateOrder(longOrder, candles);
+  assert.equal(r.status, 'TP');
+  assert.equal(r.fillTime, 1);
+});
+
+test('short does NOT fill when price drops down through the entry from above', () => {
+  const candles = [
+    c(1, 104, 105, 102, 103),  // above entry 100
+    c(2, 102, 103, 95, 96),    // drops down through 100 (open 102 > 100)
+  ];
+  assert.equal(simulateOrder(shortOrder, candles).status, 'NOT_FILLED');
+});
+
 test('does not fill an entry before the open time', () => {
   const early = Date.UTC(2026, 5, 30, 9, 45) / 1000; // 09:45 UTC == 585 minutes
   const candles = [c(early, 108, 111, 100, 110)];     // would touch entry and TP
