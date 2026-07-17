@@ -1,15 +1,25 @@
+import { minutesOfDayForTimestamp } from './session.js';
+
 // Replays candles chronologically for a single order.
 // Rules (see spec): touch = fill at entry price; the fill candle itself is
 // checked for exits; SL is checked before TP so an ambiguous candle that
 // spans both resolves to the worst case; still-open positions close at the
 // final candle's close (EOD).
-export function simulateOrder(order, candles) {
+//
+// options.cutoffMinutes (with options.tz) blocks NEW entries at or after that
+// local time of day — an order that could only fill from the cutoff onward is
+// NOT_FILLED. Exits on an already-filled position are never blocked. A null
+// cutoff (the default) disables the restriction.
+export function simulateOrder(order, candles, options = {}) {
   const { side, entry, stopLoss, takeProfit } = order;
+  const { cutoffMinutes = null, tz = 'UTC' } = options;
   let fillTime = null;
 
   for (const candle of candles) {
     if (fillTime === null) {
-      if (candle.low <= entry && entry <= candle.high) {
+      const beforeCutoff =
+        cutoffMinutes === null || minutesOfDayForTimestamp(candle.time, tz) < cutoffMinutes;
+      if (beforeCutoff && candle.low <= entry && entry <= candle.high) {
         fillTime = candle.time;
       } else {
         continue;
@@ -29,9 +39,9 @@ export function simulateOrder(order, candles) {
   return { status: 'EOD', fillTime, exitTime: last.time, exitPrice: last.close };
 }
 
-export function simulate(candles, orders, multiplier) {
+export function simulate(candles, orders, multiplier, options = {}) {
   const results = orders.map((order) => {
-    const outcome = simulateOrder(order, candles);
+    const outcome = simulateOrder(order, candles, options);
     let points = null;
     let dollars = null;
     if (outcome.status !== 'NOT_FILLED') {

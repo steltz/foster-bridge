@@ -80,6 +80,40 @@ test('short exits at stop loss when price rises', () => {
   });
 });
 
+test('does not fill an entry on or after the cutoff time', () => {
+  const atCutoff = Date.UTC(2026, 5, 30, 14, 0) / 1000; // 14:00 UTC == 840 minutes
+  const candles = [c(atCutoff, 101, 102, 100, 101)];    // would touch entry 100
+  assert.deepEqual(simulateOrder(longOrder, candles, { cutoffMinutes: 840, tz: 'UTC' }), {
+    status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+  });
+});
+
+test('fills before the cutoff and still manages the exit after it', () => {
+  const before = Date.UTC(2026, 5, 30, 13, 55) / 1000; // fills
+  const after = Date.UTC(2026, 5, 30, 15, 0) / 1000;   // TP after cutoff — allowed
+  const candles = [
+    c(before, 101, 102, 100, 101),
+    c(after, 101, 111, 101, 110),
+  ];
+  assert.deepEqual(simulateOrder(longOrder, candles, { cutoffMinutes: 840, tz: 'UTC' }), {
+    status: 'TP', fillTime: before, exitTime: after, exitPrice: 110,
+  });
+});
+
+test('no cutoff (default) fills regardless of time of day', () => {
+  const late = Date.UTC(2026, 5, 30, 22, 0) / 1000;
+  const candles = [c(late, 108, 111, 100, 110)]; // touches entry and TP
+  assert.equal(simulateOrder(longOrder, candles).status, 'TP');
+});
+
+test('simulate threads the cutoff option through to every order', () => {
+  const atCutoff = Date.UTC(2026, 5, 30, 14, 0) / 1000;
+  const candles = [c(atCutoff, 108, 111, 100, 110)];
+  const { results, summary } = simulate(candles, [longOrder], 5, { cutoffMinutes: 840, tz: 'UTC' });
+  assert.equal(results[0].status, 'NOT_FILLED');
+  assert.equal(summary.filled, 0);
+});
+
 test('simulate computes P/L and summary', () => {
   const candles = [
     c(1, 101, 102, 100, 101),

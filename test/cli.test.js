@@ -11,8 +11,10 @@ function run(args) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
 }
 
+// The fixture candles are stamped 23:35 ET, past the default 14:00 entry
+// cutoff, so tests that expect a fill disable the cutoff explicitly.
 test('runs a backtest and emits JSON results', () => {
-  const proc = run(['--data', chart, '--orders', ordersFile, '--json']);
+  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', 'off', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   const out = JSON.parse(proc.stdout);
   assert.equal(out.session, '2026-06-30');
@@ -28,11 +30,34 @@ test('runs a backtest and emits JSON results', () => {
 });
 
 test('default output is the human-readable table', () => {
-  const proc = run(['--data', chart, '--orders', ordersFile]);
+  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', 'off']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.match(proc.stdout, /Session: 2026-06-30/);
   assert.match(proc.stdout, /win\s+long\s+TP/);
   assert.match(proc.stdout, /Net: 10\.00 pts {2}\$50\.00/);
+});
+
+test('defaults to blocking entries after 2pm ET', () => {
+  // No --entry-cutoff: default 14:00 ET blocks the 23:35 ET fixture fill.
+  const proc = run(['--data', chart, '--orders', ordersFile, '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  const out = JSON.parse(proc.stdout);
+  assert.equal(out.orders[0].status, 'NOT_FILLED');
+  assert.equal(out.summary.filled, 0);
+});
+
+test('accepts a custom --entry-cutoff time', () => {
+  // 23:40 ET cutoff still allows the 23:35 ET fill.
+  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', '23:40', '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).orders[0].status, 'TP');
+});
+
+test('rejects a malformed --entry-cutoff value', () => {
+  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', 'noon']);
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, '');
+  assert.match(proc.stderr, /entry-cutoff/);
 });
 
 test('respects --tz for session selection', () => {
