@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { runBacktest } from './run-command.js';
+import { runTranscript } from './transcript-command.js';
 
 const USAGE =
   'Usage: backtest <command> ...\n' +
@@ -10,7 +11,9 @@ const USAGE =
 try {
   const argv = process.argv.slice(2);
   const [first, ...rest] = argv;
-  if (first === 'run') {
+  if (first === 'transcript') {
+    await runTranscript(rest);
+  } else if (first === 'run') {
     runBacktest(rest);
   } else if (first === undefined || first.startsWith('--')) {
     runBacktest(argv); // back-compat: flag-style invocation means "run"
