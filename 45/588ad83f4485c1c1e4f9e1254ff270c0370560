@@ -1,0 +1,25 @@
+test/fixtures/orders.json
+  s_7c17fe270248b3::t_f40ff50fabbaca 1-4
+test/fixtures/chart.csv
+  s_7c17fe270248b3::t_a18839506ae1cf 1-5
+src/cli.js
+  s_7c17fe270248b3::t_71f2eb4d5759e2 1-60
+test/cli.test.js
+  s_7c17fe270248b3::t_db3343c66996f8 1-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "45588ad83f4485c1c1e4f9e1254ff270c0370560",
+  "prompts": {},
+  "sessions": {
+    "s_7c17fe270248b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8aa8cc3-c947-4eb4-8da2-65815dd5e31c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
