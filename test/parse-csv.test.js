@@ -39,6 +39,11 @@ test('rejects a missing required column', () => {
   );
 });
 
+test('rejects an empty required cell', () => {
+  const text = `${HEADER}\n100,1,2,,1.5,,`;
+  assert.throws(() => parseCsv(text), /line 2: invalid low/);
+});
+
 test('rejects a non-numeric value with the line number', () => {
   const text = `${HEADER}\n100,1,2,0.5,1.5,,\n200,1,abc,0.5,1.5,,`;
   assert.throws(() => parseCsv(text), /line 3: invalid high/);

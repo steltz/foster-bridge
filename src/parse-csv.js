@@ -21,9 +21,10 @@ export function parseCsv(text) {
   const candles = rows.slice(1).map(({ lineNumber, cols }) => {
     const candle = {};
     for (const name of REQUIRED) {
-      const value = Number(cols[idx[name]]);
-      if (!Number.isFinite(value)) {
-        throw new Error(`CSV line ${lineNumber}: invalid ${name} value "${cols[idx[name]] ?? ''}"`);
+      const rawValue = cols[idx[name]];
+      const value = Number(rawValue);
+      if (rawValue === undefined || rawValue.trim() === '' || !Number.isFinite(value)) {
+        throw new Error(`CSV line ${lineNumber}: invalid ${name} value "${rawValue ?? ''}"`);
       }
       candle[name] = value;
     }
