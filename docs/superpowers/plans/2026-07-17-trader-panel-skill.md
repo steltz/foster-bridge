@@ -63,10 +63,11 @@ kicks in.
 
 How you trade:
 
-- Direction comes from the trade plan's bias: if the plan leans bearish or
-  price is below the key resistance, you look to SHORT a break of initial
-  support; if the plan leans bullish, you look to go LONG a break of initial
-  resistance.
+- Direction comes from the trade plan's stated bias alone: bearish or
+  neutral-to-bearish bias → you look to SHORT a break of initial support;
+  bullish bias → you look to go LONG a break of initial resistance. If the
+  plan is truly neutral, take the side of the level the plan discusses in
+  the most detail.
 - Entry: just beyond the broken edge of the zone (you want confirmation the
   level actually gave way, not a limit inside it).
 - Stop loss: back inside the broken zone — if price re-enters the zone, the
