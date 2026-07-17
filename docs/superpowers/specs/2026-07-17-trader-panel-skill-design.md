@@ -78,9 +78,11 @@ Every abort is one specific message; no agents have been spawned yet.
 
 ### Phase 2 — Persona fan-out (one dynamic Workflow invocation)
 
-The skill launches the Workflow tool with a script that receives, as `args`:
-`{ date, docs: {pdf, plan, recap}, personas: [{name, file}] }`. The script
-runs `parallel` over personas; each `agent()` call gets:
+The skill launches the Workflow tool with a script whose
+`DATE`/`DOCS`/`PERSONAS` constants are inlined at generation time (the
+Workflow `args` channel proved unreliable in live verification — inlining is
+deterministic). The script runs `parallel` over personas; each `agent()`
+call gets:
 
 - The persona envelope prompt (below) with that persona's file path.
 - A JSON schema forcing the setup shape, so malformed replies are retried at

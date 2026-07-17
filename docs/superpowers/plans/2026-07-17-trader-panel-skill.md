@@ -184,22 +184,12 @@ validation of setups yourself.
 
 ## Phase 2 — Persona fan-out (ONE Workflow invocation)
 
-Launch the Workflow tool with the script below, passing as `args` (real JSON,
-not a string):
+Launch the Workflow tool with the script below. INLINE the resolved values
+directly into the script's `DATE`/`DOCS`/`PERSONAS` constants — do NOT pass
+them through the Workflow `args` parameter (live verification showed args can
+arrive undefined; inlining is deterministic):
 
-```json
-{
-  "date": "<YYYY-MM-DD>",
-  "docs": {
-    "pdf": "<absolute path to *_ES_TP.pdf>",
-    "plan": "<absolute path to *_ES_TP.md>",
-    "recap": "<absolute path to *_ES_RECAP.md>"
-  },
-  "personas": [{ "name": "<persona name>", "file": "<absolute path>" }]
-}
-```
-
-Workflow script (pass verbatim):
+Workflow script (fill in the three constants, pass the rest verbatim):
 
 ```js
 export const meta = {
@@ -207,6 +197,15 @@ export const meta = {
   description: 'One setup per trading persona for the session',
   phases: [{ title: 'Setups', detail: 'one agent per persona' }],
 }
+const DATE = '<YYYY-MM-DD>'
+const DOCS = {
+  pdf: '<absolute path to *_ES_TP.pdf>',
+  plan: '<absolute path to *_ES_TP.md>',
+  recap: '<absolute path to *_ES_RECAP.md>',
+}
+const PERSONAS = [
+  { name: '<persona name>', file: '<absolute path to traders/<persona>.md>' },
+]
 const SETUP_SCHEMA = {
   type: 'object',
   required: ['side', 'entry', 'stopLoss', 'takeProfit', 'rationale'],
@@ -220,13 +219,13 @@ const SETUP_SCHEMA = {
   additionalProperties: false,
 }
 phase('Setups')
-const results = await parallel(args.personas.map((p) => () =>
+const results = await parallel(PERSONAS.map((p) => () =>
   agent(
     `You are a futures trading persona on a daily panel. First Read the persona file at ${p.file} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
-    `Then Read the three documents for the ${args.date} ES (E-mini S&P 500) session:\n` +
-    `1. Trade plan worksheet (PDF, support/resistance zones): ${args.docs.pdf}\n` +
-    `2. Trade plan video transcript: ${args.docs.plan}\n` +
-    `3. Prior-session recap transcript: ${args.docs.recap}\n\n` +
+    `Then Read the three documents for the ${DATE} ES (E-mini S&P 500) session:\n` +
+    `1. Trade plan worksheet (PDF, support/resistance zones): ${DOCS.pdf}\n` +
+    `2. Trade plan video transcript: ${DOCS.plan}\n` +
+    `3. Prior-session recap transcript: ${DOCS.recap}\n\n` +
     `As this persona, commit to exactly ONE trade for the session: long or short. ` +
     `Anchor your entry, stop loss, and take profit to the support/resistance zones in the trade plan. ` +
     `Prices are ES index points in quarter-point increments (e.g. 7530.25). ` +
@@ -235,7 +234,7 @@ const results = await parallel(args.personas.map((p) => () =>
     { label: p.name, schema: SETUP_SCHEMA }
   ).then((setup) => ({ persona: p.name, setup }))
 ))
-log(`${results.filter(Boolean).length}/${args.personas.length} personas returned setups`)
+log(`${results.filter(Boolean).length}/${PERSONAS.length} personas returned setups`)
 return results.filter(Boolean)
 ```
 
