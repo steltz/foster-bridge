@@ -6,20 +6,25 @@ import { minutesOfDayForTimestamp } from './session.js';
 // spans both resolves to the worst case; still-open positions close at the
 // final candle's close (EOD).
 //
-// options.cutoffMinutes (with options.tz) blocks NEW entries at or after that
-// local time of day — an order that could only fill from the cutoff onward is
-// NOT_FILLED. Exits on an already-filled position are never blocked. A null
-// cutoff (the default) disables the restriction.
+// options.openMinutes and options.cutoffMinutes (with options.tz) bound the
+// local time-of-day window in which NEW entries may fill: no entry before
+// openMinutes and none at or after cutoffMinutes. An order that could only
+// fill outside that window is NOT_FILLED. Exits on an already-filled position
+// are never blocked. A null bound disables that side of the window.
 export function simulateOrder(order, candles, options = {}) {
   const { side, entry, stopLoss, takeProfit } = order;
-  const { cutoffMinutes = null, tz = 'UTC' } = options;
+  const { openMinutes = null, cutoffMinutes = null, tz = 'UTC' } = options;
   let fillTime = null;
 
   for (const candle of candles) {
     if (fillTime === null) {
-      const beforeCutoff =
-        cutoffMinutes === null || minutesOfDayForTimestamp(candle.time, tz) < cutoffMinutes;
-      if (beforeCutoff && candle.low <= entry && entry <= candle.high) {
+      const localMinutes =
+        openMinutes === null && cutoffMinutes === null
+          ? null
+          : minutesOfDayForTimestamp(candle.time, tz);
+      const afterOpen = openMinutes === null || localMinutes >= openMinutes;
+      const beforeCutoff = cutoffMinutes === null || localMinutes < cutoffMinutes;
+      if (afterOpen && beforeCutoff && candle.low <= entry && entry <= candle.high) {
         fillTime = candle.time;
       } else {
         continue;

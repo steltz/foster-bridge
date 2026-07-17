@@ -9,10 +9,13 @@ import { formatTable } from './report.js';
 const USAGE =
   'Usage: backtest [run] --data <chart.csv> --orders <orders.json> ' +
   '[--date YYYY-MM-DD] [--tz <IANA timezone>] [--multiplier <n>] ' +
-  '[--session rth|full] [--entry-cutoff HH:MM|off] [--json]';
+  '[--session rth|full] [--open-buffer <minutes>] [--entry-cutoff HH:MM|off] [--json]';
 
 // No new entries at or after this local time of day, unless overridden.
 const DEFAULT_ENTRY_CUTOFF = '14:00';
+
+// No new entries in the first N minutes after the regular-hours open.
+const DEFAULT_OPEN_BUFFER = '30';
 
 // CME E-mini S&P 500 regular trading hours: the cash session the contract
 // tracks, 09:30-16:00 in the session timezone (settlement 16:00 ET). Only
@@ -32,6 +35,15 @@ function parseEntryCutoff(value) {
   return hour * 60 + minute;
 }
 
+// Minutes to skip after the regular-hours open. "off"/"0" means no buffer.
+function parseOpenBuffer(value) {
+  if (value === 'off' || value === 'none' || value === '') return 0;
+  if (!/^\d+$/.test(value)) {
+    throw new Error('--open-buffer must be a whole number of minutes or "off"');
+  }
+  return Number(value);
+}
+
 export function runBacktest(args) {
   const { values } = parseArgs({
     args,
@@ -42,6 +54,7 @@ export function runBacktest(args) {
       tz: { type: 'string', default: 'America/New_York' },
       multiplier: { type: 'string', default: '5' },
       session: { type: 'string', default: 'rth' },
+      'open-buffer': { type: 'string', default: DEFAULT_OPEN_BUFFER },
       'entry-cutoff': { type: 'string', default: DEFAULT_ENTRY_CUTOFF },
       json: { type: 'boolean', default: false },
     },
@@ -57,6 +70,7 @@ export function runBacktest(args) {
     throw new Error('--session must be "rth" or "full"');
   }
   const cutoffMinutes = parseEntryCutoff(values['entry-cutoff']);
+  const openMinutes = RTH_OPEN_MINUTES + parseOpenBuffer(values['open-buffer']);
 
   const candles = parseCsv(readFileSync(values.data, 'utf8'));
 
@@ -86,6 +100,7 @@ export function runBacktest(args) {
   }
 
   const { results, summary } = simulate(sessionCandles, orders, multiplier, {
+    openMinutes,
     cutoffMinutes,
     tz: values.tz,
   });

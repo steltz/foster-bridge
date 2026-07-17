@@ -106,6 +106,29 @@ test('no cutoff (default) fills regardless of time of day', () => {
   assert.equal(simulateOrder(longOrder, candles).status, 'TP');
 });
 
+test('does not fill an entry before the open time', () => {
+  const early = Date.UTC(2026, 5, 30, 9, 45) / 1000; // 09:45 UTC == 585 minutes
+  const candles = [c(early, 108, 111, 100, 110)];     // would touch entry and TP
+  assert.deepEqual(simulateOrder(longOrder, candles, { openMinutes: 600, tz: 'UTC' }), {
+    status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+  });
+});
+
+test('fills an entry at or after the open time', () => {
+  const atOpen = Date.UTC(2026, 5, 30, 10, 0) / 1000; // 10:00 UTC == 600 minutes
+  const candles = [c(atOpen, 108, 111, 100, 110)];
+  assert.equal(simulateOrder(longOrder, candles, { openMinutes: 600, tz: 'UTC' }).status, 'TP');
+});
+
+test('open and cutoff together bound the entry window', () => {
+  const early = Date.UTC(2026, 5, 30, 9, 45) / 1000;  // before open -> blocked
+  const inWindow = Date.UTC(2026, 5, 30, 11, 0) / 1000;
+  const candles = [c(early, 108, 111, 100, 101), c(inWindow, 101, 111, 100, 110)];
+  const r = simulateOrder(longOrder, candles, { openMinutes: 600, cutoffMinutes: 840, tz: 'UTC' });
+  assert.equal(r.status, 'TP');
+  assert.equal(r.fillTime, inWindow);
+});
+
 test('simulate threads the cutoff option through to every order', () => {
   const atCutoff = Date.UTC(2026, 5, 30, 14, 0) / 1000;
   const candles = [c(atCutoff, 108, 111, 100, 110)];

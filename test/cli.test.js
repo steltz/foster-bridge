@@ -8,6 +8,7 @@ const chart = fileURLToPath(new URL('./fixtures/chart.csv', import.meta.url));
 const ordersFile = fileURLToPath(new URL('./fixtures/orders.json', import.meta.url));
 const chartRth = fileURLToPath(new URL('./fixtures/chart-rth.csv', import.meta.url));
 const ordersRth = fileURLToPath(new URL('./fixtures/orders-rth.json', import.meta.url));
+const chartOpen = fileURLToPath(new URL('./fixtures/chart-open.csv', import.meta.url));
 
 function run(args) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
@@ -73,9 +74,31 @@ test('defaults to regular trading hours: a pre-market entry does not fill', () =
 });
 
 test('--session full includes hours outside the regular session', () => {
-  const proc = run(['--data', chartRth, '--orders', ordersRth, '--session', 'full', '--json']);
+  // The fill candle is 16:30 ET (post-market), past the 14:00 cutoff.
+  const proc = run(['--data', chartRth, '--orders', ordersRth, '--session', 'full', '--entry-cutoff', 'off', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.equal(JSON.parse(proc.stdout).orders[0].status, 'TP');
+});
+
+test('defaults to blocking entries in the first 30 minutes after the open', () => {
+  // chart-open has a single 09:45 ET candle that would fill; the default
+  // 30-minute open buffer (earliest entry 10:00 ET) blocks it.
+  const proc = run(['--data', chartOpen, '--orders', ordersRth, '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).orders[0].status, 'NOT_FILLED');
+});
+
+test('--open-buffer 0 allows entries right at the open', () => {
+  const proc = run(['--data', chartOpen, '--orders', ordersRth, '--open-buffer', '0', '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).orders[0].status, 'TP');
+});
+
+test('rejects a malformed --open-buffer value', () => {
+  const proc = run(['--data', chartOpen, '--orders', ordersRth, '--open-buffer', 'half']);
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, '');
+  assert.match(proc.stderr, /open-buffer/);
 });
 
 test('errors when a day has no regular-hours candles', () => {
