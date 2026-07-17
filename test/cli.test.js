@@ -6,15 +6,18 @@ import { fileURLToPath } from 'node:url';
 const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
 const chart = fileURLToPath(new URL('./fixtures/chart.csv', import.meta.url));
 const ordersFile = fileURLToPath(new URL('./fixtures/orders.json', import.meta.url));
+const chartRth = fileURLToPath(new URL('./fixtures/chart-rth.csv', import.meta.url));
+const ordersRth = fileURLToPath(new URL('./fixtures/orders-rth.json', import.meta.url));
 
 function run(args) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
 }
 
-// The fixture candles are stamped 23:35 ET, past the default 14:00 entry
-// cutoff, so tests that expect a fill disable the cutoff explicitly.
+// The fixture candles are stamped 23:35 ET — outside regular hours and past
+// the default 14:00 entry cutoff — so tests that expect a fill run in
+// full-session mode with the cutoff disabled.
 test('runs a backtest and emits JSON results', () => {
-  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', 'off', '--json']);
+  const proc = run(['--data', chart, '--orders', ordersFile, '--session', 'full', '--entry-cutoff', 'off', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   const out = JSON.parse(proc.stdout);
   assert.equal(out.session, '2026-06-30');
@@ -30,7 +33,7 @@ test('runs a backtest and emits JSON results', () => {
 });
 
 test('default output is the human-readable table', () => {
-  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', 'off']);
+  const proc = run(['--data', chart, '--orders', ordersFile, '--session', 'full', '--entry-cutoff', 'off']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.match(proc.stdout, /Session: 2026-06-30/);
   assert.match(proc.stdout, /win\s+long\s+TP/);
@@ -38,8 +41,8 @@ test('default output is the human-readable table', () => {
 });
 
 test('defaults to blocking entries after 2pm ET', () => {
-  // No --entry-cutoff: default 14:00 ET blocks the 23:35 ET fixture fill.
-  const proc = run(['--data', chart, '--orders', ordersFile, '--json']);
+  // Full session so the 23:35 ET candles exist; default 14:00 cutoff blocks the fill.
+  const proc = run(['--data', chart, '--orders', ordersFile, '--session', 'full', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   const out = JSON.parse(proc.stdout);
   assert.equal(out.orders[0].status, 'NOT_FILLED');
@@ -47,8 +50,8 @@ test('defaults to blocking entries after 2pm ET', () => {
 });
 
 test('accepts a custom --entry-cutoff time', () => {
-  // 23:40 ET cutoff still allows the 23:35 ET fill.
-  const proc = run(['--data', chart, '--orders', ordersFile, '--entry-cutoff', '23:40', '--json']);
+  // 23:40 ET cutoff still allows the 23:35 ET fill (full session).
+  const proc = run(['--data', chart, '--orders', ordersFile, '--session', 'full', '--entry-cutoff', '23:40', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.equal(JSON.parse(proc.stdout).orders[0].status, 'TP');
 });
@@ -60,8 +63,38 @@ test('rejects a malformed --entry-cutoff value', () => {
   assert.match(proc.stderr, /entry-cutoff/);
 });
 
+test('defaults to regular trading hours: a pre-market entry does not fill', () => {
+  // chart-rth has an 08:00 ET candle that would fill (and is before the 14:00
+  // cutoff, so only RTH can exclude it) and a 10:00 ET candle that does not
+  // touch. RTH is the default, so the pre-market fill is excluded.
+  const proc = run(['--data', chartRth, '--orders', ordersRth, '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).orders[0].status, 'NOT_FILLED');
+});
+
+test('--session full includes hours outside the regular session', () => {
+  const proc = run(['--data', chartRth, '--orders', ordersRth, '--session', 'full', '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).orders[0].status, 'TP');
+});
+
+test('errors when a day has no regular-hours candles', () => {
+  // The overnight fixture (23:35 ET) has no candles inside 09:30-16:00 ET.
+  const proc = run(['--data', chart, '--orders', ordersFile]);
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, '');
+  assert.match(proc.stderr, /regular/i);
+});
+
+test('rejects an unknown --session value', () => {
+  const proc = run(['--data', chartRth, '--orders', ordersRth, '--session', 'weekend']);
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, '');
+  assert.match(proc.stderr, /session/i);
+});
+
 test('respects --tz for session selection', () => {
-  const proc = run(['--data', chart, '--orders', ordersFile, '--tz', 'UTC', '--json']);
+  const proc = run(['--data', chart, '--orders', ordersFile, '--tz', 'UTC', '--session', 'full', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.equal(JSON.parse(proc.stdout).session, '2026-07-01');
 });
@@ -88,7 +121,7 @@ test('errors when required flags are missing', () => {
 });
 
 test('explicit run subcommand works', () => {
-  const proc = run(['run', '--data', chart, '--orders', ordersFile, '--json']);
+  const proc = run(['run', '--data', chart, '--orders', ordersFile, '--session', 'full', '--json']);
   assert.equal(proc.status, 0, proc.stderr);
   assert.equal(JSON.parse(proc.stdout).session, '2026-06-30');
 });

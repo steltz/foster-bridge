@@ -52,3 +52,11 @@ export function latestDate(candles, tz) {
 export function filterDay(candles, date, tz) {
   return candles.filter((c) => dateForTimestamp(c.time, tz) === date);
 }
+
+// Keeps candles whose local time of day is in [openMinutes, closeMinutes).
+export function filterTimeWindow(candles, tz, openMinutes, closeMinutes) {
+  return candles.filter((c) => {
+    const m = minutesOfDayForTimestamp(c.time, tz);
+    return m >= openMinutes && m < closeMinutes;
+  });
+}

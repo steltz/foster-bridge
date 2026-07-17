@@ -2,17 +2,23 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { parseCsv } from './parse-csv.js';
 import { normalizeOrders } from './orders.js';
-import { filterDay, latestDate } from './session.js';
+import { filterDay, filterTimeWindow, latestDate } from './session.js';
 import { simulate } from './engine.js';
 import { formatTable } from './report.js';
 
 const USAGE =
   'Usage: backtest [run] --data <chart.csv> --orders <orders.json> ' +
   '[--date YYYY-MM-DD] [--tz <IANA timezone>] [--multiplier <n>] ' +
-  '[--entry-cutoff HH:MM|off] [--json]';
+  '[--session rth|full] [--entry-cutoff HH:MM|off] [--json]';
 
 // No new entries at or after this local time of day, unless overridden.
 const DEFAULT_ENTRY_CUTOFF = '14:00';
+
+// CME E-mini S&P 500 regular trading hours: the cash session the contract
+// tracks, 09:30-16:00 in the session timezone (settlement 16:00 ET). Only
+// candles inside this window are considered unless --session full is passed.
+const RTH_OPEN_MINUTES = 9 * 60 + 30;
+const RTH_CLOSE_MINUTES = 16 * 60;
 
 // Returns minutes since local midnight, or null when the cutoff is disabled.
 function parseEntryCutoff(value) {
@@ -35,6 +41,7 @@ export function runBacktest(args) {
       date: { type: 'string' },
       tz: { type: 'string', default: 'America/New_York' },
       multiplier: { type: 'string', default: '5' },
+      session: { type: 'string', default: 'rth' },
       'entry-cutoff': { type: 'string', default: DEFAULT_ENTRY_CUTOFF },
       json: { type: 'boolean', default: false },
     },
@@ -45,6 +52,9 @@ export function runBacktest(args) {
   if (!Number.isFinite(multiplier)) throw new Error('--multiplier must be a number');
   if (values.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(values.date)) {
     throw new Error('--date must be YYYY-MM-DD');
+  }
+  if (values.session !== 'rth' && values.session !== 'full') {
+    throw new Error('--session must be "rth" or "full"');
   }
   const cutoffMinutes = parseEntryCutoff(values['entry-cutoff']);
 
@@ -64,7 +74,18 @@ export function runBacktest(args) {
     throw new Error(`No candles found for ${session} (${values.tz})`);
   }
 
-  const { results, summary } = simulate(dayCandles, orders, multiplier, {
+  const sessionCandles =
+    values.session === 'rth'
+      ? filterTimeWindow(dayCandles, values.tz, RTH_OPEN_MINUTES, RTH_CLOSE_MINUTES)
+      : dayCandles;
+  if (sessionCandles.length === 0) {
+    throw new Error(
+      `No regular-hours (09:30-16:00 ${values.tz}) candles for ${session}; ` +
+        'pass --session full to include extended hours'
+    );
+  }
+
+  const { results, summary } = simulate(sessionCandles, orders, multiplier, {
     cutoffMinutes,
     tz: values.tz,
   });
