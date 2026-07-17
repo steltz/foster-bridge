@@ -92,6 +92,13 @@ test('transcriptToMarkdown renders header and lines, skips empty segments', () =
   ]);
   assert.equal(md, "# Transcript\n\n**00:00** first\n**01:23** second's\n");
 });
+
+test('transcriptToMarkdown collapses embedded newlines to spaces', () => {
+  const md = transcriptToMarkdown([
+    { text: 'You know the rules\nand so do I', offset: 22, duration: 4 },
+  ]);
+  assert.equal(md, '# Transcript\n\n**00:22** You know the rules and so do I\n');
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -129,7 +136,7 @@ export function formatOffset(seconds) {
 export function transcriptToMarkdown(segments) {
   const lines = [];
   for (const seg of segments) {
-    const text = decodeEntities(String(seg.text ?? '')).trim();
+    const text = decodeEntities(String(seg.text ?? '')).replace(/\s+/g, ' ').trim();
     if (!text) continue;
     lines.push(`**${formatOffset(seg.offset)}** ${text}`);
   }
@@ -140,7 +147,7 @@ export function transcriptToMarkdown(segments) {
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/transcript.test.js`
-Expected: PASS — 4 tests pass
+Expected: PASS — 5 tests pass
 
 - [ ] **Step 5: Commit**
 
@@ -285,7 +292,7 @@ Expected: PASS — 8 tests (6 existing including flag-style back-compat, plus th
 - [ ] **Step 6: Run the full suite**
 
 Run: `npm test`
-Expected: PASS — 46 tests (40 existing + 4 from Task 2 + 2 new), 0 fail
+Expected: PASS — 47 tests (40 existing + 5 from Task 2 + 2 new), 0 fail
 
 - [ ] **Step 7: Commit**
 
@@ -376,7 +383,7 @@ Expected: FAIL — `Cannot find module .../src/transcript-command.js`
 
 - [ ] **Step 3: Write the implementation**
 
-Create `src/transcript-command.js`. **Set `OFFSET_DIVISOR` from Task 1's probe:** `1` if the package returned seconds, `1000` if milliseconds — and state the probed package version in the comment:
+Create `src/transcript-command.js` (`OFFSET_DIVISOR = 1000` per Task 1's probe: youtube-transcript@1.3.1 returns milliseconds):
 
 ```js
 import { parseArgs } from 'node:util';
@@ -384,10 +391,10 @@ import { transcriptToMarkdown } from './transcript.js';
 
 const USAGE = 'Usage: backtest transcript <youtube-url-or-id> [--json]';
 
-// youtube-transcript@<version from Task 1> returns offsets in <unit from Task 1
-// probe>; this divisor normalizes them to seconds at the command boundary so
-// src/transcript.js always works in seconds.
-export const OFFSET_DIVISOR = 1;
+// youtube-transcript@1.3.1 returns offset and duration in MILLISECONDS
+// (verified by live probe, Task 1); this divisor normalizes them to seconds at
+// the command boundary so src/transcript.js always works in seconds.
+export const OFFSET_DIVISOR = 1000;
 
 async function defaultFetch(urlOrId) {
   const { YoutubeTranscript } = await import('youtube-transcript');
@@ -464,7 +471,7 @@ Run: `node --test test/transcript-command.test.js`
 Expected: PASS — 4 tests
 
 Run: `npm test`
-Expected: PASS — 50 tests (46 after Task 3 + 4 new), 0 fail
+Expected: PASS — 51 tests (47 after Task 3 + 4 new), 0 fail
 
 - [ ] **Step 6: Live smoke test**
 
