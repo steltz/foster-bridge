@@ -1,0 +1,9 @@
+{
+  "name": "foster-bridge",
+  "version": "0.1.0",
+  "description": "CLI backtester for candlestick OHLC data",
+  "type": "module",
+  "bin": { "backtest": "./src/cli.js" },
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=20" }
+}
