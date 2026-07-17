@@ -110,20 +110,21 @@ sinks the panel.
 
 ### Phase 3 — Validate and execute (inline, after the workflow)
 
-For each returned setup:
+The orchestrator performs NO validation of its own — the CLI is the single
+source of truth for all deterministic judgment. For each returned setup:
 
-1. **Validate** against the CLI's own order rules (long:
-   `stopLoss < entry < takeProfit`; short mirrored) plus a sanity check that
-   the entry lies inside the session's low–high range extended by 5% of that
-   range on each side (catches personas hallucinating prices from the wrong
-   instrument or day). Invalid → persona is marked `INVALID` (with the
-   reason) in the report; no retry in MVP.
-2. **Execute**: write `{ "id": "<persona>", "side": ..., "entry": ...,
+1. **Execute**: write `{ "id": "<persona>", "side": ..., "entry": ...,
    "stopLoss": ..., "takeProfit": ... }` as a single-order JSON file in the
    session scratchpad, then run:
    `node src/cli.js run --data "<csv>" --orders <file> --date <YYYY-MM-DD> --json`
-   One CLI run per persona so each result is traceable. A CLI failure for one
-   persona marks that persona `CLI_ERROR` (with stderr) and continues.
+   One CLI run per persona so each result is traceable.
+2. **Interpret the CLI's verdict**: exit 0 → the persona's row shows the
+   CLI-reported result (`TP`/`SL`/`EOD`/`NOT_FILLED` — a far-off entry is
+   simply `NOT_FILLED`, which is the honest deterministic answer). Exit 1
+   with the CLI's order-validation message (e.g. long requires
+   `stopLoss < entry < takeProfit`) → the persona is marked `INVALID` with
+   that message. Any other CLI failure → `CLI_ERROR` (with stderr). The
+   panel continues in every case.
 
 ### Phase 4 — Report (inline)
 
@@ -175,8 +176,8 @@ expected to be replaced by real persona work later.
 | Panel report already exists | Abort unless `force` |
 | No persona files | Abort, point at `traders/` |
 | One persona agent fails | `NO_SETUP` row, panel continues |
-| Setup violates order rules | `INVALID` row with reason |
-| CLI run fails for one persona | `CLI_ERROR` row with stderr |
+| CLI rejects the order (its validation) | `INVALID` row with the CLI's message |
+| CLI fails any other way | `CLI_ERROR` row with stderr |
 
 ## Testing
 
