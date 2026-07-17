@@ -1,6 +1,6 @@
 ---
 name: trader-panel
-description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
+description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/) plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
 ---
 
 # Trader Panel — daily persona backtest
@@ -51,15 +51,20 @@ validation of setups yourself.
 5. **Discover personas:** every `traders/*.md` file; persona name = the
    `name:` frontmatter value (fall back to the filename without `.md`).
    None → abort pointing at `traders/`.
+6. **Discover general strategy docs:** every file under
+   `knowledge-base/general/` (recursively), e.g.
+   `find knowledge-base/general -type f | sort`. These are session-agnostic
+   instructions EVERY persona reads in addition to the day docs. An empty or
+   missing directory is not fatal — proceed with no general docs.
 
 ## Phase 2 — Persona fan-out (ONE Workflow invocation)
 
 Launch the Workflow tool with the script below. INLINE the resolved values
-directly into the script's `DATE`/`DOCS`/`PERSONAS` constants — do NOT pass
-them through the Workflow `args` parameter (live verification showed args can
-arrive undefined; inlining is deterministic):
+directly into the script's `DATE`/`DOCS`/`GENERAL`/`PERSONAS` constants — do
+NOT pass them through the Workflow `args` parameter (live verification showed
+args can arrive undefined; inlining is deterministic):
 
-Workflow script (fill in the three constants, pass the rest verbatim):
+Workflow script (fill in the four constants, pass the rest verbatim):
 
 ```js
 export const meta = {
@@ -73,6 +78,11 @@ const DOCS = {
   plan: '<absolute path to *_ES_TP.md>',
   recap: '<absolute path to *_ES_RECAP.md>',
 }
+// Absolute paths to every file under knowledge-base/general/ (step 6).
+// Empty array if the directory holds no docs.
+const GENERAL = [
+  '<absolute path to knowledge-base/general/<doc>>',
+]
 const PERSONAS = [
   { name: '<persona name>', file: '<absolute path to traders/<persona>.md>' },
 ]
@@ -89,9 +99,14 @@ const SETUP_SCHEMA = {
   additionalProperties: false,
 }
 phase('Setups')
+const generalBlock = GENERAL.length
+  ? `Next Read ALL of these general trading-strategy documents — session-agnostic guidance that applies to every trade and constrains how this persona operates:\n` +
+    GENERAL.map((g, i) => `- ${g}`).join('\n') + `\n\n`
+  : ''
 const results = await parallel(PERSONAS.map((p) => () =>
   agent(
     `You are a futures trading persona on a daily panel. First Read the persona file at ${p.file} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
+    generalBlock +
     `Then Read the three documents for the ${DATE} ES (E-mini S&P 500) session:\n` +
     `1. Trade plan worksheet (PDF, support/resistance zones): ${DOCS.pdf}\n` +
     `2. Trade plan video transcript: ${DOCS.plan}\n` +
