@@ -3,7 +3,16 @@
   "version": "0.1.0",
   "description": "CLI backtester for candlestick OHLC data",
   "type": "module",
-  "bin": { "backtest": "./src/cli.js" },
-  "scripts": { "test": "node --test" },
-  "engines": { "node": ">=20" }
+  "bin": {
+    "backtest": "./src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "youtube-transcript": "1.3.1"
+  }
 }
