@@ -142,7 +142,7 @@ Never fix, clamp, or re-request a persona's prices.
 ## Phase 4 — Report and commit (write ONCE, at the end)
 
 Write `<docPrefix>_ES_PANEL.md` into the day folder, where `<docPrefix>` is
-the same 8-digit prefix the docs use (e.g. `07162026`). Format:
+the same 8-digit prefix the trade-plan docs use (e.g. `07162026`). Format:
 
 ```markdown
 # Trader Panel — ES <YYYY-MM-DD>
