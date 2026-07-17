@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-17-backtest-cli.md
+  s_7c17fe270248b3::t_a38f813cb0d6cf 324-325,667-668
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ee38be2746a7eff92cec744f22a5c66cbb0ff73f",
+  "prompts": {},
+  "sessions": {
+    "s_7c17fe270248b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8aa8cc3-c947-4eb4-8da2-65815dd5e31c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
