@@ -1,0 +1,20 @@
+traders/context-trader.md
+  s_f0fa624977dd61::t_a200045ed155bd 46-48
+  s_f0fa624977dd61::t_5f1ae7cec2560d 28-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "16d46ec815de505f57f4417e7f234d9e060718e3",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
