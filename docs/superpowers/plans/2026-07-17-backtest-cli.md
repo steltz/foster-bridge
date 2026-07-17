@@ -321,8 +321,8 @@ git commit -m "feat: validate and normalize orders JSON"
 - Create: `src/session.js`
 - Test: `test/session.test.js`
 
-Timestamp facts used by the tests: `1782876900` = 2026-07-01T03:45:00Z, which is
-2026-06-30 23:45 in `America/New_York` (EDT, UTC-4) — so the New York date and
+Timestamp facts used by the tests: `1782876900` = 2026-07-01T03:35:00Z, which is
+2026-06-30 23:35 in `America/New_York` (EDT, UTC-4) — so the New York date and
 the UTC date differ for the same instant.
 
 - [ ] **Step 1: Write the failing tests**
@@ -664,8 +664,8 @@ test('formats a session header, order rows, and summary', () => {
   const out = formatTable(payload, 'America/New_York');
   assert.match(out, /Session: 2026-06-30/);
   assert.match(out, /ID\s+SIDE\s+STATUS\s+FILL\s+EXIT\s+EXIT PX\s+PTS\s+USD/);
-  // 1782876900 = 23:45 New York, 1782877200 = 23:50
-  assert.match(out, /long-1\s+long\s+TP\s+23:45\s+23:50\s+110\s+10\.00\s+50\.00/);
+  // 1782876900 = 23:35 New York, 1782877200 = 23:40
+  assert.match(out, /long-1\s+long\s+TP\s+23:35\s+23:40\s+110\s+10\.00\s+50\.00/);
   assert.match(out, /miss\s+short\s+NOT_FILLED\s+-\s+-\s+-\s+-\s+-/);
   assert.match(out, /Orders: 2 {2}Filled: 1 {2}Wins: 1 {2}Losses: 0/);
   assert.match(out, /Net: 10\.00 pts {2}\$50\.00/);
