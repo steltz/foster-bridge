@@ -37,9 +37,11 @@ traders/*.md                      — persona prompt files (one per persona)
 ```
 
 **Date rule:** the CLI `--date` (true `YYYY-MM-DD`) is derived from the
-8-digit `MMDDYYYY` prefix of the files *inside* the day folder — never from
-the folder name, whose year is unreliable. If the three docs carry
-conflicting date prefixes, abort and say so.
+8-digit `MMDDYYYY` prefix of the two trade-plan docs (`*_ES_TP.pdf` and
+`*_ES_TP.md`) — never from the folder name, whose year is unreliable. Those
+two prefixes must agree; a conflict aborts. The recap file is named for the
+prior session it recaps, so its prefix is expected to differ and is exempt
+from the agreement check.
 
 ## Skill structure
 
@@ -60,8 +62,11 @@ everything needed with zero conversation context.
 
 1. Resolve the day folder: explicit `MMDDYYYY` argument, else the latest
    folder under `knowledge-base/es/` that contains all three docs AND no
-   existing `*_ES_PANEL.md`. If the chosen folder already has a panel report,
-   abort unless the user said `force` (force overwrites the report).
+   existing `*_ES_PANEL.md`, where "latest" is chronological by the
+   `*_ES_TP.md` date prefix re-keyed `YYYYMMDD` (never folder-name order).
+   If the chosen folder already has a panel report, abort unless the user
+   said `force`. `force` without a day argument means: take the latest
+   complete folder even if it has a report, and overwrite that report.
 2. Locate the three docs by suffix; derive the CLI date per the Date rule.
 3. Verify the ticker CSV contains candles for that date (single awk/grep
    pass). Missing → abort naming the date.
@@ -171,7 +176,7 @@ expected to be replaced by real persona work later.
 | Condition | Behavior |
 |---|---|
 | Day folder missing / docs missing | Abort, name the missing piece |
-| Conflicting date prefixes in docs | Abort, show the conflict |
+| Trade-plan doc prefixes (pdf vs md) conflict | Abort, show the conflict |
 | No candles for the date | Abort, name the date and CSV |
 | Panel report already exists | Abort unless `force` |
 | No persona files | Abort, point at `traders/` |

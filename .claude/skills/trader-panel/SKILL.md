@@ -15,20 +15,27 @@ validation of setups yourself.
 ## Phase 1 — Preflight (no agents; abort early with ONE specific message)
 
 1. **Resolve the day folder.** With an `MMDDYYYY` argument use
-   `knowledge-base/es/<MMDDYYYY>/`. Without one, scan
-   `ls knowledge-base/es/ | sort -r` and pick the first (latest) folder that
-   contains all three docs (step 2) and no `*_ES_PANEL.md`. If a chosen
-   folder already has a `*_ES_PANEL.md` and `force` was not given, abort:
-   name the existing report and tell the user to pass `force` to overwrite.
+   `knowledge-base/es/<MMDDYYYY>/`. Without one, consider every folder under
+   `knowledge-base/es/` that contains all three docs (step 2), order them
+   chronologically by the date prefix of their `*_ES_TP.md` re-keyed as
+   `YYYYMMDD` (never by folder name — lexicographic `MMDDYYYY` ordering
+   breaks across year boundaries), and pick the latest without a
+   `*_ES_PANEL.md`. If `force` was given without a day argument, do not skip
+   folders with reports: pick the latest complete folder and overwrite its
+   report. If a chosen folder already has a `*_ES_PANEL.md` and `force` was
+   not given, abort: name the existing report and tell the user to pass
+   `force` to overwrite.
 2. **Locate the three docs** inside the folder by suffix:
    - `*_ES_TP.pdf` (trade plan worksheet)
    - `*_ES_TP.md` (plan video transcript)
    - `*_ES_RECAP.md` (prior-session recap transcript)
    Any missing → abort naming exactly which suffix is absent.
-3. **Derive the CLI date** from the 8-digit `MMDDYYYY` prefix of the doc
-   FILENAMES (never the folder name — its year is unreliable). All doc
-   prefixes must agree; if they conflict, abort showing the conflicting
-   names. Convert to `YYYY-MM-DD` (e.g. `07162026` → `2026-07-16`).
+3. **Derive the CLI date** from the 8-digit `MMDDYYYY` prefix of the two
+   trade-plan doc FILENAMES (`*_ES_TP.pdf` and `*_ES_TP.md`) — never the
+   folder name, whose year is unreliable. Those two prefixes must agree; if
+   they conflict, abort showing both names. The recap is named for the PRIOR
+   session it recaps, so its prefix is expected to differ and is exempt from
+   this check. Convert to `YYYY-MM-DD` (e.g. `07162026` → `2026-07-16`).
 4. **Verify candle coverage.** `CSV=$(ls ticker-data/MES/min-5/*.csv | head -1)`,
    then count that day's candles using the repo's own modules:
 
