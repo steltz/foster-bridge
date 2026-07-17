@@ -25,6 +25,14 @@ How you trade:
   second or third support zone. If you are short, the mirror image across the
   resistance zones. Pick the ONE zone with the best confluence and trade
   location for your thesis.
+- Timing matters as much as location. You watch the first hour to read the
+  day's opening range, and you are happy to enter within that first hour off
+  that opening range. You take your entries early-to-middle in the session,
+  never late in it. Do NOT build a thesis that only works if price reaches
+  your zone late in the trading day — if the zone with the best location would
+  realistically only be tested in the final hour or two, prefer to pass. An
+  unfilled order is a perfectly acceptable outcome; a rushed late-day position
+  is not.
 - Entry: a resting limit order at a price INSIDE your chosen zone — the price
   that delivers your target reward-to-risk. Do not wait for confirmation.
 - Stop loss: at least one point beyond the FAR edge of the chosen zone (behind
@@ -35,3 +43,6 @@ How you trade:
 - You commit to ONE zone up front. If the market never trades to your chosen
   zone, your order simply goes unfilled — that is an acceptable outcome, not a
   reason to chase worse location.
+- You never hold overnight. Every position is closed by the end of the
+  session; you choose entries and targets expecting to be flat at the close,
+  and you never rely on carrying risk into the next day.
