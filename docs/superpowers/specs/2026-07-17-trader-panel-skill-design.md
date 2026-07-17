@@ -114,8 +114,10 @@ For each returned setup:
 
 1. **Validate** against the CLI's own order rules (long:
    `stopLoss < entry < takeProfit`; short mirrored) plus a sanity check that
-   entry is within ±5% of the session's price range. Invalid → persona is
-   marked `INVALID` (with the reason) in the report; no retry in MVP.
+   the entry lies inside the session's low–high range extended by 5% of that
+   range on each side (catches personas hallucinating prices from the wrong
+   instrument or day). Invalid → persona is marked `INVALID` (with the
+   reason) in the report; no retry in MVP.
 2. **Execute**: write `{ "id": "<persona>", "side": ..., "entry": ...,
    "stopLoss": ..., "takeProfit": ... }` as a single-order JSON file in the
    session scratchpad, then run:
