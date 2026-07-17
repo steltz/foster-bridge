@@ -80,3 +80,13 @@ test('fixture round-trip: real Vimeo markup parses into the expected markdown', 
   assert.match(md, /\*\*00:25\*\* into the recent multi-day range\./);
   assert.equal(md.trim().split('\n').length, 6); // header + blank + 4 cue lines
 });
+
+test('minified build defines the same working global and helpers', () => {
+  const minPath = fileURLToPath(new URL('../tools/vimeo-transcript-copy.min.js', import.meta.url));
+  const minSrc = readFileSync(minPath, 'utf8');
+  const minified = new Function(`${minSrc}\nreturn copyVimeoTranscript;`)();
+  assert.equal(typeof minified, 'function');
+  const cues = minified.extractCues(stubRoot([stubCue('transcript-cue-3', 'mini', '00:09')]));
+  assert.deepEqual(cues, [{ index: 3, timestamp: '00:09', text: 'mini' }]);
+  assert.equal(minified.toMarkdown(cues), '# Transcript\n\n**00:09** mini\n');
+});
