@@ -45,16 +45,19 @@ test('errors on a --date with no candles', () => {
   const proc = run(['--data', chart, '--orders', ordersFile, '--date', '2020-01-01']);
   assert.equal(proc.status, 1);
   assert.match(proc.stderr, /No candles found for 2020-01-01/);
+  assert.equal(proc.stdout, '');
 });
 
 test('errors on a missing data file', () => {
   const proc = run(['--data', 'nope.csv', '--orders', ordersFile]);
   assert.equal(proc.status, 1);
   assert.match(proc.stderr, /nope\.csv/);
+  assert.equal(proc.stdout, '');
 });
 
 test('errors when required flags are missing', () => {
   const proc = run([]);
   assert.equal(proc.status, 1);
   assert.match(proc.stderr, /Usage:/);
+  assert.equal(proc.stdout, '');
 });
