@@ -61,3 +61,16 @@ test('errors when required flags are missing', () => {
   assert.match(proc.stderr, /Usage:/);
   assert.equal(proc.stdout, '');
 });
+
+test('explicit run subcommand works', () => {
+  const proc = run(['run', '--data', chart, '--orders', ordersFile, '--json']);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.equal(JSON.parse(proc.stdout).session, '2026-06-30');
+});
+
+test('unknown command errors with usage', () => {
+  const proc = run(['bogus']);
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, '');
+  assert.match(proc.stderr, /Unknown command "bogus"/);
+});

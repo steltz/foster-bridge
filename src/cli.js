@@ -1,58 +1,21 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
-import { parseArgs } from 'node:util';
-import { parseCsv } from './parse-csv.js';
-import { normalizeOrders } from './orders.js';
-import { filterDay, latestDate } from './session.js';
-import { simulate } from './engine.js';
-import { formatTable } from './report.js';
+import { runBacktest } from './run-command.js';
 
 const USAGE =
-  'Usage: backtest --data <chart.csv> --orders <orders.json> ' +
-  '[--date YYYY-MM-DD] [--tz <IANA timezone>] [--multiplier <n>] [--json]';
+  'Usage: backtest <command> ...\n' +
+  'Commands:\n' +
+  '  run         Backtest orders against OHLC data (default when flags are given)\n' +
+  '  transcript  Fetch a YouTube video transcript as markdown';
 
 try {
-  const { values } = parseArgs({
-    args: process.argv.slice(2),
-    options: {
-      data: { type: 'string' },
-      orders: { type: 'string' },
-      date: { type: 'string' },
-      tz: { type: 'string', default: 'America/New_York' },
-      multiplier: { type: 'string', default: '5' },
-      json: { type: 'boolean', default: false },
-    },
-  });
-
-  if (!values.data || !values.orders) throw new Error(USAGE);
-  const multiplier = Number(values.multiplier);
-  if (!Number.isFinite(multiplier)) throw new Error('--multiplier must be a number');
-  if (values.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(values.date)) {
-    throw new Error('--date must be YYYY-MM-DD');
-  }
-
-  const candles = parseCsv(readFileSync(values.data, 'utf8'));
-
-  let rawOrders;
-  try {
-    rawOrders = JSON.parse(readFileSync(values.orders, 'utf8'));
-  } catch (err) {
-    throw new Error(`Cannot read orders file: ${err.message}`);
-  }
-  const orders = normalizeOrders(rawOrders);
-
-  const session = values.date ?? latestDate(candles, values.tz);
-  const dayCandles = filterDay(candles, session, values.tz);
-  if (dayCandles.length === 0) {
-    throw new Error(`No candles found for ${session} (${values.tz})`);
-  }
-
-  const { results, summary } = simulate(dayCandles, orders, multiplier);
-
-  if (values.json) {
-    console.log(JSON.stringify({ session, orders: results, summary }, null, 2));
+  const argv = process.argv.slice(2);
+  const [first, ...rest] = argv;
+  if (first === 'run') {
+    runBacktest(rest);
+  } else if (first === undefined || first.startsWith('--')) {
+    runBacktest(argv); // back-compat: flag-style invocation means "run"
   } else {
-    console.log(formatTable({ session, results, summary }, values.tz));
+    throw new Error(`Unknown command "${first}"\n${USAGE}`);
   }
 } catch (err) {
   console.error(err.message);
