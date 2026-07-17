@@ -1,0 +1,4 @@
+[
+  { "id": "win", "side": "long", "entry": 100, "stopLoss": 95, "takeProfit": 110 },
+  { "id": "miss", "side": "long", "entry": 90, "stopLoss": 85, "takeProfit": 95 }
+]
