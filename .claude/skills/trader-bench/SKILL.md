@@ -137,14 +137,11 @@ log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
 return results.filter(Boolean)
 ```
 
-Any cell absent from the returned array (its agent died) still gets a cell
-file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench
-continues.
+If the Workflow invocation itself fails or returns no results array at all, abort WITHOUT writing any cells — the matrix stays untouched and a rerun tops up cleanly. When the Workflow succeeds, any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues.
 
 ## Phase 3 — Judge and persist (no validation of your own)
 
-For each cell in the missing set, in the session scratchpad write
-`bench-<trader>-<day>-<runIndex>.json`:
+For each returned setup, in the session scratchpad write `bench-<trader>-<day>-<runIndex>.json` (NO_SETUP cells skip the CLI and go straight to the cell-file write):
 
 ```json
 [{ "id": "<trader>", "side": "<side>", "entry": <entry>, "stopLoss": <stopLoss>, "takeProfit": <takeProfit> }]
@@ -184,7 +181,7 @@ format:
   "timestamp": "<current ISO-8601 UTC time>",
   "personaSha256": "<hash from Phase 1>",
   "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
-  "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": 0, "exitTime": 0 },
+  "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
   "note": "<only for INVALID / CLI_ERROR>"
 }
 ```
