@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeScoreboard } from '../src/scoreboard.js';
+import { computeScoreboard, renderScoreboard } from '../src/scoreboard.js';
 
 // Minimal cell factory; override any field per test.
 function cell(overrides = {}) {
@@ -124,4 +124,67 @@ test('ranking sorts groups by mean dollars descending and reports maxCells', () 
   const { groups, maxCells } = computeScoreboard(cells);
   assert.deepEqual(groups.map((g) => g.trader), ['winner', 'loser']);
   assert.equal(maxCells, 2);
+});
+
+test('ranking ties on mean dollars break alphabetically by trader, then model', () => {
+  const tied = (trader) => cell({ trader }); // identical result cells → identical meanDollars
+  for (const ordering of [
+    [tied('zeta'), tied('alpha')],
+    [tied('alpha'), tied('zeta')],
+  ]) {
+    const { groups } = computeScoreboard(ordering);
+    assert.deepEqual(groups.map((g) => g.trader), ['alpha', 'zeta']);
+  }
+});
+
+test('hostile trader/alias names never collide into one group', () => {
+  const cells = [
+    cell({ trader: 'a","b', model: { alias: 'c', id: 'x' } }),
+    cell({ trader: 'a', model: { alias: 'b","c', id: 'x' } }),
+  ];
+  const { groups } = computeScoreboard(cells);
+  assert.equal(groups.length, 2);
+});
+
+test('renders ranking table, group details, and coverage', () => {
+  const cells = [
+    cell({ trader: 'winner', runIndex: 1 }),
+    cell({ trader: 'winner', runIndex: 2, result: { status: 'NOT_FILLED', points: null, dollars: null } }),
+    cell({ trader: 'loser', result: { status: 'SL', points: -10, dollars: -50 } }),
+  ];
+  const out = renderScoreboard(computeScoreboard(cells));
+  assert.match(out, /# Trader Scoreboard/);
+  assert.match(out, /never combined across traders or models/i);
+  // ranking rows in mean-dollars order, winner first
+  assert.match(out, /\| 1 \| winner \| fable \| 1 \| 2 \| 75\.00 \|/);
+  assert.match(out, /\| 2 \| loser \| fable \| 1 \| 1 \| -50\.00 \|/);
+  // group detail sections
+  assert.match(out, /## winner @ fable/);
+  assert.match(out, /## loser @ fable/);
+  // per-run totals for winner: run 1 filled 150, run 2 not filled 0
+  assert.match(out, /\| 1 \| 1 \| 30 \| 150\.00 \|/);
+  assert.match(out, /\| 2 \| 1 \| 0 \| 0\.00 \|/);
+  // stability row: day, runs, sides, spread
+  assert.match(out, /\| 07012026 \| 2 \| 2L\/0S \| 0\.00 \|/);
+  // coverage flags the under-tested group
+  assert.match(out, /## Coverage/);
+  assert.match(out, /\| loser \| fable \| 1 \| 1 \| 1 \| ⚠ under-tested \(max 2\) \|/);
+  assert.match(out, /\| winner \| fable \| 2 \| 1 \| 2 \| ok \|/);
+});
+
+test('renders null rates and pipeline errors as readable text', () => {
+  const cells = [
+    cell({ runIndex: 1, result: { status: 'NOT_FILLED', points: null, dollars: null } }),
+    cell({ runIndex: 2, setup: undefined, result: { status: 'NO_SETUP' } }),
+    cell({ runIndex: 3, result: { status: 'INVALID' }, note: 'bad prices' }),
+  ];
+  const out = renderScoreboard(computeScoreboard(cells));
+  assert.match(out, /\| - \| 0% \|/); // null win rate renders as -, zero fill rate as 0%
+  assert.match(out, /- 07012026 run-2: NO_SETUP/);
+  assert.match(out, /- 07012026 run-3: INVALID — bad prices/);
+});
+
+test('renders "None." when a group has no pipeline errors', () => {
+  const out = renderScoreboard(computeScoreboard([cell()]));
+  assert.match(out, /### Pipeline errors\n\nNone\./);
 });

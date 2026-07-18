@@ -26,7 +26,12 @@ export function computeScoreboard(cells) {
     byGroup.get(key).push(c);
   }
   const groups = [...byGroup.values()].map(summarizeGroup);
-  groups.sort((a, b) => b.meanDollars - a.meanDollars);
+  groups.sort(
+    (a, b) =>
+      b.meanDollars - a.meanDollars ||
+      a.trader.localeCompare(b.trader) ||
+      a.model.localeCompare(b.model)
+  );
   const maxCells = groups.reduce((m, g) => Math.max(m, g.cellCount), 0);
   return { groups, maxCells };
 }
@@ -98,4 +103,79 @@ function summarizeGroup(cells) {
     stability,
     errors,
   };
+}
+
+const money = (v) => (v == null ? '-' : v.toFixed(2));
+const pct = (v) => (v == null ? '-' : `${Math.round(v * 100)}%`);
+const pts = (v) => (v == null ? '-' : String(v));
+
+export function renderScoreboard({ groups, maxCells }) {
+  const totalCells = groups.reduce((s, g) => s + g.cellCount, 0);
+  const lines = [
+    '# Trader Scoreboard',
+    '',
+    `${totalCells} cells · ${groups.length} trader@model groups. ` +
+      'Every group is scored alone; P&L is never combined across traders or models.',
+    '',
+    '## Ranking (mean net USD per run)',
+    '',
+    '| # | Trader | Model | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
+    ...groups.map(
+      (g, i) =>
+        `| ${i + 1} | ${g.trader} | ${g.model} | ${g.days.length} | ${g.runIndices.length} ` +
+        `| ${money(g.meanDollars)} | ${money(g.stdDollars)} | ${money(g.minRunDollars)} ` +
+        `| ${money(g.maxRunDollars)} | ${pct(g.winRate)} | ${pct(g.fillRate)} |`
+    ),
+  ];
+
+  for (const g of groups) {
+    lines.push(
+      '',
+      `## ${g.trader} @ ${g.model}`,
+      '',
+      '| Run | Days | Pts | USD |',
+      '|---|---|---|---|',
+      ...g.runTotals.map(
+        (r) => `| ${r.runIndex} | ${r.days} | ${r.points} | ${money(r.dollars)} |`
+      ),
+      '',
+      `Wins: ${g.winCount} · Losses: ${g.lossCount} · ` +
+        `Avg win: ${pts(g.avgWinPoints)} pts · Avg loss: ${pts(g.avgLossPoints)} pts`,
+      '',
+      '### Setup stability',
+      '',
+      '| Day | Runs | Sides | Entry spread |',
+      '|---|---|---|---|',
+      ...g.stability.map(
+        (s) => `| ${s.day} | ${s.runs} | ${s.long}L/${s.short}S | ${s.entrySpread.toFixed(2)} |`
+      ),
+      '',
+      '### Pipeline errors',
+      '',
+      ...(g.errors.length
+        ? g.errors.map(
+            (e) => `- ${e.day} run-${e.runIndex}: ${e.status}${e.note ? ` — ${e.note}` : ''}`
+          )
+        : ['None.'])
+    );
+  }
+
+  lines.push(
+    '',
+    '## Coverage',
+    '',
+    '| Trader | Model | Cells | Days | Runs | Status |',
+    '|---|---|---|---|---|---|',
+    ...[...groups]
+      .sort((a, b) => a.trader.localeCompare(b.trader) || a.model.localeCompare(b.model))
+      .map(
+        (g) =>
+          `| ${g.trader} | ${g.model} | ${g.cellCount} | ${g.days.length} | ${g.runIndices.length} ` +
+          `| ${g.cellCount < maxCells ? `⚠ under-tested (max ${maxCells})` : 'ok'} |`
+      ),
+    ''
+  );
+
+  return lines.join('\n');
 }
