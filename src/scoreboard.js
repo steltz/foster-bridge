@@ -29,8 +29,8 @@ export function computeScoreboard(cells) {
   groups.sort(
     (a, b) =>
       b.meanDollars - a.meanDollars ||
-      a.trader.localeCompare(b.trader) ||
-      a.model.localeCompare(b.model)
+      a.trader.localeCompare(b.trader, 'en') ||
+      a.model.localeCompare(b.model, 'en')
   );
   const maxCells = groups.reduce((m, g) => Math.max(m, g.cellCount), 0);
   return { groups, maxCells };
@@ -107,7 +107,7 @@ function summarizeGroup(cells) {
 
 const money = (v) => (v == null ? '-' : v.toFixed(2));
 const pct = (v) => (v == null ? '-' : `${Math.round(v * 100)}%`);
-const pts = (v) => (v == null ? '-' : String(v));
+const pts = (v) => (v == null ? '-' : v.toFixed(2));
 
 export function renderScoreboard({ groups, maxCells }) {
   const totalCells = groups.reduce((s, g) => s + g.cellCount, 0);
@@ -168,7 +168,7 @@ export function renderScoreboard({ groups, maxCells }) {
     '| Trader | Model | Cells | Days | Runs | Status |',
     '|---|---|---|---|---|---|',
     ...[...groups]
-      .sort((a, b) => a.trader.localeCompare(b.trader) || a.model.localeCompare(b.model))
+      .sort((a, b) => a.trader.localeCompare(b.trader, 'en') || a.model.localeCompare(b.model, 'en'))
       .map(
         (g) =>
           `| ${g.trader} | ${g.model} | ${g.cellCount} | ${g.days.length} | ${g.runIndices.length} ` +
