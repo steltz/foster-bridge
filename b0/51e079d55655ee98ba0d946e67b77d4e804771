@@ -1,0 +1,59 @@
+runs/context-trader/fable/07082026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07082026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07022026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07152026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07162026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07022026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07062026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07142026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07152026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07092026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07132026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07092026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07142026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07072026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07062026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07162026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07132026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07072026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/context-trader/fable/07012026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/placement-trader/fable/07012026/run-1.json
+  s_39d8a295b14029::t_f2eb84b4813d56 1-26
+runs/SCOREBOARD.md
+  s_39d8a295b14029::t_6d9a006cc4869b 1-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b051e079d55655ee98ba0d946e67b77d4e804771",
+  "prompts": {},
+  "sessions": {
+    "s_39d8a295b14029": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cab2d95e-b67f-4ef7-aeec-e304b2dd5724",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
