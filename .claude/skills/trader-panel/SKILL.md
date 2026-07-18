@@ -56,15 +56,19 @@ validation of setups yourself.
    `find knowledge-base/general -type f | sort`. These are session-agnostic
    instructions EVERY persona reads in addition to the day docs. An empty or
    missing directory is not fatal — proceed with no general docs.
+7. **Locate the day's keys file:** the `*_ES_KEYS.md` in the day folder.
+   If missing, run the seven-keys skill flow for this day first (its
+   Phases 1–3, including its own commit), then continue with the file it
+   wrote. If that generation aborts, abort the panel run with its message.
 
 ## Phase 2 — Persona fan-out (ONE Workflow invocation)
 
 Launch the Workflow tool with the script below. INLINE the resolved values
-directly into the script's `DATE`/`DOCS`/`GENERAL`/`PERSONAS` constants — do
+directly into the script's `DATE`/`DOCS`/`KEYS`/`GENERAL`/`PERSONAS` constants — do
 NOT pass them through the Workflow `args` parameter (live verification showed
 args can arrive undefined; inlining is deterministic):
 
-Workflow script (fill in the four constants, pass the rest verbatim):
+Workflow script (fill in the five constants, pass the rest verbatim):
 
 ```js
 export const meta = {
@@ -78,6 +82,7 @@ const DOCS = {
   plan: '<absolute path to *_ES_TP.md>',
   recap: '<absolute path to *_ES_RECAP.md>',
 }
+const KEYS = '<absolute path to the day *_ES_KEYS.md>'
 // Absolute paths to every file under knowledge-base/general/ (step 6).
 // Empty array if the directory holds no docs.
 const GENERAL = [
@@ -107,6 +112,9 @@ const results = await parallel(PERSONAS.map((p) => () =>
   agent(
     `You are a futures trading persona on a daily panel. First Read the persona file at ${p.file} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
     generalBlock +
+    `Read the shared Seven-Keys assessment at ${KEYS} — the panel-wide scorecard of the day's zones. Adopt its per-zone key scores rather than re-deriving them; apply your persona's style to choose among the zones it grades.
+
+` +
     `Then Read the three documents for the ${DATE} ES (E-mini S&P 500) session:\n` +
     `1. Trade plan worksheet (PDF, support/resistance zones): ${DOCS.pdf}\n` +
     `2. Trade plan video transcript: ${DOCS.plan}\n` +
