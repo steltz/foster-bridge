@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T12:38:53.855Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7515.25,
+    "stopLoss": 7509,
+    "takeProfit": 7538.25,
+    "rationale": "Bullish intermediate bias; shallowest reachable zone clearing hold-odds is initial support 7510-7520.50 (bias-changing, VPOC 7510, plan says buyers may still be active). Mid-zone entry 7515.25, stop 1pt behind zone, target 7538.25 at broken pre-market support; ~3.7R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T12:38:54.101Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7535,
+    "stopLoss": 7522.25,
+    "takeProfit": 7570,
+    "rationale": "Bullish bigger picture; recap warns off shorting ES. Plan projects breakdown into 7523.25-7535.25 bias-confirming support (open gap, NVPOC, range exhaustion, first test) — buyers active there. Shallow entry at leading edge 7535 to secure fill, stop 1pt behind zone, target 7570-7581 initial support; 2.75R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

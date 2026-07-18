@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T12:38:53.819Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7553,
+    "stopLoss": 7548.5,
+    "takeProfit": 7567,
+    "rationale": "Bullish intermediate bias, breakout intact above 7481.75-7495.75 bull/bear. Long the shallow, reachable 7549.50-7558.50 aggressive support; mid-zone entry 7553 balances fill and R:R. Stop 1pt beyond far edge; target 7567, bottom of initial resistance — about 3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4.5,
+    "dollars": -22.5,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}
