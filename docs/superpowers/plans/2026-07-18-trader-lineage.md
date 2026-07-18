@@ -625,6 +625,11 @@ family tree from these fields automatically.
 tweak description (the hypothesis to test). Both are required; if either
 is missing, ask for it before doing anything else.
 
+Out of scope (deliberate): this skill never analyzes bench results or the
+scoreboard to invent or recommend tweaks — the user supplies the
+hypothesis. If asked to "figure out what to improve," decline and ask for
+a specific tweak.
+
 ## Step 1 — Resolve the origin
 
 Glob `traders/*.md` and match `<origin>` against each file's `name:`
