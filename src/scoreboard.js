@@ -19,7 +19,9 @@ function sampleStd(xs) {
 export function computeScoreboard(cells) {
   const byGroup = new Map();
   for (const c of cells) {
-    const key = `${c.trader} ${c.model.alias}`;
+    // JSON key is injective: no trader/alias pair can collide with
+    // another, since JSON handles all quoting and escaping.
+    const key = JSON.stringify([c.trader, c.model.alias]);
     if (!byGroup.has(key)) byGroup.set(key, []);
     byGroup.get(key).push(c);
   }
