@@ -2,6 +2,8 @@
 // The comparable unit is the (trader, model-alias) group; no metric ever
 // sums across groups — the user runs one trader live and picks it here.
 
+import { buildLineage } from './lineage.js';
+
 const SCORED = new Set(['TP', 'SL', 'EOD', 'NOT_FILLED']);
 const FILLED = new Set(['TP', 'SL', 'EOD']);
 
@@ -108,8 +110,47 @@ function summarizeGroup(cells) {
 const money = (v) => (v == null ? '-' : v.toFixed(2));
 const pct = (v) => (v == null ? '-' : `${Math.round(v * 100)}%`);
 const pts = (v) => (v == null ? '-' : v.toFixed(2));
+const signed = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
 
-export function renderScoreboard({ groups, maxCells }) {
+export function renderLineage(traders, groups) {
+  const { roots, unknownGroups, cycles } = buildLineage(traders);
+  const groupsByTrader = new Map();
+  for (const g of groups) {
+    if (!groupsByTrader.has(g.trader)) groupsByTrader.set(g.trader, []);
+    groupsByTrader.get(g.trader).push(g);
+  }
+  const lines = [];
+  const emit = (node, depth) => {
+    const prefix = depth === 0 ? '' : '   '.repeat(depth - 1) + '└─ ';
+    const stats = (groupsByTrader.get(node.name) ?? [])
+      .slice()
+      .sort((a, b) => a.model.localeCompare(b.model, 'en'))
+      .map((g) => {
+        let s = `${g.model} ${g.runIndices.length}r: ${money(g.meanDollars)}`;
+        const originGroup = node.origin
+          ? (groupsByTrader.get(node.origin) ?? []).find((og) => og.model === g.model)
+          : null;
+        if (originGroup) s += ` (Δ vs origin: ${signed(g.meanDollars - originGroup.meanDollars)})`;
+        return s;
+      });
+    lines.push(
+      `${(prefix + node.name).padEnd(30)}${stats.length ? ' ' + stats.join(' · ') : ''}`.trimEnd()
+    );
+    if (node.mutation) lines.push(' '.repeat(depth * 3 + 2) + node.mutation);
+    node.children.forEach((c) => emit(c, depth + 1));
+  };
+  roots.forEach((r) => emit(r, 0));
+  for (const g of unknownGroups) {
+    lines.push(`(unknown origin: ${g.origin})`);
+    g.children.forEach((c) => emit(c, 1));
+  }
+  if (cycles.length) {
+    lines.push(`(unreachable — origin cycle: ${cycles.map((n) => n.name).join(', ')})`);
+  }
+  return lines;
+}
+
+export function renderScoreboard({ groups, maxCells }, traders = []) {
   const totalCells = groups.reduce((s, g) => s + g.cellCount, 0);
   const lines = [
     '# Trader Scoreboard',
@@ -128,6 +169,10 @@ export function renderScoreboard({ groups, maxCells }) {
         `| ${money(g.maxRunDollars)} | ${pct(g.winRate)} | ${pct(g.fillRate)} |`
     ),
   ];
+
+  if (traders.length) {
+    lines.push('', '## Lineage', '', '```', ...renderLineage(traders, groups), '```');
+  }
 
   for (const g of groups) {
     lines.push(

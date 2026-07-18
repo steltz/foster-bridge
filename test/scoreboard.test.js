@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeScoreboard, renderScoreboard } from '../src/scoreboard.js';
+import { computeScoreboard, renderScoreboard, renderLineage } from '../src/scoreboard.js';
 
 // Minimal cell factory; override any field per test.
 function cell(overrides = {}) {
@@ -187,4 +187,75 @@ test('renders null rates and pipeline errors as readable text', () => {
 test('renders "None." when a group has no pipeline errors', () => {
   const out = renderScoreboard(computeScoreboard([cell()]));
   assert.match(out, /### Pipeline errors\n\nNone\./);
+});
+
+// Helper for lineage tests: minimal valid cell.
+function lineageCell(trader, model, runIndex, dollars) {
+  return {
+    trader,
+    model: { alias: model, id: 'claude-test' },
+    day: '07012026',
+    date: '2026-07-01',
+    runIndex,
+    timestamp: '2026-07-18T14:00:00.000Z',
+    personaSha256: 'aaa',
+    setup: { side: 'long', entry: 7500, stopLoss: 7490, takeProfit: 7530, rationale: 'r' },
+    result: { status: 'TP', points: dollars / 5, dollars },
+  };
+}
+
+const LINEAGE_TRADERS = [
+  { name: 'basehit-trader', origin: null, mutation: null },
+  {
+    name: 'basehit-deeper-entry',
+    origin: 'basehit-trader',
+    mutation: 'Entries rest at the zone midpoint instead of the leading edge',
+  },
+];
+
+test('renderLineage renders the tree with per-model stats and same-model deltas', () => {
+  const { groups } = computeScoreboard([
+    lineageCell('basehit-trader', 'fable', 1, -10),
+    lineageCell('basehit-deeper-entry', 'fable', 1, 40),
+    lineageCell('basehit-deeper-entry', 'opus', 1, 5),
+  ]);
+  const text = renderLineage(LINEAGE_TRADERS, groups).join('\n');
+  assert.match(text, /^basehit-trader\s+fable 1r: -10\.00$/m);
+  assert.match(text, /^└─ basehit-deeper-entry\s+fable 1r: 40\.00 \(Δ vs origin: \+50\.00\)/m);
+  // opus has no origin runs → stats shown without a delta
+  assert.match(text, /opus 1r: 5\.00(?! \(Δ)/);
+  assert.match(text, /^\s+Entries rest at the zone midpoint instead of the leading edge$/m);
+});
+
+test('renderLineage shows traders with no runs as bare nodes', () => {
+  const text = renderLineage(LINEAGE_TRADERS, []).join('\n');
+  assert.match(text, /^basehit-trader$/m);
+  assert.match(text, /^└─ basehit-deeper-entry$/m);
+});
+
+test('renderLineage renders unknown origins and cycles explicitly', () => {
+  const text = renderLineage(
+    [
+      { name: 'orphan', origin: 'deleted-trader', mutation: 'm' },
+      { name: 'x', origin: 'y', mutation: 'm' },
+      { name: 'y', origin: 'x', mutation: 'm' },
+    ],
+    []
+  ).join('\n');
+  assert.match(text, /^\(unknown origin: deleted-trader\)$/m);
+  assert.match(text, /^└─ orphan$/m);
+  assert.match(text, /^\(unreachable — origin cycle: x, y\)$/m);
+});
+
+test('renderScoreboard includes a ## Lineage section when traders are given', () => {
+  const board = computeScoreboard([lineageCell('basehit-trader', 'fable', 1, -10)]);
+  const md = renderScoreboard(board, LINEAGE_TRADERS);
+  assert.match(md, /## Lineage/);
+  assert.match(md, /```\nbasehit-trader/);
+});
+
+test('renderScoreboard omits the Lineage section when traders are absent', () => {
+  const board = computeScoreboard([lineageCell('basehit-trader', 'fable', 1, -10)]);
+  assert.doesNotMatch(renderScoreboard(board), /## Lineage/);
+  assert.doesNotMatch(renderScoreboard(board, []), /## Lineage/);
 });
