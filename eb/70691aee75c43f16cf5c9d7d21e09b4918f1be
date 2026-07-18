@@ -1,0 +1,19 @@
+runs/SCOREBOARD.md
+  s_64999805f7ff1b::t_83eafc012e4691 18-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "eb70691aee75c43f16cf5c9d7d21e09b4918f1be",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
