@@ -1,6 +1,6 @@
 ---
 name: trader-panel
-description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/) plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
+description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/) plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript) and the shared seven-keys assessment (auto-generated when missing), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
 ---
 
 # Trader Panel — daily persona backtest
@@ -12,7 +12,7 @@ validation of setups yourself.
 
 **Arguments:** optional `MMDDYYYY` (day folder name) and optional `force`.
 
-## Phase 1 — Preflight (no agents; abort early with ONE specific message)
+## Phase 1 — Preflight (no panel agents — step 7 may run the seven-keys sub-flow; abort early with ONE specific message)
 
 1. **Resolve the day folder.** With an `MMDDYYYY` argument use
    `knowledge-base/es/<MMDDYYYY>/`. Without one, consider every folder under
@@ -57,9 +57,10 @@ validation of setups yourself.
    instructions EVERY persona reads in addition to the day docs. An empty or
    missing directory is not fatal — proceed with no general docs.
 7. **Locate the day's keys file:** the `*_ES_KEYS.md` in the day folder.
-   If missing, run the seven-keys skill flow for this day first (its
-   Phases 1–3, including its own commit), then continue with the file it
-   wrote. If that generation aborts, abort the panel run with its message.
+   If missing, run the seven-keys skill flow first, invoking it with this
+   day's `MMDDYYYY` argument (its Phases 1–3, including its own commit),
+   then continue with the file it wrote. If that generation aborts, abort
+   the panel run with its message.
 
 ## Phase 2 — Persona fan-out (ONE Workflow invocation)
 
