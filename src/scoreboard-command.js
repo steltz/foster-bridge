@@ -11,8 +11,16 @@ export function collectCells(runsDir) {
     for (const model of subdirs(join(runsDir, trader))) {
       for (const day of subdirs(join(runsDir, trader, model))) {
         const dayDir = join(runsDir, trader, model, day);
+        // Lexicographic sort is for deterministic collection order only;
+        // cell order is not meaningful downstream (computeScoreboard sorts
+        // runIndices numerically).
         for (const file of readdirSync(dayDir).filter((f) => /^run-\d+\.json$/.test(f)).sort()) {
-          cells.push(JSON.parse(readFileSync(join(dayDir, file), 'utf8')));
+          const path = join(dayDir, file);
+          try {
+            cells.push(JSON.parse(readFileSync(path, 'utf8')));
+          } catch (err) {
+            throw new Error(`${path}: ${err.message}`);
+          }
         }
       }
     }

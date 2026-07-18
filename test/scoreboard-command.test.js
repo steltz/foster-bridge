@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,8 +29,9 @@ function writeCell(dir, trader, model, day, runIndex, result, setup) {
   writeFileSync(join(cellDir, `run-${runIndex}.json`), JSON.stringify(cell, null, 2));
 }
 
-test('scoreboard walks the runs tree and writes SCOREBOARD.md', () => {
+test('scoreboard walks the runs tree and writes SCOREBOARD.md', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   writeCell(dir, 'context-trader', 'fable', '07012026', 1, { status: 'TP', points: 10, dollars: 50 });
   writeCell(dir, 'context-trader', 'fable', '07012026', 2, { status: 'SL', points: -4, dollars: -20 });
   writeCell(dir, 'placement-trader', 'fable', '07012026', 1, { status: 'NOT_FILLED', points: null, dollars: null });
@@ -44,8 +45,9 @@ test('scoreboard walks the runs tree and writes SCOREBOARD.md', () => {
   assert.match(md, /\| 2 \| placement-trader \| fable \|/);
 });
 
-test('scoreboard ignores files that are not run-<k>.json', () => {
+test('scoreboard ignores files that are not run-<k>.json', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   writeCell(dir, 'context-trader', 'fable', '07012026', 1, { status: 'TP', points: 10, dollars: 50 });
   writeFileSync(join(dir, 'context-trader', 'fable', '07012026', 'notes.txt'), 'ignore me');
 
@@ -54,12 +56,25 @@ test('scoreboard ignores files that are not run-<k>.json', () => {
   assert.match(proc.stdout, /\(1 cells\)/);
 });
 
-test('scoreboard with no cells writes a stub and exits 0', () => {
-  const dir = join(mkdtempSync(join(tmpdir(), 'bench-')), 'runs');
+test('scoreboard with no cells writes a stub and exits 0', (t) => {
+  const parent = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(parent, { recursive: true, force: true }));
+  const dir = join(parent, 'runs');
   assert.equal(existsSync(dir), false);
 
   const proc = run(['scoreboard', '--dir', dir]);
   assert.equal(proc.status, 0, proc.stderr);
   const md = readFileSync(join(dir, 'SCOREBOARD.md'), 'utf8');
   assert.match(md, /No benchmark cells found/);
+});
+
+test('scoreboard names the offending file on a corrupt cell', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeCell(dir, 'context-trader', 'fable', '07012026', 1, { status: 'TP', points: 10, dollars: 50 });
+  writeFileSync(join(dir, 'context-trader', 'fable', '07012026', 'run-2.json'), 'not json');
+
+  const proc = run(['scoreboard', '--dir', dir]);
+  assert.equal(proc.status, 1);
+  assert.match(proc.stderr, /run-2\.json/);
 });
