@@ -41,6 +41,20 @@ and trader-bench before they choose a setup.
    three keys files), and a synthesizer that weights the current-day analysis
    heavily over the lookback.
 
+Added in review (2026-07-18):
+
+6. **Verification gate:** a verifier agent between Synthesize and the file
+   write cross-checks every scorecard row against the trade plan docs; a
+   mismatch aborts without writing. The artifact is upstream of every trader
+   and immutable once benchmarked, so a bad write is permanently bad.
+7. **Outcome-aware lookback:** the lookback analyst reads each prior keys
+   file paired with the recap that describes how that day's session actually
+   traded, so lookback carries calibration signal (were the grades right?)
+   rather than echoing prior opinions.
+8. **Era visibility:** the keys artifact carries provenance frontmatter, and
+   the scoreboard gains a minimal keys/no-keys annotation so aggregate stats
+   never silently mix the two envelopes.
+
 ## Component 1 — new skill `seven-keys`
 
 Location: `.claude/skills/seven-keys/SKILL.md`.
@@ -65,14 +79,19 @@ Mirrors trader-panel's conventions:
 5. Discover the **lookback set**: the up-to-three most recent complete day
    folders strictly before the target date (chronological by TP-doc prefix)
    that already contain a `*_ES_KEYS.md`. Fewer than three is fine; zero
-   means the lookback agent is skipped (bootstrap case).
+   means the lookback agent is skipped (bootstrap case). For each lookback
+   day P, also resolve its **outcome recap**: the `*_ES_RECAP.md` of the
+   next complete day folder chronologically after P (recaps describe the
+   prior session, so P's outcome lives in the following day's recap — for
+   the most recent lookback day that is the target day's own recap). If no
+   such recap exists, P's keys file is used without an outcome pairing.
 6. Overwrite guards: if the day already has a `*_ES_KEYS.md` and `force` was
    not given → abort naming the file. Even with `force`, if any
    `runs/*/*/<day>/run-*.json` records a `keysSha256` for this day → abort:
    keys files are immutable once benchmarked; the remedy is a new benchmark
    era, not an edit.
 
-### Phase 2 — ONE Workflow invocation (three agents)
+### Phase 2 — ONE Workflow invocation (four agents)
 
 Inline all resolved values into the script constants (never Workflow `args`,
 per the established pattern in trader-panel/trader-bench).
@@ -86,16 +105,28 @@ per the established pattern in trader-panel/trader-bench).
     (significant prior launched move), Key 6 (bias alignment), Key 7
     (confluence), plus an overall grade from
     `automatic-fade | strong | moderate | weak`.
-  - **Lookback analyst** (only when the lookback set is non-empty): Reads the
-    prior keys files. Returns continuity notes: recurring zones across days,
-    bias evolution, and anything in prior assessments that should sharpen
-    today's read.
+  - **Lookback analyst** (only when the lookback set is non-empty): Reads
+    each prior keys file PAIRED with that day's outcome recap (from preflight
+    step 5). Returns calibration-aware continuity notes: for each prior day,
+    whether the highly graded zones actually held per the recap; plus
+    recurring zones across days, bias evolution, and anything in prior
+    assessments that should sharpen today's read. Prior days whose grades
+    proved wrong must be flagged, not smoothed over.
 - `phase('Synthesize')` — one synthesizer agent receives both outputs inline
   (no file reads) and produces the final artifact content. Its prompt states
   the weighting explicitly: **the current-day analysis is authoritative; the
   lookback may sharpen or annotate it but never overrides current-day
   evidence.** In the bootstrap case the synthesizer runs with the current-day
   output only and marks the lookback section "none — bootstrap".
+- `phase('Verify')` — one verifier agent receives the synthesized artifact
+  content inline plus the paths to the day's trade plan docs (PDF and plan
+  transcript). It re-reads those docs and checks every scorecard row: zone
+  prices and side must match a zone actually present in the trade plan, with
+  no invented, dropped-then-substituted, or transposed prices. It returns
+  (via schema) `pass` or a list of specific mismatches. Any mismatch → the
+  skill aborts WITHOUT writing the keys file, reporting the mismatches; a
+  rerun regenerates cleanly. The verifier checks fidelity to the source docs
+  only — it does not second-guess grades or bias judgments.
 
 Agents use the session default model (no model override).
 
@@ -105,6 +136,13 @@ Write `<prefix>_ES_KEYS.md` into the day folder (`<prefix>` = the TP docs'
 8-digit prefix). Format:
 
 ```markdown
+---
+generatedBy: <model id of the session that ran the skill, e.g. claude-fable-5>
+generatedAt: <ISO-8601 UTC timestamp>
+lookbackSources: [<prior keys filenames, or empty list for bootstrap>]
+verified: true
+---
+
 # Seven Keys — ES <YYYY-MM-DD>
 
 **Larger-timeframe bias:** …
@@ -124,9 +162,11 @@ remain the responsibility of each persona. Zones below are scored on Keys 3–7.
 
 ## Lookback
 
-Sources: <the prior keys files read, or "none — bootstrap">
+Sources: <each prior keys file with its outcome recap, e.g.
+"07152026_ES_KEYS.md (outcome: 07162026_ES_RECAP.md)", or "none — bootstrap">
 
-- <continuity notes>
+- <calibration-aware continuity notes, including any prior grades that
+  proved wrong>
 ```
 
 Commit exactly the artifact:
@@ -159,12 +199,24 @@ Show the user the scorecard table inline.
   day's keys file path.
 - **Phase 3** cell JSON gains a top-level `"keysSha256"` field.
 
+## Component 4 — scoreboard era annotation
+
+Minimal change to the scoreboard generator (`node src/cli.js scoreboard`):
+cells with a `keysSha256` field belong to the keys era; cells without it are
+pre-keys. The scoreboard gains, per (trader, model) row, a keys/no-keys cell
+count (e.g. `12k/25`), and the Ranking section gains a one-line legend
+explaining the annotation. No judging, aggregation, or run logic changes —
+the annotation exists so aggregate stats never silently mix the two
+envelopes, and so the keys artifact's effect on results stays measurable.
+
 ## Error handling
 
 - All preflight failures abort with one specific message before any agent
   runs (established pattern).
 - If the seven-keys Workflow fails or returns no synthesized artifact, abort
   without writing the keys file; a rerun regenerates cleanly.
+- If the verifier reports mismatches (or itself dies), abort without writing
+  the keys file, showing the mismatches; never write an unverified artifact.
 - In trader-panel/trader-bench, a failed auto-generation of a required keys
   file aborts the run (panel) or skips that day with a listed reason (bench,
   consistent with its other per-day skips).
@@ -175,18 +227,25 @@ The skills are prompt-orchestrations, not code; there is no unit surface.
 Verification is by execution:
 
 1. Run `/seven-keys` on the oldest complete day (bootstrap: no lookback) and
-   inspect the artifact.
-2. Run it on a later day and confirm the lookback section cites the prior
-   keys files.
-3. Run `/trader-panel force` on a day with a keys file and confirm every
+   inspect the artifact, including its provenance frontmatter.
+2. Run it on a later day and confirm the lookback section cites each prior
+   keys file with its outcome recap and comments on whether prior grades
+   held up.
+3. Spot-check the verification gate: confirm every scorecard row's prices
+   and side appear in the day's trade plan docs (and, if feasible, that a
+   deliberately corrupted synthesizer output is rejected without a write).
+4. Run `/trader-panel force` on a day with a keys file and confirm every
    persona's rationale is consistent with the shared scorecard.
-4. Run `/trader-bench 1` and confirm new cells carry `keysSha256`, missing
+5. Run `/trader-bench 1` and confirm new cells carry `keysSha256`, missing
    keys files were generated oldest-first, and the immutability guard
    triggers when a keys file is hand-edited after a cell references it.
+6. Regenerate the scoreboard and confirm the keys/no-keys annotation counts
+   match the cells on disk.
 
 ## Out of scope
 
 - Re-running or invalidating existing benchmark cells.
 - Changing persona files (they are immutable once benchmarked).
 - Scoring zones on Keys 1–2.
-- Any change to the backtest CLI or scoreboard generator.
+- Any change to the backtest CLI's run/judging logic. (The scoreboard
+  generator changes only as described in Component 4.)
