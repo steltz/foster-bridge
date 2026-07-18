@@ -1,0 +1,28 @@
+docs/superpowers/specs/2026-07-18-seven-keys-design.md
+  s_e36e6d6bd558a0::t_16a5069ac89a8d 44-57
+  s_e36e6d6bd558a0::t_d73450f846c99e 94
+  s_e36e6d6bd558a0::t_dec8998143030e 82-87
+  s_e36e6d6bd558a0::t_5cc9e19f9934c5 165-166,168-169
+  s_e36e6d6bd558a0::t_f7fae4cd81548c 139-145
+  s_e36e6d6bd558a0::t_fdb5f89dbcbb84 202-211
+  s_e36e6d6bd558a0::t_88112800c8ca54 230-237,239,242-243
+  s_e36e6d6bd558a0::t_bfd591d39b3cc9 108-114,121-129
+  s_e36e6d6bd558a0::t_569584a915eaa1 250-251
+  s_e36e6d6bd558a0::t_012b9ff24de464 218-219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9ea66250e33c1487c9f8c97a27b449defb3fd06e",
+  "prompts": {},
+  "sessions": {
+    "s_e36e6d6bd558a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbe40adc-7ccc-49cd-811f-28651a289de6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
