@@ -259,3 +259,28 @@ test('renderScoreboard omits the Lineage section when traders are absent', () =>
   assert.doesNotMatch(renderScoreboard(board), /## Lineage/);
   assert.doesNotMatch(renderScoreboard(board, []), /## Lineage/);
 });
+
+test('descendant group sections carry an Origin line with a same-model delta', () => {
+  const board = computeScoreboard([
+    lineageCell('basehit-trader', 'fable', 1, -10),
+    lineageCell('basehit-deeper-entry', 'fable', 1, 40),
+  ]);
+  const md = renderScoreboard(board, LINEAGE_TRADERS);
+  const section = md.split('## basehit-deeper-entry @ fable')[1];
+  assert.match(
+    section,
+    /^Origin: basehit-trader — Entries rest at the zone midpoint instead of the leading edge · Δ mean \$\/run vs origin @ fable: \+50\.00$/m
+  );
+});
+
+test('descendant Origin line says so when the origin has no runs at that model', () => {
+  const board = computeScoreboard([lineageCell('basehit-deeper-entry', 'opus', 1, 5)]);
+  const md = renderScoreboard(board, LINEAGE_TRADERS);
+  assert.match(md, /^Origin: basehit-trader — .* · origin has no runs at opus$/m);
+});
+
+test('root trader sections carry no Origin line', () => {
+  const board = computeScoreboard([lineageCell('basehit-trader', 'fable', 1, -10)]);
+  const md = renderScoreboard(board, LINEAGE_TRADERS);
+  assert.doesNotMatch(md.split('## basehit-trader @ fable')[1], /^Origin:/m);
+});

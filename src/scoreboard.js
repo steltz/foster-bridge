@@ -174,10 +174,22 @@ export function renderScoreboard({ groups, maxCells }, traders = []) {
     lines.push('', '## Lineage', '', '```', ...renderLineage(traders, groups), '```');
   }
 
+  const traderByName = new Map(traders.map((t) => [t.name, t]));
+
   for (const g of groups) {
+    lines.push('', `## ${g.trader} @ ${g.model}`);
+    const t = traderByName.get(g.trader);
+    if (t?.origin) {
+      const og = groups.find((x) => x.trader === t.origin && x.model === g.model);
+      lines.push(
+        '',
+        `Origin: ${t.origin} — ${t.mutation ?? '(no mutation note)'} · ` +
+          (og
+            ? `Δ mean $/run vs origin @ ${g.model}: ${signed(g.meanDollars - og.meanDollars)}`
+            : `origin has no runs at ${g.model}`)
+      );
+    }
     lines.push(
-      '',
-      `## ${g.trader} @ ${g.model}`,
       '',
       '| Run | Days | Pts | USD |',
       '|---|---|---|---|',
