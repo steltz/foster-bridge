@@ -1,6 +1,6 @@
 ---
 name: trader-bench
-description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day for one model, writing one immutable JSON cell per (trader, model, day, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
+description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day for one model, auto-generating and committing any missing seven-keys assessments, writing one immutable JSON cell per (trader, model, day, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
 ---
 
 # Trader Bench — idempotent benchmark matrix top-up
@@ -65,14 +65,15 @@ Any other alias → abort listing the valid aliases.
    invoke it with that day's `MMDDYYYY` argument) sequentially in
    chronological order, oldest first, so each day's lookback sees its
    predecessors. A day whose generation aborts is SKIPPED with the
-   reason listed. Then compute each candidate day's keys hash:
+   reason listed. Then compute each remaining candidate day's keys hash:
    `shasum -a 256 <day folder>/<prefix>_ES_KEYS.md`.
 7. **Keys immutability guard:** read `keysSha256` from every existing
-   `runs/*/*/<day>/run-*.json`. Any existing cell whose `keysSha256`
-   differs from that day's current hash → abort naming the day, both
-   hashes, and the remedy: keys files are immutable once benchmarked —
-   start a new benchmark era instead of editing them. Cells without the
-   field (pre-keys era) are valid and exempt.
+   `runs/*/*/<day>/run-*.json` (for each remaining candidate day from
+   step 6). Any existing cell whose `keysSha256` differs from that day's
+   current hash → abort naming the day, both hashes, and the remedy:
+   keys files are immutable once benchmarked — start a new benchmark era
+   instead of editing them. Cells without the field (pre-keys era) are
+   valid and exempt.
 8. **Compute the missing set:** for every (trader, day), existing runs are
    `runs/<trader>/<alias>/<day>/run-*.json`; missing indices are `1..N`
    minus the indices present. Existing cells beyond N are left alone.
