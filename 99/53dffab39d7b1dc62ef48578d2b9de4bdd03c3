@@ -1,0 +1,21 @@
+test/lineage.test.js
+  s_64999805f7ff1b::t_02ba7a97522fb7 1-85
+src/lineage.js
+  s_64999805f7ff1b::t_88eb5b8868a8bb 1-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9953dffab39d7b1dc62ef48578d2b9de4bdd03c3",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
