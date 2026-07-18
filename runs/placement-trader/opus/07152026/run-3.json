@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:13.841Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7555.75,
+    "stopLoss": 7542.75,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bias is Bullish, so long-only. Initial Support 7544-7557 is the plan's Launching Point + 7544 HVN (Keys 5-7), the highest hold-odds bias-aligned zone; recap says aggressive support alone doesn't hold, expecting travel here. Shallow leading-edge fill 7555.75, stop one point below zone, target Initial Resistance 7606.25 (~3.9R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

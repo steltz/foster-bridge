@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:18:13.369Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7529.25,
+    "stopLoss": 7523,
+    "takeProfit": 7548,
+    "rationale": "Overnight breakdown failed, buyers back in control, bigger-picture bullish—trading long with trend. Resting limit inside Aggressive Support 7524-7536.50 (holding-above signals strength, first-test, bias-aligned, prior close/VPOC sit here so highly reachable). Stop one point below the zone; target front of Pre-Market Resistance 7548 for a clean 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

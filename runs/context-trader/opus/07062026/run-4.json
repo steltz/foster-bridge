@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:18:11.007Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7484.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Intermediate/bigger-picture bias is bullish, so I trade with it. Rest a limit buy in the 7479.50-7493.50 Bull/Bear bias-confirming support (7482.50 HVN) where buyers defended last session. Stop one point below the zone; target 7510 previous-day VPOC / Initial Support. ~4.25:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

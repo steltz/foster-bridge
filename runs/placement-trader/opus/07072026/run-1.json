@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:12.868Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7546.5,
+    "stopLoss": 7537,
+    "takeProfit": 7593.75,
+    "rationale": "With intermediate/bigger-picture bias Bullish, I go long at Initial Support 7538.25-7546.75 (7544 HVN, bias-changing, plan's first-test \"buyers active\" zone). High hold-odds, so shallow entry near the leading edge to secure fill; stop one point below the zone; target the Initial Resistance / bias-confirming zone leading edge 7593.75."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

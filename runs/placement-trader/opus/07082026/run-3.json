@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:13.121Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7491.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7544,
+    "rationale": "Long the Bull/Bear Bias-Confirming support 7477.50-7493.50 (7482.50 HVN), first RTH test, aligned with the Bullish bigger-picture bias and failed-breakdown scenario. Shallow entry near top edge, stop below zone, target pre-market resistance/launching-point 7544-7551.75 for 3.5R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -15,
+    "dollars": -75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

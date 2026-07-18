@@ -1,6 +1,6 @@
 # Trader Scoreboard
 
-120 cells · 4 trader@model groups. Every group is scored alone; P&L is never combined across traders or models.
+220 cells · 6 trader@model groups. Every group is scored alone; P&L is never combined across traders or models.
 
 ## Ranking (mean net USD per run)
 
@@ -10,6 +10,8 @@
 | 2 | context-trader | fable | 10 | 1 | 48.75 | 0.00 | 48.75 | 48.75 | 25% | 40% |
 | 3 | placement-trader | sonnet | 10 | 5 | -29.00 | 73.27 | -111.25 | 76.25 | 20% | 60% |
 | 4 | context-trader | sonnet | 10 | 5 | -33.25 | 100.29 | -133.75 | 120.00 | 21% | 56% |
+| 5 | placement-trader | opus | 10 | 5 | -44.50 | 106.27 | -158.75 | 121.25 | 22% | 46% |
+| 6 | context-trader | opus | 10 | 5 | -83.00 | 102.40 | -196.25 | 15.00 | 15% | 40% |
 
 ## placement-trader @ fable
 
@@ -127,11 +129,75 @@ Wins: 6 · Losses: 22 · Avg win: 28.04 pts · Avg loss: -9.16 pts
 
 None.
 
+## placement-trader @ opus
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 10 | 24.25 | 121.25 |
+| 2 | 10 | -21.5 | -107.50 |
+| 3 | 10 | -11.25 | -56.25 |
+| 4 | 10 | -4.25 | -21.25 |
+| 5 | 10 | -31.75 | -158.75 |
+
+Wins: 5 · Losses: 18 · Avg win: 32.25 pts · Avg loss: -11.43 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 24.75 |
+| 07022026 | 5 | 5L/0S | 62.75 |
+| 07062026 | 5 | 5L/0S | 27.00 |
+| 07072026 | 5 | 5L/0S | 27.25 |
+| 07082026 | 5 | 5L/0S | 41.50 |
+| 07092026 | 5 | 5L/0S | 5.25 |
+| 07132026 | 5 | 5L/0S | 4.00 |
+| 07142026 | 5 | 5L/0S | 2.25 |
+| 07152026 | 5 | 5L/0S | 18.25 |
+| 07162026 | 5 | 5L/0S | 20.75 |
+
+### Pipeline errors
+
+None.
+
+## context-trader @ opus
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 10 | -39.25 | -196.25 |
+| 2 | 10 | 0 | 0.00 |
+| 3 | 10 | -37.75 | -188.75 |
+| 4 | 10 | -9 | -45.00 |
+| 5 | 10 | 3 | 15.00 |
+
+Wins: 3 · Losses: 17 · Avg win: 26.67 pts · Avg loss: -9.59 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 28.25 |
+| 07022026 | 5 | 5L/0S | 3.75 |
+| 07062026 | 5 | 5L/0S | 3.50 |
+| 07072026 | 5 | 5L/0S | 85.25 |
+| 07082026 | 5 | 5L/0S | 7.00 |
+| 07092026 | 5 | 5L/0S | 6.00 |
+| 07132026 | 5 | 5L/0S | 23.00 |
+| 07142026 | 5 | 5L/0S | 28.50 |
+| 07152026 | 5 | 5L/0S | 7.00 |
+| 07162026 | 5 | 5L/0S | 27.25 |
+
+### Pipeline errors
+
+None.
+
 ## Coverage
 
 | Trader | Model | Cells | Days | Runs | Status |
 |---|---|---|---|---|---|
 | context-trader | fable | 10 | 10 | 1 | ⚠ under-tested (max 50) |
+| context-trader | opus | 50 | 10 | 5 | ok |
 | context-trader | sonnet | 50 | 10 | 5 | ok |
 | placement-trader | fable | 10 | 10 | 1 | ⚠ under-tested (max 50) |
+| placement-trader | opus | 50 | 10 | 5 | ok |
 | placement-trader | sonnet | 50 | 10 | 5 | ok |

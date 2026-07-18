@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:18:12.727Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7517.5,
+    "stopLoss": 7509,
+    "takeProfit": 7543,
+    "rationale": "Bullish intermediate/bigger-picture bias favors longs. Shallowest reachable buy zone is initial support 7510-7520.50, with VPOC 7510 confluence; recap flags buyers defending here. Bull/bear 7479.50 needs an unprojected flush. Entry 7517.50, stop 7509 below zone, target pre-market support 7543 for a clean 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

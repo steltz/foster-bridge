@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:11.328Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7489.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7528.25,
+    "rationale": "Bigger-picture bias is Bullish; the overnight is a breakdown ATTEMPT likely to fail. Leaning long into the Bull/Bear bias-confirming support 7477.50-7493.50 (7482.50 HVN, Key 6 aligned-bias aggressive zone). Stop 1pt below the zone; target open gap 7528.25 / pre-market resistance. ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

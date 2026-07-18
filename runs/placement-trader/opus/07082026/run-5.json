@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:18:13.192Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7451.75,
+    "stopLoss": 7443.25,
+    "takeProfit": 7477.5,
+    "rationale": "Bigger-picture bias bullish; plan flags a failed-breakdown. Buy the shallowest reachable support: Initial Support 7444.50-7454.75 (range exhaustion, first test), buyers active per plan. Stop 7443.25, one point below the zone; target 7477.50, near edge of the 7477.50-7493.50 bull/bear zone. ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:13.048Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "rationale": "Bigger-picture bullish, failed-breakdown setup. Long the 7477.50-7493.50 Bull/Bear support (bias-confirming, 7482.50 HVN) — the level whose hold defines the failed breakdown, first RTH test. Shallow upper-zone fill, stop one point below the zone, target pre-market resistance 7524.75. ~3.2R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.5,
+    "dollars": -57.5,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

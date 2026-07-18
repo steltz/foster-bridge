@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:13.228Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7534,
+    "stopLoss": 7523,
+    "takeProfit": 7567,
+    "rationale": "Long the Aggressive Support 7524-7536.50, first-test and bias-aligned (failed breakdown, buyers back in control, bigger-picture bullish). Shallow entry near the leading edge to prioritize fill; stop one point beyond the far edge; target Initial Resistance/NVPOC 7567 for a clean 3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 33,
+    "dollars": 165,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

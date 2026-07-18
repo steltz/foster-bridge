@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:13.659Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7582,
+    "stopLoss": 7570,
+    "takeProfit": 7618,
+    "rationale": "Bigger-picture bullish; CPI drove ES above yesterday's high. I buy the shallowest bias-aligned zone, Aggressive Support 7571-7582 (\"holding above signals strength\"), entering shallow at its 7582 leading edge to secure the fill. Stop 1pt below the zone at 7570; 3R target into Initial Resistance 7609.25-7620.25."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

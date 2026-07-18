@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:12.691Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7492,
+    "stopLoss": 7478.25,
+    "takeProfit": 7530.25,
+    "rationale": "Long the Bull/Bear bias-confirming support 7479.50-7493.50 (7482.50 HVN, launchpad of Thursday's recovery), aligned with bullish intermediate/bigger-picture bias. Shallow fill near the leading edge, stop just below the zone, targeting the 7523.75-7530.25 pre-market support cluster near prior close for ~2.8R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

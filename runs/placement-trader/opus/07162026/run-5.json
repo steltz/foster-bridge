@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:18:14.094Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7535,
+    "stopLoss": 7522.25,
+    "takeProfit": 7573.25,
+    "rationale": "Bigger-picture bullish; ES is the stronger market. Long the 7523.25-7535.25 bias-confirming range-exhaustion zone (open gap 7528.75, NVPOC 7524.75) where the plan flags first-test buyers. Enter shallow at the leading edge 7535, stop one point below the far edge, target the 7570-7581 initial-support level for 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

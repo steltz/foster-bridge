@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:13.586Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7580,
+    "stopLoss": 7570,
+    "takeProfit": 7610,
+    "rationale": "Long, bias-aligned (Bigger Picture Bullish, post-CPI strength). Buying shallow at leading edge of Aggressive Support 7571-7582 (\"holding signals strength,\" first test). Stop one point below zone; target Initial Resistance 7609.25-7620.25 for a clean 3.0R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

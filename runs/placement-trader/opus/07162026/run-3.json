@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:14.023Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7553.75,
+    "stopLoss": 7542.75,
+    "takeProfit": 7588.5,
+    "rationale": "Long the 7544-7557 support (7544 HVN, Launching Point/Key 5, 07/15 initial support), the average-range-low zone reachable on a weak open. Bigger-picture bias is bullish and ES is the stronger market. Shallow fill near zone top; stop below the zone; target 7588.50 HVN. ~3.1R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

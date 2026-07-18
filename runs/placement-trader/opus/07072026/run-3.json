@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:12.940Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7571,
+    "stopLoss": 7562,
+    "takeProfit": 7598,
+    "rationale": "Intermediate/Bigger-Picture bias bullish. Buy the bias-aligned Aggressive Support 7563-7573 (Key 6), which launched the prior day's rally per recap (Key 5) and where responsive buyers already stepped in. Enter shallow-to-fill; stop 1pt below zone; target Initial Resistance/bias-confirming 7593.75-7604.25 for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783444200,
+    "exitTime": 1783444500
+  }
+}

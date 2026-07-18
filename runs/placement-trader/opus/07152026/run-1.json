@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:18:13.767Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7574,
+    "stopLoss": 7563.25,
+    "takeProfit": 7606.25,
+    "rationale": "Long per bullish bias; recap says favor the long side, avoid shorts. Aggressive Support is too risky, Initial Support too deep to reach. Resting long in Pre-Market Support 7564.25-7575.25 (buyers active), shallow-to-fill at 7574. Stop 7563.25, one point below the zone. Target Initial Resistance near edge 7606.25 = clean 3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 32.25,
+    "dollars": 161.25,
+    "fillTime": 1784132400,
+    "exitTime": 1784137500
+  }
+}

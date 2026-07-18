@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:18:12.362Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7495,
+    "stopLoss": 7480.75,
+    "takeProfit": 7547.75,
+    "rationale": "Long the 7481.75-7495.75 bias-confirming bull/bear zone (7482.50 HVN, yesterday's breakout base; top = prior RTH low). Bullish intermediate/bigger-picture bias; report-driven flush retests it. Shallow fill at 7495 near leading edge, stop below zone, target prior-close/VPOC pre-market resistance 7547.75-7555.25. ~3.7R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

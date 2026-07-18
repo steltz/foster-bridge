@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:18:12.472Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7519,
+    "stopLoss": 7509.5,
+    "takeProfit": 7547.75,
+    "rationale": "Bullish balance-breakout in play; long the shallowest reachable support. Rest shallow near the leading edge of Initial Support 7510.50-7520.50, the broken-resistance defense line the recap says buyers must hold on first test. Stop one point below the zone; target 7547.75-7555.25 pre-market resistance/VPOC for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

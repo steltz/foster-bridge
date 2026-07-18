@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:18:13.804Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7556.5,
+    "stopLoss": 7542.75,
+    "takeProfit": 7606.25,
+    "rationale": "Plan is intermediate/bigger-picture bullish; recap says favor longs, avoid shorts. Buy the 7544-7557 Initial Support / 7544 HVN launching point (Key 5, bias-aligned, first RTH test), resting shallow near the 7557 leading edge to secure the fill. Stop below the zone; target near-edge Initial Resistance 7606.25 = 3.6R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

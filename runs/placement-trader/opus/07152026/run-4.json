@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:18:13.879Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7556.5,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "rationale": "Bullish bias favors long. Chosen zone: Initial Support 7544-7557 — Launching Point + 7544 HVN, first RTH test, bias-aligned = high hold-odds. Enter shallow at leading edge 7556.50 to secure fill; stop 7543 (1pt below zone); target Initial Resistance 7606.25. ~3.7R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

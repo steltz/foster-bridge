@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:18:13.550Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7550,
+    "stopLoss": 7541.75,
+    "takeProfit": 7574.75,
+    "rationale": "Long at Initial Support 7543-7553 (7544 HVN, first test, bigger-picture bullish; Keys 3/6/7). Mid-zone entry given noted sell-side dominance; stop 1+ pt below zone; target 7574.75 into pre-market support 7566-7576 for clean 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

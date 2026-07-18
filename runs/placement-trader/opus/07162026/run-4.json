@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:18:14.058Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7555,
+    "stopLoss": 7542.75,
+    "takeProfit": 7591.75,
+    "rationale": "Bigger-picture bullish; recap flags ES strength and caution shorting. Long the 7544-57 support: Launching Point, 7544 HVN, 07/15 Initial Support, first test. Placed shallow near top edge (7557) to fill on a bias-aligned hold. Stop below 7544; 3R target 7591.75, just under aggressive resistance 7593.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

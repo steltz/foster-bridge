@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:11.687Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7549,
+    "stopLoss": 7542,
+    "takeProfit": 7578.75,
+    "rationale": "Bigger-picture bias is Bullish, so I buy Initial Support 7543-7553 (7544 HVN) on first RTH test, aligned with larger-timeframe bias (Key 6). Entry 7549 lower-half; stop 7542, one point below the zone; target next meaningful zone, Aggressive Support 7578.75. Risk 7, reward 29.75 (~4.25:1)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

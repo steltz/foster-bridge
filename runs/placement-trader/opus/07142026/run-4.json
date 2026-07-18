@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:18:13.696Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7582,
+    "stopLoss": 7570,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture Bullish; CPI broke above yesterday's high, buyers in control. Long the shallowest bias-aligned support, Aggressive Support 7571-82, resting at its leading edge (7582) to prioritize fill. Stop one point below the zone (7570); target bias-confirming zone near-edge 7627.25. ~3.8R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

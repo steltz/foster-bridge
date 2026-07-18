@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:18:12.975Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7573,
+    "stopLoss": 7562,
+    "takeProfit": 7604.25,
+    "rationale": "Bullish intermediate bias; buyers stepped into aggressive support 7563-7573 overnight (first test), so the day turns here. Shallow long at the zone's leading edge, stop one point below 7563, targeting the far edge of initial resistance 7593.75-7604.25 (~2.8R). Deeper initial support risks never filling above the turn."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:18:13.300Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7534.5,
+    "stopLoss": 7523,
+    "takeProfit": 7569,
+    "rationale": "Bigger-picture bullish; failed breakdown puts buyers back in control. Long the bias-aligned aggressive support 7524-7536.50 (Holding-Above-Signals-Strength), placed shallow near its leading edge for a high-hold-odds first test. Stop one point below the zone; target NVPOC 7567 inside initial resistance 7561.25-7571.25, ~3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 34.5,
+    "dollars": 172.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

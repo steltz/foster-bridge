@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "opus",
+    "id": "claude-opus-4-8"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:18:12.904Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7545.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "rationale": "Bullish intermediate/bigger-picture bias favors long. Shallowest zone clearing hold-odds and in reach: Initial Support 7538.25-7546.75 (7544 HVN, first-test, plan's intermarket-trigger long). Enter shallow near leading edge to secure fill; stop 1pt below far edge; target Initial Resistance/bias-confirming 7593.75, prior 3PM close and day's magnet. ~5.6R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.5,
+    "dollars": -42.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}
