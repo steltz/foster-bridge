@@ -22,7 +22,10 @@ the verifier passes it; never write an unverified artifact.
    the date prefix of their `*_ES_TP.md` re-keyed as `YYYYMMDD` (never by
    folder name) and pick the latest without a `*_ES_KEYS.md`. If `force`
    was given without a day argument, pick the latest complete folder and
-   overwrite its keys file.
+   overwrite its keys file. If every complete folder already has a
+   `*_ES_KEYS.md` and neither a day argument nor `force` was given →
+   abort naming the most recent keys file and telling the user to pass a
+   day argument (with `force`) to regenerate a specific day.
 2. **Locate the three docs** by suffix: `*_ES_TP.pdf`, `*_ES_TP.md`,
    `*_ES_RECAP.md`. Any missing → abort naming exactly which suffix is
    absent.
@@ -41,12 +44,16 @@ the verifier passes it; never write an unverified artifact.
    most recent lookback day this is usually the target day's own recap).
    No such recap → pair P with no outcome. Zero lookback days → bootstrap:
    the lookback agent is skipped entirely.
-6. **Overwrite guards:** if the target day already has a `*_ES_KEYS.md`
-   and `force` was not given → abort naming the file and telling the user
-   to pass `force`. Even WITH `force`, run
-   `grep -l '"keysSha256"' runs/*/*/<day>/run-*.json 2>/dev/null` — any
-   hit → abort: this day's keys file is referenced by benchmark cells and
-   is immutable; the remedy is a new benchmark era, not an edit.
+6. **Guards:**
+   - **Benchmark immutability (always, `force` or not):** any existing
+     benchmark cell recording a `keysSha256` for this day means the day's
+     keys file is immutable — regeneration is forbidden even if the file
+     was deleted. Check with
+     `find runs -path "*/<day>/run-*.json" -exec grep -l keysSha256 {} + 2>/dev/null`;
+     any hit → abort: the remedy is a new benchmark era, not an edit.
+   - **Overwrite:** if the target day already has a `*_ES_KEYS.md` and
+     `force` was not given → abort naming the file and telling the user to
+     pass `force`.
 
 ## Phase 2 — ONE Workflow invocation (four agents)
 
@@ -186,7 +193,7 @@ if (!current) throw new Error('current-day analyst returned no assessment')
 if (LOOKBACK.length && !lookback) log('lookback analyst returned nothing — proceeding without lookback')
 
 phase('Synthesize')
-const sources = LOOKBACK.length
+const sources = lookback
   ? LOOKBACK.map((l) => `${l.keys.split('/').pop()}${l.outcome ? ` (outcome: ${l.outcome.split('/').pop()})` : ''}`).join(' · ')
   : 'none — bootstrap'
 const synth = await agent(
@@ -240,8 +247,8 @@ ARTIFACT:
 ${synth.artifact}`,
   { label: 'verify', schema: VERIFY_SCHEMA }
 )
-if (!verdict) return { verified: false, mismatches: ['verifier agent returned nothing'], artifact: synth.artifact }
-return { verified: verdict.pass, mismatches: verdict.mismatches, artifact: synth.artifact }
+if (!verdict) return { verified: false, mismatches: ['verifier agent returned nothing'], artifact: synth.artifact, lookbackUsed: false }
+return { verified: verdict.pass, mismatches: verdict.mismatches, artifact: synth.artifact, lookbackUsed: Boolean(lookback) }
 ```
 
 If the Workflow invocation fails or returns no result object, abort without
@@ -257,7 +264,7 @@ writing anything; a rerun regenerates cleanly.
    ---
    generatedBy: <the model id this session runs as, e.g. claude-fable-5>
    generatedAt: <output of: date -u +%Y-%m-%dT%H:%M:%SZ>
-   lookbackSources: [<lookback keys filenames oldest first, e.g. 07152026_ES_KEYS.md — or [] for bootstrap>]
+   lookbackSources: [<the lookback keys filenames oldest first when the workflow returned lookbackUsed: true — otherwise []>]
    verified: true
    ---
    ```
