@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T16:10:17.999Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "short",
+    "entry": 7620,
+    "stopLoss": 7623.75,
+    "takeProfit": 7558.5,
+    "rationale": "Open in upper range; plan caps upside at 7611.50-22.50 bias-confirming zone with sellers expected on first test before the holiday weekend. Resting short deep in the zone, stop 1+ point beyond 7622.50, targeting rotation to 7558.50 (7549.50-58.50 aggressive support near edge). ~16R geometry."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

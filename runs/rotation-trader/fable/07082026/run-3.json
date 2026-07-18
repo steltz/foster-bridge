@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T16:10:18.536Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7446,
+    "stopLoss": 7443.25,
+    "takeProfit": 7524.75,
+    "rationale": "Open sits lower-range after an overnight breakdown attempt. Resting deep in the 7444.50-7454.75 initial-support/range-exhaustion zone (third zone below open), stop beyond its far edge, targeting rotation to 7524.75 — near edge of the 7524.75-7534.75 pre-market resistance. ~28R if the breakdown exhausts and fails (bullish bigger picture)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T16:10:18.575Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7445.75,
+    "stopLoss": 7443.25,
+    "takeProfit": 7580.75,
+    "rationale": "Deep resting buy in 7444.50-7454.75 Initial Support (Range Exhaustion, first-test buyers per plan), stop 1.25 beyond the zone, targeting rotation to the 7580.75-7591.75 range-exhaustion extreme near edge. Lower-portion open, bullish bigger picture, 54:1 geometry clears my 4:1 minimum."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

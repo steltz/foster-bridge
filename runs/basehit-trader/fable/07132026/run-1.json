@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T16:10:17.036Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7551.5,
+    "stopLoss": 7542,
+    "takeProfit": 7566,
+    "rationale": "Long Initial Support 7543-7553 (Friday RTH low, 7544 HVN, launched Friday's failed-breakdown rally) with bigger-picture bullish bias, first RTH test, exhausted approach. Entry deepened to 7551.50 so the nearest opposing reference, broken pre-market support 7566, pays 1.53:1 over a 7542 stop behind the zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

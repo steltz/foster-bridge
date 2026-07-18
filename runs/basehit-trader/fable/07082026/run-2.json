@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T16:10:16.717Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7488.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Long the 7477.50-7493.50 bull/bear zone (bias-confirming, 7482.50 HVN): bigger-picture bullish, failed-breakdown scenario, exhausted first-test approach. Entry deepened to 7488.25 so the 7506 aggressive-resistance leading edge pays 1.51R; stop one point behind the zone at 7476.50."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

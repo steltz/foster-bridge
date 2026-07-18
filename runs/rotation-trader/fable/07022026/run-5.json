@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T16:10:18.071Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "short",
+    "entry": 7620,
+    "stopLoss": 7624,
+    "takeProfit": 7512.75,
+    "rationale": "Price opens upper-range at 7567-79 post-NFP; plan caps upside at bias-confirming 7611.50-22.50 with sellers likely on first test before the holiday weekend. Shorting deep in that zone, stop beyond 7622.50, targeting near edge of significant 7505.75-12.75 initial support — full downside rotation, ~27:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T16:10:17.107Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7551.5,
+    "stopLoss": 7542,
+    "takeProfit": 7566,
+    "rationale": "Long Initial Support 7543-7553 (bias-changing, Friday RTH low, 7544 HVN, launched Friday's rally; bigger-picture bullish). Entry deepened to 7551.50 so target 7566 (pre-market support / overnight low edge) clears 1.5:1; stop 7542, one point behind the zone. Risk 9.5, reward 14.5 (~1.53R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

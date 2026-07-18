@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T16:10:18.501Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7446,
+    "stopLoss": 7443.5,
+    "takeProfit": 7580.75,
+    "rationale": "Open sits in the lower portion of the mapped range. Resting deep in 7444.50-7454.75 initial support (Range Exhaustion, first-test buyers per plan), stop one point beyond the zone, targeting the near edge of the opposite Range Exhaustion extreme 7580.75-7591.75. Bigger-picture bullish bias aligns; ~54:1 clears 4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

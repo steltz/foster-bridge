@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T16:10:16.824Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7476.25,
+    "takeProfit": 7505.75,
+    "rationale": "Long the 7477.50-7493.50 bull/bear zone (Bias Confirming, 7482.50 HVN): larger-timeframe zone aligned with bullish bigger picture, first RTH test of an overnight breakdown attempt the plan says may fail. Entry deepened to clear 1.5:1 against the 7506-7516 aggressive-resistance edge; stop behind the zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T16:10:17.783Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7484,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "rationale": "Mid-range open, bullish larger bias: rest deep in the 7481.75-7495.75 bias-confirming support (bull/bear, 7482.50 HVN, breakout launch zone), stop 1pt beyond the zone, targeting rotation to the near edge of 7558.50-7568.50 initial resistance. ~23:1; unfilled is acceptable."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T16:10:16.361Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7490.75,
+    "stopLoss": 7478.25,
+    "takeProfit": 7510,
+    "rationale": "Bull/Bear 7479.50-7493.50 is the highest-odds zone: bias-confirming, 7482.50 HVN, launched Thursday's bounce, defended 3R last session, aligned with bullish bias. Entry deepened to 7490.75 so the nearest reference, Initial Support edge/VPOC 7510, clears my 1.5:1 floor; stop 1.25 beyond the zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T16:10:17.675Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7530.75,
+    "stopLoss": 7522.25,
+    "takeProfit": 7544,
+    "rationale": "Long the 7523.25-7535.25 bias-confirming support: open gap 7528.75, NVPOC 7524.75, range exhaustion, first-test buyers per plan, aligned with bullish bigger picture. Entry deepened so the 7544 zone edge target clears my 1.5:1 floor (1.56:1); stop one point behind the zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

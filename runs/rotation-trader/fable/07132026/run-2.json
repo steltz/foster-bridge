@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T16:10:18.874Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7509.5,
+    "stopLoss": 7498.25,
+    "takeProfit": 7598,
+    "rationale": "Mid-range open, bullish bigger picture: buy deep in the 7508-7518 range-exhaustion zone, stop behind the 7499.50-7503.50 range extreme (07/09 Initial Support that launched Friday's rally — Key 5). Target 7598, near edge of pre-market resistance bounding the day's upper travel; ~7.9:1 rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

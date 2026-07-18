@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T16:10:16.104Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7492.5,
+    "stopLoss": 7480.75,
+    "takeProfit": 7510.5,
+    "rationale": "Fading the 7481.75-7495.75 bias-confirming support: yesterday's bull/bear launch zone, 7482.50 HVN, prior-day low, aligned with bullish intermediate bias. Entry deepened in-zone for 1.53:1; stop one point behind far edge; target the 7510.50 initial-support underside."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

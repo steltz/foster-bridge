@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T16:10:19.522Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "short",
+    "entry": 7634,
+    "stopLoss": 7638,
+    "takeProfit": 7535.25,
+    "rationale": "Sell side dominant; open in upper range. Resting short deep in 7624.75-7636.75 bias-confirming initial resistance (06/17 confluence, overnight rejection), stop 1pt beyond far edge, targeting near edge of 7523.25-7535.25 range-exhaustion support for the full rotation, ~24:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

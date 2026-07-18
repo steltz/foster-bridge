@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T16:10:16.610Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7571,
+    "stopLoss": 7562,
+    "takeProfit": 7584.5,
+    "rationale": "Long the 7563-73 aggressive support: bullish intermediate bias, overnight responsive buyers already defended it, and it launched the prior session's main move. Entry deepened to 7571 so the nearest opposing reference, pre-market resistance 7584.50, pays exactly 1.5:1 against a stop one point beyond the zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783444200,
+    "exitTime": 1783444500
+  }
+}

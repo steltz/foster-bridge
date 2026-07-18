@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T16:10:16.397Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7491,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Long the bull/bear bias-confirming zone 7479.50-7493.50 (7482.50 HVN, launched 07/02's defended bounce, aligned with bullish intermediate bias). Entry deepened to 7491 so the nearest opposing reference — 7510 VPOC/initial-support underside — clears my 1.5:1 floor. Stop 7478.50, behind the zone. 1.52:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

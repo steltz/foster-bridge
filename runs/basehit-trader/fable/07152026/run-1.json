@@ -1,0 +1,26 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T16:10:17.393Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "setup": {
+    "side": "long",
+    "entry": 7557,
+    "stopLoss": 7543,
+    "takeProfit": 7580,
+    "rationale": "Long at initial support 7544-7557 — launching point, 7544 HVN, bias-changing zone aligned with the bullish bigger picture (Keys 4/5/6), exhausted first-test approach. Shallow entry at the 7557 leading edge, stop one point behind the zone, target 7580 (pre-market support underside) for ~1.64:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

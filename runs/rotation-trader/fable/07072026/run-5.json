@@ -1,0 +1,26 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T16:10:18.428Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "setup": {
+    "side": "long",
+    "entry": 7482.5,
+    "stopLoss": 7478.25,
+    "takeProfit": 7593.75,
+    "rationale": "Deep resting buy at the 7479.50-7493.50 Bull/Bear bias-confirming support (7482.50 HVN, range exhaustion), the zone bounding realistic downside travel, aligned with bullish bigger-picture bias. Stop behind the zone's far edge; target the near edge of the opposite range extreme at 7593.75 initial resistance. 26R geometry; unfilled is acceptable."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
