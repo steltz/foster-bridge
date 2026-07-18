@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:30:42.878Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7545.5,
+    "stopLoss": 7541.75,
+    "takeProfit": 7566,
+    "rationale": "Long initial support 7543-7553 (Friday RTH low, 7544 HVN, first-test, bullish bigger picture). Plan's sell-side caution lowers hold-odds, so entry deep at 7545.50 above the HVN; stop 1+ point beyond zone at 7541.75; target 7566, front of pre-market support/overnight low zone, ~5.5R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

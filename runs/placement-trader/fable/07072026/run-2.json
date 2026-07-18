@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:30:42.450Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7567,
+    "stopLoss": 7558.5,
+    "takeProfit": 7593.25,
+    "rationale": "Bias-aligned long at Aggressive Support 7563-7573, defended overnight and launch point of prior rally. Mid-zone entry; daisy-chain stop under 7559 pre-market support edge per recap guidance. Target leading edge of Initial Resistance 7593.75-7604.25 for ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.5,
+    "dollars": -42.5,
+    "fillTime": 1783433100,
+    "exitTime": 1783433100
+  }
+}

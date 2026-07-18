@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:30:41.848Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7574,
+    "stopLoss": 7563.25,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bullish, buy side dominant per recap. Resting long inside 7564.25-7575.25 pre-market support where plan says buyers may be active; stop one point beyond zone edge; target front of 7606.25-7615.25 initial resistance for exactly 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 32.25,
+    "dollars": 161.25,
+    "fillTime": 1784132400,
+    "exitTime": 1784137500
+  }
+}

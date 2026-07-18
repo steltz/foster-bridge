@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:30:42.273Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7553,
+    "stopLoss": 7548.5,
+    "takeProfit": 7566.75,
+    "rationale": "Bias-aligned long at aggressive support 7549.50-7558.50 (\"holding above signals strength\"); intermediate bullish, buy side dominant post-NFP. Mid-zone entry 7553 balances fill odds vs R:R under neutral short-term bias. Stop 1pt beyond zone far edge; target front of 7567-7579 initial resistance, ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4.5,
+    "dollars": -22.5,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}

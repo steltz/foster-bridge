@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:30:42.701Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7488.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "rationale": "Fading the unconfirmed breakdown at the 7477.50-7493.50 bull/bear zone (bias-confirming, HVN 7482.50, aligned with bullish bigger picture, immediately reachable). Entry 7488.50 balances fill odds vs reward; stop 1pt beyond zone at 7476.50; target front of 7524.75-7534.75 pre-market resistance for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

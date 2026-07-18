@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:30:42.487Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7569.75,
+    "stopLoss": 7562,
+    "takeProfit": 7593.25,
+    "rationale": "Long the 7563-73 aggressive support: bias-aligned (intermediate bullish), launched prior day's rally, defended overnight. Mid-zone entry 7569.75 balances fill odds with 3R; stop behind the zone at 7562; target front of 7593.75-7604.25 initial resistance. ~3.03:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1783433100,
+    "exitTime": 1783433100
+  }
+}

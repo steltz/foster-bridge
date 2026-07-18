@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:30:41.492Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7529,
+    "stopLoss": 7522.75,
+    "takeProfit": 7547.75,
+    "rationale": "Bigger-picture bullish; plan warns caution at initial support with sell side dominant, so I rest deeper at bias-changing 7524-7534 (Open Gap 7528.75, NVPOC 7524.75) where the market arrives exhausted. Stop beyond the zone at 7522.75; target 7547.75 into 7543-7553. 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:30:40.703Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7494.25,
+    "stopLoss": 7480.75,
+    "takeProfit": 7534.75,
+    "rationale": "Bigger-picture bullish; breakout stays valid above the 7481.75-7495.75 bias-confirming support (7482.50 HVN, prior bull/bear zone). Resting long at 7494.25 inside the zone, stop 7480.75 one point beyond its far edge, target 7534.75 pre-market resistance — exactly 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:30:43.159Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7574,
+    "stopLoss": 7563.25,
+    "takeProfit": 7606.25,
+    "rationale": "Long at 7564.25-7575.25 pre-market support, the shallowest bias-aligned zone within the day's reach; entry 7574 near the leading edge for fill, stop 1pt beyond the zone, target 7606.25 front of initial resistance for exactly 3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 32.25,
+    "dollars": 161.25,
+    "fillTime": 1784132400,
+    "exitTime": 1784137500
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:30:42.913Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7546,
+    "stopLoss": 7541.75,
+    "takeProfit": 7566,
+    "rationale": "Long initial support 7543-7553 (Friday's RTH low, 7544 HVN, bias-changing, first RTH test) with bullish bigger picture. Plan warns sell-side dominance into the zone, so entry deep at 7546 near the HVN. Stop behind zone at 7541.75; target 7566 pre-market support edge, ~4.7R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

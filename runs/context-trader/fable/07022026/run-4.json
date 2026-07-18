@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:30:40.811Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7511.5,
+    "stopLoss": 7504.75,
+    "takeProfit": 7531.75,
+    "rationale": "Bullish intermediate bias with breakout intact above 7481.75-7495.75 bull/bear. Plan calls 7505.75-7512.75 initial support the more significant trade location, so I rest a limit there (prior-day low, first test, exhausted approach). Stop 1pt behind zone; target 7531.75 aggressive-support zone for exactly 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.75,
+    "dollars": -33.75,
+    "fillTime": 1783009800,
+    "exitTime": 1783010100
+  }
+}

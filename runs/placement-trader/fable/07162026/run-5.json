@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:30:43.411Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7549.75,
+    "stopLoss": 7543,
+    "takeProfit": 7570,
+    "rationale": "Bullish bigger picture; buying the 7544-7557 bias-changing zone (7544 HVN, launching point, 07/15 initial support) on the plan's projected breakdown path. Mid-zone entry 7549.75, stop 7543 one point behind the zone, target 7570 at broken initial support (7570-7581) for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:30:42.737Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7534,
+    "stopLoss": 7523,
+    "takeProfit": 7567,
+    "rationale": "Failed breakdown, buyers back in control per plan. Long the shallow edge of bias-aligned aggressive support 7524-7536.50 to prioritize fill; stop 1pt beyond far edge; target NVPOC 7567 inside initial resistance 7561.25-7571.25 for exactly 3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 33,
+    "dollars": 165,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

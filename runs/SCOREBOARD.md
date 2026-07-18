@@ -1,13 +1,13 @@
 # Trader Scoreboard
 
-220 cells · 6 trader@model groups. Every group is scored alone; P&L is never combined across traders or models.
+300 cells · 6 trader@model groups. Every group is scored alone; P&L is never combined across traders or models.
 
 ## Ranking (mean net USD per run)
 
 | # | Trader | Model | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | placement-trader | fable | 10 | 1 | 167.50 | 0.00 | 167.50 | 167.50 | 33% | 60% |
-| 2 | context-trader | fable | 10 | 1 | 48.75 | 0.00 | 48.75 | 48.75 | 25% | 40% |
+| 1 | placement-trader | fable | 10 | 5 | 173.00 | 43.86 | 136.25 | 243.75 | 33% | 60% |
+| 2 | context-trader | fable | 10 | 5 | 79.50 | 72.90 | -11.25 | 170.00 | 28% | 50% |
 | 3 | placement-trader | sonnet | 10 | 5 | -29.00 | 73.27 | -111.25 | 76.25 | 20% | 60% |
 | 4 | context-trader | sonnet | 10 | 5 | -33.25 | 100.29 | -133.75 | 120.00 | 21% | 56% |
 | 5 | placement-trader | opus | 10 | 5 | -44.50 | 106.27 | -158.75 | 121.25 | 22% | 46% |
@@ -18,23 +18,27 @@
 | Run | Days | Pts | USD |
 |---|---|---|---|
 | 1 | 10 | 33.5 | 167.50 |
+| 2 | 10 | 36 | 180.00 |
+| 3 | 10 | 48.75 | 243.75 |
+| 4 | 10 | 27.25 | 136.25 |
+| 5 | 10 | 27.5 | 137.50 |
 
-Wins: 2 · Losses: 4 · Avg win: 30.88 pts · Avg loss: -7.06 pts
+Wins: 10 · Losses: 20 · Avg win: 32.42 pts · Avg loss: -7.56 pts
 
 ### Setup stability
 
 | Day | Runs | Sides | Entry spread |
 |---|---|---|---|
-| 07012026 | 1 | 1L/0S | 0.00 |
-| 07022026 | 1 | 1L/0S | 0.00 |
-| 07062026 | 1 | 1L/0S | 0.00 |
-| 07072026 | 1 | 1L/0S | 0.00 |
-| 07082026 | 1 | 1L/0S | 0.00 |
-| 07092026 | 1 | 1L/0S | 0.00 |
-| 07132026 | 1 | 1L/0S | 0.00 |
-| 07142026 | 1 | 1L/0S | 0.00 |
-| 07152026 | 1 | 1L/0S | 0.00 |
-| 07162026 | 1 | 1L/0S | 0.00 |
+| 07012026 | 5 | 5L/0S | 4.00 |
+| 07022026 | 5 | 5L/0S | 0.75 |
+| 07062026 | 5 | 5L/0S | 5.00 |
+| 07072026 | 5 | 5L/0S | 26.50 |
+| 07082026 | 5 | 5L/0S | 6.00 |
+| 07092026 | 5 | 5L/0S | 3.50 |
+| 07132026 | 5 | 5L/0S | 1.00 |
+| 07142026 | 5 | 5L/0S | 0.50 |
+| 07152026 | 5 | 5L/0S | 0.75 |
+| 07162026 | 5 | 5L/0S | 15.75 |
 
 ### Pipeline errors
 
@@ -45,23 +49,27 @@ None.
 | Run | Days | Pts | USD |
 |---|---|---|---|
 | 1 | 10 | 9.75 | 48.75 |
+| 2 | 10 | 27.25 | 136.25 |
+| 3 | 10 | 34 | 170.00 |
+| 4 | 10 | 10.75 | 53.75 |
+| 5 | 10 | -2.25 | -11.25 |
 
-Wins: 1 · Losses: 3 · Avg win: 32.25 pts · Avg loss: -7.50 pts
+Wins: 7 · Losses: 18 · Avg win: 31.29 pts · Avg loss: -7.75 pts
 
 ### Setup stability
 
 | Day | Runs | Sides | Entry spread |
 |---|---|---|---|
-| 07012026 | 1 | 1L/0S | 0.00 |
-| 07022026 | 1 | 1L/0S | 0.00 |
-| 07062026 | 1 | 1L/0S | 0.00 |
-| 07072026 | 1 | 1L/0S | 0.00 |
-| 07082026 | 1 | 1L/0S | 0.00 |
-| 07092026 | 1 | 1L/0S | 0.00 |
-| 07132026 | 1 | 1L/0S | 0.00 |
-| 07142026 | 1 | 1L/0S | 0.00 |
-| 07152026 | 1 | 1L/0S | 0.00 |
-| 07162026 | 1 | 1L/0S | 0.00 |
+| 07012026 | 5 | 5L/0S | 31.00 |
+| 07022026 | 5 | 5L/0S | 66.00 |
+| 07062026 | 5 | 5L/0S | 4.75 |
+| 07072026 | 5 | 5L/0S | 4.50 |
+| 07082026 | 5 | 5L/0S | 94.50 |
+| 07092026 | 5 | 5L/0S | 3.50 |
+| 07132026 | 5 | 5L/0S | 1.00 |
+| 07142026 | 5 | 5L/0S | 0.00 |
+| 07152026 | 5 | 5L/0S | 0.00 |
+| 07162026 | 5 | 5L/0S | 2.75 |
 
 ### Pipeline errors
 
@@ -195,9 +203,9 @@ None.
 
 | Trader | Model | Cells | Days | Runs | Status |
 |---|---|---|---|---|---|
-| context-trader | fable | 10 | 10 | 1 | ⚠ under-tested (max 50) |
+| context-trader | fable | 50 | 10 | 5 | ok |
 | context-trader | opus | 50 | 10 | 5 | ok |
 | context-trader | sonnet | 50 | 10 | 5 | ok |
-| placement-trader | fable | 10 | 10 | 1 | ⚠ under-tested (max 50) |
+| placement-trader | fable | 50 | 10 | 5 | ok |
 | placement-trader | opus | 50 | 10 | 5 | ok |
 | placement-trader | sonnet | 50 | 10 | 5 | ok |
