@@ -23,7 +23,7 @@ optional model alias (default `fable`). Valid aliases and recorded ids:
 
 Any other alias → abort listing the valid aliases.
 
-## Phase 1 — Preflight (no agents; abort early with ONE specific message)
+## Phase 1 — Preflight (no bench agents — step 6 may run seven-keys sub-flows; abort early with ONE specific message)
 
 1. **Discover personas:** every `traders/*.md`; persona name = the `name:`
    frontmatter value (fall back to filename without `.md`). None → abort
@@ -59,10 +59,24 @@ Any other alias → abort listing the valid aliases.
    `0` → skip the day, list it. No candidate days at all → abort.
 5. **Discover general docs:** every file under `knowledge-base/general/`
    (recursive). Empty or missing directory → proceed with none.
-6. **Compute the missing set:** for every (trader, day), existing runs are
+6. **Keys files (generate missing, oldest first):** every candidate day
+   needs a `*_ES_KEYS.md` in its folder. For days missing one, run the
+   seven-keys skill flow (its Phases 1–3, committing each artifact;
+   invoke it with that day's `MMDDYYYY` argument) sequentially in
+   chronological order, oldest first, so each day's lookback sees its
+   predecessors. A day whose generation aborts is SKIPPED with the
+   reason listed. Then compute each candidate day's keys hash:
+   `shasum -a 256 <day folder>/<prefix>_ES_KEYS.md`.
+7. **Keys immutability guard:** read `keysSha256` from every existing
+   `runs/*/*/<day>/run-*.json`. Any existing cell whose `keysSha256`
+   differs from that day's current hash → abort naming the day, both
+   hashes, and the remedy: keys files are immutable once benchmarked —
+   start a new benchmark era instead of editing them. Cells without the
+   field (pre-keys era) are valid and exempt.
+8. **Compute the missing set:** for every (trader, day), existing runs are
    `runs/<trader>/<alias>/<day>/run-*.json`; missing indices are `1..N`
    minus the indices present. Existing cells beyond N are left alone.
-7. **Report the plan, then proceed:** traders × days × model alias, cells
+9. **Report the plan, then proceed:** traders × days × model alias, cells
    already present, cells to run, skipped days with reasons. Example:
    "2 traders × 10 days × fable, target N=5: 62 cells exist, 38 to run."
    If nothing is missing, say so and jump to Phase 4.
@@ -91,6 +105,7 @@ const DOCS_BY_DAY = {
     pdf: '<absolute path to *_ES_TP.pdf>',
     plan: '<absolute path to *_ES_TP.md>',
     recap: '<absolute path to *_ES_RECAP.md>',
+    keys: '<absolute path to *_ES_KEYS.md>',
   },
 }
 const PERSONAS = {
@@ -121,6 +136,9 @@ const results = await parallel(CELLS.map((cell) => () => {
   return agent(
     `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
     generalBlock +
+    `Read the shared Seven-Keys assessment at ${docs.keys} — the shared scorecard of the day's zones. Adopt its per-zone key scores rather than re-deriving them; apply your persona's style to choose among the zones it grades.
+
+` +
     `Then Read the three documents for the ${docs.date} ES (E-mini S&P 500) session:\n` +
     `1. Trade plan worksheet (PDF, support/resistance zones): ${docs.pdf}\n` +
     `2. Trade plan video transcript: ${docs.plan}\n` +
@@ -180,6 +198,7 @@ format:
   "runIndex": <k>,
   "timestamp": "<current ISO-8601 UTC time>",
   "personaSha256": "<hash from Phase 1>",
+  "keysSha256": "<the day's keys file hash from Phase 1>",
   "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
   "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
   "note": "<only for INVALID / CLI_ERROR>"
@@ -190,7 +209,8 @@ Omit `setup` for NO_SETUP cells; `result` is then `{ "status": "NO_SETUP" }`.
 For NOT_FILLED, keep the CLI's null points/dollars/fillTime/exitTime as
 null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 `result` = `{ "status": "INVALID" }` / `{ "status": "CLI_ERROR" }` plus the
-top-level `note`.
+top-level `note`. Every cell — including NO_SETUP — records the day's
+keysSha256.
 
 ## Phase 4 — Scoreboard and commit
 
