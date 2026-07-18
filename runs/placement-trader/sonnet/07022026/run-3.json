@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:01:48.910Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7558.25,
+    "stopLoss": 7548.5,
+    "takeProfit": 7595.25,
+    "rationale": "Long, aligned with bullish intermediate/bigger-picture bias. Zone = aggressive support 7549.50-7558.50 (holds VPOC 7551.75; plan says holding here signals the NFP breakout intact) — shallow, bias-confirming, reachable this session. Stop 1pt beyond far edge 7549.50. Target next bias-confirming resistance 7595.25-7604.25, ~3.8R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

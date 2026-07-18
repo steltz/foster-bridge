@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:01:48.766Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7542.75,
+    "rationale": "Long at bias-confirming support 7481.75-7495.75 (7482.50 HVN) — yesterday's bull/bear zone that launched the breakout; bigger-picture bias bullish, recap confirms buy side in control above it. High hold-odds zone, so enter shallow at near edge 7495.75. Stop 7480.75 (1pt beyond far edge). Target next resistance 7534.75-7542.75, ~3.1R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

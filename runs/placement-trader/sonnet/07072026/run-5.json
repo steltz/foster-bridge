@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:01:49.337Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7545.25,
+    "stopLoss": 7537.25,
+    "takeProfit": 7571.25,
+    "rationale": "Long at initial support 7538.25-7546.75 (7544 HVN; plan's flagged intermarket-trigger buy zone), aligned with intermediate/bigger-picture bullish bias and first-test odds, and reachable within the day's normal range. Stop 7537.25, one point beyond the zone. Target aggressive support 7563-7573, next zone up, ~3.25R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

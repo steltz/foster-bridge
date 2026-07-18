@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:49.553Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7536.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7580.75,
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight failed breakdown reclaimed RTH high. Long the shallow (top) edge of aggressive support 7524-7536.50 (holds-above=strength, prior VPOC/close confluence, bias-aligned). Stop 1.25pts beyond zone's far/low edge. Target plan's stated first upside reaction zone 7580.75-7591.75 (~3.3R)."
+  },
+  "result": {
+    "status": "TP",
+    "points": 44.5,
+    "dollars": 222.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:01:50.384Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7535.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7574.25,
+    "rationale": "Long at 7523.25-7535.25, the bias-confirming, range-exhaustion zone (open gap 7528.75, NVPOC 7524.75) the plan flags for first-test buyers after a projected breakdown flush. Entered shallow at the zone's top edge given stacked confluence. Stop 1pt beyond zone low; target 7574.25 inside 7570-7581 initial support, ~3R, aligned with bullish bigger-picture bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

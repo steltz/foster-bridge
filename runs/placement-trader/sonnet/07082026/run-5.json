@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:01:49.517Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7492.75,
+    "stopLoss": 7476.25,
+    "takeProfit": 7544,
+    "rationale": "Trading with the bigger-picture bullish/neutral-bullish intermediate bias (overnight breakdown is only an \"attempt,\" not a confirmed shift). Long at the shallow/front edge of the 7477.50-7493.50 Bull/Bear zone — the plan's named pivot, bias-confirming, first test. Stop 1pt+ beyond far edge (7476.25). Target 7544-7551.75 (failed-breakdown/strength zone), ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.5,
+    "dollars": -82.5,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

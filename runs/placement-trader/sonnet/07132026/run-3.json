@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:01:49.804Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7545.25,
+    "stopLoss": 7542,
+    "takeProfit": 7566,
+    "rationale": "Bigger-picture bias remains bullish/neutral-bullish; overnight NQ weakness pulls ES toward Initial Support 7543-7553 (7544 HVN). Entering deep in zone given the plan's caution there (\"sell side dominant heading in\"). Stop 1pt below zone (7542). Target: overnight-low zone 7566-7576, ~6.4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

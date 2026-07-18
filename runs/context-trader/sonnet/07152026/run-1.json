@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:48.303Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7591.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture/intermediate bias is bullish; recap confirms dominant buy-side, pullbacks bought. Resting buy inside Aggressive Support 7587.75-7597.75 (Holding Above Signals Strength) at 7591.75, stop 7586.75 (1pt beyond zone), target Initial Resistance front edge 7606.25 for ~2.9:1 R:R, aligned with dominant bias."
+  },
+  "result": {
+    "status": "TP",
+    "points": 14.5,
+    "dollars": 72.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784129100
+  }
+}

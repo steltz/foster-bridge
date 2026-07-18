@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 5,
+  "timestamp": "2026-07-18T13:01:49.158Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7493.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7538.25,
+    "rationale": "Long at the bull/bear zone 7479.50-7493.50 (bias confirming, HVN 7482.50) — the same level that launched Thursday's bounce and aligns with the intermediate/bigger-picture bullish bias. Shallow entry at the zone's top edge prioritizes fill; stop 1pt beyond 7479.50; target pre-market support 7538.25-7546.75 for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

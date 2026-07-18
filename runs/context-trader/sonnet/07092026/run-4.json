@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:01:47.873Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7532.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7561.25,
+    "rationale": "Overnight broke above yesterday's RTH high, confirming the prior session's breakdown attempt failed and buyers are back in control (bullish bigger-picture bias). Buying Aggressive Support (7524-7536.50) at 7532.25, stop below it at 7522.75, targeting Initial Resistance (7561.25-7571.25) at 7561.25 for ~3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 29,
+    "dollars": 145,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

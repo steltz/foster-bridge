@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:01:48.694Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7516.25,
+    "stopLoss": 7509.25,
+    "takeProfit": 7547.75,
+    "rationale": "Long at Initial Support 7510.50-7520.50: first test, aligned with bullish intermediate/bigger-picture bias. Deeper Bias-Confirming zone 7481.75-7495.75 only reachable via a bearish liquidation scenario the neutral plan doesn't project, so I stay shallow. Stop 1pt beyond zone low; target next meaningful zone, Pre-Market Resistance 7547.75-7555.25, ~4.5R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

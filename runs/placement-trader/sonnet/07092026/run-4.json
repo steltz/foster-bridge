@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:01:49.660Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7536.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7593.75,
+    "rationale": "Recap's failed-breakdown thesis confirmed overnight (break above prior RTH high) — buy side in control, bias-aligned (Key 6). Long at Aggressive Support 7524-7536.50, shallow entry near top edge (high hold-odds, bias-confirming). Stop below zone at 7522.75. Target plan's 7593.75-7604.25 upside-expansion zone; ~4.3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 57.5,
+    "dollars": 287.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783618200
+  }
+}

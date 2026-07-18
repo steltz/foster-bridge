@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:01:48.517Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "short",
+    "entry": 7599.75,
+    "stopLoss": 7604.75,
+    "takeProfit": 7580.25,
+    "rationale": "Short at 7599.75 inside 7593.50-7603.50 aggressive resistance, where overnight sellers already turned dominant (\"holding below signals weakness\"). Stop 7604.75, beyond zone's far edge. Target 7580.25, top of Initial Support 7570-7581, next meaningful zone down — ~3.9:1, respecting the plan's bearish path despite bullish bigger-picture bias."
+  },
+  "result": {
+    "status": "SL",
+    "points": -5,
+    "dollars": -25,
+    "fillTime": 1784210700,
+    "exitTime": 1784210700
+  }
+}

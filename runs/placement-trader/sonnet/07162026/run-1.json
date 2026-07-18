@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:50.276Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7535.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7574.25,
+    "rationale": "Bigger-picture bias is bullish; recap warns against shorting 7/16. Plan's downside-expansion path leads to 7523.25-7535.25 — bias-confirming, first-test, range-exhaustion, gap/NVPOC confluence. Enter shallow at the zone's leading edge (7535.25), stop beyond the far edge, target the 7570-7581 initial-support zone for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

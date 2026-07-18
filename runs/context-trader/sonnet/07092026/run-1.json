@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:47.764Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7534.75,
+    "stopLoss": 7522.75,
+    "takeProfit": 7580.75,
+    "rationale": "Bigger-picture bias is bullish; recap shows 07/08 breakdown failed, overnight already broke above yesterday's RTH high — buyers back in control. Buying aggressive support 7524-7536.50 (holds-above=strength) near zone top per Key 6 (aligned bias), stop 1.25pts beyond zone, target confluence resistance 7580.75-7591.75 (HVN/Gap/NVPOC) for ~3.8:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 46,
+    "dollars": 230,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}

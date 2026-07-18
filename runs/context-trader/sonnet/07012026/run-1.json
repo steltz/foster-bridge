@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:46.864Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7492.25,
+    "stopLoss": 7480.5,
+    "takeProfit": 7534.75,
+    "rationale": "Resting buy inside 7481.75-7495.75, the bias-confirming bull/bear zone that launched yesterday's breakout (HVN 7482.50) — aligns with intermediate/bigger-picture bullish bias (Keys 5&6), deeper than the weaker \"bias changing\" 7510.50-7520.50 initial support. Stop 1pt below zone. Target pre-market resistance 7534.75-7542.75, ~3.6:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

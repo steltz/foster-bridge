@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 2,
+  "timestamp": "2026-07-18T13:01:50.127Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7591.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bias is Bullish; trading with it. Zone: Aggressive Support 7587.75-7597.75, reinforced by prior close 7591.25/VPOC 7590.50 sitting inside it, first pullback test. Moderate hold-odds (bias-aligned, no stacked confluence) warrant mid-zone entry. Stop 1pt beyond far edge (7586.75). Target: Initial Resistance near edge 7606.25, ~2.9R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 14.5,
+    "dollars": 72.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784129100
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 4,
+  "timestamp": "2026-07-18T13:01:49.840Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7524.75,
+    "stopLoss": 7523,
+    "takeProfit": 7543,
+    "rationale": "Bigger Picture bias is Bullish; overnight NQ-led weakness dragged ES down toward the 7524-7534 zone (Open Gap 7528.75/NVPOC 7524.75), one zone below the plan's cautioned Initial Support 7543-7553 (sell-side dominant heading in). Entering deep at NVPOC 7524.75 for lower hold-odds; stop 1pt beyond zone low 7524; target reclaim of Initial Support 7543."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

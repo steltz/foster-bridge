@@ -1,0 +1,26 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:48.125Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "setup": {
+    "side": "long",
+    "entry": 7578.25,
+    "stopLoss": 7569.75,
+    "takeProfit": 7609.25,
+    "rationale": "Bigger-picture bias is bullish and post-CPI strength already broke above yesterday's RTH high. Resting a buy inside Aggressive Support 7571-7582 (holding-above signals strength), stop 1+ pt below the zone, targeting the Initial Resistance 7609.25-7620.25 bias-changing zone for ~3.65:1 reward-to-risk."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.5,
+    "dollars": -42.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

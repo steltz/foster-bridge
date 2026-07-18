@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:01:49.986Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7581.75,
+    "stopLoss": 7569.75,
+    "takeProfit": 7617.75,
+    "rationale": "Bigger-picture bias is bullish and CPI already launched the breakout above yesterday's high. Long from Aggressive Support 7571-7582 (Key 6 bias alignment) — shallow entry near the zone's leading edge to prioritize fill. Stop below zone. Target Initial Resistance 7609.25-7620.25, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

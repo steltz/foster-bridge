@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 1,
+  "timestamp": "2026-07-18T13:01:49.016Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7492.75,
+    "stopLoss": 7478.25,
+    "takeProfit": 7538.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap confirmed buyers defending Bull/Bear 7479.50-7493.50 (multi-day balance low, HVN 7482.50) with a 3R bounce. Entering shallow near zone top for high fill odds on this bias-confirming, high-confluence zone. Stop beyond far edge (7479.50). Target next zone: pre-market support 7538.25-7546.75, ~3.1R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

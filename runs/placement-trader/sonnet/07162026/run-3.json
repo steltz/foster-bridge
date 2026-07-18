@@ -1,0 +1,26 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 3,
+  "timestamp": "2026-07-18T13:01:50.347Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "setup": {
+    "side": "long",
+    "entry": 7534.25,
+    "stopLoss": 7522,
+    "takeProfit": 7570.25,
+    "rationale": "Bigger-picture bias is bullish; overnight selling projects a flush through 7570-81 and 7544-57 into 7523.25-7535.25, a bias-confirming, range-exhaustion zone stacked with NVPOC 7524.75 and open gap 7528.75. Entered shallow near the top for high hold-odds; stop beyond 7523.25; target reclaim of 7570-81 initial support."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
