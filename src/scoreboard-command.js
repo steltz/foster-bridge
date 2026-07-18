@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { computeScoreboard, renderScoreboard } from './scoreboard.js';
+import { collectTraders } from './lineage.js';
 
 // runs/<trader>/<model-alias>/<MMDDYYYY>/run-<k>.json
 export function collectCells(runsDir) {
@@ -38,11 +39,15 @@ function subdirs(dir) {
 export function runScoreboard(args) {
   const { values } = parseArgs({
     args,
-    options: { dir: { type: 'string', default: 'runs' } },
+    options: {
+      dir: { type: 'string', default: 'runs' },
+      traders: { type: 'string', default: 'traders' },
+    },
   });
   const cells = collectCells(values.dir);
+  const traders = collectTraders(values.traders);
   const markdown = cells.length
-    ? renderScoreboard(computeScoreboard(cells))
+    ? renderScoreboard(computeScoreboard(cells), traders)
     : '# Trader Scoreboard\n\nNo benchmark cells found. Run /trader-bench to populate runs/.\n';
   mkdirSync(values.dir, { recursive: true });
   const outPath = join(values.dir, 'SCOREBOARD.md');
