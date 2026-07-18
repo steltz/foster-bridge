@@ -4,16 +4,18 @@
 
 ## Ranking (mean net USD per run)
 
-| # | Trader | Model | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | placement-trader | fable | 10 | 5 | 173.00 | 43.86 | 136.25 | 243.75 | 33% | 60% |
-| 2 | context-trader | fable | 10 | 5 | 79.50 | 72.90 | -11.25 | 170.00 | 28% | 50% |
-| 3 | rotation-trader | fable | 10 | 5 | 0.00 | 0.00 | 0.00 | 0.00 | - | 0% |
-| 4 | basehit-trader | fable | 10 | 5 | -11.25 | 36.54 | -33.75 | 53.75 | 41% | 44% |
-| 5 | placement-trader | sonnet | 10 | 5 | -29.00 | 73.27 | -111.25 | 76.25 | 20% | 60% |
-| 6 | context-trader | sonnet | 10 | 5 | -33.25 | 100.29 | -133.75 | 120.00 | 21% | 56% |
-| 7 | placement-trader | opus | 10 | 5 | -44.50 | 106.27 | -158.75 | 121.25 | 22% | 46% |
-| 8 | context-trader | opus | 10 | 5 | -83.00 | 102.40 | -196.25 | 15.00 | 15% | 40% |
+Keys: Nk/M = N of the group's M cells ran with the shared Seven-Keys artifact; the rest predate it.
+
+| # | Trader | Model | Days | Runs | Keys | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | placement-trader | fable | 10 | 5 | 0k/50 | 173.00 | 43.86 | 136.25 | 243.75 | 33% | 60% |
+| 2 | context-trader | fable | 10 | 5 | 0k/50 | 79.50 | 72.90 | -11.25 | 170.00 | 28% | 50% |
+| 3 | rotation-trader | fable | 10 | 5 | 0k/50 | 0.00 | 0.00 | 0.00 | 0.00 | - | 0% |
+| 4 | basehit-trader | fable | 10 | 5 | 0k/50 | -11.25 | 36.54 | -33.75 | 53.75 | 41% | 44% |
+| 5 | placement-trader | sonnet | 10 | 5 | 0k/50 | -29.00 | 73.27 | -111.25 | 76.25 | 20% | 60% |
+| 6 | context-trader | sonnet | 10 | 5 | 0k/50 | -33.25 | 100.29 | -133.75 | 120.00 | 21% | 56% |
+| 7 | placement-trader | opus | 10 | 5 | 0k/50 | -44.50 | 106.27 | -158.75 | 121.25 | 22% | 46% |
+| 8 | context-trader | opus | 10 | 5 | 0k/50 | -83.00 | 102.40 | -196.25 | 15.00 | 15% | 40% |
 
 ## Lineage
 
