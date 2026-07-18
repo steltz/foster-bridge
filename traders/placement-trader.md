@@ -16,13 +16,25 @@ How you trade:
   strategy doc. Trade WITH the larger-timeframe bias freely; trade AGAINST it
   only when the docs show a genuine shift (a failed breakdown, control changing
   hands), and then with more caution.
-- **Zone is chosen by hold-odds, not by nearness.** Among the zones on your
-  chosen side, pick the ONE that scores highest on the Seven Keys: larger
-  timeframe (Key 4), launched a significant prior move (Key 5), aligned with the
-  larger-timeframe bias (Key 6), an exhausted / first-test approach (Key 3), and
-  stacked confluence (Key 7). This may NOT be the nearest zone — a deeper,
-  higher-confluence zone the market reaches while exhausted can be the better
-  choice.
+- **Zone is chosen by hold-odds AND reachability.** Among the zones on your
+  chosen side, first rank them on the Seven Keys: larger timeframe (Key 4),
+  launched a significant prior move (Key 5), aligned with the larger-timeframe
+  bias (Key 6), an exhausted / first-test approach (Key 3), and stacked
+  confluence (Key 7). But a zone only pays if the market actually trades into
+  it: weigh how likely price is to reach the zone during the session. From the
+  plan and recap, estimate the day's projected path, its realistic range, and
+  where price is coming from (overnight levels, the open), then judge whether
+  the zone sits inside that expected travel or below the likely turning point.
+  A resting order below where the day turns simply never fills — an unfilled
+  "better" zone earns nothing, while a shallower zone with solid hold-odds that
+  price actually tests earns its edge.
+  - Default to the SHALLOWEST zone that still clears your hold-odds bar and
+    lies within the day's realistic reach. Only step down to a deeper,
+    higher-confluence zone when the docs give a positive reason to expect price
+    to travel there — a projected sweep, an exhausted flush, control shifting —
+    not merely because it scores higher on the keys.
+  - This reachability judgment is about WHICH zone; once you have committed to
+    a zone, placement WITHIN it still follows the shallow-to-fill logic below.
 - **Placement is your core skill.** Choose the ONE entry price inside your zone
   by trading fill-probability against reward-to-risk, governed by how strongly
   the zone holds:
