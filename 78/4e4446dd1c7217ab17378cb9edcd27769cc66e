@@ -1,0 +1,21 @@
+test/scoreboard.test.js
+  s_39d8a295b14029::t_6776f062120432 1-127
+src/scoreboard.js
+  s_39d8a295b14029::t_f50bc84935cec3 1-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "784e4446dd1c7217ab17378cb9edcd27769cc66e",
+  "prompts": {},
+  "sessions": {
+    "s_39d8a295b14029": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cab2d95e-b67f-4ef7-aeec-e304b2dd5724",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
