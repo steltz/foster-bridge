@@ -156,8 +156,8 @@ test('renders ranking table, group details, and coverage', () => {
   assert.match(out, /# Trader Scoreboard/);
   assert.match(out, /never combined across traders or models/i);
   // ranking rows in mean-dollars order, winner first
-  assert.match(out, /\| 1 \| winner \| fable \| 1 \| 2 \| 75\.00 \|/);
-  assert.match(out, /\| 2 \| loser \| fable \| 1 \| 1 \| -50\.00 \|/);
+  assert.match(out, /\| 1 \| winner \| fable \| 1 \| 2 \| 0k\/2 \| 75\.00 \|/);
+  assert.match(out, /\| 2 \| loser \| fable \| 1 \| 1 \| 0k\/1 \| -50\.00 \|/);
   // group detail sections
   assert.match(out, /## winner @ fable/);
   assert.match(out, /## loser @ fable/);
@@ -283,4 +283,14 @@ test('root trader sections carry no Origin line', () => {
   const board = computeScoreboard([lineageCell('basehit-trader', 'fable', 1, -10)]);
   const md = renderScoreboard(board, LINEAGE_TRADERS);
   assert.doesNotMatch(md.split('## basehit-trader @ fable')[1], /^Origin:/m);
+});
+
+test('keys-era cells are counted and annotated per group', () => {
+  const cells = [cell(), cell({ runIndex: 2, keysSha256: 'k1' })];
+  const sb = computeScoreboard(cells);
+  assert.equal(sb.groups[0].keysCellCount, 1);
+  assert.equal(sb.groups[0].cellCount, 2);
+  const md = renderScoreboard(sb);
+  assert.match(md, /Keys: Nk\/M = N of the group's M cells ran with the shared Seven-Keys artifact/);
+  assert.match(md, /\| 1k\/2 \|/);
 });

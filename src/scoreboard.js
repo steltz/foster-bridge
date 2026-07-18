@@ -86,6 +86,7 @@ function summarizeGroup(cells) {
     trader,
     model,
     cellCount: cells.length,
+    keysCellCount: cells.filter((c) => c.keysSha256).length,
     days,
     runIndices,
     runTotals,
@@ -160,13 +161,15 @@ export function renderScoreboard({ groups, maxCells }, traders = []) {
     '',
     '## Ranking (mean net USD per run)',
     '',
-    '| # | Trader | Model | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |',
-    '|---|---|---|---|---|---|---|---|---|---|---|',
+    "Keys: Nk/M = N of the group's M cells ran with the shared Seven-Keys artifact; the rest predate it.",
+    '',
+    '| # | Trader | Model | Days | Runs | Keys | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...groups.map(
       (g, i) =>
         `| ${i + 1} | ${g.trader} | ${g.model} | ${g.days.length} | ${g.runIndices.length} ` +
-        `| ${money(g.meanDollars)} | ${money(g.stdDollars)} | ${money(g.minRunDollars)} ` +
-        `| ${money(g.maxRunDollars)} | ${pct(g.winRate)} | ${pct(g.fillRate)} |`
+        `| ${g.keysCellCount}k/${g.cellCount} | ${money(g.meanDollars)} | ${money(g.stdDollars)} ` +
+        `| ${money(g.minRunDollars)} | ${money(g.maxRunDollars)} | ${pct(g.winRate)} | ${pct(g.fillRate)} |`
     ),
   ];
 
