@@ -15,6 +15,15 @@
 | 7 | placement-trader | opus | 10 | 5 | -44.50 | 106.27 | -158.75 | 121.25 | 22% | 46% |
 | 8 | context-trader | opus | 10 | 5 | -83.00 | 102.40 | -196.25 | 15.00 | 15% | 40% |
 
+## Lineage
+
+```
+basehit-trader                 fable 5r: -11.25
+context-trader                 fable 5r: 79.50 · opus 5r: -83.00 · sonnet 5r: -33.25
+placement-trader               fable 5r: 173.00 · opus 5r: -44.50 · sonnet 5r: -29.00
+rotation-trader                fable 5r: 0.00
+```
+
 ## placement-trader @ fable
 
 | Run | Days | Pts | USD |
