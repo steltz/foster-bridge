@@ -208,7 +208,7 @@ function sampleStd(xs) {
 export function computeScoreboard(cells) {
   const byGroup = new Map();
   for (const c of cells) {
-    const key = `${c.trader} ${c.model.alias}`;
+    const key = `${c.trader}\u0000${c.model.alias}`;
     if (!byGroup.has(key)) byGroup.set(key, []);
     byGroup.get(key).push(c);
   }
