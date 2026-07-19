@@ -205,8 +205,8 @@ test('computeFeatureImpact computes per-(trader,model) deltas vs the base varian
   assert.equal(impact.length, 1);
   assert.equal(impact[0].variant, 'seven-keys');
   assert.deepEqual(impact[0].rows, [
-    { trader: 'a', model: 'fable', days: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
-    { trader: 'b', model: 'sonnet', days: 1, baseDollars: -50, featureDollars: 50, delta: 100 },
+    { trader: 'a', model: 'fable', days: 1, baseRuns: 1, featureRuns: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
+    { trader: 'b', model: 'sonnet', days: 1, baseRuns: 1, featureRuns: 1, baseDollars: -50, featureDollars: 50, delta: 100 },
   ]);
   assert.equal(impact[0].overallDelta, 75);
 });
@@ -223,7 +223,7 @@ test('computeFeatureImpact restricts both sides to their shared day set', () => 
   // base's 07022026 loss is excluded: both sides compare over 07012026 only,
   // so the delta is +50 — not the +250 a raw group-mean comparison would show
   assert.deepEqual(impact[0].rows, [
-    { trader: 'context-trader', model: 'fable', days: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
+    { trader: 'context-trader', model: 'fable', days: 1, baseRuns: 1, featureRuns: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
   ]);
 });
 
@@ -250,6 +250,59 @@ test('computeFeatureImpact returns [] when only the base variant exists', () => 
   assert.deepEqual(computeFeatureImpact(computeScoreboard([cell()]).groups), []);
 });
 
+test('computeFeatureImpact never pairs a feature group with a different trader\'s base group', () => {
+  // Naive "trader::model" concatenation makes these two collide: trader
+  // 'a::fable' + model 'x' and trader 'a' + model 'fable::x' produce the
+  // same key, comparing P&L across DIFFERENT traders.
+  const cells = [
+    cell({ trader: 'a::fable', model: { alias: 'x', id: 'i' }, variant: 'base', result: { status: 'TP', points: 20, dollars: 100 } }),
+    cell({ trader: 'a', model: { alias: 'fable::x', id: 'i' }, variant: 'seven-keys', result: { status: 'TP', points: 30, dollars: 150 } }),
+  ];
+  const impact = computeFeatureImpact(computeScoreboard(cells).groups);
+  // the feature group has no base group of its OWN trader+model, so no row
+  assert.equal(impact[0].rows.length, 0);
+});
+
+test('computeFeatureImpact omits a pair whose shared days have no filled trades on either side', () => {
+  const unfilled = { status: 'NOT_FILLED', points: null, dollars: null };
+  const cells = [
+    cell({ variant: 'base', result: unfilled }),
+    cell({ variant: 'seven-keys', result: unfilled }),
+  ];
+  const impact = computeFeatureImpact(computeScoreboard(cells).groups);
+  // both sides are 0 only because nothing filled — a real 0.00 delta here
+  // would be indistinguishable from "the feature changed nothing"
+  assert.equal(impact[0].rows.length, 0);
+  assert.equal(impact[0].overallDelta, null);
+});
+
+test('computeFeatureImpact omits a pair when only the feature side failed to trade', () => {
+  const cells = [
+    cell({ variant: 'base', result: { status: 'TP', points: 20, dollars: 100 } }),
+    cell({ variant: 'seven-keys', setup: undefined, result: { status: 'NO_SETUP' } }),
+  ];
+  const impact = computeFeatureImpact(computeScoreboard(cells).groups);
+  // without the filled-count guard this would report Δ -100.00, presenting a
+  // pipeline failure as the feature losing money
+  assert.equal(impact[0].rows.length, 0);
+});
+
+test('computeFeatureImpact reports each side\'s run count over the shared days', () => {
+  const cells = [
+    cell({ variant: 'base', runIndex: 1, result: { status: 'TP', points: 20, dollars: 100 } }),
+    cell({ variant: 'base', runIndex: 2, result: { status: 'SL', points: -20, dollars: -100 } }),
+    cell({ variant: 'base', runIndex: 3, result: { status: 'TP', points: 20, dollars: 100 } }),
+    cell({ variant: 'seven-keys', runIndex: 1, result: { status: 'TP', points: 30, dollars: 150 } }),
+  ];
+  const [row] = computeFeatureImpact(computeScoreboard(cells).groups)[0].rows;
+  assert.equal(row.baseRuns, 3);
+  assert.equal(row.featureRuns, 1);
+  // a 3-run base mean vs a single feature sample — the Δ is real arithmetic
+  // but weakly sampled, which the Runs column is there to expose
+  assert.ok(Math.abs(row.baseDollars - 100 / 3) < 1e-9);
+  assert.equal(row.featureDollars, 150);
+});
+
 test('renderScoreboard renders a Feature Impact section with per-pair deltas and an overall rollup', () => {
   const cells = [
     cell({ trader: 'a', model: { alias: 'fable', id: 'x' }, variant: 'base', result: { status: 'TP', points: 20, dollars: 100 } }),
@@ -258,7 +311,7 @@ test('renderScoreboard renders a Feature Impact section with per-pair deltas and
   const out = renderScoreboard(computeScoreboard(cells), [], [{ id: 'seven-keys', name: 'Seven Keys zone assessment' }]);
   assert.match(out, /## Feature Impact/);
   assert.match(out, /### Seven Keys zone assessment/);
-  assert.match(out, /\| a \| fable \| 1 \| 100\.00 \| 150\.00 \| \+50\.00 \|/);
+  assert.match(out, /\| a \| fable \| 1 \| 1v1 \| 100\.00 \| 150\.00 \| \+50\.00 \|/);
   assert.match(out, /\*\*Overall Δ for Seven Keys zone assessment across 1 trader\/model pair: \+50\.00\*\*/);
 });
 
