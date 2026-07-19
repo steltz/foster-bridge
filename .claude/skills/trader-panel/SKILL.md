@@ -1,6 +1,6 @@
 ---
 name: trader-panel
-description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/) plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript) and the shared seven-keys assessment (auto-generated when missing), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
+description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/), the Seven-Keys methodology doc (knowledge-base/methods/seven-keys.md), plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript) and the shared seven-keys assessment (auto-generated when missing), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
 ---
 
 # Trader Panel — daily persona backtest
@@ -61,15 +61,23 @@ validation of setups yourself.
    day's `MMDDYYYY` argument (its Phases 1–3, including its own commit),
    then continue with the file it wrote. If that generation aborts, abort
    the panel run with its message.
+8. **Resolve the Seven-Keys methodology doc:** the fixed shared file
+   `knowledge-base/methods/seven-keys.md` — the framework the keys file's
+   scorecard grades zones against. It used to live under
+   `knowledge-base/general/` and reach every persona through step 6's glob;
+   it now lives outside that directory (deliberately, so the benchmark can
+   isolate it), so it must be injected explicitly here to keep this panel's
+   output unchanged. Resolve it to an absolute path. Missing → abort naming
+   it.
 
 ## Phase 2 — Persona fan-out (ONE Workflow invocation)
 
 Launch the Workflow tool with the script below. INLINE the resolved values
-directly into the script's `DATE`/`DOCS`/`KEYS`/`GENERAL`/`PERSONAS` constants — do
-NOT pass them through the Workflow `args` parameter (live verification showed
-args can arrive undefined; inlining is deterministic):
+directly into the script's `DATE`/`DOCS`/`KEYS`/`METHOD_DOC`/`GENERAL`/`PERSONAS`
+constants — do NOT pass them through the Workflow `args` parameter (live
+verification showed args can arrive undefined; inlining is deterministic):
 
-Workflow script (fill in the five constants, pass the rest verbatim):
+Workflow script (fill in the six constants, pass the rest verbatim):
 
 ```js
 export const meta = {
@@ -84,6 +92,7 @@ const DOCS = {
   recap: '<absolute path to *_ES_RECAP.md>',
 }
 const KEYS = '<absolute path to the day *_ES_KEYS.md>'
+const METHOD_DOC = '<absolute path to knowledge-base/methods/seven-keys.md>'
 // Absolute paths to every file under knowledge-base/general/ (step 6).
 // Empty array if the directory holds no docs.
 const GENERAL = [
@@ -113,6 +122,9 @@ const results = await parallel(PERSONAS.map((p) => () =>
   agent(
     `You are a futures trading persona on a daily panel. First Read the persona file at ${p.file} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
     generalBlock +
+    `Read the Seven-Keys zone-grading methodology at ${METHOD_DOC} — the framework the shared assessment scores zones against.
+
+` +
     `Read the shared Seven-Keys assessment at ${KEYS} — the panel-wide scorecard of the day's zones. Adopt its per-zone key scores rather than re-deriving them; apply your persona's style to choose among the zones it grades.
 
 ` +

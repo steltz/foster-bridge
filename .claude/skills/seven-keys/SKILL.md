@@ -46,15 +46,18 @@ the verifier passes it; never write an unverified artifact.
    the lookback agent is skipped entirely.
 6. **Guards:**
    - **Benchmark immutability (always, `force` or not):** any existing
-     benchmark cell under this day's `seven-keys` variant folder means the
-     day's keys file is immutable — regeneration is forbidden even if the
-     file was deleted. Check with
-     `ls runs/*/*/<day>/seven-keys/run-*.json 2>/dev/null`; any hit →
-     abort: the remedy is a new benchmark era, not an edit. (The literal
-     `seven-keys` path segment here is a copy of the `id:` in
-     `features/seven-keys.md`, not a derived value — if that feature is ever
-     superseded by a new id, per Guard #2's own remedy, update this path
-     segment to match or this guard silently stops protecting the new
+     benchmark cell under this day's `seven-keys-scorecard` variant folder
+     means the day's keys file is immutable — regeneration is forbidden even
+     if the file was deleted. Check with
+     `ls runs/*/*/<day>/seven-keys-scorecard/run-*.json 2>/dev/null`; any hit
+     → abort: the remedy is a new benchmark era, not an edit. (The literal
+     `seven-keys-scorecard` path segment here is a copy of the `id:` in
+     `features/seven-keys-scorecard.md` — the only feature whose
+     `generatorSkill` is this skill and that reads the generated artifact;
+     `seven-keys-method` never generates or reads it, so it needs no
+     matching guard — not a derived value, so if `seven-keys-scorecard` is
+     ever superseded by a new id, per Guard #2's own remedy, update this
+     path segment to match or this guard silently stops protecting the new
      variant's artifacts.)
    - **Overwrite:** if the target day already has a `*_ES_KEYS.md` and
      `force` was not given → abort naming the file and telling the user to
