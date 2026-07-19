@@ -1,6 +1,6 @@
 ---
 name: trader-bench
-description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day, for one model, across a base variant plus every features/*.md variant (auto-generating and committing any missing feature artifacts, e.g. seven-keys), writing one immutable JSON cell per (trader, model, day, variant, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader or feature up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
+description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day, for one model, across a base variant plus every features/*.md variant (auto-generating and committing any missing feature artifacts, e.g. seven-keys-scorecard), writing one immutable JSON cell per (trader, model, day, variant, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader or feature up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
 ---
 
 # Trader Bench — idempotent benchmark matrix top-up
@@ -25,7 +25,7 @@ optional model alias (default `fable`). Valid aliases and recorded ids:
 
 Any other alias → abort listing the valid aliases.
 
-## Phase 1 — Preflight (no bench agents — step 8 may run feature-generator sub-flows; abort early with ONE specific message)
+## Phase 1 — Preflight (no bench agents — step 10 may run feature-generator sub-flows; abort early with ONE specific message)
 
 1. **Discover personas:** every `traders/*.md`; persona name = the `name:`
    frontmatter value (fall back to filename without `.md`). None → abort
@@ -61,19 +61,43 @@ Any other alias → abort listing the valid aliases.
    `0` → skip the day, list it. No candidate days at all → abort.
 5. **Discover general docs:** every file under `knowledge-base/general/`
    (recursive). Empty or missing directory → proceed with none.
-6. **Discover and validate features:** run
+6. **General docs guard:** compute `generalSha256` by hashing the
+   concatenation of every file from step 5, in sorted path order. Missing
+   or empty directory → use the fixed value
+   `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (the
+   SHA-256 of zero bytes) WITHOUT running the command below — `cat` with no
+   file arguments blocks reading stdin instead of exiting. Otherwise run
+   exactly:
+
+   ```bash
+   find knowledge-base/general -type f | sort | xargs cat | shasum -a 256
+   ```
+
+   and take the hash field (before the two spaces). Read `generalSha256`
+   from every existing `runs/*/*/*/*/run-*.json` (every trader, model, day,
+   and variant — general docs are injected into every variant including
+   `base`, so every existing cell carries this field). If any existing
+   cell's hash differs from the freshly computed hash, abort naming both
+   hashes and the remedy: general docs are frozen once benchmarked — revert
+   the edit, or start a new benchmark era.
+7. **Discover and validate features:** run
    `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`.
    A nonzero exit means a definition violates validation (an id that is not
    a kebab-case slug, the reserved id `base`, duplicate ids, an empty body,
-   `artifactSuffix` without `generatorSkill`, or a `${ARTIFACT}` placeholder
-   mismatch) — abort relaying its error message
-   verbatim; the remedy is fixing the named feature file, and no cells
-   have been touched. Otherwise the printed array gives each feature's
-   `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
+   `artifactSuffix` without `generatorSkill`, a `${ARTIFACT}` placeholder
+   mismatch, a `${DOC}` placeholder mismatch, or a `staticDoc` pointing at a
+   missing file) — abort relaying its error message verbatim; the remedy is
+   fixing the named feature file, and no cells have been touched. Otherwise
+   the printed array gives each feature's `id`, `name`, `artifactSuffix`,
+   `generatorSkill`, `staticDoc`, and prompt `block`. For every feature whose
+   `staticDoc` is non-null, resolve it to an absolute path (repo root joined
+   with `staticDoc`) — `collectFeatures` already confirmed the file exists,
+   so this is a plain join, the same way `GENERAL`/`PERSONAS`/`DOCS_BY_DAY`
+   are resolved to absolute paths elsewhere in this phase.
    `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
    files at all → `VARIANTS = ['base']` only.
-7. **Feature immutability guard:** compute each feature's hash from its OWN
-   `file` field returned by step 6 (e.g. `seven-keys.md`) — run
+8. **Feature immutability guard:** compute each feature's hash from its OWN
+   `file` field returned by step 7 (e.g. `seven-keys-method.md`) — run
    `shasum -a 256 features/<that file field>`, NOT `features/<id>.md`;
    `id` can come from frontmatter and differ from the filename, so hashing
    `features/<id>.md` can target a file that doesn't exist. Read
@@ -82,46 +106,58 @@ Any other alias → abort listing the valid aliases.
    the feature, both hashes, and the remedy: feature files are immutable
    once benchmarked — create a NEW feature file (new `id`) instead of
    editing this one.
-8. **Feature artifacts (generate missing, per feature, oldest day first):**
-   for every feature with both `artifactSuffix` and `generatorSkill`, every
-   candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
-   generating anything, for each (day, feature) whose artifact is missing,
-   check `runs/*/*/<day>/<feature-id>/run-*.json`: a hit means that
-   combination is already benchmarked, so its artifact is frozen and was
-   deleted — abort naming the day and feature, remedy: restore the artifact
-   from git or start a new benchmark era. Generating first and letting step
-   9's hash compare catch it would abort only AFTER committing a fresh
-   artifact that contradicts the frozen cells. For the remaining days
-   missing one, run that feature's `generatorSkill` flow (its own phases,
-   committing each artifact; invoke it with that day's `MMDDYYYY` argument)
-   sequentially in chronological order, oldest first — independently per
-   feature, so each feature's own lookback (if it has one) sees only its
-   own predecessors. A day whose generation aborts for a given feature is
-   SKIPPED for that (day, feature) combination only — listed with the
-   reason — leaving `base` and every other feature's cells for that day
-   unaffected. Then compute each remaining (day, feature) artifact's hash:
-   `shasum -a 256 <day folder>/<prefix><artifactSuffix>`.
-9. **Artifact immutability guard:** for each (day, feature) combination
-   from step 8, check `runs/*/*/<day>/<feature-id>/run-*.json`. Any match
-   means that combination already has benchmark cells — compare the
-   current artifact hash against those cells' `artifactSha256`; a mismatch
-   aborts naming the day, feature, and both hashes, remedy: artifacts are
-   immutable once benchmarked — start a new benchmark era instead of
-   editing them. No matching cells → nothing to guard, proceed.
-10. **Compute the missing set:** for every (trader, day, variant) where
+9. **Static doc guard:** for every feature whose `staticDoc` is non-null,
+   compute `staticDocSha256` with `shasum -a 256 <staticDoc>` using the
+   repo-relative path `collectFeatures` returned (e.g.
+   `shasum -a 256 knowledge-base/methods/seven-keys.md`) — NOT the resolved
+   absolute path, matching how step 8 hashes the feature's own `file` field
+   rather than its resolved form. Read `staticDocSha256` from every existing
+   `runs/*/*/*/<id>/run-*.json` for that feature's id (same glob as step 8).
+   If any existing cell's hash differs from the current file's hash, abort
+   naming the feature, the doc's path, both hashes, and the remedy: static
+   docs are immutable once benchmarked — point a NEW feature file (new `id`)
+   at a new doc, or start a new benchmark era.
+10. **Feature artifacts (generate missing, per feature, oldest day first):**
+    for every feature with both `artifactSuffix` and `generatorSkill`, every
+    candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
+    generating anything, for each (day, feature) whose artifact is missing,
+    check `runs/*/*/<day>/<feature-id>/run-*.json`: a hit means that
+    combination is already benchmarked, so its artifact is frozen and was
+    deleted — abort naming the day and feature, remedy: restore the artifact
+    from git or start a new benchmark era. Generating first and letting step
+    11's hash compare catch it would abort only AFTER committing a fresh
+    artifact that contradicts the frozen cells. For the remaining days
+    missing one, run that feature's `generatorSkill` flow (its own phases,
+    committing each artifact; invoke it with that day's `MMDDYYYY` argument)
+    sequentially in chronological order, oldest first — independently per
+    feature, so each feature's own lookback (if it has one) sees only its
+    own predecessors. A day whose generation aborts for a given feature is
+    SKIPPED for that (day, feature) combination only — listed with the
+    reason — leaving `base` and every other feature's cells for that day
+    unaffected. Then compute each remaining (day, feature) artifact's hash:
+    `shasum -a 256 <day folder>/<prefix><artifactSuffix>`.
+11. **Artifact immutability guard:** for each (day, feature) combination
+    from step 10, check `runs/*/*/<day>/<feature-id>/run-*.json`. Any match
+    means that combination already has benchmark cells — compare the
+    current artifact hash against those cells' `artifactSha256`; a mismatch
+    aborts naming the day, feature, and both hashes, remedy: artifacts are
+    immutable once benchmarked — start a new benchmark era instead of
+    editing them. No matching cells → nothing to guard, proceed.
+12. **Compute the missing set:** for every (trader, day, variant) where
     variant ranges over `VARIANTS`, existing runs are
     `runs/<trader>/<alias>/<day>/<variant>/run-*.json`; missing indices
     are `1..N` minus the indices present. Existing cells beyond N are left
     alone. For an artifact-backed feature, every (trader, day, feature-id)
-    combination whose (day, feature) artifact is still missing after step 8
+    combination whose (day, feature) artifact is still missing after step 10
     (generation failed or was skipped) is EXCLUDED from the missing set
     entirely — a feature cell must never be run or written without its
-    artifact; step 11 reports these as skipped, never as cells to run.
-11. **Report the plan, then proceed:** traders × days × variants × model
+    artifact; step 13 reports these as skipped, never as cells to run.
+13. **Report the plan, then proceed:** traders × days × variants × model
     alias, cells already present, cells to run, skipped days with reasons,
     skipped (day, feature) artifact failures. Example: "2 traders × 10
-    days × 2 variants (base, seven-keys) × fable, target N=5: 84 cells
-    exist, 116 to run." If nothing is missing, say so and jump to Phase 4.
+    days × 3 variants (base, seven-keys-method, seven-keys-scorecard) ×
+    fable, target N=5: 84 cells exist, 216 to run." If nothing is missing,
+    say so and jump to Phase 4.
 
 ## Phase 2 — Fan-out (ONE Workflow invocation)
 
@@ -154,23 +190,31 @@ const PERSONAS = {
 }
 // A feature body is multi-line prose and routinely contains apostrophes, so
 // it CANNOT go in a single-quoted literal — and a backtick literal would
-// interpolate ${ARTIFACT} into a ReferenceError. Inline each line as its own
-// DOUBLE-quoted string and join them, which needs no backslash escapes at
-// all: double quotes tolerate apostrophes, and String.fromCharCode(10)
-// supplies the newline without a \n escape sequence. (Use single quotes for
-// any individual line that itself contains a double quote.) Do NOT try to
-// read the feature file here — Workflow scripts have no filesystem access.
+// interpolate ${ARTIFACT}/${DOC} into a ReferenceError. Inline each line as
+// its own DOUBLE-quoted string and join them, which needs no backslash
+// escapes at all: double quotes tolerate apostrophes, and
+// String.fromCharCode(10) supplies the newline without a \n escape
+// sequence. (Use single quotes for any individual line that itself contains
+// a double quote.) Leave both ${ARTIFACT} and ${DOC} intact here — they are
+// substituted below, not at construction time. Do NOT try to read the
+// feature file here — Workflow scripts have no filesystem access.
 const NL = String.fromCharCode(10)
 const FEATURES = {
   '<feature id>': {
     block: [
-      "<first line of the body from features/<feature id>.md, ${ARTIFACT} left intact>",
+      "<first line of the body from features/<feature id>.md, ${ARTIFACT} and ${DOC} left intact>",
       "<second line, and so on for every line of the body>",
     ].join(NL),
-    // A BARE boolean, never quoted — the string 'false' is truthy, which
-    // would send a feature with no artifact down the artifact code path and
-    // kill every one of its cells on the missing-path throw below.
+    // Both BARE booleans, never quoted — the string 'false' is truthy, which
+    // would send a feature with no artifact (or no static doc) down that
+    // substitution path and kill every one of its cells on the matching
+    // missing-path throw below.
     artifact: <true if the feature has artifactSuffix, else false>,
+    hasDoc: <true if the feature has staticDoc, else false>,
+    // Absolute path to this feature's resolved staticDoc (step 7), or null.
+    // NOT per-day like ARTIFACTS_BY_DAY below — a static doc doesn't vary by
+    // day, so it is inlined directly here rather than looked up per cell.
+    docPath: <absolute path string if hasDoc, else null>,
   },
 }
 const ARTIFACTS_BY_DAY = {
@@ -200,19 +244,36 @@ const generalBlock = GENERAL.length
   : ''
 const results = await parallel(CELLS.map((cell) => () => {
   const docs = DOCS_BY_DAY[cell.day]
-  // Preflight step 10 excluded every artifact-less (day, feature) cell, so a
-  // missing path here is a preflight bug: fail the cell loudly rather than
-  // silently prompting with an empty artifact path. Throwing is contained,
-  // not fatal to the run — parallel() resolves a thunk that throws to null
-  // in the results array and never rejects — so this cell alone is lost and
-  // gets reported as an anomaly.
+  // docPath is inlined once per feature (step 7), not looked up per (day,
+  // feature) the way artifactPath is below — a static doc doesn't vary by
+  // day, and collectFeatures already confirmed the file exists before this
+  // script was ever assembled. So a missing docPath here is NOT a
+  // legitimate per-cell runtime state the way a missing artifact can be
+  // (artifact generation genuinely can fail for one specific day) — it can
+  // only mean the FEATURES constant was built wrong. The throw stays
+  // anyway, for the same containment reason as the artifact one below:
+  // parallel() resolves a thunk that throws to null in the results array
+  // and never rejects, so an authoring slip loses only that feature's
+  // cells (reported as an anomaly) instead of silently sending every one of
+  // its prompts out with a literal "${DOC}" still in the text.
+  //
+  // Preflight step 12 excluded every artifact-less (day, feature) cell, so a
+  // missing path here IS a legitimate signal of a preflight bug: fail the
+  // cell loudly rather than silently prompting with an empty artifact path.
+  // Throwing is contained, not fatal to the run — same mechanism as above —
+  // so this cell alone is lost and gets reported as an anomaly.
   const featureBlock = (() => {
     if (cell.variant === 'base') return ''
     const feature = FEATURES[cell.variant]
-    if (!feature.artifact) return feature.block + '\n\n'
+    let block = feature.block
+    if (feature.hasDoc) {
+      if (!feature.docPath) throw new Error('missing static doc for ' + cell.variant)
+      block = block.replaceAll('${DOC}', feature.docPath)
+    }
+    if (!feature.artifact) return block + '\n\n'
     const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[cell.variant]
     if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + cell.variant)
-    return feature.block.replaceAll('${ARTIFACT}', artifactPath) + '\n\n'
+    return block.replaceAll('${ARTIFACT}', artifactPath) + '\n\n'
   })()
   return agent(
     `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
@@ -234,7 +295,7 @@ log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
 return results.filter(Boolean)
 ```
 
-If the Workflow invocation itself fails or returns no results array at all, abort WITHOUT writing any cells — the matrix stays untouched and a rerun tops up cleanly. When the Workflow succeeds, any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues — with the one exception Phase 3 names, where an artifact-backed cell that has no Phase 1 artifact hash gets no file at all.
+If the Workflow invocation itself fails or returns no results array at all, abort WITHOUT writing any cells — the matrix stays untouched and a rerun tops up cleanly. When the Workflow succeeds, any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues — with the one exception Phase 3 names, where a dropped cell for an artifact-backed or doc-backed variant that has no Phase 1 hash for the missing piece gets no file at all.
 
 ## Phase 3 — Judge and persist (no validation of your own)
 
@@ -280,7 +341,9 @@ record the anomaly for the final summary and move on. Cell format:
   "runIndex": <k>,
   "timestamp": "<current ISO-8601 UTC time>",
   "personaSha256": "<hash from Phase 1>",
+  "generalSha256": "<hash from Phase 1 step 6 — present on EVERY cell, including base and NO_SETUP>",
   "featureSha256": "<hash of features/<variant>.md from Phase 1 — OMIT this key entirely when variant is \"base\">",
+  "staticDocSha256": "<hash of the variant's staticDoc from Phase 1 step 9 — OMIT this key entirely when the variant has no staticDoc>",
   "artifactSha256": "<the day's artifact hash for this variant from Phase 1 — OMIT this key entirely when the variant has no artifactSuffix>",
   "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
   "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
@@ -292,16 +355,19 @@ Omit `setup` for NO_SETUP cells; `result` is then `{ "status": "NO_SETUP" }`.
 For NOT_FILLED, keep the CLI's null points/dollars/fillTime/exitTime as
 null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 `result` = `{ "status": "INVALID" }` / `{ "status": "CLI_ERROR" }` plus the
-top-level `note`. Every cell — including NO_SETUP — records `variant` and
-`personaSha256`; `featureSha256`/`artifactSha256` follow the omission rule
-above regardless of cell status.
+top-level `note`. Every cell — including NO_SETUP — records `variant`,
+`personaSha256`, and `generalSha256`; `featureSha256`/`staticDocSha256`/
+`artifactSha256` follow the omission rule above regardless of cell status.
 
-An artifact-backed variant cell without an `artifactSha256` is invalid by
-construction — Phase 1 step 10 excluded every (day, feature) combination
-lacking its artifact, so no such cell should ever reach this phase. If a
-dropped (null) cell for an artifact-backed variant has no Phase 1 artifact
-hash (the Phase 2 missing-artifact backstop fired), write NO cell file for
-it — record it as an anomaly in the final summary instead.
+An artifact-backed variant cell without an `artifactSha256`, or a
+doc-backed variant cell without a `staticDocSha256`, is invalid by
+construction — Phase 1 step 12 excluded every (day, feature) combination
+lacking its artifact, and every feature's `staticDoc` (when declared) was
+already resolved and hashed in step 9, so no such cell should ever reach
+this phase. If a dropped (null) cell for an artifact-backed variant has no
+Phase 1 artifact hash, or for a doc-backed variant has no Phase 1
+staticDocSha256 (either Phase 2 missing-path backstop fired), write NO cell
+file for it — record it as an anomaly in the final summary instead.
 
 ## Phase 4 — Scoreboard and commit
 

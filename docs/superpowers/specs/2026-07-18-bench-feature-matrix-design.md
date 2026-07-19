@@ -158,11 +158,13 @@ unchanged from the original layout.
   "model": { "alias": "fable", "id": "claude-fable-5" },
   "day": "07152026",
   "date": "2026-07-15",
-  "variant": "seven-keys",
+  "variant": "seven-keys-scorecard",
   "runIndex": 3,
   "timestamp": "<ISO-8601, recorded at write time>",
   "personaSha256": "<hash of traders/<trader>.md at run time>",
+  "generalSha256": "<hash of the concatenation of every knowledge-base/general/ file, sorted, at run time — present on EVERY cell, including base>",
   "featureSha256": "<hash of features/<variant>.md at run time — absent for variant=base>",
+  "staticDocSha256": "<hash of the variant's staticDoc at run time — absent unless the feature declares staticDoc>",
   "artifactSha256": "<hash of that day's <prefix><artifactSuffix> at run time — absent if the variant has no artifact>",
   "setup": {
     "side": "long",
@@ -182,16 +184,22 @@ unchanged from the original layout.
 }
 ```
 
-`variant` and `personaSha256` are present on every cell, including
-`base`. `featureSha256` and `artifactSha256` are present only when
-applicable (never for `base`; `artifactSha256` only for artifact-backed
-features). Conversely, an artifact-backed variant cell *without*
-`artifactSha256` is invalid by construction: cells are never written for a
-(day, feature) combination whose artifact is absent — those combinations
-are excluded from the missing set in preflight (Phase 1 step 10, below).
-Everything else is unchanged from the original cell schema —
-`result.status`, the CLI-is-sole-judge rule, `NO_SETUP`/`INVALID`/
-`CLI_ERROR` handling, write-once immutability.
+`variant`, `personaSha256`, and `generalSha256` are present on every cell,
+including `base` (general docs are injected into every variant, so every
+cell — base included — is comparable against the same shared-doc hash).
+`featureSha256` and `artifactSha256` are present only when applicable
+(never for `base`; `artifactSha256` only for artifact-backed features);
+`staticDocSha256` follows the same omission rule, present only when the
+feature declares `staticDoc`. Conversely, an artifact-backed variant cell
+*without* `artifactSha256`, or a `staticDoc`-backed variant cell without
+`staticDocSha256`, is invalid by construction: cells are never written for
+a (day, feature) combination whose artifact is absent, or for a feature
+whose static doc hash wasn't resolved — those combinations are excluded in
+preflight (Phase 1 step 10, below, for artifacts; the static-doc guard runs
+unconditionally for every feature that declares one). Everything else is
+unchanged from the original cell schema — `result.status`, the
+CLI-is-sole-judge rule, `NO_SETUP`/`INVALID`/`CLI_ERROR` handling,
+write-once immutability.
 
 ## Guards (all file-shape, path-existence, or hash-compare checks — no LLM)
 
@@ -201,10 +209,14 @@ Everything else is unchanged from the original cell schema —
    files (frontmatter `id:` colliding with another file's `id:` or
    filename fallback); `artifactSuffix` without `generatorSkill`; an
    artifact-backed body missing `${ARTIFACT}`; `${ARTIFACT}` in a
-   non-artifact body; or an empty body → abort naming the offending
-   file(s). Enforced in `src/features.js` (`collectFeatures` throws), so
-   the scoreboard CLI and the bench preflight reject invalid definitions
-   identically.
+   non-artifact body; a `staticDoc`-backed body missing `${DOC}`; `${DOC}`
+   in a body with no `staticDoc`; a `staticDoc` pointing at a file that
+   doesn't exist; or an empty body → abort naming the offending file(s).
+   Enforced in `src/features.js` (`collectFeatures` throws), so the
+   scoreboard CLI and the bench preflight reject invalid definitions
+   identically. A feature may declare both `staticDoc` and `artifactSuffix`
+   in the same file — the two placeholder rules are independent and both
+   apply.
 
    The slug rule is load-bearing, not cosmetic: `id` becomes a directory
    segment in `runs/.../<variant>/` and a scoreboard label. Without it, a
@@ -223,15 +235,36 @@ Everything else is unchanged from the original cell schema —
    every existing `runs/<t>/*/*/*/run-*.json` (model/day/variant wildcards).
    Mismatch → abort naming the trader and both hashes; remedy is a new
    trader file.
-2. **Feature immutability** (new, same shape as #1): compute the SHA-256 of
+2. **General docs immutability** (new, same shape as #1, but recorded on
+   every cell rather than one trader's): hash the concatenation of every
+   `knowledge-base/general/` file, in sorted path order, with
+   `find knowledge-base/general -type f | sort | xargs cat | shasum -a 256`
+   (missing/empty directory hashes as the SHA-256 of zero bytes); compare
+   against `generalSha256` in every existing `runs/*/*/*/*/run-*.json`
+   (every trader, model, day, and variant — general docs are injected into
+   every variant including `base`). Mismatch → abort naming both hashes;
+   remedy is reverting the edit or starting a new benchmark era. Before this
+   guard existed, editing `knowledge-base/general/` silently changed what
+   every cell — including `base` — had seen, with nothing to catch it.
+3. **Feature immutability** (same shape as #1): compute the SHA-256 of
    the feature's OWN discovered file (its `file` field from
-   `collectFeatures`, e.g. `seven-keys.md`) — NOT `features/<id>.md`, since
-   `id` may come from frontmatter and differ from the filename, and
+   `collectFeatures`, e.g. `seven-keys-method.md`) — NOT `features/<id>.md`,
+   since `id` may come from frontmatter and differ from the filename, and
    `features/<id>.md` may not exist at all; compare against `featureSha256`
    in every existing `runs/*/*/*/<id>/run-*.json`. Mismatch → abort naming
    the feature and both hashes; remedy is a new feature file with a new
    `id`.
-3. **Artifact immutability** (generalizes the original Seven-Keys-specific
+4. **Static doc immutability** (new, same shape as #3, scoped to the
+   feature's `staticDoc` rather than the feature file itself): for every
+   feature whose `staticDoc` is non-null, hash it with
+   `shasum -a 256 <staticDoc>` using the repo-relative path
+   `collectFeatures` returned; compare against `staticDocSha256` in every
+   existing `runs/*/*/*/<id>/run-*.json` for that feature's id. Mismatch →
+   abort naming the feature, the doc's path, and both hashes; remedy is a
+   new feature file (new `id`) pointing at a new doc, or a new benchmark
+   era. A feature's static doc and its own file are hashed and guarded
+   independently — editing either one alone is caught.
+5. **Artifact immutability** (generalizes the original Seven-Keys-specific
    guard): for each candidate day and each artifact-backed feature, if
    `runs/*/*/<day>/<feature-id>/run-*.json` exists at all, that
    (day, feature) artifact is frozen. Compare the current
@@ -242,11 +275,18 @@ Everything else is unchanged from the original cell schema —
    `grep -l keysSha256` guard with a simple existence check scoped to that
    feature's variant folder — see the seven-keys skill change below.
 
-Guard #3 is a meaningful improvement over today: because the artifact
+Guard #5 is a meaningful improvement over today: because the artifact
 check is now scoped to *that day's that-feature* folder specifically
 (rather than "any cell anywhere for this day"), a failed or skipped
 artifact generation for one feature never blocks or gets confused with
 another feature's or base's cells for the same day.
+
+Guards #2 and #4 (general docs and static doc immutability) were added by
+`2026-07-19-seven-keys-decomposition-design.md`, which also introduced the
+`staticDoc` field itself; the Phase 1 step list immediately below predates
+both and does not yet show where they run — see that spec, and
+`.claude/skills/trader-bench/SKILL.md`'s current Phase 1 steps 6 and 9, for
+the up-to-date sequencing.
 
 ## `/trader-bench` changes
 
@@ -260,12 +300,12 @@ candle coverage, discover general docs) are unchanged. Then:
    No features declared → matrix degenerates to `base` only (equivalent to
    today's behavior). Definitions are validated here (Guard #0); any
    violation aborts naming the offending file(s).
-7. **Feature immutability guard:** as above (Guard #2).
+7. **Feature immutability guard:** as above (Guard #3).
 8. **Generate missing artifacts, per feature, oldest day first:** first,
    for each (day, feature) whose artifact is missing, check whether
    `runs/*/*/<day>/<feature-id>/run-*.json` exists — a hit means the
    artifact is frozen and was deleted, so abort *before* generating
-   anything. Leaving this to Guard #3's hash compare would abort only
+   anything. Leaving this to Guard #5's hash compare would abort only
    after a fresh artifact had already been generated and committed,
    contradicting the frozen cells. Then, for each remaining candidate day
    missing `<prefix><artifactSuffix>`, invoke that feature's `generatorSkill` with
@@ -275,7 +315,7 @@ candle coverage, discover general docs) are unchanged. Then:
    only — listed with reason — leaving `base` and every other feature's
    cells for that day unaffected. This replaces the old "keys generation
    failure skips the whole day" behavior.
-9. **Artifact immutability guard:** as above (Guard #3), for every
+9. **Artifact immutability guard:** as above (Guard #5), for every
    (day, feature) combination that now has an artifact.
 10. **Compute the missing set:** for every (trader, day, variant),
     existing cells are `runs/<trader>/<alias>/<day>/<variant>/run-*.json`;
