@@ -1,0 +1,23 @@
+test/features.test.js
+  s_862f8fdc339070::t_b2fdfa90d01b9c 109-136
+src/features.js
+  s_862f8fdc339070::t_1c1775bf4afb07 34-36
+  s_862f8fdc339070::t_00fcbd00ed7416 54-56
+  s_862f8fdc339070::t_119d23f05ddf63 12-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3911c8aa85ebcd13e6e2bbf68c985ea2dce447e2",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
