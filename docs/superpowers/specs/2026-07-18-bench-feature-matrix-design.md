@@ -363,7 +363,7 @@ today.
 - **New `## Feature Impact` section**, placed after Ranking: for every
   non-base variant present, for every `(trader, model)` pair that has both
   a `base` group and that feature's group, a row showing
-  `Trader | Model | Days | Base $/run | <Feature> $/run | Δ`. Because mean
+  `Trader | Model | Days | Runs | Base $/run | <Feature> $/run | Δ`. Because mean
   $/run is a per-run *sum across days*, comparing raw group means with
   unequal day coverage would present missing-day P&L as a feature effect —
   so both sides are recomputed over the **intersection** of the two
@@ -376,8 +376,27 @@ today.
   `(trader, model)` pairs, plus the pair count (e.g. "Overall Δ for
   seven-keys across 4 trader/model pairs: +12.40"). `(trader, model)`
   pairs missing one side of the comparison entirely (e.g. a variant added
-  after that pair already had cells), or whose day sets do not intersect,
-  are omitted from the table, not shown as zero.
+  after that pair already had cells), whose day sets do not intersect, or
+  where either side has **no filled trades** over the shared days, are
+  omitted from the table, not shown as zero. That last exclusion is not
+  cosmetic: a feature whose runs all came back `NO_SETUP` would otherwise
+  render as losing exactly base's P&L, presenting a pipeline failure as a
+  feature effect — and a pair where neither side filled would render a
+  `0.00` delta indistinguishable from "the feature changed nothing."
+  `Runs` reports the two sides' run counts over the shared days
+  (e.g. `5v5`, or `3v1` when a feature was added mid-run); a lopsided pair
+  is a weakly sampled verdict, and the column exists so the reader can see
+  that rather than trusting a Δ backed by a single sample. The overall
+  rollup is an unweighted mean across pairs — one pair is one trader/model
+  verdict on the feature, with per-row `Days` and `Runs` exposing uneven
+  sampling.
+
+  The `(trader, model)` pairing key must be injective (e.g. `JSON.stringify`
+  of the pair, matching the group key), not naive string concatenation:
+  with a `::` separator, trader `a::fable` + model `x` collides with trader
+  `a` + model `fable::x`, which would compare a feature group against a
+  *different trader's* base group — violating the never-merge invariant
+  this document opens with.
 - **Lineage** (`renderLineage`, the `## <trader> @ <model>` origin-delta
   line) now matches origin/descendant groups on **model AND variant**, not
   model alone, so a descendant's `Δ vs origin` never compares across
@@ -412,8 +431,11 @@ today.
   tests to cover the new grouping key (variant), the Feature Impact
   computation (base/feature pairs present, one side missing, multiple
   trader/model pairs averaged correctly, day-set intersection — a base
-  group with extra days is compared only over the shared days, and a pair
-  with disjoint day sets is omitted), and lineage delta matching by
+  group with extra days is compared only over the shared days, a pair
+  with disjoint day sets is omitted, a pair with no filled trades on
+  either side is omitted rather than scored zero, a hostile
+  trader/model name pair never cross-matches, and run counts are
+  reported per side), and lineage delta matching by
   variant (a fixture with an origin and descendant each having both `base`
   and a feature variant must never cross-compare them).
 - **Feature definition validation (Guard #0):** fixtures for each
