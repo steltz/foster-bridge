@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T23:20:46.783Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7486,
+    "stopLoss": 7478,
+    "takeProfit": 7510,
+    "rationale": "Intermediate and bigger-picture bias bullish; buying the bias-confirming Bull/Bear zone 7479.50-7493.50 (7482.50 HVN, prior-session low where buyers stepped in). Stop 7478 behind the zone's far edge; target 7510, bottom of the Initial Support zone at VPOC, for exactly 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T23:20:46.345Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7490.25,
+    "stopLoss": 7480.5,
+    "takeProfit": 7520.25,
+    "rationale": "Best Seven-Keys zone: 7481.75-7495.75 bull/bear support — bias confirming, 7482.50 HVN, yesterday's balance-breakout launching point, aligned with bullish intermediate bias, exhausted first-test approach. Plan calls it the significant trade location. Stop beyond far edge; target 7520.25 pre-market support zone, ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

@@ -1,6 +1,6 @@
 # Trader Scoreboard
 
-300 cells · 6 trader@model@variant groups. Every group is scored alone; P&L is never combined across traders, models, or variants.
+345 cells · 9 trader@model@variant groups. Every group is scored alone; P&L is never combined across traders, models, or variants.
 
 ## Ranking (mean net USD per run)
 
@@ -9,9 +9,12 @@
 | 1 | context-trader | sonnet | seven-keys-scorecard | 10 | 5 | 22.50 | 60.03 | -68.75 | 81.25 | 29% | 34% |
 | 2 | context-trader | sonnet | seven-keys-method | 10 | 5 | -7.50 | 136.89 | -233.75 | 116.25 | 18% | 44% |
 | 3 | placement-trader | sonnet | seven-keys-scorecard | 10 | 5 | -15.25 | 38.32 | -67.50 | 35.00 | 17% | 60% |
-| 4 | placement-trader | sonnet | seven-keys-method | 10 | 5 | -66.00 | 65.36 | -125.00 | 37.50 | 16% | 62% |
-| 5 | placement-trader | sonnet | base | 10 | 5 | -81.75 | 28.44 | -127.50 | -52.50 | 17% | 60% |
-| 6 | context-trader | sonnet | base | 10 | 5 | -99.75 | 105.05 | -222.50 | 35.00 | 19% | 54% |
+| 4 | context-trader | fable | base | 3 | 5 | -22.75 | 21.82 | -48.75 | 0.00 | 0% | 20% |
+| 5 | context-trader | fable | seven-keys-method | 3 | 5 | -22.75 | 21.82 | -48.75 | 0.00 | 0% | 20% |
+| 6 | context-trader | fable | seven-keys-scorecard | 3 | 5 | -50.00 | 16.82 | -70.00 | -31.25 | 0% | 33% |
+| 7 | placement-trader | sonnet | seven-keys-method | 10 | 5 | -66.00 | 65.36 | -125.00 | 37.50 | 16% | 62% |
+| 8 | placement-trader | sonnet | base | 10 | 5 | -81.75 | 28.44 | -127.50 | -52.50 | 17% | 60% |
+| 9 | context-trader | sonnet | base | 10 | 5 | -99.75 | 105.05 | -222.50 | 35.00 | 19% | 54% |
 
 ## Feature Impact
 
@@ -21,23 +24,25 @@ Each row compares base and feature over their shared day set only (the Days colu
 
 | Trader | Model | Days | Runs | Base $/run | Seven-Keys methodology $/run | Δ |
 |---|---|---|---|---|---|---|
+| context-trader | fable | 3 | 5v5 | -22.75 | -22.75 | +0.00 |
 | context-trader | sonnet | 10 | 5v5 | -99.75 | -7.50 | +92.25 |
 | placement-trader | sonnet | 10 | 5v5 | -81.75 | -66.00 | +15.75 |
 
-**Overall Δ for Seven-Keys methodology across 2 trader/model pairs: +54.00**
+**Overall Δ for Seven-Keys methodology across 3 trader/model pairs: +36.00**
 ### Seven-Keys precomputed scorecard
 
 | Trader | Model | Days | Runs | Base $/run | Seven-Keys precomputed scorecard $/run | Δ |
 |---|---|---|---|---|---|---|
+| context-trader | fable | 3 | 5v5 | -22.75 | -50.00 | -27.25 |
 | context-trader | sonnet | 10 | 5v5 | -99.75 | 22.50 | +122.25 |
 | placement-trader | sonnet | 10 | 5v5 | -81.75 | -15.25 | +66.50 |
 
-**Overall Δ for Seven-Keys precomputed scorecard across 2 trader/model pairs: +94.38**
+**Overall Δ for Seven-Keys precomputed scorecard across 3 trader/model pairs: +53.83**
 
 ## Lineage
 
 ```
-context-trader                 sonnet/base 5r: -99.75 · sonnet/seven-keys-method 5r: -7.50 · sonnet/seven-keys-scorecard 5r: 22.50
+context-trader                 fable/base 5r: -22.75 · fable/seven-keys-method 5r: -22.75 · fable/seven-keys-scorecard 5r: -50.00 · sonnet/base 5r: -99.75 · sonnet/seven-keys-method 5r: -7.50 · sonnet/seven-keys-scorecard 5r: 22.50
 placement-trader               sonnet/base 5r: -81.75 · sonnet/seven-keys-method 5r: -66.00 · sonnet/seven-keys-scorecard 5r: -15.25
 ```
 
@@ -129,6 +134,78 @@ Wins: 5 · Losses: 25 · Avg win: 40.95 pts · Avg loss: -8.80 pts
 | 07142026 | 5 | 3L/2S | 34.00 |
 | 07152026 | 5 | 5L/0S | 36.75 |
 | 07162026 | 5 | 5L/0S | 1.75 |
+
+### Pipeline errors
+
+None.
+
+## context-trader @ fable [base]
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 3 | 0 | 0.00 |
+| 2 | 3 | -6.75 | -33.75 |
+| 3 | 3 | 0 | 0.00 |
+| 4 | 3 | -6.25 | -31.25 |
+| 5 | 3 | -9.75 | -48.75 |
+
+Wins: 0 · Losses: 3 · Avg win: - pts · Avg loss: -7.58 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 31.00 |
+| 07022026 | 5 | 3L/2S | 132.00 |
+| 07062026 | 5 | 5L/0S | 2.25 |
+
+### Pipeline errors
+
+None.
+
+## context-trader @ fable [seven-keys-method]
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 3 | 0 | 0.00 |
+| 2 | 3 | -6.25 | -31.25 |
+| 3 | 3 | -9.75 | -48.75 |
+| 4 | 3 | -6.75 | -33.75 |
+| 5 | 3 | 0 | 0.00 |
+
+Wins: 0 · Losses: 3 · Avg win: - pts · Avg loss: -7.58 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 31.00 |
+| 07022026 | 5 | 3L/2S | 131.00 |
+| 07062026 | 5 | 5L/0S | 1.00 |
+
+### Pipeline errors
+
+None.
+
+## context-trader @ fable [seven-keys-scorecard]
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 3 | -12.75 | -63.75 |
+| 2 | 3 | -9.75 | -48.75 |
+| 3 | 3 | -6.25 | -31.25 |
+| 4 | 3 | -14 | -70.00 |
+| 5 | 3 | -7.25 | -36.25 |
+
+Wins: 0 · Losses: 5 · Avg win: - pts · Avg loss: -10.00 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 4.00 |
+| 07022026 | 5 | 5L/0S | 7.75 |
+| 07062026 | 5 | 5L/0S | 3.00 |
 
 ### Pipeline errors
 
@@ -231,6 +308,9 @@ None.
 
 | Trader | Model | Variant | Cells | Days | Runs | Status |
 |---|---|---|---|---|---|---|
+| context-trader | fable | base | 15 | 3 | 5 | ⚠ under-tested (max 50) |
+| context-trader | fable | seven-keys-method | 15 | 3 | 5 | ⚠ under-tested (max 50) |
+| context-trader | fable | seven-keys-scorecard | 15 | 3 | 5 | ⚠ under-tested (max 50) |
 | context-trader | sonnet | base | 50 | 10 | 5 | ok |
 | context-trader | sonnet | seven-keys-method | 50 | 10 | 5 | ok |
 | context-trader | sonnet | seven-keys-scorecard | 50 | 10 | 5 | ok |

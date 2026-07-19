@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T23:20:46.237Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7490.5,
+    "stopLoss": 7480.75,
+    "takeProfit": 7520.25,
+    "rationale": "Bias bullish intermediate/bigger picture; plan calls 7481.75-95.75 bull/bear (7482.50 HVN) the most significant trade location. Resting long 7490.50 into an exhausted decline, stop 7480.75 one point behind the zone, targeting 7520.25 at the pre-market support underside for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

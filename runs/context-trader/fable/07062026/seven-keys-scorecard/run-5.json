@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T23:20:47.145Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "side": "long",
+    "entry": 7486,
+    "stopLoss": 7478,
+    "takeProfit": 7510,
+    "rationale": "Only automatic-fade zone on the keys sheet: 7479.50-7493.50 bull/bear support (7482.50 HVN, Thursday 3R launch, full bullish alignment). Resting buy 7486, stop 7478 beyond the zone floor per daisy-chain caveat, target 7510 (initial-support bottom, prior VPOC) for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

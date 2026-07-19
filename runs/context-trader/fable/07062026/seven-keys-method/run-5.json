@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T23:20:46.965Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7486.25,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Bull/Bear 7479.50-7493.50 grades highest on the Seven Keys: launched last session's 3R bounce, 7482.50 HVN confluence, aligned with bullish intermediate bias, exhausted approach. Buy inside the zone, stop 1pt beyond 7479.50, target initial support 7510-7520.50 bottom for 3.06R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
