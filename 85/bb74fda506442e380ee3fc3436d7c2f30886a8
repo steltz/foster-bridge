@@ -1,0 +1,23 @@
+knowledge-base/general/support_and_resistance_zones.md
+  s_862f8fdc339070::t_a0c9b549413e15 33,47,55
+docs/superpowers/specs/2026-07-18-seven-keys-design.md
+  s_862f8fdc339070::t_f8a3fb40696398 10-13
+knowledge-base/methods/seven-keys.md
+  s_862f8fdc339070::t_e094772a44dcd1 1-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "85bb74fda506442e380ee3fc3436d7c2f30886a8",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
