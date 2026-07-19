@@ -9,6 +9,10 @@ import { join } from 'node:path';
 import { parseFrontmatter } from './lineage.js';
 
 const PLACEHOLDER = '${ARTIFACT}';
+// An id becomes a runs/ directory segment and a scoreboard label. Anything
+// outside this shape either corrupts the path (quotes, slashes) or defeats
+// the reserved-"base" guard on a case-insensitive filesystem ("Base").
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 function extractBlock(text) {
   const lines = text.split('\n');
@@ -27,6 +31,9 @@ function extractBlock(text) {
 function validateFeatures(features) {
   const byId = new Map();
   for (const f of features) {
+    if (!SLUG.test(f.id)) {
+      throw new Error(f.file + ': feature id "' + f.id + '" must be a kebab-case slug — it becomes a directory name and a scoreboard label');
+    }
     if (f.id === 'base') {
       throw new Error(f.file + ': the feature id "base" is reserved for the no-feature variant');
     }
@@ -43,6 +50,9 @@ function validateFeatures(features) {
     }
     if (!f.artifactSuffix && hasPlaceholder) {
       throw new Error(f.file + ': the ' + PLACEHOLDER + ' placeholder requires artifactSuffix');
+    }
+    if (!f.block) {
+      throw new Error(f.file + ': feature body is empty — a feature with no prompt text is just a costlier "base"');
     }
   }
 }

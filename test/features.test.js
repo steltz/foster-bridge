@@ -106,3 +106,31 @@ test('collectFeatures rejects the placeholder in a feature with no artifact', (t
   writeFileSync(join(dir, 'broken.md'), '---\nid: broken\n---\nreads ${ARTIFACT}\n');
   assert.throws(() => collectFeatures(dir), /broken\.md.*artifactSuffix/);
 });
+
+test('collectFeatures rejects a quoted id, whose quotes would become directory characters', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'quoted.md'), '---\nid: "seven-keys"\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /quoted\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an uppercase id that collides with base on a case-insensitive filesystem', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'sneaky.md'), '---\nid: Base\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /sneaky\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an id containing a path separator', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'nested.md'), '---\nid: sub/dir\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /nested\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an empty prompt block', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'hollow.md'), '---\nid: hollow\nname: Hollow\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /hollow\.md.*empty/);
+});
