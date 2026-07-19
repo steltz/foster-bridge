@@ -1,0 +1,35 @@
+docs/superpowers/specs/2026-07-18-bench-feature-matrix-design.md
+  s_862f8fdc339070::t_95416166c7bfeb 161,165,167,187-202
+  s_862f8fdc339070::t_6b321ea0077df1 284-290
+  s_862f8fdc339070::t_a79a2acb839f19 212-219,238-249,251-252,257-267,278
+  s_862f8fdc339070::t_81d4a76f58f5e4 308
+  s_862f8fdc339070::t_425db3fb988d1e 303
+  s_862f8fdc339070::t_75d730e18036f8 318
+.claude/skills/trader-bench/SKILL.md
+  s_862f8fdc339070::t_80baf2268464b5 64-83,87-96,99-100,109-146,151,154-155
+  s_862f8fdc339070::t_6b7ce7529b398a 298
+  s_862f8fdc339070::t_8b20443d67a967 28
+  s_862f8fdc339070::t_46358b3edf4a93 247-264,268-273
+  s_862f8fdc339070::t_b3a1aae80c098d 276
+  s_862f8fdc339070::t_b4826948c8164c 358-360,362-370
+  s_862f8fdc339070::t_14667a516f4734 193-200,205,208-211,213-217
+  s_862f8fdc339070::t_c0b10b4e036b89 344,346
+  s_862f8fdc339070::t_604e36498ea58b 158-160
+  s_862f8fdc339070::t_b43842508027a1 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "4d21a597e849e0ee3fa9c758ef37ea1e9fa1a96e",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
