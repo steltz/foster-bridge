@@ -35,6 +35,12 @@ the verifier passes it; never write an unverified artifact.
    `YYYY-MM-DD`. `<prefix>` = that 8-digit prefix.
 4. **Discover general docs:** every file under `knowledge-base/general/`
    (recursive); empty or missing → proceed with none.
+4b. **Locate the methodology doc:** `knowledge-base/methods/seven-keys.md`,
+   resolved to an absolute path. This is where the Seven Keys themselves are
+   defined — it deliberately lives OUTSIDE `knowledge-base/general/`, because
+   everything in `general/` is injected into every benchmark variant and
+   would defeat the bench's keys-free `base` baseline. Missing → abort; this
+   skill cannot grade zones against a methodology it cannot read.
 5. **Discover the lookback set:** the up-to-three most recent complete day
    folders strictly BEFORE the target date (chronological by TP-doc
    prefix) that already contain a `*_ES_KEYS.md`. For each lookback day P,
@@ -88,6 +94,7 @@ const DOCS = {
 const GENERAL = [
   '<absolute path to each file under knowledge-base/general/, or empty array>',
 ]
+const METHOD_DOC = '<absolute path to knowledge-base/methods/seven-keys.md>'
 const LOOKBACK = [
   { day: '<MMDDYYYY>', keys: '<absolute path to that day *_ES_KEYS.md>', outcome: '<absolute path to its outcome recap, or null>' },
 ]
@@ -158,7 +165,7 @@ const VERIFY_SCHEMA = {
 
 phase('Analyze')
 const generalBlock = GENERAL.length
-  ? `First Read ALL of these general trading-strategy documents — the methodology the Seven Keys come from:
+  ? `First Read ALL of these general trading-strategy documents — session-agnostic context for how zones are built and traded:
 ${GENERAL.map((g) => `- ${g}`).join(NL)}
 
 `
@@ -173,7 +180,7 @@ ${generalBlock}Read the three documents for the session:
 2. Trade plan video transcript: ${DOCS.plan}
 3. Prior-session recap transcript: ${DOCS.recap}
 
-The Seven Keys are defined in the general strategy doc. Keys 1-2 (expectancy; no price confirmation) are trader behaviors and are NOT your job. Assess EVERY support/resistance zone in the trade plan against Keys 3-7:
+Read the Seven-Keys methodology at ${METHOD_DOC} — that document defines the keys you are grading against. Keys 1-2 (expectancy; no price confirmation) are trader behaviors and are NOT your job. Assess EVERY support/resistance zone in the trade plan against Keys 3-7:
 - key3: the likely approach into the zone (exhaustion, first test vs retest)
 - key4: the zone's timeframe significance
 - key5: whether a significant prior move launched from it
