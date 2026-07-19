@@ -163,7 +163,7 @@ remain the responsibility of each persona. Zones below are scored on Keys 3–7.
 ## Lookback
 
 Sources: <each prior keys file with its outcome recap, e.g.
-"07152026_ES_KEYS.md (outcome: 07162026_ES_RECAP.md)", or "none — bootstrap">
+"07152026_ES_KEYS.md (outcome: 07152026_ES_RECAP.md)", or "none — bootstrap">
 
 - <calibration-aware continuity notes, including any prior grades that
   proved wrong>

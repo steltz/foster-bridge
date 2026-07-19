@@ -220,7 +220,7 @@ Keys 1–2 (expectancy; no price confirmation) are trader-behavior keys and rema
 
 | Zone (prices) | Side | Key 3 approach | Key 4 timeframe | Key 5 prior launch | Key 6 bias align | Key 7 confluence | Grade |
 |---|---|---|---|---|---|---|---|
-<one row per zone, cells terse>
+<one row per zone, cells terse, side values lowercase (support/resistance)>
 
 ## Automatic-fade candidates
 

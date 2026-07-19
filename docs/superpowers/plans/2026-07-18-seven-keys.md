@@ -31,7 +31,7 @@
 **Files:**
 - Create: `.claude/skills/seven-keys/SKILL.md`
 
-- [ ] **Step 1: Write the skill file**
+- [x] **Step 1: Write the skill file**
 
 Create `.claude/skills/seven-keys/SKILL.md` with exactly this content:
 
@@ -258,7 +258,7 @@ Keys 1–2 (expectancy; no price confirmation) are trader-behavior keys and rema
 
 | Zone (prices) | Side | Key 3 approach | Key 4 timeframe | Key 5 prior launch | Key 6 bias align | Key 7 confluence | Grade |
 |---|---|---|---|---|---|---|---|
-<one row per zone, cells terse>
+<one row per zone, cells terse, side values lowercase (support/resistance)>
 
 ## Automatic-fade candidates
 
@@ -318,7 +318,7 @@ writing anything; a rerun regenerates cleanly.
 4. Show the user the zone scorecard table and the lookback section inline.
 ````
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add .claude/skills/seven-keys/SKILL.md
@@ -332,7 +332,7 @@ git commit -m "feat: add seven-keys skill for shared daily zone assessment"
 **Files:**
 - Modify: `.claude/skills/trader-panel/SKILL.md`
 
-- [ ] **Step 1: Add the keys-file preflight step**
+- [x] **Step 1: Add the keys-file preflight step**
 
 In `.claude/skills/trader-panel/SKILL.md`, Phase 1 currently ends with step 6
 ("Discover general strategy docs: … proceed with no general docs."). Append a
@@ -345,7 +345,7 @@ new step 7 directly after it:
    wrote. If that generation aborts, abort the panel run with its message.
 ```
 
-- [ ] **Step 2: Add the KEYS constant to the Phase 2 script**
+- [x] **Step 2: Add the KEYS constant to the Phase 2 script**
 
 In the Phase 2 workflow script, directly after the `DOCS` constant block
 (`const DOCS = { … }`), add:
@@ -354,7 +354,7 @@ In the Phase 2 workflow script, directly after the `DOCS` constant block
 const KEYS = '<absolute path to the day *_ES_KEYS.md>'
 ```
 
-- [ ] **Step 3: Inject the shared assessment into the persona prompt**
+- [x] **Step 3: Inject the shared assessment into the persona prompt**
 
 In the same script's `agent(...)` prompt, directly after the `generalBlock +`
 line and before the line starting `` `Then Read the three documents ``, insert
@@ -367,14 +367,14 @@ line, so it renders as its own paragraph):
 ` +
 ```
 
-- [ ] **Step 4: Update the Phase 2 lead-in sentence**
+- [x] **Step 4: Update the Phase 2 lead-in sentence**
 
 The paragraph before the script says to inline `DATE`/`DOCS`/`GENERAL`/`PERSONAS`
 constants ("INLINE the resolved values directly into the script's
 `DATE`/`DOCS`/`GENERAL`/`PERSONAS` constants"). Change that list to
 `DATE`/`DOCS`/`KEYS`/`GENERAL`/`PERSONAS` (both places if repeated).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .claude/skills/trader-panel/SKILL.md
@@ -388,7 +388,7 @@ git commit -m "feat: pass shared seven-keys assessment to every panel persona"
 **Files:**
 - Modify: `.claude/skills/trader-bench/SKILL.md`
 
-- [ ] **Step 1: Insert keys generation + guard into Phase 1**
+- [x] **Step 1: Insert keys generation + guard into Phase 1**
 
 Phase 1 currently has steps 1–7 (1 personas, 2 immutability guard, 3 discover
 complete days, 4 candle coverage, 5 general docs, 6 missing set, 7 plan
@@ -410,7 +410,7 @@ report). Insert two new steps after step 5 and renumber old steps 6→8 and 7→
    field (pre-keys era) are valid and exempt.
 ```
 
-- [ ] **Step 2: Add the keys path to DOCS_BY_DAY**
+- [x] **Step 2: Add the keys path to DOCS_BY_DAY**
 
 In the Phase 2 workflow script, extend each `DOCS_BY_DAY` entry with a `keys`
 line so the block reads:
@@ -427,7 +427,7 @@ const DOCS_BY_DAY = {
 }
 ```
 
-- [ ] **Step 3: Inject the shared assessment into the persona prompt**
+- [x] **Step 3: Inject the shared assessment into the persona prompt**
 
 In the same script's `agent(...)` prompt, directly after the `generalBlock +`
 line and before the line starting `` `Then Read the three documents ``, insert:
@@ -438,7 +438,7 @@ line and before the line starting `` `Then Read the three documents ``, insert:
 ` +
 ```
 
-- [ ] **Step 4: Record keysSha256 in the cell format**
+- [x] **Step 4: Record keysSha256 in the cell format**
 
 In Phase 3's cell JSON format block, add one line directly after the
 `"personaSha256"` line:
@@ -451,7 +451,7 @@ Also append this sentence to the paragraph after the format block (the one
 beginning "Omit `setup` for NO_SETUP cells"): `Every cell — including
 NO_SETUP — records the day's keysSha256.`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .claude/skills/trader-bench/SKILL.md
@@ -466,7 +466,7 @@ git commit -m "feat: benchmark cells consume and record the shared seven-keys ar
 - Modify: `src/scoreboard.js` (`summarizeGroup` ~line 85, `renderScoreboard` ~line 161)
 - Test: `test/scoreboard.test.js`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `test/scoreboard.test.js`:
 
@@ -482,12 +482,12 @@ test('keys-era cells are counted and annotated per group', () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `node --test test/scoreboard.test.js`
 Expected: the new test FAILS (`keysCellCount` undefined / legend not matched); all others pass.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/scoreboard.js`, `summarizeGroup`'s return object: add one property
 directly after `cellCount: cells.length,`:
@@ -528,7 +528,7 @@ with
     ),
 ```
 
-- [ ] **Step 4: Update the two existing ranking-row assertions**
+- [x] **Step 4: Update the two existing ranking-row assertions**
 
 The new column lands between Runs and Mean $/run, so in
 `test/scoreboard.test.js` (~lines 159–160) change:
@@ -545,12 +545,12 @@ to:
   assert.match(out, /\| 2 \| loser \| fable \| 1 \| 1 \| 0k\/1 \| -50\.00 \|/);
 ```
 
-- [ ] **Step 5: Run the full suite to verify everything passes**
+- [x] **Step 5: Run the full suite to verify everything passes**
 
 Run: `npm test`
 Expected: all tests PASS (including scoreboard-command and lineage tests, which don't assert past the Model column).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/scoreboard.js test/scoreboard.test.js
@@ -563,7 +563,7 @@ git commit -m "feat: annotate scoreboard ranking with keys-era cell counts"
 
 **Files:** none created by hand — this task runs the skills and inspects their output.
 
-- [ ] **Step 1: Regenerate the scoreboard against existing (pre-keys) cells**
+- [x] **Step 1: Regenerate the scoreboard against existing (pre-keys) cells**
 
 Run: `node src/cli.js scoreboard` then open `runs/SCOREBOARD.md`.
 Expected: the Ranking section shows the Keys legend and every row shows `0k/<cells>` (no keys-era cells exist yet). Commit if changed:
@@ -573,14 +573,14 @@ git add runs/SCOREBOARD.md
 git commit -m "chore: regenerate scoreboard with keys-era annotation"
 ```
 
-- [ ] **Step 2: Bootstrap run of /seven-keys**
+- [x] **Step 2: Bootstrap run of /seven-keys**
 
 Identify the OLDEST complete day folder (all three docs, ordered by re-keyed TP prefix) and invoke the seven-keys skill flow for it. Inspect the written `<prefix>_ES_KEYS.md`:
 - frontmatter has `generatedBy`, `generatedAt`, `lookbackSources: []`, `verified: true`
 - Lookback section says `none — bootstrap`
 - every scorecard row's prices and side appear verbatim in that day's trade plan docs (spot-check the PDF)
 
-- [ ] **Step 3: Lookback run of /seven-keys**
+- [x] **Step 3: Lookback run of /seven-keys**
 
 Invoke the flow for the NEXT complete day chronologically. Inspect its artifact:
 - `lookbackSources` lists the step-2 keys file
