@@ -1,0 +1,33 @@
+docs/superpowers/plans/2026-07-18-bench-feature-matrix.md
+  s_862f8fdc339070::t_8b42f6d58b8d59 25,168,173,261,266,282,298,306,323,769,774,1145,1150,1165,1388,1393,1487,1492,1497,1513,1537,1541,1557,1595,1699,1806,1822,1895,1918,1922,1939,1944,1952,1960,1967,1982,1987,1994
+  s_862f8fdc339070::t_909ce4d1dc0b68 1647-1656
+features/seven-keys.md
+  s_862f8fdc339070::t_3b8518c028906f 3
+src/features.js
+  s_862f8fdc339070::t_973d59a91de600 44-46
+docs/superpowers/specs/2026-07-18-bench-feature-matrix-design.md
+  s_862f8fdc339070::t_0096affa37ccb8 124-129
+  s_862f8fdc339070::t_6e958e1483604b 226-233
+test/features.test.js
+  s_862f8fdc339070::t_afafd616f95bd4 137-143
+.claude/skills/seven-keys/SKILL.md
+  s_862f8fdc339070::t_0ebf785924f30b 53-58
+.claude/skills/trader-bench/SKILL.md
+  s_862f8fdc339070::t_ee9920ad35cf88 75-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e12e5c3d42d564cb8cd74dfa847687c26def5b60",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
