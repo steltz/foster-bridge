@@ -61,7 +61,7 @@ new markdown file, nothing else.
 ---
 id: seven-keys
 name: Seven Keys zone assessment
-artifactSuffix: "_ES_KEYS.md"
+artifactSuffix: _ES_KEYS.md
 generatorSkill: seven-keys
 ---
 Read the shared Seven-Keys assessment at ${ARTIFACT} — the shared scorecard
