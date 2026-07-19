@@ -1635,9 +1635,10 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
    (recursive). Empty or missing directory → proceed with none.
 6. **Discover and validate features:** run
    `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`.
-   A nonzero exit means a definition violates validation (reserved id
-   `base`, duplicate ids, `artifactSuffix` without `generatorSkill`, or a
-   `${ARTIFACT}` placeholder mismatch) — abort relaying its error message
+   A nonzero exit means a definition violates validation (an id that is not
+   a kebab-case slug, the reserved id `base`, duplicate ids, an empty body,
+   `artifactSuffix` without `generatorSkill`, or a `${ARTIFACT}` placeholder
+   mismatch) — abort relaying its error message
    verbatim; the remedy is fixing the named feature file, and no cells
    have been touched. Otherwise the printed array gives each feature's
    `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
@@ -1651,7 +1652,14 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
    create a NEW feature file (new `id`) instead of editing this one.
 8. **Feature artifacts (generate missing, per feature, oldest day first):**
    for every feature with both `artifactSuffix` and `generatorSkill`, every
-   candidate day needs a `<prefix><artifactSuffix>` in its folder. For days
+   candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
+   generating anything, for each (day, feature) whose artifact is missing,
+   check `runs/*/*/<day>/<feature-id>/run-*.json`: a hit means that
+   combination is already benchmarked, so its artifact is frozen and was
+   deleted — abort naming the day and feature, remedy: restore the artifact
+   from git or start a new benchmark era. Generating first and letting step
+   9's hash compare catch it would abort only AFTER committing a fresh
+   artifact that contradicts the frozen cells. For the remaining days
    missing one, run that feature's `generatorSkill` flow (its own phases,
    committing each artifact; invoke it with that day's `MMDDYYYY` argument)
    sequentially in chronological order, oldest first — independently per
@@ -1709,10 +1717,25 @@ const DOCS_BY_DAY = {
 const PERSONAS = {
   '<persona name>': '<absolute path to traders/<persona>.md>',
 }
+// A feature body is multi-line prose and routinely contains apostrophes, so
+// it CANNOT go in a single-quoted literal — and a backtick literal would
+// interpolate ${ARTIFACT} into a ReferenceError. Inline each line as its own
+// DOUBLE-quoted string and join them, which needs no backslash escapes at
+// all: double quotes tolerate apostrophes, and String.fromCharCode(10)
+// supplies the newline without a \n escape sequence. (Use single quotes for
+// any individual line that itself contains a double quote.) Do NOT try to
+// read the feature file here — Workflow scripts have no filesystem access.
+const NL = String.fromCharCode(10)
 const FEATURES = {
   '<feature id>': {
-    block: '<the raw markdown body from features/<feature id>.md, ${ARTIFACT} placeholder left intact>',
-    artifact: '<true if the feature has artifactSuffix, else false>',
+    block: [
+      "<first line of the body from features/<feature id>.md, ${ARTIFACT} left intact>",
+      "<second line, and so on for every line of the body>",
+    ].join(NL),
+    // A BARE boolean, never quoted — the string 'false' is truthy, which
+    // would send a feature with no artifact down the artifact code path and
+    // kill every one of its cells on the missing-path throw below.
+    artifact: <true if the feature has artifactSuffix, else false>,
   },
 }
 const ARTIFACTS_BY_DAY = {
@@ -1743,9 +1766,11 @@ const generalBlock = GENERAL.length
 const results = await parallel(CELLS.map((cell) => () => {
   const docs = DOCS_BY_DAY[cell.day]
   // Preflight step 10 excluded every artifact-less (day, feature) cell, so a
-  // missing path here is a preflight bug: fail the cell loudly (it drops to
-  // null and is reported as an anomaly) rather than silently prompting with
-  // an empty artifact path.
+  // missing path here is a preflight bug: fail the cell loudly rather than
+  // silently prompting with an empty artifact path. Throwing is contained,
+  // not fatal to the run — parallel() resolves a thunk that throws to null
+  // in the results array and never rejects — so this cell alone is lost and
+  // gets reported as an anomaly.
   const featureBlock = (() => {
     if (cell.variant === 'base') return ''
     const feature = FEATURES[cell.variant]
@@ -1773,6 +1798,22 @@ const results = await parallel(CELLS.map((cell) => () => {
 log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
 return results.filter(Boolean)
 ```
+
+- [ ] **Step 3b: Qualify the Phase 2 dropped-cell sentence**
+
+Immediately after the Workflow script, find this sentence fragment:
+
+```markdown
+any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues.
+```
+
+Replace it with:
+
+```markdown
+any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues — with the one exception Phase 3 names, where an artifact-backed cell that has no Phase 1 artifact hash gets no file at all.
+```
+
+Without this, the sentence reads as absolute at the moment an executing agent encounters it, and only Phase 3 (much later) carves out the exception.
 
 - [ ] **Step 4: Replace Phase 3 in full**
 

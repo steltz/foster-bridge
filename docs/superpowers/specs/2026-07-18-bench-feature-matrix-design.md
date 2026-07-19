@@ -252,9 +252,14 @@ candle coverage, discover general docs) are unchanged. Then:
    today's behavior). Definitions are validated here (Guard #0); any
    violation aborts naming the offending file(s).
 7. **Feature immutability guard:** as above (Guard #2).
-8. **Generate missing artifacts, per feature, oldest day first:** for each
-   artifact-backed feature and each candidate day missing
-   `<prefix><artifactSuffix>`, invoke that feature's `generatorSkill` with
+8. **Generate missing artifacts, per feature, oldest day first:** first,
+   for each (day, feature) whose artifact is missing, check whether
+   `runs/*/*/<day>/<feature-id>/run-*.json` exists — a hit means the
+   artifact is frozen and was deleted, so abort *before* generating
+   anything. Leaving this to Guard #3's hash compare would abort only
+   after a fresh artifact had already been generated and committed,
+   contradicting the frozen cells. Then, for each remaining candidate day
+   missing `<prefix><artifactSuffix>`, invoke that feature's `generatorSkill` with
    the day argument (chronological, oldest first, so each feature's own
    lookback — if any — sees its own predecessors independently of other
    features). A generation failure skips that (day, feature) combination
@@ -301,10 +306,21 @@ const featureBlock = (() => {
 ```
 
 `FEATURES` (inlined constant, `{ '<id>': { block: '<raw markdown body>',
-artifact: <boolean> } }`) and `ARTIFACTS_BY_DAY` (inlined constant,
+artifact: <boolean> } }` — `artifact` a bare boolean, never a quoted
+string, since `'false'` is truthy and would route a feature with no
+artifact down the artifact path) and `ARTIFACTS_BY_DAY` (inlined constant,
 `{ '<day>': { '<feature-id>': '<absolute artifact path>' } }`) are resolved
 in Phase 1 and inlined into the Workflow script exactly as
-`DOCS_BY_DAY`/`PERSONAS` are today — never passed through `args`. The
+`DOCS_BY_DAY`/`PERSONAS` are today — never passed through `args`.
+
+Inlining `block` needs care: a feature body is multi-line prose that
+routinely contains apostrophes, so it fits in neither a single-quoted
+literal (the apostrophe terminates it, and raw newlines are a syntax
+error) nor a backtick literal (which would interpolate `${ARTIFACT}` into
+a `ReferenceError`). Inline each line as its own double-quoted string and
+join them with `String.fromCharCode(10)` — a construction that needs no
+backslash escapes at all. Reading the feature file at script runtime is
+not an option; Workflow scripts have no filesystem access. The
 `throw` is a should-never-happen backstop, not a control path: Phase 1
 step 10 already excluded every artifact-less (day, feature) cell, so an
 artifact-backed cell reaching Phase 2 without a resolved path is a
