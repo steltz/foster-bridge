@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7535.25,
+    "stopLoss": 7522,
+    "takeProfit": 7575.75,
+    "rationale": "Overnight sellers rejected bias-confirming resistance above, pushing ES below 7593.50-7603.50 into the open — delivering price to 7523.25-7535.25, a bias-confirming, range-exhaustion, first-test zone aligned with the bullish bigger-picture/intermediate bias. Long at 7535.25 (zone top), stop 7522.00 beyond the zone, target 7575.75 in the 7570-7581 initial-support zone (~3R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

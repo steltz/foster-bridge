@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7580.25,
+    "side": "long",
+    "stopLoss": 7569.75,
+    "takeProfit": 7611.75,
+    "rationale": "Long from Aggressive Support (7571-7582), the plan's line for bullish continuation after today's CPI breakout above yesterday's RTH high; bigger-picture bias is bullish. Stop below the zone at 7569.75. Target Initial Resistance/pre-market confluence 7609.25-7620.25 for ~3R, per the plan's stated continuation path."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.5,
+    "dollars": -52.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "entry": 7494.5,
+    "side": "long",
+    "stopLoss": 7480.75,
+    "takeProfit": 7549.5,
+    "rationale": "Resting buy inside the Seven-Keys automatic-fade zone 7481.75-7495.75 (bull/bear line, launch of the current bullish leg; Keys 3-6 all stack, best trade location on the map). Stop one point beyond the far edge at 7480.75. Target the next zone, 7549.50-7558.50 (prior VPOC 7551.75), ~4:1 R:R, aligned with bigger-picture bullish bias."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.75,
+    "dollars": -68.75,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

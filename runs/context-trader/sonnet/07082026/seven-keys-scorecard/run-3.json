@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7493.25,
+    "side": "long",
+    "stopLoss": 7476.25,
+    "takeProfit": 7544,
+    "rationale": "Long the 7477.50-7493.50 bull/bear zone — KEYS' top-graded support (multi-day range base, HVN 7482.50, Key5 control-shift origin) aligned with intermediate/bigger-picture bullish bias. Entry near zone top per R:R doctrine. Stop 1pt below zone floor. Target 7544 PM-resistance/HVN, strongest nearby resistance confluence, prior close magnet. ~3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -17,
+    "dollars": -85,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

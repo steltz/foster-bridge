@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7580.25,
+    "stopLoss": 7568.75,
+    "takeProfit": 7614.75,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias is Bullish; recap shows control shifting to buyers by the close. Long the first test of Initial Support 7570-7581 (bias-aligned, shallow entry near top edge), stop beyond far edge below 7570. Target Pre-Market Resistance 7610-7619.50 near VPOC 7617 for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.5,
+    "dollars": -57.5,
+    "fillTime": 1784223600,
+    "exitTime": 1784227200
+  }
+}

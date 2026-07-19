@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7492.75,
+    "side": "long",
+    "stopLoss": 7476.5,
+    "takeProfit": 7544,
+    "rationale": "Bigger-picture bias is bullish; recap ties ES downside squarely to its Bull/Bear zone (7477.50-7493.50), the plan's own pivot for the breakdown attempt. Buying shallow near its top edge (first test, HVN 7482.50) targets the 7544-7551.75 zone the plan flags as confirming a failed breakdown-3.15R, stop one point below 7477.50."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.25,
+    "dollars": -81.25,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

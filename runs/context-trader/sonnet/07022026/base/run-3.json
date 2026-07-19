@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7495.5,
+    "side": "long",
+    "stopLoss": 7480.5,
+    "takeProfit": 7595.25,
+    "rationale": "Long from the 7481.75-7495.75 bull/bear bias-confirming zone (7482.50 HVN) — the level the recap flags as key to further balance at higher prices, with buyers still in control above it. Stop below zone; target the 7595.25-7604.25 bias-confirming zone the plan cites for upside range expansion."
+  },
+  "result": {
+    "status": "SL",
+    "points": -15,
+    "dollars": -75,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

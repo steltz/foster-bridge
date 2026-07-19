@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7596.25,
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture bias bullish; 07/14 recap confirms buy side dominant with pullbacks bought. Resting long near top edge of Aggressive Support (7587.75-7597.75, \"Holding Above Signals Strength,\" first RTH test) for high fill odds. Stop one point below zone (7586.75). Target Bias Confirming resistance 7627.25-7636.75 near edge, ~3.3R, matching plan's stated range-expansion path."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7490.25,
+    "stopLoss": 7479.75,
+    "takeProfit": 7558.5,
+    "rationale": "Bigger-picture and intermediate bias are bullish; short-term is neutral after an overnight retracement off 7558.50-68.50, so I skip the shakier 7510.50-20.50 initial support and rest the buy at the deeper bull/bear bias-confirming zone 7481.75-7495.75 (HVN 7482.50), targeting the 7558.50-68.50 initial-resistance bias-confirming zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7546.5,
+    "side": "long",
+    "stopLoss": 7537,
+    "takeProfit": 7593.75,
+    "rationale": "Bullish intermediate/bigger-picture bias favors longs. Chose Initial Support 7538.25-7546.75 (Bias Changing, 7544 HVN) — the plan's named long trigger given an NQ intermarket confirmation, and untested unlike the already-bounced Aggressive Support. Shallow entry near the zone's leading edge; stop beyond far edge 7538.25; target Initial Resistance/Bias Confirming zone at 7593.75."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7546.75,
+    "stopLoss": 7536.75,
+    "takeProfit": 7584.5,
+    "rationale": "Bigger-picture/intermediate bias is bullish; recap shows buyers dominant off support. NQ's overnight weakness gives reason to expect ES to push past Aggressive Support into Initial Support (7538.25-7546.75, HVN 7544), a Bias-Changing zone with an intermarket first-test setup. Enter shallow at 7546.75, stop 7536.75 beyond the far edge, target Pre-Market Resistance 7584.50 (~3.8R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7492.75,
+    "side": "long",
+    "stopLoss": 7478.25,
+    "takeProfit": 7551.5,
+    "rationale": "Long from the Bull/Bear zone (7479.50-7493.50, Bias Confirming, HVN 7482.50) - the only support level confirming the bullish intermediate bias; recap shows buyers already defended it. Shallow entry near the zone's top edge for fill priority, stop beyond 7479.50, target Aggressive Support (7551.50-7556.50) for ~4R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

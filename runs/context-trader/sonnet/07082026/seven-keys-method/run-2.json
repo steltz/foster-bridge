@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7493.25,
+    "side": "long",
+    "stopLoss": 7476.5,
+    "takeProfit": 7544,
+    "rationale": "Overnight breakdown attempt is unresolved while bigger-picture bias is bullish. Buying the 7477.50-7493.50 Bull/Bear zone (HVN 7482.50, Bias Confirming) anticipates a failed breakdown, aligned with the dominant bias (Key 6) and pivot significance (Key 4). Stop below the zone's far edge (7477.50); target the 7544-7551.75 zone flagged \"Failed Break-down (Bullish)\" for ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.75,
+    "dollars": -83.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

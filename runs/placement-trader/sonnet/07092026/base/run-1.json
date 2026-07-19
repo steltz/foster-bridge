@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7536.5,
+    "side": "long",
+    "stopLoss": 7522.75,
+    "takeProfit": 7580.75,
+    "rationale": "Bullish bias (overnight break above prior RTH high; recap confirms prior breakdown failed, buyers regaining control) favors longs. Aggressive Support 7524-7536.50 is the shallowest, highest-hold-odds reachable zone. Enter shallow at zone's top edge, stop below zone low, target next meaningful zone 7580.75-7591.75 (plan's projected upside expansion) for ~3.2R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 44.25,
+    "dollars": 221.25,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}

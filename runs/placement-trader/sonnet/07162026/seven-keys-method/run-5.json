@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7581,
+    "side": "long",
+    "stopLoss": 7569,
+    "takeProfit": 7624.75,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap warns against shorting given ES's strength vs. NQ. Long at Initial Support 7570-7581 — also 07/15's actual session low and launch point of yesterday's rally, first pullback zone the plan flags. Stop 1pt beyond far edge. Target next zone: Initial Resistance 7624.75-7636.75 (~3.6R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784223600,
+    "exitTime": 1784227200
+  }
+}

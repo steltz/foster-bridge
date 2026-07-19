@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7528.75,
+    "stopLoss": 7522.75,
+    "takeProfit": 7551.25,
+    "rationale": "Long from aggressive support 7524-7536.50 (\"holding above signals strength\"), the first zone below open. Overnight already broke above yesterday's RTH high, confirming the recap's failed-breakdown/buyers-back-in-control read, aligned with bullish intermediate/bigger-picture bias. Stop 1pt beyond zone low. Target: next meaningful zone, pre-market resistance/open-gap 7548-7558 (~3.75R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

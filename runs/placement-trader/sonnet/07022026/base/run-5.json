@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558.5,
+    "side": "long",
+    "stopLoss": 7548.25,
+    "takeProfit": 7595.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight buying already probed 7567-7579. Placed shallow at 7558.50 (near/top edge of aggressive-support 7549.50-7558.50) to prioritize fill on this bias-aligned first pullback zone. Stop 7548.25, just past the zone's far edge (7549.50). Target 7595.25, the plan's stated bias-confirming upside-expansion zone (~3.6R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.25,
+    "dollars": -51.25,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

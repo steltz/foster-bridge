@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7573.25,
+    "stopLoss": 7569.75,
+    "takeProfit": 7596,
+    "rationale": "Long at Aggressive Support 7571-7582 — the plan's explicit \"holding above signals strength\" line, aligned with Bigger-Picture Bullish bias and overnight CPI-driven break above yesterday's high. Confluence is moderate (no HVN/launch notes), so entry sits deeper in the zone. Stop below zone; target Pre-Market Resistance 7596-7605, the next meaningful zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -3.5,
+    "dollars": -17.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

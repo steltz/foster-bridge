@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7597.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture bias bullish, recap shows dominant buy side. Price already sits in the shallowest reachable support, Aggressive Support 7587.75-7597.75, so I rest long at its leading edge, 7597.75. Stop 7586.75, one point beyond the zone. Target 7627.25, the Bias Confirming zone the plan cites for upside expansion (~2.7R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11,
+    "dollars": -55,
+    "fillTime": 1784126400,
+    "exitTime": 1784131500
+  }
+}

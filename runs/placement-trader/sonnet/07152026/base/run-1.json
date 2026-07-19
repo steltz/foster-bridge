@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7597,
+    "stopLoss": 7586.5,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture bullish; overnight balance sits in upper range, buyers active on pullbacks. Shallowest reachable zone clearing hold-odds is Aggressive Support 7587.75-7597.75 (Holding Above Signals Strength) — enter shallow at leading edge. Stop 1pt+ below zone. Target Bias-Confirming 7627.25-7636.75, the plan's projected expansion zone above Initial Resistance (7606.25-7615.25), ~2.9R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.5,
+    "dollars": -52.5,
+    "fillTime": 1784127000,
+    "exitTime": 1784131500
+  }
+}

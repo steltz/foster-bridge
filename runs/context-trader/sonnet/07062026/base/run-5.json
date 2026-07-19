@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7519,
+    "stopLoss": 7508.75,
+    "takeProfit": 7551.5,
+    "side": "long",
+    "rationale": "Long, with Intermediate/Bigger-Picture Bullish bias; overnight buy-side dominance, no evidence of shift. Skip aggressive-support (50/50 location per recap); rest buy in Initial Support zone 7510-7520.50 (Bias Changing), stop 1.25pt beyond at 7508.75, target flipped-resistance at Aggressive Support 7551.50 for ~3.2R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

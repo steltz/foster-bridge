@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7546.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias is bullish. Overnight NQ weakness threatens Aggressive Support (7563-73), so I skip that zone and buy Initial Support 7538.25-7546.75 — the plan's explicit intermarket-trigger long level. Stop below the 7538.25 far edge; target Initial Resistance/Bias Confirming zone 7593.75-7604.25 (~5:1)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

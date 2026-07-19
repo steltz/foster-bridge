@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493.25,
+    "side": "long",
+    "stopLoss": 7476.25,
+    "takeProfit": 7544,
+    "rationale": "Long at 7493.25, shallow edge of the Bias-Confirming Bull/Bear zone (7477.50-7493.50, 7482.50 HVN) - first real support under the overnight breakdown attempt, aligned with bigger-picture bullish bias per plan and recap. Stop 7476.25 beyond zone. Target 7544, the plan's failed-breakdown confirmation zone (7544-7551.75), ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -17,
+    "dollars": -85,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

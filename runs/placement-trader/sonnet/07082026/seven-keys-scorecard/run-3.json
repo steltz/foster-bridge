@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "short",
+    "entry": 7525.25,
+    "stopLoss": 7553.25,
+    "takeProfit": 7454.75,
+    "rationale": "Short-term neutral bias with NQ dragging ES into an overnight breakdown attempt favors fading resistance. Entering shallow at the 7524.75-7534.75 front shelf (PM resistance/gap), stopping beyond the tougher 7544-7551.75 major zone (HVN, launching point, prior close) as one daisy-chain structure, targeting first-test initial support 7444.50-7454.75 for 2.52R."
+  },
+  "result": {
+    "status": "EOD",
+    "points": -1.5,
+    "dollars": -7.5,
+    "fillTime": 1783530900,
+    "exitTime": 1783540500
+  }
+}

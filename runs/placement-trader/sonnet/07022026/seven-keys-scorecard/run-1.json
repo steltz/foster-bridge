@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "side": "long",
+    "entry": 7558.5,
+    "stopLoss": 7548.5,
+    "takeProfit": 7595.25,
+    "rationale": "Long with the intermediate/bigger-picture bullish bias (yesterday's breakout above 7481.75-7495.75 intact). Shallowest support clearing the hold-odds bar and within easy reach off the NFP push: entering 7558.50 (leading edge, aggressive support 7549.50-7558.50). Stop 7548.50 beyond the zone. Target 7595.25, the next bias-confirming zone (range top)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

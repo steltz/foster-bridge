@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T14:34:44Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7541.75,
+    "side": "long",
+    "rationale": "Long at 7495.75, the shallow (top) edge of the 7481.75-7495.75 bull/bear, bias-confirming, HVN zone the recap shows repeatedly held, defending the intermediate/bigger-picture bullish bias. Stop 7480.75, 1pt beyond the far edge. Target 7541.75 (top of 7531.75-7541.75 zone), ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -15,
+    "dollars": -75,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}
