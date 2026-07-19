@@ -20,7 +20,7 @@
 - Create: `src/features.js`
 - Test: `test/features.test.js`
 
-Mirrors `src/lineage.js`'s `collectTraders` — reuses its exported `parseFrontmatter` rather than re-implementing frontmatter parsing.
+Mirrors `src/lineage.js`'s `collectTraders` — reuses its exported `parseFrontmatter` rather than re-implementing frontmatter parsing. Unlike `collectTraders`, discovery also VALIDATES every definition (spec Guard #0) and throws naming the offending file: the id `base` is reserved, two files may not resolve to the same id, `artifactSuffix` requires `generatorSkill`, an artifact-backed body must contain the literal `${ARTIFACT}` placeholder, and a non-artifact body must not. Both the scoreboard CLI and the bench skill call `collectFeatures`, so invalid definitions are rejected identically everywhere.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -97,6 +97,44 @@ test('collectFeatures treats a file with no frontmatter as an id-less body-only 
   assert.equal(f.block, 'Just a body, no fences.');
   rmSync(dir, { recursive: true, force: true });
 });
+
+// Guard #0 — definition validation. Each rejection names the offending file.
+
+test('collectFeatures rejects the reserved variant id "base"', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'base.md'), '---\nname: Sneaky Baseline\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /base\.md.*reserved/);
+});
+
+test('collectFeatures rejects two files resolving to the same id', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'alpha.md'), '---\nid: dup\n---\nbody\n');
+  writeFileSync(join(dir, 'dup.md'), 'body\n'); // filename fallback also yields "dup"
+  assert.throws(() => collectFeatures(dir), /duplicate feature id "dup" \(alpha\.md, dup\.md\)/);
+});
+
+test('collectFeatures rejects artifactSuffix without generatorSkill', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nartifactSuffix: _ES_X.md\n---\nreads ${ARTIFACT}\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*generatorSkill/);
+});
+
+test('collectFeatures rejects an artifact-backed body missing the placeholder', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nartifactSuffix: _ES_X.md\ngeneratorSkill: x\n---\nno placeholder here\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*ARTIFACT/);
+});
+
+test('collectFeatures rejects the placeholder in a feature with no artifact', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\n---\nreads ${ARTIFACT}\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*artifactSuffix/);
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -112,10 +150,14 @@ Create `src/features.js`:
 // Feature definitions: parse features/*.md frontmatter + prompt-block body.
 // Mirrors traders/*.md discovery (src/lineage.js collectTraders) so adding a
 // feature to the benchmark is authoring one new markdown file, nothing else.
+// Discovery validates every definition (spec Guard #0) — an invalid feature
+// file must never reach the bench or the scoreboard.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFrontmatter } from './lineage.js';
+
+const PLACEHOLDER = '${ARTIFACT}';
 
 function extractBlock(text) {
   const lines = text.split('\n');
@@ -131,9 +173,32 @@ function extractBlock(text) {
   return lines.slice(closeIndex + 1).join('\n').trim();
 }
 
+function validateFeatures(features) {
+  const byId = new Map();
+  for (const f of features) {
+    if (f.id === 'base') {
+      throw new Error(f.file + ': the feature id "base" is reserved for the no-feature variant');
+    }
+    if (byId.has(f.id)) {
+      throw new Error('duplicate feature id "' + f.id + '" (' + byId.get(f.id).file + ', ' + f.file + ')');
+    }
+    byId.set(f.id, f);
+    if (f.artifactSuffix && !f.generatorSkill) {
+      throw new Error(f.file + ': artifactSuffix requires generatorSkill');
+    }
+    const hasPlaceholder = f.block.includes(PLACEHOLDER);
+    if (f.artifactSuffix && !hasPlaceholder) {
+      throw new Error(f.file + ': artifact-backed feature body must contain the ' + PLACEHOLDER + ' placeholder');
+    }
+    if (!f.artifactSuffix && hasPlaceholder) {
+      throw new Error(f.file + ': the ' + PLACEHOLDER + ' placeholder requires artifactSuffix');
+    }
+  }
+}
+
 export function collectFeatures(featuresDir) {
   if (!existsSync(featuresDir)) return [];
-  return readdirSync(featuresDir, { withFileTypes: true })
+  const features = readdirSync(featuresDir, { withFileTypes: true })
     .filter((e) => e.isFile() && e.name.endsWith('.md'))
     .map((e) => e.name)
     .sort()
@@ -143,19 +208,22 @@ export function collectFeatures(featuresDir) {
       const id = fm.id || file.slice(0, -3);
       return {
         id,
+        file,
         name: fm.name || id,
         artifactSuffix: fm.artifactSuffix || null,
         generatorSkill: fm.generatorSkill || null,
         block: extractBlock(text),
       };
     });
+  validateFeatures(features);
+  return features;
 }
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/features.test.js`
-Expected: PASS (7 tests)
+Expected: PASS (11 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -195,7 +263,7 @@ Run:
 ```bash
 node -e "import('./src/features.js').then(({collectFeatures}) => console.log(JSON.stringify(collectFeatures('features'), null, 2)))"
 ```
-Expected output: one entry with `id: "seven-keys"`, `name: "Seven Keys zone assessment"`, `artifactSuffix: "_ES_KEYS.md"`, `generatorSkill: "seven-keys"`, and `block` equal to the three-sentence paragraph above (no frontmatter, no leading/trailing blank lines).
+Expected output: one entry with `id: "seven-keys"`, `file: "seven-keys.md"`, `name: "Seven Keys zone assessment"`, `artifactSuffix: "_ES_KEYS.md"`, `generatorSkill: "seven-keys"`, and `block` equal to the three-sentence paragraph above (no frontmatter, no leading/trailing blank lines). A nonzero exit here means the file violates Guard #0 validation — fix the file, not the validator.
 
 - [ ] **Step 3: Commit**
 
@@ -426,10 +494,26 @@ test('computeFeatureImpact computes per-(trader,model) deltas vs the base varian
   assert.equal(impact.length, 1);
   assert.equal(impact[0].variant, 'seven-keys');
   assert.deepEqual(impact[0].rows, [
-    { trader: 'a', model: 'fable', baseDollars: 100, featureDollars: 150, delta: 50 },
-    { trader: 'b', model: 'sonnet', baseDollars: -50, featureDollars: 50, delta: 100 },
+    { trader: 'a', model: 'fable', days: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
+    { trader: 'b', model: 'sonnet', days: 1, baseDollars: -50, featureDollars: 50, delta: 100 },
   ]);
   assert.equal(impact[0].overallDelta, 75);
+});
+
+test('computeFeatureImpact restricts both sides to their shared day set', () => {
+  const cells = [
+    // base covers two days; seven-keys covers only the first (e.g. its
+    // artifact generation failed on the second)
+    cell({ variant: 'base', day: '07012026', result: { status: 'TP', points: 20, dollars: 100 } }),
+    cell({ variant: 'base', day: '07022026', result: { status: 'SL', points: -40, dollars: -200 } }),
+    cell({ variant: 'seven-keys', day: '07012026', result: { status: 'TP', points: 30, dollars: 150 } }),
+  ];
+  const impact = computeFeatureImpact(computeScoreboard(cells).groups);
+  // base's 07022026 loss is excluded: both sides compare over 07012026 only,
+  // so the delta is +50 — not the +250 a raw group-mean comparison would show
+  assert.deepEqual(impact[0].rows, [
+    { trader: 'context-trader', model: 'fable', days: 1, baseDollars: 100, featureDollars: 150, delta: 50 },
+  ]);
 });
 
 test('computeFeatureImpact omits (trader, model) pairs missing their base counterpart', () => {
@@ -437,6 +521,16 @@ test('computeFeatureImpact omits (trader, model) pairs missing their base counte
     computeScoreboard([cell({ trader: 'a', variant: 'seven-keys' })]).groups
   );
   assert.equal(impact[0].variant, 'seven-keys');
+  assert.equal(impact[0].rows.length, 0);
+  assert.equal(impact[0].overallDelta, null);
+});
+
+test('computeFeatureImpact omits pairs whose day sets do not intersect', () => {
+  const cells = [
+    cell({ variant: 'base', day: '07012026' }),
+    cell({ variant: 'seven-keys', day: '07022026' }),
+  ];
+  const impact = computeFeatureImpact(computeScoreboard(cells).groups);
   assert.equal(impact[0].rows.length, 0);
   assert.equal(impact[0].overallDelta, null);
 });
@@ -453,7 +547,7 @@ test('renderScoreboard renders a Feature Impact section with per-pair deltas and
   const out = renderScoreboard(computeScoreboard(cells), [], [{ id: 'seven-keys', name: 'Seven Keys zone assessment' }]);
   assert.match(out, /## Feature Impact/);
   assert.match(out, /### Seven Keys zone assessment/);
-  assert.match(out, /\| a \| fable \| 100\.00 \| 150\.00 \| \+50\.00 \|/);
+  assert.match(out, /\| a \| fable \| 1 \| 100\.00 \| 150\.00 \| \+50\.00 \|/);
   assert.match(out, /\*\*Overall Δ for Seven Keys zone assessment across 1 trader\/model pair: \+50\.00\*\*/);
 });
 
@@ -681,6 +775,9 @@ function summarizeGroup(cells) {
     trader,
     model,
     variant,
+    // Retained so computeFeatureImpact can recompute means restricted to a
+    // shared day set; never rendered directly.
+    cells,
     cellCount: cells.length,
     days,
     runIndices,
@@ -703,10 +800,27 @@ function summarizeGroup(cells) {
   };
 }
 
+// Mean $/run for a group recomputed over only the given days. Mean $/run is
+// a per-run SUM across days, so base and feature sides of a comparison must
+// cover the identical day set or missing-day P&L masquerades as a feature
+// effect.
+function meanRunDollarsOverDays(group, daySet) {
+  const cells = group.cells.filter((c) => daySet.has(c.day));
+  const runIndices = [...new Set(cells.map((c) => c.runIndex))].sort((a, b) => a - b);
+  return mean(
+    runIndices.map((runIndex) =>
+      cells
+        .filter((c) => c.runIndex === runIndex && FILLED.has(c.result.status))
+        .reduce((s, c) => s + (c.result.dollars ?? 0), 0)
+    )
+  );
+}
+
 // For each non-base variant, the per-(trader, model) delta vs that pair's
-// base group, plus the mean delta across all comparable pairs. A pair
-// missing its base counterpart is omitted from that feature's rows, never
-// shown as zero.
+// base group, both sides recomputed over the intersection of the two
+// groups' day sets, plus the mean delta across all comparable pairs. A
+// pair missing its base counterpart, or with no shared days, is omitted
+// from that feature's rows, never shown as zero.
 export function computeFeatureImpact(groups) {
   const baseByPair = new Map();
   for (const g of groups) {
@@ -720,15 +834,19 @@ export function computeFeatureImpact(groups) {
       .filter((g) => g.variant === variant)
       .map((g) => {
         const base = baseByPair.get(`${g.trader}::${g.model}`);
-        return base
-          ? {
-              trader: g.trader,
-              model: g.model,
-              baseDollars: base.meanDollars,
-              featureDollars: g.meanDollars,
-              delta: g.meanDollars - base.meanDollars,
-            }
-          : null;
+        if (!base) return null;
+        const shared = new Set(g.days.filter((d) => base.days.includes(d)));
+        if (!shared.size) return null;
+        const baseDollars = meanRunDollarsOverDays(base, shared);
+        const featureDollars = meanRunDollarsOverDays(g, shared);
+        return {
+          trader: g.trader,
+          model: g.model,
+          days: shared.size,
+          baseDollars,
+          featureDollars,
+          delta: featureDollars - baseDollars,
+        };
       })
       .filter(Boolean)
       .sort((a, b) => a.trader.localeCompare(b.trader, 'en') || a.model.localeCompare(b.model, 'en'));
@@ -804,17 +922,24 @@ export function renderScoreboard({ groups, maxCells }, traders = [], features = 
 
   const impact = computeFeatureImpact(groups);
   if (impact.length) {
-    lines.push('', '## Feature Impact', '');
+    lines.push(
+      '',
+      '## Feature Impact',
+      '',
+      'Each row compares base and feature over their shared day set only ' +
+        '(the Days column); days covered by one side never bias Δ.',
+      ''
+    );
     for (const feat of impact) {
       const label = nameById.get(feat.variant) ?? feat.variant;
       lines.push(
         `### ${label}`,
         '',
-        `| Trader | Model | Base $/run | ${label} $/run | Δ |`,
-        '|---|---|---|---|---|',
+        `| Trader | Model | Days | Base $/run | ${label} $/run | Δ |`,
+        '|---|---|---|---|---|---|',
         ...feat.rows.map(
           (r) =>
-            `| ${r.trader} | ${r.model} | ${money(r.baseDollars)} | ${money(r.featureDollars)} | ${signed(r.delta)} |`
+            `| ${r.trader} | ${r.model} | ${r.days} | ${money(r.baseDollars)} | ${money(r.featureDollars)} | ${signed(r.delta)} |`
         ),
         '',
         feat.overallDelta == null
@@ -1326,8 +1451,14 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
    `0` → skip the day, list it. No candidate days at all → abort.
 5. **Discover general docs:** every file under `knowledge-base/general/`
    (recursive). Empty or missing directory → proceed with none.
-6. **Discover features:** every `features/*.md`; feature id = the `id:`
-   frontmatter value (fall back to filename without `.md`).
+6. **Discover and validate features:** run
+   `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`.
+   A nonzero exit means a definition violates validation (reserved id
+   `base`, duplicate ids, `artifactSuffix` without `generatorSkill`, or a
+   `${ARTIFACT}` placeholder mismatch) — abort relaying its error message
+   verbatim; the remedy is fixing the named feature file, and no cells
+   have been touched. Otherwise the printed array gives each feature's
+   `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
    `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
    files at all → `VARIANTS = ['base']` only.
 7. **Feature immutability guard:** compute each `features/<id>.md`'s hash
@@ -1359,7 +1490,11 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
     variant ranges over `VARIANTS`, existing runs are
     `runs/<trader>/<alias>/<day>/<variant>/run-*.json`; missing indices
     are `1..N` minus the indices present. Existing cells beyond N are left
-    alone.
+    alone. For an artifact-backed feature, every (trader, day, feature-id)
+    combination whose (day, feature) artifact is still missing after step 8
+    (generation failed or was skipped) is EXCLUDED from the missing set
+    entirely — a feature cell must never be run or written without its
+    artifact; step 11 reports these as skipped, never as cells to run.
 11. **Report the plan, then proceed:** traders × days × variants × model
     alias, cells already present, cells to run, skipped days with reasons,
     skipped (day, feature) artifact failures. Example: "2 traders × 10
@@ -1393,7 +1528,10 @@ const PERSONAS = {
   '<persona name>': '<absolute path to traders/<persona>.md>',
 }
 const FEATURES = {
-  '<feature id>': '<the raw markdown body from features/<feature id>.md, ${ARTIFACT} placeholder left intact>',
+  '<feature id>': {
+    block: '<the raw markdown body from features/<feature id>.md, ${ARTIFACT} placeholder left intact>',
+    artifact: '<true if the feature has artifactSuffix, else false>',
+  },
 }
 const ARTIFACTS_BY_DAY = {
   '<MMDDYYYY>': {
@@ -1422,9 +1560,18 @@ const generalBlock = GENERAL.length
   : ''
 const results = await parallel(CELLS.map((cell) => () => {
   const docs = DOCS_BY_DAY[cell.day]
-  const featureBlock = cell.variant === 'base'
-    ? ''
-    : FEATURES[cell.variant].replaceAll('${ARTIFACT}', ARTIFACTS_BY_DAY[cell.day]?.[cell.variant] ?? '') + '\n\n'
+  // Preflight step 10 excluded every artifact-less (day, feature) cell, so a
+  // missing path here is a preflight bug: fail the cell loudly (it drops to
+  // null and is reported as an anomaly) rather than silently prompting with
+  // an empty artifact path.
+  const featureBlock = (() => {
+    if (cell.variant === 'base') return ''
+    const feature = FEATURES[cell.variant]
+    if (!feature.artifact) return feature.block + '\n\n'
+    const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[cell.variant]
+    if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + cell.variant)
+    return feature.block.replaceAll('${ARTIFACT}', artifactPath) + '\n\n'
+  })()
   return agent(
     `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
     generalBlock +
@@ -1509,6 +1656,13 @@ null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 top-level `note`. Every cell — including NO_SETUP — records `variant` and
 `personaSha256`; `featureSha256`/`artifactSha256` follow the omission rule
 above regardless of cell status.
+
+An artifact-backed variant cell without an `artifactSha256` is invalid by
+construction — Phase 1 step 10 excluded every (day, feature) combination
+lacking its artifact, so no such cell should ever reach this phase. If a
+dropped (null) cell for an artifact-backed variant has no Phase 1 artifact
+hash (the Phase 2 missing-artifact backstop fired), write NO cell file for
+it — record it as an anomaly in the final summary instead.
 ```
 
 - [ ] **Step 5: Replace Phase 4 in full**
@@ -1536,7 +1690,7 @@ write-anomalies.
 
 - [ ] **Step 6: Verify by reading the file back**
 
-Read `.claude/skills/trader-bench/SKILL.md` in full and check: numbering is sequential 1–11 in Phase 1, the Phase 2 script has no leftover reference to `docs.keys` anywhere, and Phase 3's cell JSON example doesn't contradict Phase 1's field descriptions. Run `grep -n "docs.keys\|keysSha256" .claude/skills/trader-bench/SKILL.md` — expect no output.
+Read `.claude/skills/trader-bench/SKILL.md` in full and check: numbering is sequential 1–11 in Phase 1, the Phase 2 script has no leftover reference to `docs.keys` anywhere, and Phase 3's cell JSON example doesn't contradict Phase 1's field descriptions. Run `grep -n "docs.keys\|keysSha256" .claude/skills/trader-bench/SKILL.md` — expect no output. Also confirm the Phase 2 script contains the `throw new Error('missing artifact` backstop and no `?? ''` fallback on the artifact path.
 
 - [ ] **Step 7: Commit**
 
@@ -1619,12 +1773,16 @@ Summarize: all code/test/skill changes committed, `runs/` wiped and stub regener
 ## Spec coverage check (self-review)
 
 - `features/*.md` format, discovery, immutability → Tasks 1, 2, 6 (steps 6–7).
+- Feature definition validation, spec Guard #0 (reserved `base` id,
+  duplicate ids, `artifactSuffix`⇒`generatorSkill`, `${ARTIFACT}`
+  placeholder presence/absence) → Task 1 (`validateFeatures` + five
+  rejection tests), surfaced in preflight via Task 6 (step 6).
 - Variant set (`base` + one-at-a-time features) → Task 6 (step 6), Task 3 (grouping).
-- Cell path/schema (`variant`, `featureSha256`, `artifactSha256`) → Task 6 (steps 2–4).
-- Artifact generation generalization + per-(day,feature) failure isolation → Task 6 (step 8).
+- Cell path/schema (`variant`, `featureSha256`, `artifactSha256`; artifact-backed cell without `artifactSha256` invalid by construction) → Task 6 (steps 2–4).
+- Artifact generation generalization + per-(day,feature) failure isolation → Task 6 (step 8); artifact-less (day, feature) cells excluded from the missing set, with the Phase 2 throw as a should-never-happen backstop (no `?? ''` fallback) → Task 6 (steps 2–4).
 - Artifact immutability guard, scoped by path not content grep → Task 6 (step 9), Task 5 (seven-keys' own guard).
 - Scoreboard grouping by `(trader, model, variant)`, Variant column, Coverage column → Task 3.
-- `## Feature Impact` section (per-pair deltas + overall rollup, omitting incomplete pairs) → Task 3.
+- `## Feature Impact` section (per-pair deltas + overall rollup over each pair's base∩feature shared day set, Days column, omitting pairs with a missing side or disjoint days) → Task 3.
 - Lineage matching by model AND variant → Task 3.
 - `trader-panel`/`trader-spawn` untouched → confirmed via repo grep during planning; no task touches either file.
 - Migration (wipe `runs/`) → Task 7.

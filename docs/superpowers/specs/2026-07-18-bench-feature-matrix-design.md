@@ -95,6 +95,13 @@ A feature with no `artifactSuffix` has no placeholder — its body is
 injected verbatim (a future example: a static instruction like "end every
 rationale with a one-sentence risk note").
 
+Feature definitions are validated at discovery time (Guard #0, below):
+`base` is reserved and may not be used as an id; two files may not resolve
+to the same id (whether via `id:` frontmatter or the filename fallback);
+`artifactSuffix` requires `generatorSkill`; an artifact-backed body must
+contain the literal `${ARTIFACT}` placeholder, and a non-artifact body must
+not contain it. Any violation aborts naming the offending file(s).
+
 Feature files are immutable once benchmarked (see Guards, below) — the
 remedy for changing one is a new feature file with a new `id`, exactly like
 trader files.
@@ -171,12 +178,24 @@ unchanged from the original layout.
 `variant` and `personaSha256` are present on every cell, including
 `base`. `featureSha256` and `artifactSha256` are present only when
 applicable (never for `base`; `artifactSha256` only for artifact-backed
-features). Everything else is unchanged from the original cell schema —
+features). Conversely, an artifact-backed variant cell *without*
+`artifactSha256` is invalid by construction: cells are never written for a
+(day, feature) combination whose artifact is absent — those combinations
+are excluded from the missing set in preflight (Phase 1 step 10, below).
+Everything else is unchanged from the original cell schema —
 `result.status`, the CLI-is-sole-judge rule, `NO_SETUP`/`INVALID`/
 `CLI_ERROR` handling, write-once immutability.
 
-## Guards (all path-existence or hash-compare, no LLM)
+## Guards (all file-shape, path-existence, or hash-compare checks — no LLM)
 
+0. **Feature definition validation** (shape checks on `features/*.md` at
+   discovery time): reserved id `base`; duplicate ids across files
+   (frontmatter `id:` colliding with another file's `id:` or filename
+   fallback); `artifactSuffix` without `generatorSkill`; an
+   artifact-backed body missing `${ARTIFACT}`; or `${ARTIFACT}` in a
+   non-artifact body → abort naming the offending file(s). Enforced in
+   `src/features.js` (`collectFeatures` throws), so the scoreboard CLI and
+   the bench preflight reject invalid definitions identically.
 1. **Persona immutability** (unchanged in spirit, widened glob): compute
    each `traders/<t>.md`'s SHA-256; compare against `personaSha256` in
    every existing `runs/<t>/*/*/*/run-*.json` (model/day/variant wildcards).
@@ -213,7 +232,8 @@ candle coverage, discover general docs) are unchanged. Then:
 6. **Discover features:** every `features/*.md`; feature id from `id:`
    frontmatter (fallback to filename). `VARIANTS = ['base', ...featureIds]`.
    No features declared → matrix degenerates to `base` only (equivalent to
-   today's behavior).
+   today's behavior). Definitions are validated here (Guard #0); any
+   violation aborts naming the offending file(s).
 7. **Feature immutability guard:** as above (Guard #2).
 8. **Generate missing artifacts, per feature, oldest day first:** for each
    artifact-backed feature and each candidate day missing
@@ -228,7 +248,12 @@ candle coverage, discover general docs) are unchanged. Then:
    (day, feature) combination that now has an artifact.
 10. **Compute the missing set:** for every (trader, day, variant),
     existing cells are `runs/<trader>/<alias>/<day>/<variant>/run-*.json`;
-    missing indices are `1..N` minus existing.
+    missing indices are `1..N` minus existing. For an artifact-backed
+    feature, every (trader, day, feature) combination whose (day, feature)
+    artifact is still missing after step 8 (generation failed or was
+    skipped) is EXCLUDED from the missing set entirely — a feature cell
+    must never be run or written without its artifact; step 11 reports
+    these as skipped, never as cells to run.
 11. **Report the plan:** traders × days × variants × model, cells present,
     cells to run, skipped (day, feature) artifact failures, skipped days
     (doc/candle gaps, applies to all variants). Example: "2 traders × 10
@@ -248,16 +273,27 @@ This becomes a per-variant `featureBlock`, computed the same way
 `generalBlock` is already conditionally built:
 
 ```js
-const featureBlock = cell.variant === 'base'
-  ? ''
-  : FEATURES[cell.variant].block.replaceAll('${ARTIFACT}', ARTIFACTS_BY_DAY[cell.day]?.[cell.variant] ?? '')
+const featureBlock = (() => {
+  if (cell.variant === 'base') return ''
+  const feature = FEATURES[cell.variant]
+  if (!feature.artifact) return feature.block
+  const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[cell.variant]
+  if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + cell.variant)
+  return feature.block.replaceAll('${ARTIFACT}', artifactPath)
+})()
 ```
 
-`FEATURES` (inlined constant, `{ '<id>': { block: '<raw markdown body>' } }`)
-and `ARTIFACTS_BY_DAY` (inlined constant, `{ '<day>': { '<feature-id>':
-'<absolute artifact path>' } }`) are resolved in Phase 1 and inlined into
-the Workflow script exactly as `DOCS_BY_DAY`/`PERSONAS` are today — never
-passed through `args`. Everything else about the envelope (persona
+`FEATURES` (inlined constant, `{ '<id>': { block: '<raw markdown body>',
+artifact: <boolean> } }`) and `ARTIFACTS_BY_DAY` (inlined constant,
+`{ '<day>': { '<feature-id>': '<absolute artifact path>' } }`) are resolved
+in Phase 1 and inlined into the Workflow script exactly as
+`DOCS_BY_DAY`/`PERSONAS` are today — never passed through `args`. The
+`throw` is a should-never-happen backstop, not a control path: Phase 1
+step 10 already excluded every artifact-less (day, feature) cell, so an
+artifact-backed cell reaching Phase 2 without a resolved path is a
+preflight bug. It must surface as that cell dropping to `null` (reported
+as an anomaly, never written) — never as a silently degraded prompt built
+around an empty artifact path. Everything else about the envelope (persona
 adoption, general docs, the three day docs, the single-trade commitment
 instructions, `SETUP_SCHEMA`) is unchanged.
 
@@ -309,14 +345,22 @@ today.
   `Variant` column.
 - **New `## Feature Impact` section**, placed after Ranking: for every
   non-base variant present, for every `(trader, model)` pair that has both
-  a `base` group and that feature's group over the *same* day set, a row
-  showing `Trader | Model | Base $/run | <Feature> $/run | Δ`. Below each
-  feature's table, one aggregate line: the mean of that feature's deltas
-  across all comparable `(trader, model)` pairs, plus the pair count (e.g.
-  "Overall Δ for seven-keys across 4 trader/model pairs: +12.40").
-  `(trader, model)` pairs missing one side of the comparison (e.g. a
-  variant added after that pair already had cells) are omitted from the
-  table, not shown as zero.
+  a `base` group and that feature's group, a row showing
+  `Trader | Model | Days | Base $/run | <Feature> $/run | Δ`. Because mean
+  $/run is a per-run *sum across days*, comparing raw group means with
+  unequal day coverage would present missing-day P&L as a feature effect —
+  so both sides are recomputed over the **intersection** of the two
+  groups' day sets before differencing. A day covered by only one side
+  (e.g. a day the feature's artifact generation failed on, or a day
+  benched under `base` before the feature existed) is excluded from both
+  sides, never allowed to bias Δ; `Days` is the shared-day count the
+  comparison actually ran on. Below each feature's table, one aggregate
+  line: the mean of that feature's deltas across all comparable
+  `(trader, model)` pairs, plus the pair count (e.g. "Overall Δ for
+  seven-keys across 4 trader/model pairs: +12.40"). `(trader, model)`
+  pairs missing one side of the comparison entirely (e.g. a variant added
+  after that pair already had cells), or whose day sets do not intersect,
+  are omitted from the table, not shown as zero.
 - **Lineage** (`renderLineage`, the `## <trader> @ <model>` origin-delta
   line) now matches origin/descendant groups on **model AND variant**, not
   model alone, so a descendant's `Δ vs origin` never compares across
@@ -336,7 +380,8 @@ today.
    above.
 4. Update `.claude/skills/seven-keys/SKILL.md`'s Phase 1 guard step.
 5. Update `src/scoreboard.js` and `src/scoreboard-command.js` per the
-   Scoreboard changes above.
+   Scoreboard changes above; feature discovery and Guard #0 validation
+   live in a new `src/features.js` shared by the CLI and the bench.
 6. `trader-panel` and `trader-spawn` are untouched — no code or skill
    changes to either.
 7. First post-migration `/trader-bench` run regenerates everything from
@@ -349,13 +394,21 @@ today.
 - **Scoreboard (pure logic):** extend the existing fixture-based unit
   tests to cover the new grouping key (variant), the Feature Impact
   computation (base/feature pairs present, one side missing, multiple
-  trader/model pairs averaged correctly), and lineage delta matching by
+  trader/model pairs averaged correctly, day-set intersection — a base
+  group with extra days is compared only over the shared days, and a pair
+  with disjoint day sets is omitted), and lineage delta matching by
   variant (a fixture with an origin and descendant each having both `base`
   and a feature variant must never cross-compare them).
+- **Feature definition validation (Guard #0):** fixtures for each
+  rejection — reserved id `base`, duplicate ids (frontmatter vs. filename
+  fallback), `artifactSuffix` without `generatorSkill`, artifact-backed
+  body missing `${ARTIFACT}`, `${ARTIFACT}` in a non-artifact body — each
+  aborting with the offending file named.
 - **Preflight missing-set logic:** fixture `runs/` trees exercising the
   four-dimensional missing-cell computation (trader × day × variant),
   including a feature added after some days were already fully benched
-  under `base`.
+  under `base`, and a (day, feature) combination with no artifact whose
+  cells are excluded from the missing set rather than run artifact-less.
 - **Guard logic:** fixture trees verifying persona/feature/artifact hash
   mismatches abort with the right message, and that a feature-file edit
   after benchmarking is caught the same way a trader-file edit is today.
