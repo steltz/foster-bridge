@@ -20,7 +20,7 @@
 - Create: `src/features.js`
 - Test: `test/features.test.js`
 
-Mirrors `src/lineage.js`'s `collectTraders` — reuses its exported `parseFrontmatter` rather than re-implementing frontmatter parsing. Unlike `collectTraders`, discovery also VALIDATES every definition (spec Guard #0) and throws naming the offending file: the id `base` is reserved, two files may not resolve to the same id, `artifactSuffix` requires `generatorSkill`, an artifact-backed body must contain the literal `${ARTIFACT}` placeholder, and a non-artifact body must not. Both the scoreboard CLI and the bench skill call `collectFeatures`, so invalid definitions are rejected identically everywhere.
+Mirrors `src/lineage.js`'s `collectTraders` — reuses its exported `parseFrontmatter` rather than re-implementing frontmatter parsing. Unlike `collectTraders`, discovery also VALIDATES every definition (spec Guard #0) and throws naming the offending file: an id must be a kebab-case slug (it becomes a `runs/` directory segment — quotes, slashes, or an uppercase `Base` that collides with `base` on a case-insensitive filesystem all corrupt the results tree), the id `base` is reserved, two files may not resolve to the same id, `artifactSuffix` requires `generatorSkill`, an artifact-backed body must contain the literal `${ARTIFACT}` placeholder, a non-artifact body must not, and the body may not be empty. Both the scoreboard CLI and the bench skill call `collectFeatures`, so invalid definitions are rejected identically everywhere.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -135,6 +135,34 @@ test('collectFeatures rejects the placeholder in a feature with no artifact', (t
   writeFileSync(join(dir, 'broken.md'), '---\nid: broken\n---\nreads ${ARTIFACT}\n');
   assert.throws(() => collectFeatures(dir), /broken\.md.*artifactSuffix/);
 });
+
+test('collectFeatures rejects a quoted id, whose quotes would become directory characters', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'quoted.md'), '---\nid: "seven-keys"\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /quoted\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an uppercase id that collides with base on a case-insensitive filesystem', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'sneaky.md'), '---\nid: Base\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /sneaky\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an id containing a path separator', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'nested.md'), '---\nid: sub/dir\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /nested\.md.*kebab-case/);
+});
+
+test('collectFeatures rejects an empty prompt block', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'hollow.md'), '---\nid: hollow\nname: Hollow\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /hollow\.md.*empty/);
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -158,6 +186,10 @@ import { join } from 'node:path';
 import { parseFrontmatter } from './lineage.js';
 
 const PLACEHOLDER = '${ARTIFACT}';
+// An id becomes a runs/ directory segment and a scoreboard label. Anything
+// outside this shape either corrupts the path (quotes, slashes) or defeats
+// the reserved-"base" guard on a case-insensitive filesystem ("Base").
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 function extractBlock(text) {
   const lines = text.split('\n');
@@ -176,6 +208,9 @@ function extractBlock(text) {
 function validateFeatures(features) {
   const byId = new Map();
   for (const f of features) {
+    if (!SLUG.test(f.id)) {
+      throw new Error(f.file + ': feature id "' + f.id + '" must be a kebab-case slug — it becomes a directory name and a scoreboard label');
+    }
     if (f.id === 'base') {
       throw new Error(f.file + ': the feature id "base" is reserved for the no-feature variant');
     }
@@ -192,6 +227,9 @@ function validateFeatures(features) {
     }
     if (!f.artifactSuffix && hasPlaceholder) {
       throw new Error(f.file + ': the ' + PLACEHOLDER + ' placeholder requires artifactSuffix');
+    }
+    if (!f.block) {
+      throw new Error(f.file + ': feature body is empty — a feature with no prompt text is just a costlier "base"');
     }
   }
 }
@@ -223,7 +261,7 @@ export function collectFeatures(featuresDir) {
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/features.test.js`
-Expected: PASS (11 tests)
+Expected: PASS (15 tests)
 
 - [ ] **Step 5: Commit**
 

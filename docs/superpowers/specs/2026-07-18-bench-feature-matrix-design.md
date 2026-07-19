@@ -95,9 +95,11 @@ A feature with no `artifactSuffix` has no placeholder — its body is
 injected verbatim (a future example: a static instruction like "end every
 rationale with a one-sentence risk note").
 
-Feature definitions are validated at discovery time (Guard #0, below):
+Feature definitions are validated at discovery time (Guard #0, below): an
+id must be a kebab-case slug, since it becomes a directory segment;
 `base` is reserved and may not be used as an id; two files may not resolve
 to the same id (whether via `id:` frontmatter or the filename fallback);
+the body may not be empty;
 `artifactSuffix` requires `generatorSkill`; an artifact-backed body must
 contain the literal `${ARTIFACT}` placeholder, and a non-artifact body must
 not contain it. Any violation aborts naming the offending file(s).
@@ -189,13 +191,28 @@ Everything else is unchanged from the original cell schema —
 ## Guards (all file-shape, path-existence, or hash-compare checks — no LLM)
 
 0. **Feature definition validation** (shape checks on `features/*.md` at
-   discovery time): reserved id `base`; duplicate ids across files
-   (frontmatter `id:` colliding with another file's `id:` or filename
-   fallback); `artifactSuffix` without `generatorSkill`; an
-   artifact-backed body missing `${ARTIFACT}`; or `${ARTIFACT}` in a
-   non-artifact body → abort naming the offending file(s). Enforced in
-   `src/features.js` (`collectFeatures` throws), so the scoreboard CLI and
-   the bench preflight reject invalid definitions identically.
+   discovery time): an id that is not a kebab-case slug
+   (`^[a-z0-9]+(-[a-z0-9]+)*$`); reserved id `base`; duplicate ids across
+   files (frontmatter `id:` colliding with another file's `id:` or
+   filename fallback); `artifactSuffix` without `generatorSkill`; an
+   artifact-backed body missing `${ARTIFACT}`; `${ARTIFACT}` in a
+   non-artifact body; or an empty body → abort naming the offending
+   file(s). Enforced in `src/features.js` (`collectFeatures` throws), so
+   the scoreboard CLI and the bench preflight reject invalid definitions
+   identically.
+
+   The slug rule is load-bearing, not cosmetic: `id` becomes a directory
+   segment in `runs/.../<variant>/` and a scoreboard label. Without it, a
+   quoted `id: "seven-keys"` creates a directory with literal quote
+   characters, `id: sub/dir` escapes the intended path, and — worst —
+   `id: Base` passes the exact-match reserved check while resolving to
+   the *same directory* as `base` on a case-insensitive filesystem
+   (macOS APFS default), silently merging a feature's cells into the
+   baseline. That is precisely the corruption the reserved-id rule
+   exists to prevent, so both rules are required and compose. An empty
+   body is rejected for the same reason: a feature contributing no
+   prompt text is behaviorally identical to `base` but consumes a full
+   variant's worth of bench runs.
 1. **Persona immutability** (unchanged in spirit, widened glob): compute
    each `traders/<t>.md`'s SHA-256; compare against `personaSha256` in
    every existing `runs/<t>/*/*/*/run-*.json` (model/day/variant wildcards).
