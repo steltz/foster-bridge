@@ -41,6 +41,9 @@ function validateFeatures(features) {
       throw new Error('duplicate feature id "' + f.id + '" (' + byId.get(f.id).file + ', ' + f.file + ')');
     }
     byId.set(f.id, f);
+    if (f.name.includes('|') || f.name.includes('\n')) {
+      throw new Error(f.file + ': feature name "' + f.name + '" must not contain a pipe or newline — it is interpolated into a markdown table');
+    }
     if (f.artifactSuffix && !f.generatorSkill) {
       throw new Error(f.file + ': artifactSuffix requires generatorSkill');
     }

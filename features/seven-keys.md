@@ -1,6 +1,6 @@
 ---
 id: seven-keys
-name: Seven Keys zone assessment
+name: Shared precomputed Seven-Keys scorecard
 artifactSuffix: _ES_KEYS.md
 generatorSkill: seven-keys
 ---

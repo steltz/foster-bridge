@@ -121,7 +121,12 @@ VARIANTS = ['base', ...featureIds]
 
 `base` is a reserved variant name meaning no feature block is injected —
 the raw persona + general docs + day docs envelope trader-panel already
-uses today, minus Seven-Keys.
+uses today. This is NOT "without Seven-Keys": three of the four personas
+instruct ranking zones by the numbered Seven Keys, and the general docs
+(injected in every variant) already contain the full methodology, so `base`
+personas still derive Seven-Keys scores themselves. What the `seven-keys`
+feature actually isolates is a shared, precomputed scorecard handed to every
+persona versus each persona deriving its own scores independently.
 
 The matrix is now **(trader, model, day, variant)**, N runs each. Cost
 scales as `N × days × traders × (1 + features.length)` per model — adding
@@ -218,10 +223,14 @@ Everything else is unchanged from the original cell schema —
    every existing `runs/<t>/*/*/*/run-*.json` (model/day/variant wildcards).
    Mismatch → abort naming the trader and both hashes; remedy is a new
    trader file.
-2. **Feature immutability** (new, same shape as #1): compute each
-   `features/<id>.md`'s SHA-256; compare against `featureSha256` in every
-   existing `runs/*/*/*/<id>/run-*.json`. Mismatch → abort naming the
-   feature and both hashes; remedy is a new feature file with a new `id`.
+2. **Feature immutability** (new, same shape as #1): compute the SHA-256 of
+   the feature's OWN discovered file (its `file` field from
+   `collectFeatures`, e.g. `seven-keys.md`) — NOT `features/<id>.md`, since
+   `id` may come from frontmatter and differ from the filename, and
+   `features/<id>.md` may not exist at all; compare against `featureSha256`
+   in every existing `runs/*/*/*/<id>/run-*.json`. Mismatch → abort naming
+   the feature and both hashes; remedy is a new feature file with a new
+   `id`.
 3. **Artifact immutability** (generalizes the original Seven-Keys-specific
    guard): for each candidate day and each artifact-backed feature, if
    `runs/*/*/<day>/<feature-id>/run-*.json` exists at all, that

@@ -72,12 +72,16 @@ Any other alias → abort listing the valid aliases.
    `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
    `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
    files at all → `VARIANTS = ['base']` only.
-7. **Feature immutability guard:** compute each `features/<id>.md`'s hash
-   with `shasum -a 256 features/<id>.md`. Read `featureSha256` from every
-   existing `runs/*/*/*/<id>/run-*.json`. If any existing cell's hash
-   differs from the current file's hash, abort naming the feature, both
-   hashes, and the remedy: feature files are immutable once benchmarked —
-   create a NEW feature file (new `id`) instead of editing this one.
+7. **Feature immutability guard:** compute each feature's hash from its OWN
+   `file` field returned by step 6 (e.g. `seven-keys.md`) — run
+   `shasum -a 256 features/<that file field>`, NOT `features/<id>.md`;
+   `id` can come from frontmatter and differ from the filename, so hashing
+   `features/<id>.md` can target a file that doesn't exist. Read
+   `featureSha256` from every existing `runs/*/*/*/<id>/run-*.json`. If any
+   existing cell's hash differs from the current file's hash, abort naming
+   the feature, both hashes, and the remedy: feature files are immutable
+   once benchmarked — create a NEW feature file (new `id`) instead of
+   editing this one.
 8. **Feature artifacts (generate missing, per feature, oldest day first):**
    for every feature with both `artifactSuffix` and `generatorSkill`, every
    candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE

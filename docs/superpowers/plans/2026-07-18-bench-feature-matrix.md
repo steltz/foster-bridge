@@ -22,7 +22,7 @@
 
 Mirrors `src/lineage.js`'s `collectTraders` — reuses its exported `parseFrontmatter` rather than re-implementing frontmatter parsing. Unlike `collectTraders`, discovery also VALIDATES every definition (spec Guard #0) and throws naming the offending file: an id must be a kebab-case slug (it becomes a `runs/` directory segment — quotes, slashes, or an uppercase `Base` that collides with `base` on a case-insensitive filesystem all corrupt the results tree), the id `base` is reserved, two files may not resolve to the same id, `artifactSuffix` requires `generatorSkill`, an artifact-backed body must contain the literal `${ARTIFACT}` placeholder, a non-artifact body must not, and the body may not be empty. Both the scoreboard CLI and the bench skill call `collectFeatures`, so invalid definitions are rejected identically everywhere.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `test/features.test.js`:
 
@@ -165,12 +165,12 @@ test('collectFeatures rejects an empty prompt block', (t) => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test test/features.test.js`
 Expected: FAIL — `Cannot find module '../src/features.js'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/features.js`:
 
@@ -258,12 +258,12 @@ export function collectFeatures(featuresDir) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/features.test.js`
 Expected: PASS (15 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features.js test/features.test.js
@@ -279,7 +279,7 @@ git commit -m "feat: add features/*.md discovery module"
 
 This is a content file (config, not code), same category as `traders/*.md` — no automated test, consumed only by the `trader-bench` Workflow script (Task 6) at prompt-construction time.
 
-- [ ] **Step 1: Write the file**
+- [x] **Step 1: Write the file**
 
 Create `features/seven-keys.md`:
 
@@ -295,7 +295,7 @@ of the day's zones. Adopt its per-zone key scores rather than re-deriving
 them; apply your persona's style to choose among the zones it grades.
 ```
 
-- [ ] **Step 2: Verify it parses correctly**
+- [x] **Step 2: Verify it parses correctly**
 
 Run:
 ```bash
@@ -303,7 +303,7 @@ node -e "import('./src/features.js').then(({collectFeatures}) => console.log(JSO
 ```
 Expected output: one entry with `id: "seven-keys"`, `file: "seven-keys.md"`, `name: "Seven Keys zone assessment"`, `artifactSuffix: "_ES_KEYS.md"`, `generatorSkill: "seven-keys"`, and `block` equal to the three-sentence paragraph above (no frontmatter, no leading/trailing blank lines). A nonzero exit here means the file violates Guard #0 validation — fix the file, not the validator.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add features/seven-keys.md
@@ -320,7 +320,7 @@ git commit -m "feat: add seven-keys as the first benchmark feature"
 
 This is the largest single change. It's done as one rewrite of both files rather than many micro-steps because the grouping-key change (adding `variant`) ripples through every render function simultaneously — splitting it into smaller increments would leave the file in an inconsistent, non-compiling state between steps.
 
-- [ ] **Step 1: Rewrite the test file completely**
+- [x] **Step 1: Rewrite the test file completely**
 
 Replace the entire contents of `test/scoreboard.test.js`:
 
@@ -766,12 +766,12 @@ test('root trader sections carry no Origin line', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test test/scoreboard.test.js`
 Expected: FAIL — `computeFeatureImpact` is not exported, plus assertion failures from the old (pre-variant) rendering.
 
-- [ ] **Step 3: Rewrite the implementation**
+- [x] **Step 3: Rewrite the implementation**
 
 Replace the entire contents of `src/scoreboard.js`:
 
@@ -1142,12 +1142,12 @@ export function renderScoreboard({ groups, maxCells }, traders = [], features = 
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/scoreboard.test.js`
 Expected: PASS (all tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/scoreboard.js test/scoreboard.test.js
@@ -1162,7 +1162,7 @@ git commit -m "feat: group scoreboard by variant and add Feature Impact section"
 - Modify: `src/scoreboard-command.js`
 - Modify: `test/scoreboard-command.test.js`
 
-- [ ] **Step 1: Rewrite the test file completely**
+- [x] **Step 1: Rewrite the test file completely**
 
 Replace the entire contents of `test/scoreboard-command.test.js`:
 
@@ -1385,12 +1385,12 @@ test('scoreboard falls back to the raw variant id when --features is missing', (
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test test/scoreboard-command.test.js`
 Expected: FAIL — cells written under a `<variant>/` subdirectory aren't found by the current 3-level `collectCells`, and `--features` is an unrecognized option.
 
-- [ ] **Step 3: Rewrite the implementation**
+- [x] **Step 3: Rewrite the implementation**
 
 Replace the entire contents of `src/scoreboard-command.js`:
 
@@ -1484,17 +1484,17 @@ export function runScoreboard(args) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test test/scoreboard-command.test.js`
 Expected: PASS (all tests)
 
-- [ ] **Step 5: Run the full suite to check nothing else regressed**
+- [x] **Step 5: Run the full suite to check nothing else regressed**
 
 Run: `npm test`
 Expected: PASS (all suites, including `test/lineage.test.js`, `test/cli.test.js`, etc., which this task doesn't touch)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/scoreboard-command.js test/scoreboard-command.test.js
@@ -1510,7 +1510,7 @@ git commit -m "feat: collect cells across the variant path segment; add --featur
 
 The guard moves from a repo-wide content grep (`keysSha256`) to a path-existence check scoped to that day's `seven-keys` variant folder — simpler, and correctly scoped now that variant is part of the path.
 
-- [ ] **Step 1: Edit the guard step**
+- [x] **Step 1: Edit the guard step**
 
 In `.claude/skills/seven-keys/SKILL.md`, find this bullet (under "6. **Guards:**"):
 
@@ -1534,11 +1534,11 @@ Replace it with:
      abort: the remedy is a new benchmark era, not an edit.
 ```
 
-- [ ] **Step 2: Verify by reading the file back**
+- [x] **Step 2: Verify by reading the file back**
 
 Read `.claude/skills/seven-keys/SKILL.md` and confirm the bullet now matches exactly, and no other `keysSha256` references remain in the file (`grep -n keysSha256 .claude/skills/seven-keys/SKILL.md` should print nothing).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .claude/skills/seven-keys/SKILL.md
@@ -1554,7 +1554,7 @@ git commit -m "docs: scope the seven-keys immutability guard to its variant fold
 
 This is a full rewrite of Phase 1's steps 6 onward, the Phase 2 Workflow script, Phase 3's cell schema, and Phase 4's commit message — everything else (steps 1–5, the CLI-is-sole-judge rule, write-once invariant) stays word-for-word.
 
-- [ ] **Step 1: Replace the frontmatter description and intro paragraph**
+- [x] **Step 1: Replace the frontmatter description and intro paragraph**
 
 Replace:
 
@@ -1592,7 +1592,7 @@ setups yourself. Existing cells are write-once and NEVER rerun,
 overwritten, or deleted.
 ```
 
-- [ ] **Step 2: Replace Phase 1 in full**
+- [x] **Step 2: Replace Phase 1 in full**
 
 Replace everything from `## Phase 1 — Preflight` through the end of the old step 9 (the line ending `...jump to Phase 4."`) with:
 
@@ -1644,12 +1644,16 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
    `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
    `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
    files at all → `VARIANTS = ['base']` only.
-7. **Feature immutability guard:** compute each `features/<id>.md`'s hash
-   with `shasum -a 256 features/<id>.md`. Read `featureSha256` from every
-   existing `runs/*/*/*/<id>/run-*.json`. If any existing cell's hash
-   differs from the current file's hash, abort naming the feature, both
-   hashes, and the remedy: feature files are immutable once benchmarked —
-   create a NEW feature file (new `id`) instead of editing this one.
+7. **Feature immutability guard:** compute each feature's hash from its OWN
+   `file` field returned by step 6 (e.g. `seven-keys.md`) — run
+   `shasum -a 256 features/<that file field>`, NOT `features/<id>.md`;
+   `id` can come from frontmatter and differ from the filename, so hashing
+   `features/<id>.md` can target a file that doesn't exist. Read
+   `featureSha256` from every existing `runs/*/*/*/<id>/run-*.json`. If any
+   existing cell's hash differs from the current file's hash, abort naming
+   the feature, both hashes, and the remedy: feature files are immutable
+   once benchmarked — create a NEW feature file (new `id`) instead of
+   editing this one.
 8. **Feature artifacts (generate missing, per feature, oldest day first):**
    for every feature with both `artifactSuffix` and `generatorSkill`, every
    candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
@@ -1692,7 +1696,7 @@ Replace everything from `## Phase 1 — Preflight` through the end of the old st
     exist, 116 to run." If nothing is missing, say so and jump to Phase 4.
 ```
 
-- [ ] **Step 3: Replace the Phase 2 Workflow script**
+- [x] **Step 3: Replace the Phase 2 Workflow script**
 
 Replace the entire fenced ```js block in Phase 2 (everything from `export const meta = {` through the closing ` ``` ` right before "If the Workflow invocation itself fails...") with:
 
@@ -1799,7 +1803,7 @@ log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
 return results.filter(Boolean)
 ```
 
-- [ ] **Step 3b: Qualify the Phase 2 dropped-cell sentence**
+- [x] **Step 3b: Qualify the Phase 2 dropped-cell sentence**
 
 Immediately after the Workflow script, find this sentence fragment:
 
@@ -1815,7 +1819,7 @@ any individual cell absent from the returned array (its agent died) gets a cell 
 
 Without this, the sentence reads as absolute at the moment an executing agent encounters it, and only Phase 3 (much later) carves out the exception.
 
-- [ ] **Step 4: Replace Phase 3 in full**
+- [x] **Step 4: Replace Phase 3 in full**
 
 Replace everything from `## Phase 3 — Judge and persist` through the end of that section (the line ending "...records the day's keysSha256.") with:
 
@@ -1888,7 +1892,7 @@ hash (the Phase 2 missing-artifact backstop fired), write NO cell file for
 it — record it as an anomaly in the final summary instead.
 ```
 
-- [ ] **Step 5: Replace Phase 4 in full**
+- [x] **Step 5: Replace Phase 4 in full**
 
 Replace everything from `## Phase 4 — Scoreboard and commit` to the end of the file with:
 
@@ -1911,11 +1915,11 @@ skipped-day list, any skipped (day, feature) artifact failures, and any
 write-anomalies.
 ```
 
-- [ ] **Step 6: Verify by reading the file back**
+- [x] **Step 6: Verify by reading the file back**
 
 Read `.claude/skills/trader-bench/SKILL.md` in full and check: numbering is sequential 1–11 in Phase 1, the Phase 2 script has no leftover reference to `docs.keys` anywhere, and Phase 3's cell JSON example doesn't contradict Phase 1's field descriptions. Run `grep -n "docs.keys\|keysSha256" .claude/skills/trader-bench/SKILL.md` — expect no output. Also confirm the Phase 2 script contains the `throw new Error('missing artifact` backstop and no `?? ''` fallback on the artifact path.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .claude/skills/trader-bench/SKILL.md
@@ -1932,12 +1936,12 @@ git commit -m "feat: benchmark base + every features/*.md variant in trader-benc
 
 This is the one destructive step in the whole plan. It was already explicitly confirmed with the user during brainstorming ("Wipe everything, start clean, no need to archive") — but since it deletes ~740 committed files in one shot, re-confirm with the user immediately before running it if you're executing this task in a fresh session that didn't see that confirmation directly.
 
-- [ ] **Step 1: Confirm no other in-progress work depends on the old `runs/` tree**
+- [x] **Step 1: Confirm no other in-progress work depends on the old `runs/` tree**
 
 Run: `git status`
 Expected: clean (Tasks 1–6 already committed). If anything unexpected is present, stop and investigate before deleting.
 
-- [ ] **Step 2: Delete the tracked runs/ tree**
+- [x] **Step 2: Delete the tracked runs/ tree**
 
 ```bash
 git rm -r --quiet runs
@@ -1945,7 +1949,7 @@ git rm -r --quiet runs
 
 Expected: no error; `git status` now shows ~740+ deletions staged.
 
-- [ ] **Step 3: Regenerate the empty-state scoreboard stub**
+- [x] **Step 3: Regenerate the empty-state scoreboard stub**
 
 ```bash
 node src/cli.js scoreboard
@@ -1953,14 +1957,14 @@ node src/cli.js scoreboard
 
 Expected output: `Wrote runs/SCOREBOARD.md (0 cells)`. This recreates the `runs/` directory containing only the stub file (per the "scoreboard with no cells writes a stub and exits 0" behavior verified in Task 4).
 
-- [ ] **Step 4: Stage and commit**
+- [x] **Step 4: Stage and commit**
 
 ```bash
 git add runs/
 git commit -m "chore: wipe benchmark matrix for the feature-toggle era"
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 ```bash
 git status
@@ -1975,19 +1979,19 @@ Expected: clean tree; `runs/SCOREBOARD.md` contains `No benchmark cells found. R
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the entire test suite**
+- [x] **Step 1: Run the entire test suite**
 
 Run: `npm test`
 Expected: PASS — every suite (`cli`, `engine`, `features`, `lineage`, `orders`, `parse-csv`, `report`, `scoreboard`, `scoreboard-command`, `session`, `transcript-command`, `transcript`, `vimeo-transcript-copy`).
 
-- [ ] **Step 2: Sanity-check the feature discovery end to end**
+- [x] **Step 2: Sanity-check the feature discovery end to end**
 
 ```bash
 node -e "import('./src/features.js').then(({collectFeatures}) => console.log(collectFeatures('features')))"
 ```
 Expected: one feature object for `seven-keys` with the fields from Task 2.
 
-- [ ] **Step 3: Report to the user**
+- [x] **Step 3: Report to the user**
 
 Summarize: all code/test/skill changes committed, `runs/` wiped and stub regenerated. Note that a real first `/trader-bench` run (which spends real subagent budget generating the Seven-Keys artifacts and every base + seven-keys cell from scratch) is a separate, explicit follow-up the user should trigger themselves when ready — it is not part of this plan's automated steps.
 

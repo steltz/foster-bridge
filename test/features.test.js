@@ -134,3 +134,10 @@ test('collectFeatures rejects an empty prompt block', (t) => {
   writeFileSync(join(dir, 'hollow.md'), '---\nid: hollow\nname: Hollow\n---\n\n');
   assert.throws(() => collectFeatures(dir), /hollow\.md.*empty/);
 });
+
+test('collectFeatures rejects a name containing a pipe, which would corrupt the scoreboard table', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nname: Bad | Name\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*pipe/);
+});
