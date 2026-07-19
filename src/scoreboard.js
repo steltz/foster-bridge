@@ -1,6 +1,7 @@
 // Pure scoreboard computation and rendering for benchmark cells.
-// The comparable unit is the (trader, model-alias) group; no metric ever
-// sums across groups — the user runs one trader live and picks it here.
+// The comparable unit is the (trader, model-alias, variant) group; no
+// metric ever sums across groups — the user runs one trader live and picks
+// it here.
 
 import { buildLineage } from './lineage.js';
 
@@ -21,9 +22,9 @@ function sampleStd(xs) {
 export function computeScoreboard(cells) {
   const byGroup = new Map();
   for (const c of cells) {
-    // JSON key is injective: no trader/alias pair can collide with
-    // another, since JSON handles all quoting and escaping.
-    const key = JSON.stringify([c.trader, c.model.alias]);
+    // JSON key is injective: no (trader, alias, variant) triple can collide
+    // with another, since JSON handles all quoting and escaping.
+    const key = JSON.stringify([c.trader, c.model.alias, c.variant]);
     if (!byGroup.has(key)) byGroup.set(key, []);
     byGroup.get(key).push(c);
   }
@@ -32,14 +33,15 @@ export function computeScoreboard(cells) {
     (a, b) =>
       b.meanDollars - a.meanDollars ||
       a.trader.localeCompare(b.trader, 'en') ||
-      a.model.localeCompare(b.model, 'en')
+      a.model.localeCompare(b.model, 'en') ||
+      a.variant.localeCompare(b.variant, 'en')
   );
   const maxCells = groups.reduce((m, g) => Math.max(m, g.cellCount), 0);
   return { groups, maxCells };
 }
 
 function summarizeGroup(cells) {
-  const { trader } = cells[0];
+  const { trader, variant } = cells[0];
   const model = cells[0].model.alias;
   const days = [...new Set(cells.map((c) => c.day))].sort((a, b) =>
     rekey(a).localeCompare(rekey(b))
@@ -85,8 +87,11 @@ function summarizeGroup(cells) {
   return {
     trader,
     model,
+    variant,
+    // Retained so computeFeatureImpact can recompute means restricted to a
+    // shared day set; never rendered directly.
+    cells,
     cellCount: cells.length,
-    keysCellCount: cells.filter((c) => c.keysSha256).length,
     days,
     runIndices,
     runTotals,
@@ -108,6 +113,60 @@ function summarizeGroup(cells) {
   };
 }
 
+// Mean $/run for a group recomputed over only the given days. Mean $/run is
+// a per-run SUM across days, so base and feature sides of a comparison must
+// cover the identical day set or missing-day P&L masquerades as a feature
+// effect.
+function meanRunDollarsOverDays(group, daySet) {
+  const cells = group.cells.filter((c) => daySet.has(c.day));
+  const runIndices = [...new Set(cells.map((c) => c.runIndex))].sort((a, b) => a - b);
+  return mean(
+    runIndices.map((runIndex) =>
+      cells
+        .filter((c) => c.runIndex === runIndex && FILLED.has(c.result.status))
+        .reduce((s, c) => s + (c.result.dollars ?? 0), 0)
+    )
+  );
+}
+
+// For each non-base variant, the per-(trader, model) delta vs that pair's
+// base group, both sides recomputed over the intersection of the two
+// groups' day sets, plus the mean delta across all comparable pairs. A
+// pair missing its base counterpart, or with no shared days, is omitted
+// from that feature's rows, never shown as zero.
+export function computeFeatureImpact(groups) {
+  const baseByPair = new Map();
+  for (const g of groups) {
+    if (g.variant === 'base') baseByPair.set(`${g.trader}::${g.model}`, g);
+  }
+  const variants = [...new Set(groups.map((g) => g.variant).filter((v) => v !== 'base'))].sort(
+    (a, b) => a.localeCompare(b, 'en')
+  );
+  return variants.map((variant) => {
+    const rows = groups
+      .filter((g) => g.variant === variant)
+      .map((g) => {
+        const base = baseByPair.get(`${g.trader}::${g.model}`);
+        if (!base) return null;
+        const shared = new Set(g.days.filter((d) => base.days.includes(d)));
+        if (!shared.size) return null;
+        const baseDollars = meanRunDollarsOverDays(base, shared);
+        const featureDollars = meanRunDollarsOverDays(g, shared);
+        return {
+          trader: g.trader,
+          model: g.model,
+          days: shared.size,
+          baseDollars,
+          featureDollars,
+          delta: featureDollars - baseDollars,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.trader.localeCompare(b.trader, 'en') || a.model.localeCompare(b.model, 'en'));
+    return { variant, rows, overallDelta: rows.length ? mean(rows.map((r) => r.delta)) : null };
+  });
+}
+
 const money = (v) => (v == null ? '-' : v.toFixed(2));
 const pct = (v) => (v == null ? '-' : `${Math.round(v * 100)}%`);
 const pts = (v) => (v == null ? '-' : v.toFixed(2));
@@ -125,11 +184,13 @@ export function renderLineage(traders, groups) {
     const prefix = depth === 0 ? '' : '   '.repeat(depth - 1) + '└─ ';
     const stats = (groupsByTrader.get(node.name) ?? [])
       .slice()
-      .sort((a, b) => a.model.localeCompare(b.model, 'en'))
+      .sort((a, b) => a.model.localeCompare(b.model, 'en') || a.variant.localeCompare(b.variant, 'en'))
       .map((g) => {
-        let s = `${g.model} ${g.runIndices.length}r: ${money(g.meanDollars)}`;
+        let s = `${g.model}/${g.variant} ${g.runIndices.length}r: ${money(g.meanDollars)}`;
         const originGroup = node.origin
-          ? (groupsByTrader.get(node.origin) ?? []).find((og) => og.model === g.model)
+          ? (groupsByTrader.get(node.origin) ?? []).find(
+              (og) => og.model === g.model && og.variant === g.variant
+            )
           : null;
         if (originGroup) s += ` (Δ vs origin: ${signed(g.meanDollars - originGroup.meanDollars)})`;
         return s;
@@ -151,27 +212,57 @@ export function renderLineage(traders, groups) {
   return lines;
 }
 
-export function renderScoreboard({ groups, maxCells }, traders = []) {
+export function renderScoreboard({ groups, maxCells }, traders = [], features = []) {
   const totalCells = groups.reduce((s, g) => s + g.cellCount, 0);
+  const nameById = new Map(features.map((f) => [f.id, f.name]));
   const lines = [
     '# Trader Scoreboard',
     '',
-    `${totalCells} cells · ${groups.length} trader@model groups. ` +
-      'Every group is scored alone; P&L is never combined across traders or models.',
+    `${totalCells} cells · ${groups.length} trader@model@variant groups. ` +
+      'Every group is scored alone; P&L is never combined across traders, models, or variants.',
     '',
     '## Ranking (mean net USD per run)',
     '',
-    "Keys: Nk/M = N of the group's M cells ran with the shared Seven-Keys artifact; the rest predate it.",
-    '',
-    '| # | Trader | Model | Days | Runs | Keys | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |',
+    '| # | Trader | Model | Variant | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...groups.map(
       (g, i) =>
-        `| ${i + 1} | ${g.trader} | ${g.model} | ${g.days.length} | ${g.runIndices.length} ` +
-        `| ${g.keysCellCount}k/${g.cellCount} | ${money(g.meanDollars)} | ${money(g.stdDollars)} ` +
+        `| ${i + 1} | ${g.trader} | ${g.model} | ${g.variant} | ${g.days.length} | ${g.runIndices.length} ` +
+        `| ${money(g.meanDollars)} | ${money(g.stdDollars)} ` +
         `| ${money(g.minRunDollars)} | ${money(g.maxRunDollars)} | ${pct(g.winRate)} | ${pct(g.fillRate)} |`
     ),
   ];
+
+  const impact = computeFeatureImpact(groups);
+  if (impact.length) {
+    lines.push(
+      '',
+      '## Feature Impact',
+      '',
+      'Each row compares base and feature over their shared day set only ' +
+        '(the Days column); days covered by one side never bias Δ.',
+      ''
+    );
+    for (const feat of impact) {
+      const label = nameById.get(feat.variant) ?? feat.variant;
+      lines.push(
+        `### ${label}`,
+        '',
+        `| Trader | Model | Days | Base $/run | ${label} $/run | Δ |`,
+        '|---|---|---|---|---|---|',
+        ...feat.rows.map(
+          (r) =>
+            `| ${r.trader} | ${r.model} | ${r.days} | ${money(r.baseDollars)} | ${money(r.featureDollars)} | ${signed(r.delta)} |`
+        ),
+        '',
+        feat.overallDelta == null
+          ? 'No comparable (trader, model) pairs yet.'
+          : `**Overall Δ for ${label} across ${feat.rows.length} trader/model pair${
+              feat.rows.length === 1 ? '' : 's'
+            }: ${signed(feat.overallDelta)}**`
+      );
+    }
+  }
 
   if (traders.length) {
     lines.push('', '## Lineage', '', '```', ...renderLineage(traders, groups), '```');
@@ -180,16 +271,18 @@ export function renderScoreboard({ groups, maxCells }, traders = []) {
   const traderByName = new Map(traders.map((t) => [t.name, t]));
 
   for (const g of groups) {
-    lines.push('', `## ${g.trader} @ ${g.model}`);
+    lines.push('', `## ${g.trader} @ ${g.model} [${g.variant}]`);
     const t = traderByName.get(g.trader);
     if (t?.origin) {
-      const og = groups.find((x) => x.trader === t.origin && x.model === g.model);
+      const og = groups.find(
+        (x) => x.trader === t.origin && x.model === g.model && x.variant === g.variant
+      );
       lines.push(
         '',
         `Origin: ${t.origin} — ${t.mutation ?? '(no mutation note)'} · ` +
           (og
-            ? `Δ mean $/run vs origin @ ${g.model}: ${signed(g.meanDollars - og.meanDollars)}`
-            : `origin has no runs at ${g.model}`)
+            ? `Δ mean $/run vs origin @ ${g.model}/${g.variant}: ${signed(g.meanDollars - og.meanDollars)}`
+            : `origin has no runs at ${g.model}/${g.variant}`)
       );
     }
     lines.push(
@@ -225,13 +318,18 @@ export function renderScoreboard({ groups, maxCells }, traders = []) {
     '',
     '## Coverage',
     '',
-    '| Trader | Model | Cells | Days | Runs | Status |',
-    '|---|---|---|---|---|---|',
+    '| Trader | Model | Variant | Cells | Days | Runs | Status |',
+    '|---|---|---|---|---|---|---|',
     ...[...groups]
-      .sort((a, b) => a.trader.localeCompare(b.trader, 'en') || a.model.localeCompare(b.model, 'en'))
+      .sort(
+        (a, b) =>
+          a.trader.localeCompare(b.trader, 'en') ||
+          a.model.localeCompare(b.model, 'en') ||
+          a.variant.localeCompare(b.variant, 'en')
+      )
       .map(
         (g) =>
-          `| ${g.trader} | ${g.model} | ${g.cellCount} | ${g.days.length} | ${g.runIndices.length} ` +
+          `| ${g.trader} | ${g.model} | ${g.variant} | ${g.cellCount} | ${g.days.length} | ${g.runIndices.length} ` +
           `| ${g.cellCount < maxCells ? `⚠ under-tested (max ${maxCells})` : 'ok'} |`
       ),
     ''
