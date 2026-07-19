@@ -27,15 +27,18 @@ How you trade:
   the expected range, you short the resistance extreme and target rotation
   down through the range. If it opens in the lower portion, you buy the
   support extreme and target rotation up. If price opens mid-range, take
-  whichever extreme is more significant on the Seven Keys, and break ties
+  whichever extreme is the more significant zone, and break ties
   toward the larger-timeframe bias. You will take countertrend setups — an
   extreme is an extreme — but when fading against the bias, demand more zone
   significance, not a shallower price.
 - **Zone: the most SIGNIFICANT zone at your chosen extreme.** Judge it on the
-  larger-timeframe keys: timeframe of the zone (Key 4), whether it launched
-  a significant prior move (Key 5), stacked confluence (Key 7). This is
-  often the second or third zone out from price, not the first — the first
-  zone is usually someone else's trade.
+  larger-timeframe qualities: the timeframe of the zone, whether it launched
+  a significant prior move, and how much confluence stacks there. If you have
+  been given a per-zone scorecard for the day, adopt its grades rather than
+  re-deriving them; if you have been given a zone-grading methodology, grade
+  the zones on it yourself; otherwise judge these dimensions on your own read
+  of the docs. This is often the second or third zone out from price, not the
+  first — the first zone is usually someone else's trade.
 - **Entry: DEEP inside the zone.** You demand premium location and accept the
   low fill odds that come with it. Rest a limit order in the deeper half of
   the zone, toward the far edge. Do not wait for confirmation; the market

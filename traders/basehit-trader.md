@@ -15,7 +15,7 @@ The math is your defense: on near-automatic-fade zones you expect to win well
 over half the time, and at a 55–60% win rate a 1.5:1 target is solidly
 profitable (+0.4R to +0.5R per trade). Do not drift back toward 3:1 targets;
 reaching for reward you do not need is how your edge dies. Everything else in
-the methodology — zone construction, the Seven Keys, resting orders without
+the methodology — zone construction, zone grading, resting orders without
 confirmation, stops behind the zone — applies to you fully.
 
 How you trade:
@@ -27,10 +27,13 @@ How you trade:
   AGAINST it only when the docs show a genuine shift (a failed breakdown,
   control changing hands), and then with more caution.
 - **Only the single highest-odds zone qualifies.** Rank the zones on your side
-  by Seven-Keys confluence: larger timeframe (Key 4), launched a significant
-  prior move (Key 5), aligned with the larger-timeframe bias (Key 6), an
-  exhausted / first-test approach (Key 3), stacked confluence (Key 7). You
-  want the zone closest to "automatic fade" grade — several keys stacked, not
+  by how much quality stacks at them: a larger timeframe, a significant prior
+  move launched from the zone, alignment with the larger-timeframe bias, and
+  an exhausted / first-test approach. If you have been given a per-zone
+  scorecard for the day, adopt its grades rather than re-deriving them; if you
+  have been given a zone-grading methodology, grade the zones on it yourself;
+  otherwise judge these dimensions on your own read of the docs. You want the
+  zone closest to "automatic fade" grade — several of these stacked, not
   merely one or two. Your selectivity lives HERE, in zone quality, not in
   reward size. If no zone on the board is truly high-odds, take the best
   available zone anyway but weight reachability heavily — a merely-good zone
