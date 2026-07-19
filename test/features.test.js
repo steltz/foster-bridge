@@ -1,0 +1,108 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { collectFeatures } from '../src/features.js';
+
+test('collectFeatures returns [] for a missing directory', () => {
+  assert.deepEqual(collectFeatures(join(tmpdir(), 'no-such-features-dir')), []);
+});
+
+test('collectFeatures reads *.md files, id falls back to filename', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'seven-keys.md'), '---\nid: seven-keys\nname: Seven Keys\n---\nblock text\n');
+  writeFileSync(join(dir, 'no-id.md'), '---\nname: No Id Feature\n---\nbody\n');
+  writeFileSync(join(dir, 'notes.txt'), 'ignored');
+  mkdirSync(join(dir, 'subdir'));
+
+  const features = collectFeatures(dir);
+  assert.equal(features.length, 2);
+  assert.equal(features[0].id, 'no-id'); // "no-id.md" sorts before "seven-keys.md"
+  assert.equal(features[1].id, 'seven-keys');
+});
+
+test('collectFeatures name defaults to id when absent', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  writeFileSync(join(dir, 'plain.md'), '---\nid: plain\n---\nbody\n');
+  const [f] = collectFeatures(dir);
+  assert.equal(f.name, 'plain');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('collectFeatures parses artifactSuffix/generatorSkill and defaults them to null', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  writeFileSync(
+    join(dir, 'seven-keys.md'),
+    '---\nid: seven-keys\nname: Seven Keys\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\nblock at ${ARTIFACT}\n'
+  );
+  writeFileSync(join(dir, 'static-note.md'), '---\nid: static-note\nname: Static Note\n---\nblock\n');
+  const features = collectFeatures(dir);
+  const keys = features.find((f) => f.id === 'seven-keys');
+  const note = features.find((f) => f.id === 'static-note');
+  assert.equal(keys.artifactSuffix, '_ES_KEYS.md');
+  assert.equal(keys.generatorSkill, 'seven-keys');
+  assert.equal(note.artifactSuffix, null);
+  assert.equal(note.generatorSkill, null);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('collectFeatures extracts the body block after frontmatter, trimmed', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  writeFileSync(
+    join(dir, 'seven-keys.md'),
+    '---\nid: seven-keys\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\n\nRead the shared assessment at ${ARTIFACT} — adopt its scores.\n'
+  );
+  const [f] = collectFeatures(dir);
+  assert.equal(f.block, 'Read the shared assessment at ${ARTIFACT} — adopt its scores.');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('collectFeatures treats a file with no frontmatter as an id-less body-only feature', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  writeFileSync(join(dir, 'raw.md'), 'Just a body, no fences.\n');
+  const [f] = collectFeatures(dir);
+  assert.equal(f.id, 'raw');
+  assert.equal(f.name, 'raw');
+  assert.equal(f.block, 'Just a body, no fences.');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// Guard #0 — definition validation. Each rejection names the offending file.
+
+test('collectFeatures rejects the reserved variant id "base"', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'base.md'), '---\nname: Sneaky Baseline\n---\nbody\n');
+  assert.throws(() => collectFeatures(dir), /base\.md.*reserved/);
+});
+
+test('collectFeatures rejects two files resolving to the same id', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'alpha.md'), '---\nid: dup\n---\nbody\n');
+  writeFileSync(join(dir, 'dup.md'), 'body\n'); // filename fallback also yields "dup"
+  assert.throws(() => collectFeatures(dir), /duplicate feature id "dup" \(alpha\.md, dup\.md\)/);
+});
+
+test('collectFeatures rejects artifactSuffix without generatorSkill', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nartifactSuffix: _ES_X.md\n---\nreads ${ARTIFACT}\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*generatorSkill/);
+});
+
+test('collectFeatures rejects an artifact-backed body missing the placeholder', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nartifactSuffix: _ES_X.md\ngeneratorSkill: x\n---\nno placeholder here\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*ARTIFACT/);
+});
+
+test('collectFeatures rejects the placeholder in a feature with no artifact', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'broken.md'), '---\nid: broken\n---\nreads ${ARTIFACT}\n');
+  assert.throws(() => collectFeatures(dir), /broken\.md.*artifactSuffix/);
+});
