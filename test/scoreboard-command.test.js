@@ -65,7 +65,12 @@ test('scoreboard with no cells writes a stub and exits 0', (t) => {
   const dir = join(parent, 'runs');
   assert.equal(existsSync(dir), false);
 
-  const proc = run(['scoreboard', '--dir', dir, '--traders', join(parent, 'no-traders')]);
+  const proc = run([
+    'scoreboard',
+    '--dir', dir,
+    '--traders', join(parent, 'no-traders'),
+    '--features', join(parent, 'no-features'),
+  ]);
   assert.equal(proc.status, 0, proc.stderr);
   const md = readFileSync(join(dir, 'SCOREBOARD.md'), 'utf8');
   assert.match(md, /No benchmark cells found/);
@@ -80,6 +85,41 @@ test('scoreboard names the offending file on a corrupt cell', (t) => {
   const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
   assert.equal(proc.status, 1);
   assert.match(proc.stderr, /run-2\.json/);
+});
+
+test('scoreboard warns about a stray old-layout cell instead of silently dropping it', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeCell(dir, 'context-trader', 'fable', '07012026', 'base', 1, { status: 'TP', points: 10, dollars: 50 });
+  // a cell left at the pre-variant 3-level position
+  writeFileSync(
+    join(dir, 'context-trader', 'fable', '07012026', 'run-9.json'),
+    JSON.stringify({ trader: 'context-trader', day: '07012026' })
+  );
+
+  const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stderr, /ignoring .*run-9\.json/);
+  assert.match(proc.stdout, /\(1 cells\)/);
+});
+
+test('scoreboard rejects a cell whose payload contradicts its path', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeCell(dir, 'context-trader', 'fable', '07012026', 'base', 1, { status: 'TP', points: 10, dollars: 50 });
+  // same cell file, but stored under base/ while claiming to be seven-keys
+  const misfiled = JSON.parse(
+    readFileSync(join(dir, 'context-trader', 'fable', '07012026', 'base', 'run-1.json'), 'utf8')
+  );
+  misfiled.variant = 'seven-keys';
+  writeFileSync(
+    join(dir, 'context-trader', 'fable', '07012026', 'base', 'run-2.json'),
+    JSON.stringify(misfiled)
+  );
+
+  const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
+  assert.equal(proc.status, 1);
+  assert.match(proc.stderr, /run-2\.json: variant is "seven-keys" but its path says "base"/);
 });
 
 test('scoreboard renders lineage from --traders frontmatter', (t) => {
