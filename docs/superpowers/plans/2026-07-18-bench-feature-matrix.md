@@ -1234,7 +1234,12 @@ test('scoreboard with no cells writes a stub and exits 0', (t) => {
   const dir = join(parent, 'runs');
   assert.equal(existsSync(dir), false);
 
-  const proc = run(['scoreboard', '--dir', dir, '--traders', join(parent, 'no-traders')]);
+  const proc = run([
+    'scoreboard',
+    '--dir', dir,
+    '--traders', join(parent, 'no-traders'),
+    '--features', join(parent, 'no-features'),
+  ]);
   assert.equal(proc.status, 0, proc.stderr);
   const md = readFileSync(join(dir, 'SCOREBOARD.md'), 'utf8');
   assert.match(md, /No benchmark cells found/);
@@ -1249,6 +1254,41 @@ test('scoreboard names the offending file on a corrupt cell', (t) => {
   const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
   assert.equal(proc.status, 1);
   assert.match(proc.stderr, /run-2\.json/);
+});
+
+test('scoreboard warns about a stray old-layout cell instead of silently dropping it', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeCell(dir, 'context-trader', 'fable', '07012026', 'base', 1, { status: 'TP', points: 10, dollars: 50 });
+  // a cell left at the pre-variant 3-level position
+  writeFileSync(
+    join(dir, 'context-trader', 'fable', '07012026', 'run-9.json'),
+    JSON.stringify({ trader: 'context-trader', day: '07012026' })
+  );
+
+  const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stderr, /ignoring .*run-9\.json/);
+  assert.match(proc.stdout, /\(1 cells\)/);
+});
+
+test('scoreboard rejects a cell whose payload contradicts its path', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'bench-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeCell(dir, 'context-trader', 'fable', '07012026', 'base', 1, { status: 'TP', points: 10, dollars: 50 });
+  // same cell file, but stored under base/ while claiming to be seven-keys
+  const misfiled = JSON.parse(
+    readFileSync(join(dir, 'context-trader', 'fable', '07012026', 'base', 'run-1.json'), 'utf8')
+  );
+  misfiled.variant = 'seven-keys';
+  writeFileSync(
+    join(dir, 'context-trader', 'fable', '07012026', 'base', 'run-2.json'),
+    JSON.stringify(misfiled)
+  );
+
+  const proc = run(['scoreboard', '--dir', dir, '--traders', join(dir, 'no-traders'), '--features', join(dir, 'no-features')]);
+  assert.equal(proc.status, 1);
+  assert.match(proc.stderr, /run-2\.json: variant is "seven-keys" but its path says "base"/);
 });
 
 test('scoreboard renders lineage from --traders frontmatter', (t) => {
@@ -1369,18 +1409,44 @@ export function collectCells(runsDir) {
   for (const trader of subdirs(runsDir)) {
     for (const model of subdirs(join(runsDir, trader))) {
       for (const day of subdirs(join(runsDir, trader, model))) {
-        for (const variant of subdirs(join(runsDir, trader, model, day))) {
-          const variantDir = join(runsDir, trader, model, day, variant);
+        const dayDir = join(runsDir, trader, model, day);
+        // Cells live one level deeper, under <variant>/. A run-*.json HERE is
+        // a leftover from the pre-variant layout, or a writer that regressed
+        // to it — silently skipping it would under-count the board with no
+        // signal a reader could notice.
+        for (const stray of readdirSync(dayDir).filter((f) => /^run-\d+\.json$/.test(f)).sort()) {
+          console.warn(
+            `warning: ignoring ${join(dayDir, stray)} — cells belong in a <variant>/ subdirectory`
+          );
+        }
+        for (const variant of subdirs(dayDir)) {
+          const variantDir = join(dayDir, variant);
           // Lexicographic sort is for deterministic collection order only;
           // cell order is not meaningful downstream (computeScoreboard sorts
           // runIndices numerically).
           for (const file of readdirSync(variantDir).filter((f) => /^run-\d+\.json$/.test(f)).sort()) {
             const path = join(variantDir, file);
+            let cell;
             try {
-              cells.push(JSON.parse(readFileSync(path, 'utf8')));
+              cell = JSON.parse(readFileSync(path, 'utf8'));
             } catch (err) {
-              throw new Error(`${path}: ${err.message}`);
+              throw new Error(`${path}: ${err.message}`, { cause: err });
             }
+            // The walk is purely navigational — every grouping field comes
+            // from the payload, so a misfiled or mislabelled cell would be
+            // silently misattributed to whatever it claims to be. Cross-check
+            // the two so that becomes a named error instead.
+            for (const [field, found, expected] of [
+              ['trader', cell.trader, trader],
+              ['model.alias', cell.model?.alias, model],
+              ['day', cell.day, day],
+              ['variant', cell.variant, variant],
+            ]) {
+              if (found !== expected) {
+                throw new Error(`${path}: ${field} is "${found}" but its path says "${expected}"`);
+              }
+            }
+            cells.push(cell);
           }
         }
       }

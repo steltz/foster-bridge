@@ -351,7 +351,14 @@ today.
 ## Scoreboard changes (`src/scoreboard.js`, `src/scoreboard-command.js`)
 
 - `collectCells` gains a fourth directory level: `runs/<trader>/<model>/
-  <day>/<variant>/run-*.json`.
+  <day>/<variant>/run-*.json`. Because the walk is purely navigational —
+  every grouping field is read from the cell payload, never from the path —
+  it also cross-checks the two, throwing a named-path error when a cell's
+  `trader`/`model.alias`/`day`/`variant` contradicts the directory it sits
+  in, so a misfiled cell is a loud failure rather than silent
+  misattribution. A stray `run-*.json` left at the old three-level day
+  position is warned about on stderr rather than silently skipped, since
+  skipping it would under-count the board with no signal.
 - Grouping key becomes `[trader, model.alias, variant]` (was
   `[trader, model.alias]`). Every existing per-group metric (mean/std/min/
   max $, win rate, fill rate, stability, errors) is computed identically,
