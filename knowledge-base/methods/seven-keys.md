@@ -2,7 +2,7 @@
 
 The Seven Keys are the framework for judging how likely a support/resistance zone is to hold and produce a tradable reaction. This document is extracted verbatim from the workshop knowledge distillation in `knowledge-base/general/support_and_resistance_zones.md`, which still covers market context, execution rules, and consistent-profitability notes around it.
 
-## 3. The Seven Keys
+## The Seven Keys
 
 **At a glance:**
 
