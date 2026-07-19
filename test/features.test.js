@@ -141,3 +141,81 @@ test('collectFeatures rejects a name containing a pipe, which would corrupt the 
   writeFileSync(join(dir, 'broken.md'), '---\nid: broken\nname: Bad | Name\n---\nbody\n');
   assert.throws(() => collectFeatures(dir), /broken\.md.*pipe/);
 });
+
+// staticDoc / ${DOC} — mirrors the artifactSuffix / ${ARTIFACT} rules above,
+// but existence is checked relative to the parent of the features directory
+// (the repo root), so these tests build a fake repo root containing both a
+// features/ subdirectory and the referenced doc.
+
+test('collectFeatures parses staticDoc and defaults it to null', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  mkdirSync(join(root, 'knowledge-base', 'methods'), { recursive: true });
+  writeFileSync(join(root, 'knowledge-base', 'methods', 'seven-keys.md'), 'methodology\n');
+  writeFileSync(
+    join(featuresDir, 'seven-keys.md'),
+    '---\nid: seven-keys\nname: Seven Keys\nstaticDoc: knowledge-base/methods/seven-keys.md\n---\nsee ${DOC}\n'
+  );
+  writeFileSync(join(featuresDir, 'static-note.md'), '---\nid: static-note\nname: Static Note\n---\nblock\n');
+
+  const features = collectFeatures(featuresDir);
+  const keys = features.find((f) => f.id === 'seven-keys');
+  const note = features.find((f) => f.id === 'static-note');
+  assert.equal(keys.staticDoc, 'knowledge-base/methods/seven-keys.md');
+  assert.equal(note.staticDoc, null);
+});
+
+test('collectFeatures rejects staticDoc without the ${DOC} placeholder in the body', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  mkdirSync(join(root, 'knowledge-base', 'methods'), { recursive: true });
+  writeFileSync(join(root, 'knowledge-base', 'methods', 'seven-keys.md'), 'methodology\n');
+  writeFileSync(
+    join(featuresDir, 'broken.md'),
+    '---\nid: broken\nstaticDoc: knowledge-base/methods/seven-keys.md\n---\nno placeholder here\n'
+  );
+  assert.throws(() => collectFeatures(featuresDir), /broken\.md.*DOC/);
+});
+
+test('collectFeatures rejects the ${DOC} placeholder in a feature with no staticDoc', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  writeFileSync(join(featuresDir, 'broken.md'), '---\nid: broken\n---\nreads ${DOC}\n');
+  assert.throws(() => collectFeatures(featuresDir), /broken\.md.*staticDoc/);
+});
+
+test('collectFeatures rejects a staticDoc pointing at a nonexistent file', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  writeFileSync(
+    join(featuresDir, 'broken.md'),
+    '---\nid: broken\nstaticDoc: knowledge-base/methods/missing.md\n---\nsee ${DOC}\n'
+  );
+  assert.throws(() => collectFeatures(featuresDir), /broken\.md.*staticDoc.*does not exist/);
+});
+
+test('collectFeatures accepts a feature declaring both staticDoc and artifactSuffix', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  mkdirSync(join(root, 'knowledge-base', 'methods'), { recursive: true });
+  writeFileSync(join(root, 'knowledge-base', 'methods', 'seven-keys.md'), 'methodology\n');
+  writeFileSync(
+    join(featuresDir, 'seven-keys-scorecard.md'),
+    '---\nid: seven-keys-scorecard\nname: Seven Keys Scorecard\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\nstaticDoc: knowledge-base/methods/seven-keys.md\n---\nsee ${DOC} then read ${ARTIFACT}\n'
+  );
+
+  const features = collectFeatures(featuresDir);
+  assert.equal(features.length, 1);
+  assert.equal(features[0].staticDoc, 'knowledge-base/methods/seven-keys.md');
+  assert.equal(features[0].artifactSuffix, '_ES_KEYS.md');
+});

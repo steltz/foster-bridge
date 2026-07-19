@@ -5,10 +5,11 @@
 // file must never reach the bench or the scoreboard.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { parseFrontmatter } from './lineage.js';
 
 const PLACEHOLDER = '${ARTIFACT}';
+const DOC_PLACEHOLDER = '${DOC}';
 // An id becomes a runs/ directory segment and a scoreboard label. Anything
 // outside this shape either corrupts the path (quotes, slashes) or defeats
 // the reserved-"base" guard on a case-insensitive filesystem ("Base").
@@ -28,7 +29,7 @@ function extractBlock(text) {
   return lines.slice(closeIndex + 1).join('\n').trim();
 }
 
-function validateFeatures(features) {
+function validateFeatures(features, repoRoot) {
   const byId = new Map();
   for (const f of features) {
     if (!SLUG.test(f.id)) {
@@ -54,6 +55,16 @@ function validateFeatures(features) {
     if (!f.artifactSuffix && hasPlaceholder) {
       throw new Error(f.file + ': the ' + PLACEHOLDER + ' placeholder requires artifactSuffix');
     }
+    const hasDocPlaceholder = f.block.includes(DOC_PLACEHOLDER);
+    if (f.staticDoc && !hasDocPlaceholder) {
+      throw new Error(f.file + ': staticDoc-backed feature body must contain the ' + DOC_PLACEHOLDER + ' placeholder');
+    }
+    if (!f.staticDoc && hasDocPlaceholder) {
+      throw new Error(f.file + ': the ' + DOC_PLACEHOLDER + ' placeholder requires staticDoc');
+    }
+    if (f.staticDoc && !existsSync(join(repoRoot, f.staticDoc))) {
+      throw new Error(f.file + ': staticDoc "' + f.staticDoc + '" does not exist (resolved from ' + repoRoot + ')');
+    }
     if (!f.block) {
       throw new Error(f.file + ': feature body is empty — a feature with no prompt text is just a costlier "base"');
     }
@@ -62,6 +73,10 @@ function validateFeatures(features) {
 
 export function collectFeatures(featuresDir) {
   if (!existsSync(featuresDir)) return [];
+  // staticDoc is repo-relative, so existence is checked against the parent
+  // of the features directory (i.e. the repo root) — not featuresDir itself
+  // and not process.cwd(), which would drift from the caller's cwd.
+  const repoRoot = dirname(resolve(featuresDir));
   const features = readdirSync(featuresDir, { withFileTypes: true })
     .filter((e) => e.isFile() && e.name.endsWith('.md'))
     .map((e) => e.name)
@@ -76,9 +91,10 @@ export function collectFeatures(featuresDir) {
         name: fm.name || id,
         artifactSuffix: fm.artifactSuffix || null,
         generatorSkill: fm.generatorSkill || null,
+        staticDoc: fm.staticDoc || null,
         block: extractBlock(text),
       };
     });
-  validateFeatures(features);
+  validateFeatures(features, repoRoot);
   return features;
 }
