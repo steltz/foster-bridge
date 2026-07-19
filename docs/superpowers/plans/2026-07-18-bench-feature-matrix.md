@@ -64,7 +64,7 @@ test('collectFeatures parses artifactSuffix/generatorSkill and defaults them to 
   const dir = mkdtempSync(join(tmpdir(), 'features-'));
   writeFileSync(
     join(dir, 'seven-keys.md'),
-    '---\nid: seven-keys\nname: Seven Keys\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\nblock\n'
+    '---\nid: seven-keys\nname: Seven Keys\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\nblock at ${ARTIFACT}\n'
   );
   writeFileSync(join(dir, 'static-note.md'), '---\nid: static-note\nname: Static Note\n---\nblock\n');
   const features = collectFeatures(dir);
@@ -81,7 +81,7 @@ test('collectFeatures extracts the body block after frontmatter, trimmed', () =>
   const dir = mkdtempSync(join(tmpdir(), 'features-'));
   writeFileSync(
     join(dir, 'seven-keys.md'),
-    '---\nid: seven-keys\n---\n\nRead the shared assessment at ${ARTIFACT} — adopt its scores.\n'
+    '---\nid: seven-keys\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\n\nRead the shared assessment at ${ARTIFACT} — adopt its scores.\n'
   );
   const [f] = collectFeatures(dir);
   assert.equal(f.block, 'Read the shared assessment at ${ARTIFACT} — adopt its scores.');
