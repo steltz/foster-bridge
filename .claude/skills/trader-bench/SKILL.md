@@ -1,15 +1,17 @@
 ---
 name: trader-bench
-description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day for one model, auto-generating and committing any missing seven-keys assessments, writing one immutable JSON cell per (trader, model, day, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
+description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day, for one model, across a base variant plus every features/*.md variant (auto-generating and committing any missing feature artifacts, e.g. seven-keys), writing one immutable JSON cell per (trader, model, day, variant, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader or feature up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
 ---
 
 # Trader Bench — idempotent benchmark matrix top-up
 
 One primitive: bring every trader to N runs on every complete
-knowledge-base day, for one model, running ONLY missing cells. Personas
-think; this skill plumbs. The backtest CLI is the SOLE judge of every
-setup — perform no validation of setups yourself. Existing cells are
-write-once and NEVER rerun, overwritten, or deleted.
+knowledge-base day, for one model, across every declared variant (`base`
+plus every `features/*.md` feature, one at a time — never combined)
+— running ONLY missing cells. Personas think; this skill plumbs. The
+backtest CLI is the SOLE judge of every setup — perform no validation of
+setups yourself. Existing cells are write-once and NEVER rerun,
+overwritten, or deleted.
 
 **Arguments:** optional integer `N` (target runs per cell, default 5) and
 optional model alias (default `fable`). Valid aliases and recorded ids:
@@ -23,18 +25,18 @@ optional model alias (default `fable`). Valid aliases and recorded ids:
 
 Any other alias → abort listing the valid aliases.
 
-## Phase 1 — Preflight (no bench agents — step 6 may run seven-keys sub-flows; abort early with ONE specific message)
+## Phase 1 — Preflight (no bench agents — step 8 may run feature-generator sub-flows; abort early with ONE specific message)
 
 1. **Discover personas:** every `traders/*.md`; persona name = the `name:`
    frontmatter value (fall back to filename without `.md`). None → abort
    pointing at `traders/`.
 2. **Immutability guard:** compute each persona file's hash with
    `shasum -a 256 traders/<file>.md`. Read `personaSha256` from every
-   existing `runs/<trader>/*/*/run-*.json` for that trader (any model, any
-   day). If any existing cell's hash differs from the current file's hash,
-   abort naming the trader, both hashes, and the remedy: trader files are
-   immutable once benchmarked — create a NEW trader file instead of
-   editing this one.
+   existing `runs/<trader>/*/*/*/run-*.json` for that trader (any model,
+   any day, any variant). If any existing cell's hash differs from the
+   current file's hash, abort naming the trader, both hashes, and the
+   remedy: trader files are immutable once benchmarked — create a NEW
+   trader file instead of editing this one.
 3. **Discover complete days:** every `knowledge-base/es/<MMDDYYYY>/` folder
    containing all three docs by suffix: `*_ES_TP.pdf`, `*_ES_TP.md`,
    `*_ES_RECAP.md`. Folders missing any doc are SKIPPED (list them in the
@@ -59,28 +61,55 @@ Any other alias → abort listing the valid aliases.
    `0` → skip the day, list it. No candidate days at all → abort.
 5. **Discover general docs:** every file under `knowledge-base/general/`
    (recursive). Empty or missing directory → proceed with none.
-6. **Keys files (generate missing, oldest first):** every candidate day
-   needs a `*_ES_KEYS.md` in its folder. For days missing one, run the
-   seven-keys skill flow (its Phases 1–3, committing each artifact;
-   invoke it with that day's `MMDDYYYY` argument) sequentially in
-   chronological order, oldest first, so each day's lookback sees its
-   predecessors. A day whose generation aborts is SKIPPED with the
-   reason listed. Then compute each remaining candidate day's keys hash:
-   `shasum -a 256 <day folder>/<prefix>_ES_KEYS.md`.
-7. **Keys immutability guard:** read `keysSha256` from every existing
-   `runs/*/*/<day>/run-*.json` (for each remaining candidate day from
-   step 6). Any existing cell whose `keysSha256` differs from that day's
-   current hash → abort naming the day, both hashes, and the remedy:
-   keys files are immutable once benchmarked — start a new benchmark era
-   instead of editing them. Cells without the field (pre-keys era) are
-   valid and exempt.
-8. **Compute the missing set:** for every (trader, day), existing runs are
-   `runs/<trader>/<alias>/<day>/run-*.json`; missing indices are `1..N`
-   minus the indices present. Existing cells beyond N are left alone.
-9. **Report the plan, then proceed:** traders × days × model alias, cells
-   already present, cells to run, skipped days with reasons. Example:
-   "2 traders × 10 days × fable, target N=5: 62 cells exist, 38 to run."
-   If nothing is missing, say so and jump to Phase 4.
+6. **Discover and validate features:** run
+   `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`.
+   A nonzero exit means a definition violates validation (reserved id
+   `base`, duplicate ids, `artifactSuffix` without `generatorSkill`, or a
+   `${ARTIFACT}` placeholder mismatch) — abort relaying its error message
+   verbatim; the remedy is fixing the named feature file, and no cells
+   have been touched. Otherwise the printed array gives each feature's
+   `id`, `name`, `artifactSuffix`, `generatorSkill`, and prompt `block`.
+   `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
+   files at all → `VARIANTS = ['base']` only.
+7. **Feature immutability guard:** compute each `features/<id>.md`'s hash
+   with `shasum -a 256 features/<id>.md`. Read `featureSha256` from every
+   existing `runs/*/*/*/<id>/run-*.json`. If any existing cell's hash
+   differs from the current file's hash, abort naming the feature, both
+   hashes, and the remedy: feature files are immutable once benchmarked —
+   create a NEW feature file (new `id`) instead of editing this one.
+8. **Feature artifacts (generate missing, per feature, oldest day first):**
+   for every feature with both `artifactSuffix` and `generatorSkill`, every
+   candidate day needs a `<prefix><artifactSuffix>` in its folder. For days
+   missing one, run that feature's `generatorSkill` flow (its own phases,
+   committing each artifact; invoke it with that day's `MMDDYYYY` argument)
+   sequentially in chronological order, oldest first — independently per
+   feature, so each feature's own lookback (if it has one) sees only its
+   own predecessors. A day whose generation aborts for a given feature is
+   SKIPPED for that (day, feature) combination only — listed with the
+   reason — leaving `base` and every other feature's cells for that day
+   unaffected. Then compute each remaining (day, feature) artifact's hash:
+   `shasum -a 256 <day folder>/<prefix><artifactSuffix>`.
+9. **Artifact immutability guard:** for each (day, feature) combination
+   from step 8, check `runs/*/*/<day>/<feature-id>/run-*.json`. Any match
+   means that combination already has benchmark cells — compare the
+   current artifact hash against those cells' `artifactSha256`; a mismatch
+   aborts naming the day, feature, and both hashes, remedy: artifacts are
+   immutable once benchmarked — start a new benchmark era instead of
+   editing them. No matching cells → nothing to guard, proceed.
+10. **Compute the missing set:** for every (trader, day, variant) where
+    variant ranges over `VARIANTS`, existing runs are
+    `runs/<trader>/<alias>/<day>/<variant>/run-*.json`; missing indices
+    are `1..N` minus the indices present. Existing cells beyond N are left
+    alone. For an artifact-backed feature, every (trader, day, feature-id)
+    combination whose (day, feature) artifact is still missing after step 8
+    (generation failed or was skipped) is EXCLUDED from the missing set
+    entirely — a feature cell must never be run or written without its
+    artifact; step 11 reports these as skipped, never as cells to run.
+11. **Report the plan, then proceed:** traders × days × variants × model
+    alias, cells already present, cells to run, skipped days with reasons,
+    skipped (day, feature) artifact failures. Example: "2 traders × 10
+    days × 2 variants (base, seven-keys) × fable, target N=5: 84 cells
+    exist, 116 to run." If nothing is missing, say so and jump to Phase 4.
 
 ## Phase 2 — Fan-out (ONE Workflow invocation)
 
@@ -106,14 +135,24 @@ const DOCS_BY_DAY = {
     pdf: '<absolute path to *_ES_TP.pdf>',
     plan: '<absolute path to *_ES_TP.md>',
     recap: '<absolute path to *_ES_RECAP.md>',
-    keys: '<absolute path to *_ES_KEYS.md>',
   },
 }
 const PERSONAS = {
   '<persona name>': '<absolute path to traders/<persona>.md>',
 }
+const FEATURES = {
+  '<feature id>': {
+    block: '<the raw markdown body from features/<feature id>.md, ${ARTIFACT} placeholder left intact>',
+    artifact: '<true if the feature has artifactSuffix, else false>',
+  },
+}
+const ARTIFACTS_BY_DAY = {
+  '<MMDDYYYY>': {
+    '<feature id>': '<absolute path to that day\'s <prefix><artifactSuffix> — only present for features with an artifact>',
+  },
+}
 const CELLS = [
-  { trader: '<persona name>', day: '<MMDDYYYY>', runIndex: 1 },
+  { trader: '<persona name>', day: '<MMDDYYYY>', variant: '<"base" or a feature id>', runIndex: 1 },
 ]
 const SETUP_SCHEMA = {
   type: 'object',
@@ -134,12 +173,22 @@ const generalBlock = GENERAL.length
   : ''
 const results = await parallel(CELLS.map((cell) => () => {
   const docs = DOCS_BY_DAY[cell.day]
+  // Preflight step 10 excluded every artifact-less (day, feature) cell, so a
+  // missing path here is a preflight bug: fail the cell loudly (it drops to
+  // null and is reported as an anomaly) rather than silently prompting with
+  // an empty artifact path.
+  const featureBlock = (() => {
+    if (cell.variant === 'base') return ''
+    const feature = FEATURES[cell.variant]
+    if (!feature.artifact) return feature.block + '\n\n'
+    const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[cell.variant]
+    if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + cell.variant)
+    return feature.block.replaceAll('${ARTIFACT}', artifactPath) + '\n\n'
+  })()
   return agent(
     `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
     generalBlock +
-    `Read the shared Seven-Keys assessment at ${docs.keys} — the shared scorecard of the day's zones. Adopt its per-zone key scores rather than re-deriving them; apply your persona's style to choose among the zones it grades.
-
-` +
+    featureBlock +
     `Then Read the three documents for the ${docs.date} ES (E-mini S&P 500) session:\n` +
     `1. Trade plan worksheet (PDF, support/resistance zones): ${docs.pdf}\n` +
     `2. Trade plan video transcript: ${docs.plan}\n` +
@@ -149,7 +198,7 @@ const results = await parallel(CELLS.map((cell) => () => {
     `Prices are ES index points in quarter-point increments (e.g. 7530.25). ` +
     `A long requires stopLoss < entry < takeProfit; a short requires takeProfit < entry < stopLoss. ` +
     `Include a rationale of at most 50 words citing which plan level(s) you are using.`,
-    { label: `${cell.trader}/${cell.day}#${cell.runIndex}`, schema: SETUP_SCHEMA, model: MODEL }
+    { label: `${cell.trader}/${cell.day}/${cell.variant}#${cell.runIndex}`, schema: SETUP_SCHEMA, model: MODEL }
   ).then((setup) => ({ ...cell, setup }))
 }))
 log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
@@ -160,7 +209,9 @@ If the Workflow invocation itself fails or returns no results array at all, abor
 
 ## Phase 3 — Judge and persist (no validation of your own)
 
-For each returned setup, in the session scratchpad write `bench-<trader>-<day>-<runIndex>.json` (NO_SETUP cells skip the CLI and go straight to the cell-file write):
+For each returned setup, in the session scratchpad write
+`bench-<trader>-<day>-<variant>-<runIndex>.json` (NO_SETUP cells skip the
+CLI and go straight to the cell-file write):
 
 ```json
 [{ "id": "<trader>", "side": "<side>", "entry": <entry>, "stopLoss": <stopLoss>, "takeProfit": <takeProfit> }]
@@ -169,7 +220,7 @@ For each returned setup, in the session scratchpad write `bench-<trader>-<day>-<
 Then run (capturing stdout AND stderr separately):
 
 ```bash
-node src/cli.js run --data "$CSV" --orders <scratchpad>/bench-<trader>-<day>-<runIndex>.json --date "<YYYY-MM-DD>" --json
+node src/cli.js run --data "$CSV" --orders <scratchpad>/bench-<trader>-<day>-<variant>-<runIndex>.json --date "<YYYY-MM-DD>" --json
 ```
 
 Interpret strictly by the CLI's verdict:
@@ -185,10 +236,10 @@ Interpret strictly by the CLI's verdict:
 
 Never fix, clamp, or re-request a persona's prices.
 
-Write each cell to `runs/<trader>/<alias>/<day>/run-<runIndex>.json`
-(create directories as needed). If the file already exists, do NOT
-overwrite it — record the anomaly for the final summary and move on. Cell
-format:
+Write each cell to
+`runs/<trader>/<alias>/<day>/<variant>/run-<runIndex>.json` (create
+directories as needed). If the file already exists, do NOT overwrite it —
+record the anomaly for the final summary and move on. Cell format:
 
 ```json
 {
@@ -196,10 +247,12 @@ format:
   "model": { "alias": "<alias>", "id": "<model.id from the table>" },
   "day": "<MMDDYYYY>",
   "date": "<YYYY-MM-DD>",
+  "variant": "<\"base\" or a feature id>",
   "runIndex": <k>,
   "timestamp": "<current ISO-8601 UTC time>",
   "personaSha256": "<hash from Phase 1>",
-  "keysSha256": "<the day's keys file hash from Phase 1>",
+  "featureSha256": "<hash of features/<variant>.md from Phase 1 — OMIT this key entirely when variant is \"base\">",
+  "artifactSha256": "<the day's artifact hash for this variant from Phase 1 — OMIT this key entirely when the variant has no artifactSuffix>",
   "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
   "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
   "note": "<only for INVALID / CLI_ERROR>"
@@ -210,15 +263,23 @@ Omit `setup` for NO_SETUP cells; `result` is then `{ "status": "NO_SETUP" }`.
 For NOT_FILLED, keep the CLI's null points/dollars/fillTime/exitTime as
 null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 `result` = `{ "status": "INVALID" }` / `{ "status": "CLI_ERROR" }` plus the
-top-level `note`. Every cell — including NO_SETUP — records the day's
-keysSha256.
+top-level `note`. Every cell — including NO_SETUP — records `variant` and
+`personaSha256`; `featureSha256`/`artifactSha256` follow the omission rule
+above regardless of cell status.
+
+An artifact-backed variant cell without an `artifactSha256` is invalid by
+construction — Phase 1 step 10 excluded every (day, feature) combination
+lacking its artifact, so no such cell should ever reach this phase. If a
+dropped (null) cell for an artifact-backed variant has no Phase 1 artifact
+hash (the Phase 2 missing-artifact backstop fired), write NO cell file for
+it — record it as an anomaly in the final summary instead.
 
 ## Phase 4 — Scoreboard and commit
 
 ```bash
 node src/cli.js scoreboard
 git add runs/
-git commit -m "bench(<alias>): add <count> cells across <T> traders / <D> days"
+git commit -m "bench(<alias>): add <count> cells across <T> traders / <D> days / <V> variants"
 ```
 
 If Phase 1 found nothing missing, still regenerate the scoreboard; commit
@@ -226,4 +287,6 @@ only if `git status` shows changes (message
 `bench(<alias>): regenerate scoreboard`).
 
 Finally, show the user the scoreboard's Ranking table inline, plus the
-skipped-day list and any write-anomalies.
+Feature Impact section (if any non-base variant has cells), the
+skipped-day list, any skipped (day, feature) artifact failures, and any
+write-anomalies.
