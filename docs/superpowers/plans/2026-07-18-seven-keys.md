@@ -586,7 +586,7 @@ Invoke the flow for the NEXT complete day chronologically. Inspect its artifact:
 - `lookbackSources` lists the step-2 keys file
 - the Lookback section cites the keys file with its outcome recap and comments on whether the prior grades held
 
-- [ ] **Step 4: Checkpoint — panel and bench runs cost real agent fan-outs**
+- [x] **Step 4: Checkpoint — panel and bench runs cost real agent fan-outs**
 
 Stop and confirm with the user before running these (each spawns one agent per persona/cell):
 - `/trader-panel force` on a day with a keys file → every persona rationale should be consistent with the shared scorecard.
