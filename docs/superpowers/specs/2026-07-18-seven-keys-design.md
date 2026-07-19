@@ -7,7 +7,10 @@
 
 The trading personas (placement-trader, basehit-trader, rotation-trader) each
 rank the day's plan zones against the Seven Keys from
-`knowledge-base/general/support_and_resistance_zones.md` (section 3). Today
+`knowledge-base/methods/seven-keys.md` (moved there from
+`knowledge-base/general/support_and_resistance_zones.md` section 3 by a later
+decomposition; at the time this spec was written it lived in the latter).
+Today
 every persona subagent in trader-panel and trader-bench performs its own
 independent Seven-Keys evaluation of the same zones, so two traders can score
 the same zone differently. The keys themselves are static methodology
