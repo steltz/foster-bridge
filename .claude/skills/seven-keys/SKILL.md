@@ -46,11 +46,11 @@ the verifier passes it; never write an unverified artifact.
    the lookback agent is skipped entirely.
 6. **Guards:**
    - **Benchmark immutability (always, `force` or not):** any existing
-     benchmark cell recording a `keysSha256` for this day means the day's
-     keys file is immutable — regeneration is forbidden even if the file
-     was deleted. Check with
-     `find runs -path "*/<day>/run-*.json" -exec grep -l keysSha256 {} + 2>/dev/null`;
-     any hit → abort: the remedy is a new benchmark era, not an edit.
+     benchmark cell under this day's `seven-keys` variant folder means the
+     day's keys file is immutable — regeneration is forbidden even if the
+     file was deleted. Check with
+     `ls runs/*/*/<day>/seven-keys/run-*.json 2>/dev/null`; any hit →
+     abort: the remedy is a new benchmark era, not an edit.
    - **Overwrite:** if the target day already has a `*_ES_KEYS.md` and
      `force` was not given → abort naming the file and telling the user to
      pass `force`.
