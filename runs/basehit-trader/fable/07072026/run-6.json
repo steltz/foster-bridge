@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.245Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7546.75,
+    "stopLoss": 7522.75,
+    "takeProfit": 7584.5,
+    "rationale": "Long the strong-graded initial support 7538.25-7546.75 (first RTH test, 7544 HVN, bullish bias alignment) at its leading edge; daisy-chain stop behind 7523.75-7530.25; target pre-market resistance edge 7584.50 for 1.57:1. Automatic-fade 7479.50 zone is unreachable within range stats."
+  },
+  "result": {
+    "status": "EOD",
+    "points": 6.5,
+    "dollars": 32.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783454100
+  }
+}

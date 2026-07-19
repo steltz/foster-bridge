@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.283Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7488.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Long the Bull/Bear support 7477.50-7493.50 (HVN 7482.50, bias-aligned, opens near/inside it — best fill odds on the board). Entry deepened to 7488.25 so the nearest opposing reference, the 7506 aggressive-resistance edge, clears my 1.5:1 floor; stop one point beyond the zone's far edge."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

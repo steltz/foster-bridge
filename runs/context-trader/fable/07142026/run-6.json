@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.751Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "long",
+    "entry": 7555,
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "rationale": "Buying first test of 7544-7556 pre-market support — the CPI launch point (7544 HVN, strongest Key 5, strong grade) — with the bullish bigger picture. Stop 7543, one point behind the zone; target 7596, front of pre-market resistance per the plan. About 3.4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.859Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "side": "long",
+    "entry": 7520.25,
+    "stopLoss": 7509.5,
+    "takeProfit": 7558.25,
+    "rationale": "Long the leading edge of 7510.50-7520.50 initial support — strong-graded, Keys 3-6 aligned, first RTH test, reachable off the overnight retracement. Stop one point behind the zone; target front of 7558.50-7568.50 initial resistance. ~3.5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

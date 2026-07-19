@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.320Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7533,
+    "stopLoss": 7523,
+    "takeProfit": 7548,
+    "rationale": "Long the aggressive support 7524-7536.50 — strongest reachable zone (Keys 3,4,5,6 stack; failed breakdown puts buyers in control). Entry deepened to 7533 so the nearest opposing reference, pre-market resistance edge 7548, pays 1.5:1 against a stop one point behind the zone at 7523."
+  },
+  "result": {
+    "status": "TP",
+    "points": 15,
+    "dollars": 75,
+    "fillTime": 1783606500,
+    "exitTime": 1783606500
+  }
+}

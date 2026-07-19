@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.513Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "side": "long",
+    "entry": 7500,
+    "stopLoss": 7497.75,
+    "takeProfit": 7657.5,
+    "rationale": "Mid-range open, bullish tie-break: resting deep long in the 7499-7503.50 Range Extreme (07/09 Initial Support, prior launch, near automatic-fade per Keys), stop beyond the zone, targeting rotation to 7657.50-7667.50 resistance. Unfilled is acceptable; premium location only."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

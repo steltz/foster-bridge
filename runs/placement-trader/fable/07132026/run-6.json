@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.078Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "side": "short",
+    "entry": 7606.75,
+    "stopLoss": 7624.5,
+    "takeProfit": 7553,
+    "rationale": "Overnight NQ rejection keeps weakness in play; short back of pre-market resistance 7598-7607, daisy-chain stop 1pt beyond strong initial resistance 7611.50-7623.50, targeting top of initial support 7543-7553 (Friday's RTH low) for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

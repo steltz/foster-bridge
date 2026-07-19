@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:28.933Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "side": "long",
+    "entry": 7491.25,
+    "stopLoss": 7478.5,
+    "takeProfit": 7523.75,
+    "rationale": "Bull/bear 7479.50-7493.50 is the keys' lone automatic-fade (HVN 7482.50, Thursday launch, full bias alignment) and the plan's stated downside terminus absent initiative selling. Shallow entry near the leading edge to secure the fill, stop behind the 7479.50 zone floor, target the 7523.75-7530.25 pre-market support edge for 2.55R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.329Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7482.5,
+    "stopLoss": 7460.5,
+    "takeProfit": 7593.75,
+    "rationale": "Deep resting long at the 7482.50 HVN inside the automatic-fade bull/bear zone 7479.50-7493.50 (exhausted first test, bias-aligned). Daisy-chain stop behind 7461.50-7470.50 range extreme per keys mandate. Target near edge of initial resistance 7593.75 — full range rotation, ~5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

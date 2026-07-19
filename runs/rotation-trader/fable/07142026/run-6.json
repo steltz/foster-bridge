@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.477Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "short",
+    "entry": 7651.75,
+    "stopLoss": 7655,
+    "takeProfit": 7582,
+    "rationale": "Opens upper-range post-CPI; resting short deep in the 7644.75-7653.75 multi-day range extreme (strong: first-test sellers, exhausted arrival, prior downside launches). Stop 1.25 pts behind the zone; target 7582, near edge of aggressive support 7571-7582 bounding the day's range. ~21:1 rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

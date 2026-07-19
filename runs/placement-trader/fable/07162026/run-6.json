@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.186Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "side": "long",
+    "entry": 7579.25,
+    "stopLoss": 7569,
+    "takeProfit": 7610,
+    "rationale": "Recap warns against shorting ES; bigger picture bullish. Buying first RTH test of strong bias-changing initial support 7570-7581 (prior-day low 7571.75, 07/15 launch overlap), shallow at the leading edge for fill priority. Stop behind the zone; 3R target at 7610-7619.50 pre-market resistance front."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

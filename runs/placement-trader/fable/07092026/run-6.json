@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T00:58:29.043Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7533,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "rationale": "Failed breakdown confirmed; buyers in control. Long the strong-graded Aggressive Support 7524-7536.50 — shallowest bias-aligned zone, certain to be reachable. Shallow entry 7533 for fill, stop 1pt beyond zone at 7523, target Initial Resistance front edge 7561.25 (2.8R on high-confluence zone)."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.25,
+    "dollars": 141.25,
+    "fillTime": 1783606500,
+    "exitTime": 1783608900
+  }
+}
