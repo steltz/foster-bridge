@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:51.668Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "long",
+    "entry": 7579.75,
+    "stopLoss": 7570,
+    "takeProfit": 7609.25,
+    "rationale": "Long the post-CPI continuation into the plan's 7571-7582 aggressive support — Keys sheet grades it a textbook Key-6 bias-aligned zone (holding above signals strength per plan). Entry near the shallow edge for fill odds, stop 1pt beyond zone low (7570), target the 7609.25 initial-resistance/bias-changing edge for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

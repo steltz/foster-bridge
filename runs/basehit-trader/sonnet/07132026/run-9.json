@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:47.469Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7618,
+    "stopLoss": 7624.5,
+    "takeProfit": 7607,
+    "side": "short",
+    "rationale": "Short at 7618, deep in strong Initial Resistance 7611.50-7623.50 (balance-area high, Friday's failed breakout, overnight NQ rejection/breakdown launched here). Stop 7624.50, one point beyond zone. Target 7607, top of Pre-Market Resistance shelf 7598-7607 — the daisy-chain first leg the recap/lookback flag. Risk 6.50, reward 11.00, 1.69:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

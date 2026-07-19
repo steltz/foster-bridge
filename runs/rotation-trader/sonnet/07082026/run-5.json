@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T02:07:53.627Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7392.25,
+    "stopLoss": 7389.25,
+    "takeProfit": 7593.75,
+    "rationale": "Open sits mid-range at the 7477.50-7493.50 bull/bear pivot; strong zones exist both ways, so bigger-picture-bullish bias breaks the tie. Resting deep in 7390.50-7401.75 (fully Key-6-aligned \"better support,\" gap/launch/exhaustion), stop beyond it, targeting the near edge of the 7593.75-7604.25 range-extreme-high resistance cap."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

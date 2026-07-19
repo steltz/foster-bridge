@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:49.252Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7479.75,
+    "stopLoss": 7460.25,
+    "takeProfit": 7538.25,
+    "rationale": "Bullish intermediate/bigger-picture bias plus NQ-drag risk argue for skipping the aggressive 7563-73 shelf for the deeper, higher-grade zone. Resting long near the low edge of the automatic-fade 7479.50-7493.50 (Bull/Bear, HVN, full alignment) with mandated daisy-chain stop below 7461.50-7470.50, target 7538.25-7546.75 initial support, 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

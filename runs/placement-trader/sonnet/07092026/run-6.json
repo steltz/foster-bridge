@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:51.215Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7534.25,
+    "side": "long",
+    "stopLoss": 7522.75,
+    "takeProfit": 7568.75,
+    "rationale": "Overnight reclaim of 7536.50 confirms a failed breakdown, so I buy the Aggressive Support retest (7524-7536.50; strong grade, Keys 3-4-5-6 stacked) near its leading edge for fill priority, stop 1.25pt below 7524, target Initial Resistance (7561.25-7571.25) for ~3R with buyers back in control."
+  },
+  "result": {
+    "status": "TP",
+    "points": 34.5,
+    "dollars": 172.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

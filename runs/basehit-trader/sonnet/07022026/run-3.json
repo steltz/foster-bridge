@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T02:07:45.523Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "side": "long",
+    "entry": 7490,
+    "stopLoss": 7480.75,
+    "takeProfit": 7505.75,
+    "rationale": "Automatic-fade support 7481.75-7495.75 (bull/bear line, yesterday's breakout launch point, Keys 3-6 fully stacked) is the day's single highest-odds zone, aligned with the intermediate/bigger-picture bullish bias. Entered deep at 7490.00 to clear the 1.5:1 floor; stop 7480.75 (1pt beyond far edge); target 7505.75, leading edge of the next support shelf (prior-day low), for 1.7:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.25,
+    "dollars": -46.25,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

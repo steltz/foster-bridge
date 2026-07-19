@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:54.364Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7500,
+    "stopLoss": 7498.25,
+    "takeProfit": 7657.5,
+    "side": "long",
+    "rationale": "Open sits mid-range between aggressive support (7578-87) and pre-market resistance (7598-7607); both range-bounding extremes grade 'strong' on the shared Keys, so bigger-picture-bullish bias breaks the tie long. Resting deep in 7499.50-7503.50 (range extreme, 07/09 launch point, best support confluence), stop beyond the zone, targeting near edge of the 7657.50-7667.50 ceiling."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

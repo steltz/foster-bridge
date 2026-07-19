@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:50.656Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "entry": 7552.25,
+    "stopLoss": 7548.25,
+    "takeProfit": 7567,
+    "side": "long",
+    "rationale": "Long at 7552.25 inside 7549.50-7558.50 aggressive support — the shallowest reachable zone after the NFP rally, bias-aligned (Key 6) per the bull/bear structure; the automatic-fade 7481.75-7495.75 needs an unlikely 90+pt washout. Moderate grade warrants a deeper entry; stop 7548.25 beyond the zone; target 7567 Initial Resistance for ~3.7R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4,
+    "dollars": -20,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}

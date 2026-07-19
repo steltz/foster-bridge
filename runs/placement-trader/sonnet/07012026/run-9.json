@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:50.441Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7520.25,
+    "stopLoss": 7509.25,
+    "takeProfit": 7558.5,
+    "side": "long",
+    "rationale": "Long at 7520.25, shallow edge of the strong, first-test 7510.50-7520.50 support where the overnight retracement lands—keys 3-6 align with the bullish intermediate/bigger-picture bias. Stop 7509.25 beyond the zone's far edge. Target 7558.50, near edge of the bias-confirming Initial Resistance zone (7558.50-7568.50), ~3.5R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

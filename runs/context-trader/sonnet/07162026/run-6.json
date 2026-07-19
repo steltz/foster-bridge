@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:50.162Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7527.5,
+    "side": "long",
+    "stopLoss": 7522,
+    "takeProfit": 7544,
+    "rationale": "Overnight sell dominance likely overruns the shallow 7570-7581 initial support, so I skip it for the deeper automatic-fade zone 7523.25-7535.25 (open gap 7528.75, NVPOC 7524.75, aligned with bullish bigger-picture bias). Stop 1.25pt beyond the far edge; target the 7544-7557 Launching Point zone for exactly 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:51.181Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7482.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Long the 7477.50-7493.50 Bull/Bear support (HVN 7482.50), the day's most reachable strong zone aligned with the bullish bigger-picture bias. Entered mid-zone at the HVN since it's a battleground retest, not an automatic fade. Stop below the mandatory daisy-chain floor; target the 7506-7516 aggressive resistance edge, ~3.9R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

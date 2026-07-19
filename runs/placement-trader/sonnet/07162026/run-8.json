@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 8,
+  "timestamp": "2026-07-19T02:07:51.982Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7575.25,
+    "stopLoss": 7569,
+    "takeProfit": 7593.5,
+    "side": "long",
+    "rationale": "Long at 7575.25 inside the Keys' strong-graded 7570-7581 initial support, overlapping yesterday's 7564.25-7575.25 launch zone. Aligns with bigger-picture bullish/neutral-bullish intermediate bias and the recap's explicit caution against shorting ES given its strength vs weak NQ. Stop 7569.00 (1pt beyond zone floor); target 7593.50 front edge of next resistance, ~2.9R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

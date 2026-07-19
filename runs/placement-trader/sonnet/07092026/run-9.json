@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:51.318Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7535.75,
+    "stopLoss": 7522.75,
+    "takeProfit": 7571.25,
+    "side": "long",
+    "rationale": "Overnight failed breakdown reclaimed 7536.50, confirming buyers in control (bigger-picture Bullish). Trading WITH bias into strong-graded aggressive support 7524-7536.50 (Keys 3,4,5,6 stack): shallow entry near the top edge for fill priority, stop beyond 7524 far edge, target Initial Resistance 7561.25-7571.25 far edge for 2.7R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 35.5,
+    "dollars": 177.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783610400
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:48.762Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "entry": 7486.5,
+    "stopLoss": 7480.25,
+    "takeProfit": 7505.75,
+    "side": "long",
+    "rationale": "Bull/Bear support 7481.75-7495.75 grades automatic-fade (Keys 3-6 stack: exhausted arrival, breakout-launch structure, full intermediate/bigger-picture bullish alignment). Buying deep in the zone with bias intact offers the best confluence today. Stop 1.5pts beyond the low edge; target the 7505.75-7512.75 Initial Support reclaim for ~3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.25,
+    "dollars": -31.25,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

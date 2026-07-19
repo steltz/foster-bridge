@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:49.321Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7416,
+    "stopLoss": 7408,
+    "takeProfit": 7444.5,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish. The first support 7477.50-93.50 is a contested, third-plus-tested pivot (not a clean fade), so I skip it for the deeper, fully-aligned \"better support\" 7409-7416 the plan itself cites. Stop 1pt below zone floor (7408.00); target next zone up, Initial Support 7444.50-7454.75, for ~3.6:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T02:07:46.567Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7493.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "side": "long",
+    "rationale": "Bull/Bear zone 7477.50-7493.50 is the sheet's highest-significance inflection, aligned with bigger-picture/intermediate bullish bias per Keys (strong grade); shallow entry at leading edge, stop beyond far edge, target the next resistance shelf's leading edge (7524.75-7534.75) for a clean 1.88:1 basehit long."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.75,
+    "dollars": -83.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

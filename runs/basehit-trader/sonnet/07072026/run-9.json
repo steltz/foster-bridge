@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:46.428Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7490.75,
+    "side": "long",
+    "stopLoss": 7478.25,
+    "takeProfit": 7510,
+    "rationale": "Automatic-fade grade 7479.50-7493.50 (Bull/Bear, HVN, exhausted first test, full bullish-bias alignment) is the day's single highest-odds zone. Entered deep at 7490.75 to clear 1.5:1 against the 7510 NVPOC target; stop 7478.25, one point beyond the zone's far edge."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

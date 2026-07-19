@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:45.276Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7519.5,
+    "stopLoss": 7509.5,
+    "takeProfit": 7534.75,
+    "side": "long",
+    "rationale": "Long the 7510.50-7520.50 initial support, the day's most reachable high-odds zone (Seven Keys: 3+4+5+6 align, \"strong\") with bullish intermediate/bigger-picture bias intact and no shift evidence. Entered 7519.50 near the leading edge, deepened slightly to clear 1.5:1. Stop 7509.50 beyond the zone; target 7534.75, next pre-market resistance edge."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

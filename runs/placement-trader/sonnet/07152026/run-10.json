@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:51.877Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "side": "long",
+    "entry": 7556.25,
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "rationale": "Long at 7544-7557, the sheet's strongest long confluence (launching point, HVN, initial support, full bias alignment). Entering shallow near the zone's top edge prioritizes fill on this high-hold-odds level. Stop 7543 (1pt beyond zone low 7544); target 7596 near Aggressive Support 7587.75-7597.75, ~3R with the bullish bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

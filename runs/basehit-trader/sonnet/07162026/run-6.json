@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:48.414Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7530.75,
+    "side": "long",
+    "stopLoss": 7522.25,
+    "takeProfit": 7544,
+    "rationale": "Automatic-fade support 7523.25-7535.25 (range exhaustion, bias confirming, gap 7528.75/NVPOC 7524.75) beats the ATH short (7682.75-7695) on reachability and bias alignment — bigger picture bullish and the recap flags caution shorting ES today. Entry deepened to clear the 1.5:1 floor against the 7544-7557 Launching Point target; stop one point beyond 7523.25."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

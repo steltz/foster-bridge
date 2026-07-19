@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T02:07:46.219Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7491,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Automatic-fade support 7479.50-7493.50 (Bull/Bear, HVN 7482.50, range-exhaustion, full bias alignment) is the day's single highest-confluence zone. Long, entry deepened to 7491.00 to clear the 1.5:1 floor vs. leading edge of 7510-7520.50; stop 1pt beyond zone at 7478.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

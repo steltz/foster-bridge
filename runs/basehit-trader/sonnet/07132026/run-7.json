@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:47.399Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7611.5,
+    "side": "short",
+    "stopLoss": 7624.5,
+    "takeProfit": 7587.75,
+    "rationale": "Shorting KEYS-strong 7611.50-7623.50 (Initial Resistance, bias-changing; stacked with prior VPOC, balance-high, and overnight NQ resistance rejection dragging ES down) — today's most reachable high-odds zone. Entry 7611.50 (leading edge), stop 7624.50 (1pt beyond far edge), target 7587.75 (Aggressive Support edge) for ~1.8:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

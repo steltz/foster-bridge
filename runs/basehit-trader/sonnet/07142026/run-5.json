@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T02:07:47.678Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "entry": 7502.25,
+    "stopLoss": 7498.5,
+    "takeProfit": 7508,
+    "side": "long",
+    "rationale": "Automatic-fade grade support 7499.50-7503.50 (07/09 initial support + range extreme; Keys 3-6 all stack) is the board's single highest-odds long, aligned with bullish bigger-picture bias. Entered deeper at 7502.25 for the 1.5:1 floor against target 7508 (leading edge of 7508-7518); stop 7498.50, one point beyond the zone's far edge."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

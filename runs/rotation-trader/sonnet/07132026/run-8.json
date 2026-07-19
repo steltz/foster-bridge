@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 8,
+  "timestamp": "2026-07-19T02:07:54.433Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7500,
+    "stopLoss": 7498.25,
+    "takeProfit": 7657.5,
+    "side": "long",
+    "rationale": "Overnight NQ-driven breakdown opens ES in the lower range; buying the most significant support extreme, 7499.50-7503.50 (07/09 initial support, range extreme, best support confluence on the Keys sheet). Entry deep near 7500, stop 7498.25 beyond the zone, target 7657.50 — the plan's stated upside range-potential resistance."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

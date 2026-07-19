@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 3,
+  "timestamp": "2026-07-19T02:07:54.608Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "short",
+    "entry": 7652.75,
+    "stopLoss": 7654.75,
+    "takeProfit": 7503.5,
+    "rationale": "Range-rotation short: 7644.75-7653.75 is the multi-day range's resistance extreme (strong grade — range extreme, prior-launch, first-test sellers), and price opens upper-portion post-CPI. Entry deep at 7652.75 near the far edge; stop 7654.75 (1pt beyond zone); target near edge of opposing automatic-fade range-extreme 7499.50-7503.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

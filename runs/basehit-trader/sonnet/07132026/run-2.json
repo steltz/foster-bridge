@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:47.227Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7502.25,
+    "stopLoss": 7498.5,
+    "takeProfit": 7508,
+    "side": "long",
+    "rationale": "Long the Keys' \"best support confluence in range\" 7499.50-7503.50 (07/09 IS + range extreme + prior launch), which aligns with bigger-picture bullish bias and today's stated downside range-exhaustion pairing. Entered mid-zone to clear the 1.5:1 floor; stop 1pt beyond far edge 7499.50; target front edge of next zone, 7508-7518."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

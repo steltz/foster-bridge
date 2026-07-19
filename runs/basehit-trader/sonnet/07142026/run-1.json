@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T02:07:47.539Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "entry": 7553.75,
+    "stopLoss": 7543,
+    "takeProfit": 7571,
+    "side": "long",
+    "rationale": "Long at 7544-7556 (strong grade: explicit CPI-launch point, HVN, bias-aligned) — the best reachable pullback zone given today's bullish post-CPI breakout. Entry deepened to 7553.75 for 1.5:1 floor. Stop 7543.00, one point beyond zone low. Target 7571.00, leading edge of the 7571-7582 aggressive-support zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

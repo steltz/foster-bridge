@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:46.811Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7493.5,
+    "side": "long",
+    "stopLoss": 7476.25,
+    "takeProfit": 7524.75,
+    "rationale": "Long the 7477.50-7493.50 Bull/Bear support (HVN 7482.50) — the day's most reachable zone (session opens near/inside it) and Key-6 aligned with the bullish bigger-picture/neutral-bullish intermediate bias. Stop 7476.25, one point beyond the zone's far edge. Target 7524.75, near edge of the 7524.75-7534.75 PM-resistance/gap zone, for 1.81:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -17.25,
+    "dollars": -86.25,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

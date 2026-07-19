@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T02:07:53.943Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7470.5,
+    "side": "long",
+    "stopLoss": 7467.25,
+    "takeProfit": 7611.5,
+    "rationale": "Long, mid-range open (overnight reclaimed 7536.50 RTH high). Bullish bias breaks the tie toward support: entering deep in 7468.50-7480 bull/bear — largest-timeframe, strongest-stacked (Keys 3-6) support, launch point of the failed-breakdown rally. Stop beyond 7468.50; target near edge of outer probe resistance 7611.50-7622.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

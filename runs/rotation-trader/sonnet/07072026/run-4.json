@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T02:07:53.244Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7677.75,
+    "stopLoss": 7680.75,
+    "takeProfit": 7493.5,
+    "side": "short",
+    "rationale": "Price opens in the upper portion of the day's range, bounded by the two Range Exhaustion zones: resistance 7671.50-7679.50 and support 7479.50-7493.50 (also Bull/Bear, automatic-fade grade). Short deep in the resistance extreme, stop beyond it, target the near edge of the opposite extreme for the full rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

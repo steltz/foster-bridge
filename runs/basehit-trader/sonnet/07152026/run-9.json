@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:48.172Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7556.75,
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7580,
+    "rationale": "Single highest-odds zone on the sheet: 7544-7557 support (Initial Support, Launching Point, 7544 HVN) — strong grade, fully bias-aligned, buyer-proven 07/14. Shallow entry at leading edge (7556.75), stop 1pt beyond far edge (7543.00), target next opposing reference at 7580 (pre-market support edge) for ~1.7:1, skipping counter-bias resistance shorts."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:53.313Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7482.5,
+    "stopLoss": 7478.25,
+    "takeProfit": 7671.5,
+    "side": "long",
+    "rationale": "Day's Range-Exhaustion floor (7479.50-7493.50, automatic-fade: Bull/Bear+HVN+full Key alignment) is the sheet's most significant zone; opens near/below balance mid, bullish larger-timeframe bias confirms buying it. Entry deep at 7482.50 HVN, stop beyond floor at 7478.25, target near edge of symmetric Range-Exhaustion ceiling, 7671.50-7679.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

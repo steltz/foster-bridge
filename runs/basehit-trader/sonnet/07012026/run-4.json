@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T02:07:45.202Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7519.25,
+    "stopLoss": 7509.25,
+    "takeProfit": 7534.75,
+    "side": "long",
+    "rationale": "Highest-odds zone per Seven Keys: 7510.50-7520.50 initial support (Keys 3+4+5+6 align) — first RTH test after the overnight retracement, with-trend on the bullish intermediate/bigger-picture bias, echoing yesterday's validated breakout. Shallow entry near the top edge, stop 1pt+ beyond 7510.50, target the 7534.75 resistance leading edge for 1.55:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

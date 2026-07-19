@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:51.912Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7580.25,
+    "side": "long",
+    "stopLoss": 7568.75,
+    "takeProfit": 7614.75,
+    "rationale": "Long from the shallow edge of the strong-graded 7570-7581 initial support (Key 6-aligned with bullish bigger-picture bias, first RTH test, overlaps yesterday's launch zone). Stop 1+pt below the zone; target the pre-market resistance/VPOC confluence at 7614.75-7617 for 3R, per recap's caution against shorting ES today."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.5,
+    "dollars": -57.5,
+    "fillTime": 1784223600,
+    "exitTime": 1784227200
+  }
+}

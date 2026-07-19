@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:53.348Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7482.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7593.75,
+    "side": "long",
+    "rationale": "Long from automatic-fade support 7479.50-7493.50 (Bull/Bear pivot, HVN 7482.50, full bullish-bias alignment) — the day's most significant zone, bounding the confirmed multi-session balance floor. Entry deep at 7482.50, stop 7478.50 (1pt beyond far edge). Target 7593.75, near edge of Initial Resistance topping that balance — full rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

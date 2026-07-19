@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:52.473Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "entry": 7621.75,
+    "stopLoss": 7623.5,
+    "takeProfit": 7495.75,
+    "side": "short",
+    "rationale": "Opens upper-half of the 7481.75-7622.50 realistic range. Short 7611.50-7622.50 — third zone out, Keys' strongest resistance (plan's explicit cap, exhaustion, weekend risk-off) — entered deep near 7622.50, stop 1pt beyond zone, target near edge of automatic-fade 7481.75-7495.75 bull/bear support."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:47.158Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7532.75,
+    "stopLoss": 7522.75,
+    "takeProfit": 7548,
+    "side": "long",
+    "rationale": "Long the Aggressive Support 7524-7536.50 — Keys 3,4,5,6 all stack (first RTH retest of overnight breakout, day-timeframe line-in-sand, launch shelf, full bullish/failed-breakdown alignment), today's most reachable high-odds zone. Entry deepened to 7532.75 (from shallow edge) to clear the 1.5:1 floor against Pre-Market Resistance 7548-7558's near edge; stop 7522.75, beyond the zone."
+  },
+  "result": {
+    "status": "TP",
+    "points": 15.25,
+    "dollars": 76.25,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

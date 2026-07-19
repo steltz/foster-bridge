@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T02:07:46.497Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7545.75,
+    "stopLoss": 7552.75,
+    "takeProfit": 7534.75,
+    "side": "short",
+    "rationale": "Fading 7544-7551.75, the Keys sheet's \"strongest resistance confluence near price\" (HVN, launching point, PM resistance, prior settlement) and a bounce retest into a zone the plan calls \"much more difficult to break.\" Stop 1pt beyond 7551.75. Entry deepened only to clear 1.5:1 vs 7534.75, leading edge of 7524.75-7534.75."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

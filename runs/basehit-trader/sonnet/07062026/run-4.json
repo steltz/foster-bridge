@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 4,
+  "timestamp": "2026-07-19T02:07:45.905Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7491,
+    "side": "long",
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Long the day's only automatic-fade zone, 7479.50-7493.50 (bull/bear, HVN 7482.50, proven Thursday launch, full bullish alignment). Entry deepened to 7491.00 to clear the 1.5:1 floor vs. the 7510-7520.50 Initial Support leading edge (7510); stop 7478.50, one point beyond the zone floor."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

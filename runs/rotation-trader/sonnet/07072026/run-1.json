@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T02:07:53.138Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7480.25,
+    "side": "long",
+    "stopLoss": 7460.5,
+    "takeProfit": 7671.5,
+    "rationale": "Deep order at 7479.50-7493.50, the sheet's only automatic-fade zone (Bull/Bear pivot, 7482.50 HVN, Range Exhaustion, bullish-aligned) — most significant extreme on the Keys. Daisy-chain stop behind 7461.50-7470.50 Range Extreme per lookback caution. Target near edge of symmetric Range Exhaustion resistance 7671.50-7679.50, completing the mapped rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

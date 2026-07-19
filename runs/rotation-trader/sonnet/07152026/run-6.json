@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:55.062Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7545.25,
+    "stopLoss": 7542.75,
+    "takeProfit": 7657.5,
+    "side": "long",
+    "rationale": "Mid-range open; Seven Keys ties 7544-57 (best long confluence, Key-5 launch, calibration-proven 07/14) vs 7657.50-67.50 (strongest resistance, but counter-bias) — tie-break favors bullish bias. Entered deep/far edge of 7544-57 Initial Support, stop 1+pt below zone, target near edge of 7657.50-67.50 (avg-range extreme)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

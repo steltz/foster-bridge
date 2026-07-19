@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 6,
+  "timestamp": "2026-07-19T02:07:48.937Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "side": "long",
+    "entry": 7485.5,
+    "stopLoss": 7477.5,
+    "takeProfit": 7510,
+    "rationale": "Choosing the day's only automatic-fade zone: 7479.50-7493.50 bull/bear (7482.50 HVN, proven Thursday 3R launch, full bullish-bias alignment) beats every other graded zone. Resting long near the HVN, stop below the twice-defended zone floor, target first zone above at 7510-7520.50 initial support, ~3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

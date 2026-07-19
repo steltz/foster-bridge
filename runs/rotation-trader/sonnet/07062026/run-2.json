@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:52.823Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7482.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7593.25,
+    "side": "long",
+    "rationale": "Rotation long: entry deep toward the far edge of 7479.50-7493.50 (bull/bear support, automatic-fade grade, 7482.50 HVN, full bullish-bias alignment) — the day's mapped lower extreme, more significant than any resistance zone. Stop 1pt below the zone floor (7478.50). Target the near edge of 7593.25-7604.25, the opposite range extreme, for far beyond 4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:54.152Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7500.75,
+    "stopLoss": 7498.25,
+    "takeProfit": 7611.5,
+    "side": "long",
+    "rationale": "Overnight reclaim of 7536.50 confirms bullish control; resting long deep in Initial Support 7499.50-7508.50 (Keys 3/4/6 stack, \"best risk/reward long below open\") — third zone out, not the obvious first. Stop beyond 7499.50. Target near edge of 7611.50-7622.50, the plan's mapped probe-resistance extreme after 7561/7581/7594 expansion."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

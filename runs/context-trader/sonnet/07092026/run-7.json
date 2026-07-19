@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:49.495Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7532.5,
+    "stopLoss": 7522.75,
+    "takeProfit": 7561.25,
+    "side": "long",
+    "rationale": "Overnight reclaim of 7536.50 confirms the balance-breakdown attempt failed; bigger picture stays bullish. Buying aggressive support 7524-7536.50 (strong grade: overnight breakout launch, VPOC inside, Keys 3/4/5/6 stack) — the day's first meaningful pullback zone. Stop below 7524 far edge; target Initial Resistance 7561.25-7571.25, the plan's key upside trigger, ~2.95:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.75,
+    "dollars": 143.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

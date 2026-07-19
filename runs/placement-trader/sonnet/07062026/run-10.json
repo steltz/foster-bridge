@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 10,
+  "timestamp": "2026-07-19T02:07:50.831Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7493.25,
+    "stopLoss": 7477,
+    "takeProfit": 7538.25,
+    "side": "long",
+    "rationale": "Automatic-fade 7479.50-7493.50 (bull/bear, bias-confirming, proven Thursday launch, full bullish alignment) is the shallowest zone clearing the hold-odds bar within realistic reach. Entered shallow near the top edge to secure fill; stop below the zone floor honoring the doubly-defended daisy-chain caution; target near-edge of 7538.25-7546.75 pre-market support for ~2.8R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

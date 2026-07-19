@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T02:07:48.031Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7555.75,
+    "stopLoss": 7543,
+    "takeProfit": 7575.25,
+    "side": "long",
+    "rationale": "Sheet's strongest long confluence: 7544-7557 (Key5 explicit post-CPI launch point, Key4 Initial Support/Bias-Changing, Key6 full bias alignment, prior RTH low, HVN). Entered deep enough in the zone for 1.5:1 vs nearest opposing reference (7575.25, far edge of 7564.25-7575.25). Stop 1pt beyond far edge 7544."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

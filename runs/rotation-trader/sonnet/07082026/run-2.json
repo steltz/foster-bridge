@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:53.524Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7391.5,
+    "side": "long",
+    "stopLoss": 7389.5,
+    "takeProfit": 7593.75,
+    "rationale": "Price opens lower-half of the 7420.50-7604.25 day range. Per rotation logic, buy the most significant support extreme: 7390.50-7401.75 (Bias Confirming, open gap, deep exhaustion, Key6-aligned per Keys) — one of the plan's two 'better supports.' Stop beyond zone; target near edge of the 7593.75-7604.25 range-extreme resistance, 4:1+."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

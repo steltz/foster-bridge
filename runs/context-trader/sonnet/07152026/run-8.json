@@ -1,0 +1,27 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "runIndex": 8,
+  "timestamp": "2026-07-19T02:07:50.055Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "keysSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7557,
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bullish bias (Keys: favor longs at aligned support) lets me skip the shallow, moderate-graded 7587.75-97.75 aggressive support for the deeper 7544-7557 Initial Support/Launching Point — KEYS' best long confluence (HVN, prior RTH low, exhaustion, alignment). Resting buy near zone top; stop 1pt below zone; target 7606.25 Initial Resistance, ~3.5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 8,
+  "timestamp": "2026-07-19T02:07:51.634Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "long",
+    "entry": 7581.75,
+    "stopLoss": 7569.75,
+    "takeProfit": 7620.25,
+    "rationale": "Long from 7571-7582 aggressive support, the post-CPI pullback zone (Key 6 bias-aligned; first-test buyers already active per Keys). Shallow entry near zone top prioritizes fill. Stop 1.25pt below far edge (7571). Target far edge of 7609.25-7620.25, the strong-graded initial-resistance bias-changing zone (~3.2R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 5,
+  "timestamp": "2026-07-19T02:07:46.637Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7545.75,
+    "stopLoss": 7552.75,
+    "takeProfit": 7534.75,
+    "side": "short",
+    "rationale": "Fading 7544-7551.75 — Keys' strongest near-price resistance confluence (HVN 7544, launching point, PM resistance, prior settlement), aligned with today's live breakdown-attempt bias. Entry nudged past leading edge to clear the 1.5:1 floor; stop 1pt beyond far edge 7551.75; target is leading edge of the next opposing zone, 7524.75-7534.75."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

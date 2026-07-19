@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:47.747Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "entry": 7502.25,
+    "stopLoss": 7498.5,
+    "takeProfit": 7508,
+    "side": "long",
+    "rationale": "7499.50-7503.50 is the sole automatic-fade grade on the board (range extreme, 07/09 launch, deep exhaustion, full bias alignment) and aligns with the bullish bigger picture. Entry deepened from the 7503.50 edge to 7502.25 to clear the 1.5:1 floor vs 7508 (near edge of 7508-7518). Stop 7498.50, one point beyond the far edge."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

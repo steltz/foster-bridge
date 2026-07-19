@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:48.276Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7530.75,
+    "stopLoss": 7522.25,
+    "takeProfit": 7544,
+    "side": "long",
+    "rationale": "Long the Keys automatic-fade support 7523.25-7535.25 (Key3 range exhaustion/first test, Key6 aligns with bullish bigger-picture bias, Key7 gap 7528.75+NVPOC 7524.75 stack). Entry deepened to 7530.75, clearing the 1.5:1 floor vs. nearest opposing reference: leading edge of the 7544-7557 launching-point zone. Stop 7522.25, one point beyond the zone's far edge."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

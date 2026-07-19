@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "runIndex": 1,
+  "timestamp": "2026-07-19T02:07:46.846Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7536.5,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "side": "long",
+    "rationale": "Aggressive support 7524-7536.50 stacks Keys 3-4-5-6 (first breakout retest, day-timeframe strength signal, launch of overnight rally, bull-aligned) — best true entry zone on the board, strong grade. Shallow long at zone top 7536.50, stop 7523.00 (behind far edge), target 7561.25 initial resistance leading edge for 1.83:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 24.75,
+    "dollars": 123.75,
+    "fillTime": 1783606500,
+    "exitTime": 1783608900
+  }
+}

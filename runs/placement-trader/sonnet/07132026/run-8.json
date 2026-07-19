@@ -1,0 +1,27 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 8,
+  "timestamp": "2026-07-19T02:07:51.457Z",
+  "personaSha256": "f33ac9ef1cff9cf2282571fb4bef6659d12503c2ce35ebb1a1e5ff4acaba7c59",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7517.75,
+    "side": "long",
+    "stopLoss": 7507,
+    "takeProfit": 7550,
+    "rationale": "Long, WITH bigger-picture bullish bias. 7508-7518 grades strong (exhaustion, bullish-aligned, first test) and is the day's stated range-exhaustion target — shallowest strong zone in reach after overnight weakness. Resting order near top edge (leading edge) for fill priority. Stop 1pt beyond 7508 far edge. Target 7550 inside 7543-7553 (initial support/HVN), exactly 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "trader": "rotation-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "runIndex": 7,
+  "timestamp": "2026-07-19T02:07:54.398Z",
+  "personaSha256": "4aec08ccd9d9125931433b59851f2d1209d78453e8a49fcc2122d564be57b373",
+  "keysSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7665.25,
+    "side": "short",
+    "stopLoss": 7668.75,
+    "takeProfit": 7518,
+    "rationale": "Mid-range open between today's two exhaustion extremes (7508-7518 support, 7657.50-7667.50 resistance). 7657.50-7667.50 wins on significance — sheet's strongest resistance confluence (HVN, NVPOC, selling tail, 06/05 IR), bias-changing with a real Key-5 launch, versus support's bias-confirming, no-launch grade. Countertrend short demands that edge, not a shallow price."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

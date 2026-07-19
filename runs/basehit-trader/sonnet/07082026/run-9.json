@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:46.776Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7488.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Long the 7477.50-7493.50 bull/bear zone (Keys file: highest-significance inflection, Key6 aligns intermediate/bigger-picture bullish) — today's opening battleground, the single most reachable strong-graded zone. Stop one point below zone floor (7477.50). Deepened entry vs. shallow edge to clear my 1.5:1 floor against the 7506-7516 zone's near edge: 1.51:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

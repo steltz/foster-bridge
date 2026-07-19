@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "runIndex": 9,
+  "timestamp": "2026-07-19T02:07:46.078Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7493.5,
+    "stopLoss": 7478.25,
+    "takeProfit": 7520.5,
+    "side": "long",
+    "rationale": "7479.50-7493.50 is the board's only automatic-fade grade: bull/bear line, proven Thursday launch, HVN 7482.50, full bullish-bias alignment, exhausted arrival. Long the zone's top edge; stop 1.25pts beyond the 7479.50 floor; target the 7510-7520.50 initial-support/VPOC zone for 1.77:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

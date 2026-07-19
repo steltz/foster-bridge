@@ -1,0 +1,27 @@
+{
+  "trader": "basehit-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "runIndex": 2,
+  "timestamp": "2026-07-19T02:07:45.129Z",
+  "personaSha256": "312799aeca5f383f31176aedad173cc193eb6133700f588bceb1068604118245",
+  "keysSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "side": "long",
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7520.5,
+    "rationale": "Long at 7481.75-7495.75 — yesterday's bull/bear zone, launching point of the balance breakout, keys 4+5+6 stacked. Shallow entry 7495.75, stop 7480.75 (1pt beyond far edge). Target 7520.50, far edge of initial support 7510.50-7520.50, since its near edge underpaid the 1.5:1 floor. Reward 1.65:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
