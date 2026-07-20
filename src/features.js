@@ -15,6 +15,13 @@ const DOC_PLACEHOLDER = '${DOC}';
 // the reserved-"base" guard on a case-insensitive filesystem ("Base").
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+// parseFrontmatter returns "[a, b]" as a raw string; combos need the list.
+function parseCombines(raw) {
+  if (!raw) return null;
+  const inner = raw.startsWith('[') && raw.endsWith(']') ? raw.slice(1, -1) : raw;
+  return inner.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 function extractBlock(text) {
   const lines = text.split('\n');
   if (lines[0]?.trim() !== '---') return text.trim();
@@ -45,6 +52,7 @@ function validateFeatures(features, repoRoot) {
     if (f.name.includes('|') || f.name.includes('\n')) {
       throw new Error(f.file + ': feature name "' + f.name + '" must not contain a pipe or newline — it is interpolated into a markdown table');
     }
+    if (f.combines) continue; // combo-specific rules run in pass 2, below
     if (f.artifactSuffix && !f.generatorSkill) {
       throw new Error(f.file + ': artifactSuffix requires generatorSkill');
     }
@@ -67,6 +75,30 @@ function validateFeatures(features, repoRoot) {
     }
     if (!f.block) {
       throw new Error(f.file + ': feature body is empty — a feature with no prompt text is just a costlier "base"');
+    }
+  }
+
+  for (const f of features) {
+    if (!f.combines) continue;
+    if (f.combines.length < 2) {
+      throw new Error(f.file + ': combines needs at least 2 component ids');
+    }
+    const seen = new Set();
+    for (const id of f.combines) {
+      if (seen.has(id)) {
+        throw new Error(f.file + ': duplicate component id "' + id + '" in combines');
+      }
+      seen.add(id);
+      const comp = byId.get(id);
+      if (!comp) {
+        throw new Error(f.file + ': combines references unknown feature id "' + id + '" — remove or retire the combo in the same change as its component');
+      }
+      if (comp.combines) {
+        throw new Error(f.file + ': combines references combo "' + id + '" — nested combos are not allowed');
+      }
+    }
+    if (f.staticDoc || f.artifactSuffix || f.generatorSkill) {
+      throw new Error(f.file + ': a combo must not declare staticDoc, artifactSuffix, or generatorSkill of its own — resources come from its components');
     }
   }
 }
@@ -92,6 +124,7 @@ export function collectFeatures(featuresDir) {
         artifactSuffix: fm.artifactSuffix || null,
         generatorSkill: fm.generatorSkill || null,
         staticDoc: fm.staticDoc || null,
+        combines: parseCombines(fm.combines),
         block: extractBlock(text),
       };
     });

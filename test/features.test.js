@@ -219,3 +219,72 @@ test('collectFeatures accepts a feature declaring both staticDoc and artifactSuf
   assert.equal(features[0].staticDoc, 'knowledge-base/methods/seven-keys.md');
   assert.equal(features[0].artifactSuffix, '_ES_KEYS.md');
 });
+
+// Combos — a fake repo root with two plain component features to combine.
+function comboRoot(t) {
+  const root = mkdtempSync(join(tmpdir(), 'features-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const featuresDir = join(root, 'features');
+  mkdirSync(featuresDir);
+  mkdirSync(join(root, 'knowledge-base', 'methods'), { recursive: true });
+  writeFileSync(join(root, 'knowledge-base', 'methods', 'seven-keys.md'), 'methodology\n');
+  writeFileSync(
+    join(featuresDir, 'method.md'),
+    '---\nid: method\nstaticDoc: knowledge-base/methods/seven-keys.md\n---\ngrade zones via ${DOC}\n'
+  );
+  writeFileSync(
+    join(featuresDir, 'scorecard.md'),
+    '---\nid: scorecard\nstaticDoc: knowledge-base/methods/seven-keys.md\nartifactSuffix: _ES_KEYS.md\ngeneratorSkill: seven-keys\n---\nsee ${DOC} then adopt ${ARTIFACT}\n'
+  );
+  return featuresDir;
+}
+
+test('collectFeatures parses combines as an ordered id list; plain features get combines null', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\nname: Both\ncombines: [method, scorecard]\n---\n\n'
+  );
+  const features = collectFeatures(dir);
+  const both = features.find((f) => f.id === 'both');
+  const method = features.find((f) => f.id === 'method');
+  assert.deepEqual(both.combines, ['method', 'scorecard']);
+  assert.equal(both.staticDoc, null);
+  assert.equal(both.artifactSuffix, null);
+  assert.equal(both.generatorSkill, null);
+  assert.equal(method.combines, null);
+});
+
+test('collectFeatures rejects combines with fewer than 2 ids', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'solo.md'), '---\nid: solo\ncombines: [method]\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /solo\.md.*at least 2/);
+});
+
+test('collectFeatures rejects a duplicate id inside combines', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'twice.md'), '---\nid: twice\ncombines: [method, method]\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /twice\.md.*duplicate component/);
+});
+
+test('collectFeatures rejects combines referencing an unknown id, naming the coupled-removal remedy', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'orphan.md'), '---\nid: orphan\ncombines: [method, ghost]\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /orphan\.md.*unknown feature id "ghost".*same change/);
+});
+
+test('collectFeatures rejects nested combos', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'inner.md'), '---\nid: inner\ncombines: [method, scorecard]\n---\n\n');
+  writeFileSync(join(dir, 'outer.md'), '---\nid: outer\ncombines: [inner, method]\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /outer\.md.*nested/);
+});
+
+test('collectFeatures rejects a combo declaring its own resources', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'greedy.md'),
+    '---\nid: greedy\ncombines: [method, scorecard]\nstaticDoc: knowledge-base/methods/seven-keys.md\n---\n\n'
+  );
+  assert.throws(() => collectFeatures(dir), /greedy\.md.*must not declare/);
+});
