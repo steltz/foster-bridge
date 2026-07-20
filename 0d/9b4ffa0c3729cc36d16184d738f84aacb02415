@@ -1,0 +1,26 @@
+src/features.js
+  s_197c3997da6101::t_ce92ded8e41d18 146-147
+  s_197c3997da6101::t_e05bb2ea3e255a 45
+  s_197c3997da6101::t_e00a8886571c79 90
+  s_197c3997da6101::t_bc22fb3e28dd78 25-28
+  s_197c3997da6101::t_d13ae956663373 130-136
+  s_197c3997da6101::t_64c3adad40a1cb 186-189
+test/features.test.js
+  s_197c3997da6101::t_1e0826e2f826ca 364-381
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0d9b4ffa0c3729cc36d16184d738f84aacb02415",
+  "prompts": {},
+  "sessions": {
+    "s_197c3997da6101": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac7c2c3d-c280-4978-9571-7331150c872c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
