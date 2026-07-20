@@ -7,7 +7,8 @@ description: Top up the trader benchmark matrix — run every traders/*.md perso
 
 One primitive: bring every trader to N runs on every complete
 knowledge-base day, for one model, across every declared variant (`base`
-plus every `features/*.md` feature, one at a time — never combined)
+plus every `features/*.md` feature, one at a time, plus any declared
+`combines:` combos — components never combine implicitly)
 — running ONLY missing cells. Personas think; this skill plumbs. The
 backtest CLI is the SOLE judge of every setup — perform no validation of
 setups yourself. Existing cells are write-once and NEVER rerun,
@@ -89,7 +90,18 @@ Any other alias → abort listing the valid aliases.
    missing file) — abort relaying its error message verbatim; the remedy is
    fixing the named feature file, and no cells have been touched. Otherwise
    the printed array gives each feature's `id`, `name`, `artifactSuffix`,
-   `generatorSkill`, `staticDoc`, and prompt `block`. For every feature whose
+   `generatorSkill`, `staticDoc`, and prompt `block`. Entries may also carry
+   `combines` (an ordered component-id list): such a feature is a COMBO — its
+   `block` arrives pre-resolved with namespaced `${DOC:<component-id>}` /
+   `${ARTIFACT:<component-id>}` placeholders (built by auto-concat, or authored
+   as an override body), and its own `artifactSuffix`/`generatorSkill`/
+   `staticDoc` are always null; every resource belongs to a component, found by
+   id in this same array. Combo validation failures (unknown/nested component
+   ids, own resource keys, bare or mismatched placeholders, an override body
+   that skips an artifact-backed component, duplicate auto-concat twins, a
+   component file removed while a combo still references it) surface as the same
+   nonzero exit relayed verbatim; for a removed component the remedy is removing
+   or retiring the referencing combo(s) in the same change. For every feature whose
    `staticDoc` is non-null, resolve it to an absolute path (repo root joined
    with `staticDoc`) — `collectFeatures` already confirmed the file exists,
    so this is a plain join, the same way `GENERAL`/`PERSONAS`/`DOCS_BY_DAY`
@@ -105,7 +117,11 @@ Any other alias → abort listing the valid aliases.
    existing cell's hash differs from the current file's hash, abort naming
    the feature, both hashes, and the remedy: feature files are immutable
    once benchmarked — create a NEW feature file (new `id`) instead of
-   editing this one.
+   editing this one. For a COMBO, additionally hash every component's `file`
+   field the same way and read `componentSha256s` from every existing
+   `runs/*/*/*/<combo-id>/run-*.json`; any component hash mismatch aborts
+   naming the combo, the component, and both hashes — same remedy: component
+   files are frozen by the combos benchmarked on them.
 9. **Static doc guard:** for every feature whose `staticDoc` is non-null,
    compute `staticDocSha256` with `shasum -a 256 <staticDoc>` using the
    repo-relative path `collectFeatures` returned (e.g.
@@ -116,13 +132,18 @@ Any other alias → abort listing the valid aliases.
    If any existing cell's hash differs from the current file's hash, abort
    naming the feature, the doc's path, both hashes, and the remedy: static
    docs are immutable once benchmarked — point a NEW feature file (new `id`)
-   at a new doc, or start a new benchmark era.
+   at a new doc, or start a new benchmark era. For a COMBO, the guard covers
+   each component's `staticDoc` (when declared) via the map key
+   `staticDocSha256s.<component-id>` read from
+   `runs/*/*/*/<combo-id>/run-*.json`, compared against the same freshly
+   computed per-doc hashes.
 10. **Feature artifacts (generate missing, per feature, oldest day first):**
     for every feature with both `artifactSuffix` and `generatorSkill`, every
     candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
     generating anything, for each (day, feature) whose artifact is missing,
-    check `runs/*/*/<day>/<feature-id>/run-*.json`: a hit means that
-    combination is already benchmarked, so its artifact is frozen and was
+    check `runs/*/*/<day>/<v>/run-*.json` for EVERY consuming variant `<v>` —
+    the feature's own id plus every combo whose `combines` includes it: a hit
+    means that combination is already benchmarked, so its artifact is frozen and was
     deleted — abort naming the day and feature, remedy: restore the artifact
     from git or start a new benchmark era. Generating first and letting step
     11's hash compare catch it would abort only AFTER committing a fresh
@@ -142,7 +163,11 @@ Any other alias → abort listing the valid aliases.
     current artifact hash against those cells' `artifactSha256`; a mismatch
     aborts naming the day, feature, and both hashes, remedy: artifacts are
     immutable once benchmarked — start a new benchmark era instead of
-    editing them. No matching cells → nothing to guard, proceed.
+    editing them. No matching cells → nothing to guard, proceed. Combo cells
+    freeze the same artifacts through their `artifactSha256s` map: for each
+    (day, feature) also check every `runs/*/*/<day>/<combo-id>/run-*.json` of
+    combos containing that feature and compare `artifactSha256s.<feature-id>`
+    the same way.
 12. **Compute the missing set:** for every (trader, day, variant) where
     variant ranges over `VARIANTS`, existing runs are
     `runs/<trader>/<alias>/<day>/<variant>/run-*.json`; missing indices
@@ -151,7 +176,11 @@ Any other alias → abort listing the valid aliases.
     combination whose (day, feature) artifact is still missing after step 10
     (generation failed or was skipped) is EXCLUDED from the missing set
     entirely — a feature cell must never be run or written without its
-    artifact; step 13 reports these as skipped, never as cells to run.
+    artifact; step 13 reports these as skipped, never as cells to run. A
+    COMBO cell needs every artifact-backed component's (day, artifact) to be
+    present: any component artifact still missing after step 10 excludes the
+    combo's (trader, day, combo-id) combinations exactly like the component's
+    own — reported separately per variant, never run.
 13. **Report the plan, then proceed:** traders × days × variants × model
     alias, cells already present, cells to run, skipped days with reasons,
     skipped (day, feature) artifact failures. Example: "2 traders × 10
@@ -200,10 +229,9 @@ const PERSONAS = {
 // feature file here — Workflow scripts have no filesystem access.
 const NL = String.fromCharCode(10)
 const FEATURES = {
-  '<feature id>': {
+  '<plain feature id>': {
     block: [
-      "<first line of the body from features/<feature id>.md, ${ARTIFACT} and ${DOC} left intact>",
-      "<second line, and so on for every line of the body>",
+      "<lines of the body, ${ARTIFACT} and ${DOC} left intact, as before>",
     ].join(NL),
     // Both BARE booleans, never quoted — the string 'false' is truthy, which
     // would send a feature with no artifact (or no static doc) down that
@@ -211,10 +239,23 @@ const FEATURES = {
     // missing-path throw below.
     artifact: <true if the feature has artifactSuffix, else false>,
     hasDoc: <true if the feature has staticDoc, else false>,
-    // Absolute path to this feature's resolved staticDoc (step 7), or null.
-    // NOT per-day like ARTIFACTS_BY_DAY below — a static doc doesn't vary by
-    // day, so it is inlined directly here rather than looked up per cell.
     docPath: <absolute path string if hasDoc, else null>,
+    combines: null,
+  },
+  '<combo id>': {
+    block: [
+      "<lines of the RESOLVED combo block from step 7, namespaced ${DOC:id}/${ARTIFACT:id} left intact>",
+    ].join(NL),
+    // Combos never use the scalar keys above.
+    artifact: false,
+    hasDoc: false,
+    docPath: null,
+    combines: ['<component id>', '<component id>'],
+    // Absolute per-component staticDoc paths — ONLY components that declare
+    // one appear here.
+    docPaths: { '<component id>': '<absolute staticDoc path>' },
+    // Component ids that declare artifactSuffix, possibly empty.
+    artifactComponents: ['<component id>'],
   },
 }
 const ARTIFACTS_BY_DAY = {
@@ -261,19 +302,40 @@ const results = await parallel(CELLS.map((cell) => () => {
   // missing path here IS a legitimate signal of a preflight bug: fail the
   // cell loudly rather than silently prompting with an empty artifact path.
   // Throwing is contained, not fatal to the run — same mechanism as above —
-  // so this cell alone is lost and gets reported as an anomaly.
+  // so this cell alone is lost and gets reported as an anomaly. For combos,
+  // ARTIFACTS_BY_DAY is keyed by the artifact-owning COMPONENT id (unchanged —
+  // component ids are feature ids), and docPaths is inlined per component the
+  // same way docPath is for plain features.
   const featureBlock = (() => {
     if (cell.variant === 'base') return ''
     const feature = FEATURES[cell.variant]
     let block = feature.block
+    if (feature.combines) {
+      for (const compId of Object.keys(feature.docPaths)) {
+        block = block.replaceAll('${DOC:' + compId + '}', feature.docPaths[compId])
+      }
+      for (const compId of feature.artifactComponents) {
+        const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[compId]
+        if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + compId)
+        block = block.replaceAll('${ARTIFACT:' + compId + '}', artifactPath)
+      }
+      // Any placeholder that survives substitution can only mean the FEATURES
+      // constant was authored wrong — fail this cell loudly (contained by
+      // parallel(), reported as an anomaly) rather than prompting with a
+      // literal placeholder.
+      if (block.indexOf('${DOC:') !== -1 || block.indexOf('${ARTIFACT:') !== -1) {
+        throw new Error('unresolved placeholder in ' + cell.variant)
+      }
+      return block + NL + NL
+    }
     if (feature.hasDoc) {
       if (!feature.docPath) throw new Error('missing static doc for ' + cell.variant)
       block = block.replaceAll('${DOC}', feature.docPath)
     }
-    if (!feature.artifact) return block + '\n\n'
+    if (!feature.artifact) return block + NL + NL
     const artifactPath = ARTIFACTS_BY_DAY[cell.day]?.[cell.variant]
     if (!artifactPath) throw new Error('missing artifact for ' + cell.day + '/' + cell.variant)
-    return block.replaceAll('${ARTIFACT}', artifactPath) + '\n\n'
+    return block.replaceAll('${ARTIFACT}', artifactPath) + NL + NL
   })()
   return agent(
     `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
@@ -345,6 +407,10 @@ record the anomaly for the final summary and move on. Cell format:
   "featureSha256": "<hash of features/<variant>.md from Phase 1 — OMIT this key entirely when variant is \"base\">",
   "staticDocSha256": "<hash of the variant's staticDoc from Phase 1 step 9 — OMIT this key entirely when the variant has no staticDoc>",
   "artifactSha256": "<the day's artifact hash for this variant from Phase 1 — OMIT this key entirely when the variant has no artifactSuffix>",
+  "combines": ["<component ids — ONLY on combo cells, verbatim from the feature>"],
+  "componentSha256s": { "<component id>": "<that component FILE's hash from Phase 1 — ONLY on combo cells>" },
+  "staticDocSha256s": { "<component id>": "<its staticDoc hash — ONLY on combo cells; keys only for components declaring one; omit the whole map when none do>" },
+  "artifactSha256s": { "<component id>": "<the day's artifact hash — ONLY on combo cells; keys only for artifact-backed components; omit the whole map when none are>" },
   "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
   "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
   "note": "<only for INVALID / CLI_ERROR>"
@@ -356,8 +422,15 @@ For NOT_FILLED, keep the CLI's null points/dollars/fillTime/exitTime as
 null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 `result` = `{ "status": "INVALID" }` / `{ "status": "CLI_ERROR" }` plus the
 top-level `note`. Every cell — including NO_SETUP — records `variant`,
-`personaSha256`, and `generalSha256`; `featureSha256`/`staticDocSha256`/
-`artifactSha256` follow the omission rule above regardless of cell status.
+`personaSha256`, and `generalSha256`. Plain feature cells use the scalar
+`featureSha256` / `staticDocSha256` / `artifactSha256` rules above and NEVER
+the map forms; combo cells always record `combines`, `featureSha256` (the
+combo file itself), and `componentSha256s`, plus the map-form
+`staticDocSha256s` / `artifactSha256s` per their omission rules, and NEVER
+the scalar doc/artifact keys — all regardless of cell status. A dropped
+(null) cell for a combo missing ANY Phase 1 hash its schema requires
+(component, static doc, or that day's artifact) gets NO cell file — record
+it as an anomaly, exactly like the existing artifact/doc-backed exception.
 
 An artifact-backed variant cell without an `artifactSha256`, or a
 doc-backed variant cell without a `staticDocSha256`, is invalid by
