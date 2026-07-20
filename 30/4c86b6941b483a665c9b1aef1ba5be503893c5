@@ -1,0 +1,25 @@
+docs/superpowers/specs/2026-07-20-composite-features-design.md
+  s_197c3997da6101::t_5765e5b0a24f88 137,139
+  s_197c3997da6101::t_aa55ce0bb6a7ba 67-76
+  s_197c3997da6101::t_5119b434de19d5 225-237
+  s_197c3997da6101::t_885ad13dc60db5 266-272
+  s_197c3997da6101::t_2e52f2606b0e5a 243
+  s_197c3997da6101::t_6b684c0d89981c 250
+  s_197c3997da6101::t_82756bfa547844 138,140-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "304c86b6941b483a665c9b1aef1ba5be503893c5",
+  "prompts": {},
+  "sessions": {
+    "s_197c3997da6101": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac7c2c3d-c280-4978-9571-7331150c872c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
