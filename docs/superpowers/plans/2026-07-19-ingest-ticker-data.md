@@ -198,7 +198,7 @@ test('appends only rows strictly newer than the current max, keeping sort order'
   // Incoming has an older row, the boundary row (==max), and two newer rows, out of order.
   writeFileSync(
     join(incoming, 'more.csv'),
-    `${HEADER}\n1782879300,4,4,4,4,,\n1782878700,2,2,2,2,,\n1782879000,3,3,3,3,,\n1782878100,0,0,0,0,,\n`
+    `${HEADER}\n1782879300,4,4,4,4,,\n1782878700,2,2,2,2,,\n1782879000,3,3,3,3,,\n1782878500,1,1,1,1,,\n` // 1782878500 is still July 1 ET and <= max, so it is a skip (not a June row)
   );
   const proc = run();
   assert.equal(proc.status, 0, proc.stderr);
