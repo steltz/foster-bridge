@@ -375,7 +375,7 @@ Append after the combo loop, still inside `validateFeatures` (duplicate auto-con
   const autoConcatByKey = new Map();
   for (const f of features) {
     if (!f.combines || f.block) continue;
-    const key = f.combines.join(' ');
+    const key = f.combines.join(' ');
     const prior = autoConcatByKey.get(key);
     if (prior) {
       throw new Error(prior.file + ' and ' + f.file + ': same components in the same order, both auto-concat — the same variant in all but name');
