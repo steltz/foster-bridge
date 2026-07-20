@@ -116,6 +116,12 @@ export function runIngest(args) {
         `${p.monthFile}: ${p.created ? 'created' : 'appended'}, ` +
           `+${p.fresh.length} rows, ${p.skipped} skipped (not newer)`
       );
+      // List the distinct calendar days the appended rows cover (session tz).
+      // fresh is sorted ascending, so the Set preserves chronological order.
+      if (p.fresh.length > 0) {
+        const days = [...new Set(p.fresh.map((r) => dateForTimestamp(r.time, tz)))];
+        console.log(`  new days: ${days.join(', ')}`);
+      }
     }
 
     rmSync(inboxPath);

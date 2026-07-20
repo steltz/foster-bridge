@@ -175,3 +175,26 @@ test('warns and leaves a header-only inbox file in place', (t) => {
   assert.equal(existsSync(join(incoming, 'headeronly.csv')), true);
   assert.equal(existsSync(join(out, 'mes_july.csv')), false);
 });
+
+test('lists the distinct ET days covered by the appended rows', (t) => {
+  const { incoming, run } = harness(t);
+  writeFileSync(
+    join(incoming, 'days.csv'),
+    // 2026-07-01 00:00 ET, 2026-07-01 00:05 ET (same day), 2026-07-02 00:00 ET
+    `${HEADER}\n1782878400,1,1,1,1,,\n1782878700,1,1,1,1,,\n1782964800,2,2,2,2,,\n`
+  );
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  // One entry per distinct day, in chronological order, no duplicates.
+  assert.match(proc.stdout, /mes_july\.csv: created, \+3 rows[^\n]*\n {2}new days: 2026-07-01, 2026-07-02/);
+});
+
+test('omits the new-days line when nothing new is appended', (t) => {
+  const { incoming, out, run } = harness(t);
+  writeFileSync(join(out, 'mes_july.csv'), `${HEADER}\n1782878400,1,1,1,1,,\n`);
+  writeFileSync(join(incoming, 'dup.csv'), `${HEADER}\n1782878400,1,1,1,1,,\n`);
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stdout, /\+0 rows, 1 skipped/);
+  assert.doesNotMatch(proc.stdout, /new days:/);
+});

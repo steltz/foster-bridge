@@ -26,9 +26,11 @@ deterministic work; this skill runs it, surfaces the result, and commits.
 2. **Run the command** from the repo root:
    `node src/cli.js ingest`
 3. **Surface the result.** Show the user the command's summary verbatim — the
-   per-month `created`/`appended`, rows added, and rows skipped. If the command
-   exits non-zero (e.g. a header mismatch), STOP: report the error and do not
-   commit. The offending inbox file is intentionally left in place for retry.
+   per-month `created`/`appended`, rows added, and rows skipped, plus the
+   `new days:` line listing the distinct calendar days (America/New_York) the
+   appended rows cover. If the command exits non-zero (e.g. a header mismatch),
+   STOP: report the error and do not commit. The offending inbox file is
+   intentionally left in place for retry.
 4. **Commit** the changes with a semantic message describing what was ingested,
    e.g. `data: ingest 42 new MES 5-min candles into mes_july.csv`. Stage the
    updated `ticker-data/MES/min-5/*.csv` and the removed inbox file(s). Do not
