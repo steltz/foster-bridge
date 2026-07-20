@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:24.936Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7485.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7512.5,
+    "rationale": "Long defending the strong-graded 7477.50-7493.50 Bull/Bear support (7482.50 HVN), aligned with bullish intermediate/bigger-picture bias. Price opens near/inside it — the shallowest reachable strong zone; deeper 7409-7416 needs a new range extreme. Entry at the HVN core, stop below zone floor, 3R target into 7506-7516 (NVPOC 7510)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783522200,
+    "exitTime": 1783524000
+  }
+}

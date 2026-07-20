@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-20T00:13:51.316Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7558.5,
+    "stopLoss": 7548.25,
+    "takeProfit": 7589.25,
+    "rationale": "Intermediate/bigger-picture bias bullish. Long the shallowest reachable support: aggressive support 7549.50-58.50 (\"holding above signals strength\"), first-test pullback from 7567-79. No doc reason to expect a deeper flush, so I stay shallow. Enter leading edge 7558.50, stop below zone 7548.25, target into 7590.25-93.25 resistance = 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.25,
+    "dollars": -51.25,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

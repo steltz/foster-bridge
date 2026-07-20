@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-20T00:13:27.501Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7551.75,
+    "stopLoss": 7542.75,
+    "takeProfit": 7578.75,
+    "rationale": "Bullish bigger-picture bias, no confirmed bearish shift (short-term neutral; recap shows ES strength). I fade the 7544-57 launching-point support (7544 HVN, 07/15 initial support) — shallowest high-confluence long in reach. Enter upper-zone shallow-to-fill, stop below the zone, target 7570-81 initial support. ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

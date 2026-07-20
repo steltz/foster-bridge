@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-20T00:13:26.674Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7556.75,
+    "stopLoss": 7543,
+    "takeProfit": 7597.5,
+    "rationale": "Bullish bias: buy the dip. Resting long at Initial Support 7544-7557 (7544 HVN, Launching Point, prior-day low 7556.50) — highest-confluence support where responsive buyers reload. Shallow-to-fill entry near the leading edge; stop one point below 7544; target the aggressive-support/VPOC retest 7597.50 (~3R) on the expected upside rotation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

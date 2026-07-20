@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:23.488Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7554.25,
+    "rationale": "With the Bigger-Picture-Bullish bias and ES the stronger market, I rest a buy in the 7523.25-7535.25 bias-confirming range-exhaustion support (Open Gap 7528.75, NVPOC 7524.75), where the plan says buyers act on first test. Stop below the zone; target the 7544-7557 launching-point zone, ~3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-20T00:13:25.083Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7534,
+    "stopLoss": 7522.5,
+    "takeProfit": 7568,
+    "rationale": "Bullish: failed overnight breakdown, buyers back in control. Long the bias-aligned Aggressive Support 7524-7536.50, a first-test pullback from above—placed shallow near the upper edge to secure the fill. Stop below the zone; target Initial Resistance 7561.25-7571.25 (NVPOC 7567) for ~3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 34,
+    "dollars": 170,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:51.279Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7558.25,
+    "stopLoss": 7548.25,
+    "takeProfit": 7588.25,
+    "rationale": "Bullish larger-timeframe bias (Intermediate/Bigger Picture). Long the shallowest reachable Aggressive Support 7549.50-7558.50 — VPOC 7551.75 confluence, \"holding signals strength\" — entering near the leading edge. Stop beyond the zone's far edge; 3R target just under the 7590.25-7593.25 resistance."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

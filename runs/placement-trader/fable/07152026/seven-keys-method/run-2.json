@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-20T00:13:26.894Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7573.75,
+    "stopLoss": 7563,
+    "takeProfit": 7606.25,
+    "rationale": "Bullish bias (bigger-picture bullish; recap says buy-side dominant, avoid shorts). Buy the first pullback into pre-market support 7564.25-7575.25 — bias-aligned, reachable, defensible stop. Shallow fill at 7573.75 to secure the fill; stop below the zone; target initial resistance edge 7606.25. ~3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 32.5,
+    "dollars": 162.5,
+    "fillTime": 1784132400,
+    "exitTime": 1784137500
+  }
+}

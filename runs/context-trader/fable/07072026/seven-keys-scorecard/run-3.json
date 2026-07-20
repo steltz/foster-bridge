@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:20.583Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7540.5,
+    "stopLoss": 7522.75,
+    "takeProfit": 7593.75,
+    "rationale": "Long the strong-graded initial support 7538.25-7546.75 (first RTH test, 7544 HVN, bullish-bias aligned). Entry 7540.50; daisy-chain stop 7522.75 behind the buying-tail/gap zone 7523.75-7530.25; target 7593.75, the initial-resistance/bias-confirming inflection. Clean 3:1."
+  },
+  "result": {
+    "status": "EOD",
+    "points": 12.75,
+    "dollars": 63.75,
+    "fillTime": 1783434300,
+    "exitTime": 1783454100
+  }
+}

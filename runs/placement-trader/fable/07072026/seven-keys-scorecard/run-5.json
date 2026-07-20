@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-20T00:13:24.464Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7546.25,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "rationale": "Long the plan's Initial Support 7538.25-7546.75 (Seven-Keys strong: first RTH test, 7544 HVN, bullish-bias aligned, the plan's intermarket-trigger long). NQ weakness makes this deeper zone reachable. Shallow fill 7546.25 at the leading edge; stop 7537.25 one point beyond the far edge; target Initial Resistance 7593.75 (~5.3R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

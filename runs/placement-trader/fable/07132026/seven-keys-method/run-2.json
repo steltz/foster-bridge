@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-20T00:13:25.801Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7550,
+    "stopLoss": 7541.75,
+    "takeProfit": 7578.75,
+    "rationale": "Bigger-picture Bullish; overnight weakness projects a sweep into Initial Support 7543-7553 (Friday's RTH low, 7544 HVN) — first RTH test, exhausted approach. Long placement resting at 7550 (upper zone, moderate hold-odds), stop behind the far edge at 7541.75, targeting Aggressive Support 7578.75 for ~3.5R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

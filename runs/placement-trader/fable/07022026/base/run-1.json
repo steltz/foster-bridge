@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-20T00:13:51.205Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7494,
+    "stopLoss": 7480.5,
+    "takeProfit": 7547.75,
+    "rationale": "Long the Bull/Bear bias-confirming support 7481.75-7495.75 (7482.50 HVN), highest-hold-odds zone aligned with the bullish intermediate bias where yesterday's breakout must hold. NFP enables a deep first-test flush. Entry shallow at leading edge; stop below zone; target 7547.75 near prior close/VPOC. ~4R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.5,
+    "dollars": -67.5,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

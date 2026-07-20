@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-20T00:13:27.427Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7556.5,
+    "stopLoss": 7542.75,
+    "takeProfit": 7597.75,
+    "rationale": "Bigger-picture bias bullish; no confirmed bearish shift. Buy 7544-7557 support (7544 HVN, launching point, 07/15 initial support) — high-confluence bias-changing zone the plan projects reaching on downside expansion. Shallow fill near top edge, stop below zone, 3R target into 7593.50-7603.50 aggressive resistance."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

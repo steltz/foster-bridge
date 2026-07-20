@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-20T00:13:22.646Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7576.5,
+    "stopLoss": 7570,
+    "takeProfit": 7596,
+    "rationale": "Bigger-picture bias Bullish; CPI strength broke above yesterday's RTH high. I buy first-test Aggressive Support 7571-7582 (Key 6: aligned bias favors the aggressive zone), stop one point below the zone at 7570, targeting the lower edge of Pre-Market Resistance 7596-7605 for a clean 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-20T00:13:20.329Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7544,
+    "stopLoss": 7537.25,
+    "takeProfit": 7584.5,
+    "rationale": "Bullish intermediate/bigger-picture bias; overnight buyers defended support. Long the plan's named first-test long-trigger zone, Initial Support 7538.25-7546.75, at the 7544 HVN. Stop one point below the zone (7537.25); target next zone up, Pre-Market Resistance 7584.50. ~6:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.75,
+    "dollars": -33.75,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

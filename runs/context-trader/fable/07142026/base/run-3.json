@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:22.395Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7578,
+    "stopLoss": 7570,
+    "takeProfit": 7609.25,
+    "rationale": "Trading with the bigger-picture bullish bias. Post-CPI strength broke above yesterday's high; holding above Aggressive Support 7571-82 signals continuation. Rest a long at 7578, stop 7570 (>1pt below the zone's far edge), targeting Initial Resistance near edge 7609.25. Risk 8, reward 31.25 (~3.9:1)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

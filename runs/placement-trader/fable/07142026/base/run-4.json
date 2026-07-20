@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-20T00:13:26.234Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7578,
+    "stopLoss": 7569.75,
+    "takeProfit": 7605,
+    "rationale": "Bigger-picture bullish; post-CPI buyers broke above yesterday's RTH high. Long the first-test pullback into Aggressive Support 7571-82, entering upper-third to secure fill. Stop below the zone (7569.75); target top of pre-market resistance 7596-7605, the plan's stated upside path. R:R ~3.3."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.25,
+    "dollars": -41.25,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

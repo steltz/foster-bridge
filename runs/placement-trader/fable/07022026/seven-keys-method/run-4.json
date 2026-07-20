@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-20T00:13:51.496Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7511.75,
+    "stopLoss": 7503.75,
+    "takeProfit": 7543.5,
+    "rationale": "Long the bullish intermediate/bigger-picture bias. Initial Support 7505.75-12.75 (prior-day low, first RTH test) sits atop the 7481.75-95.75 bull/bear zone, keeping the breakout intact — the shallowest reachable hold on an NFP open-drive flush. Enter near the leading edge; target the 7543.50 previous close / 7551.75 VPOC. ~4R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783009800,
+    "exitTime": 1783010100
+  }
+}

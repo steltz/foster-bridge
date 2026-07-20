@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-20T00:13:25.909Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7548,
+    "stopLoss": 7542,
+    "takeProfit": 7566,
+    "rationale": "Bigger-picture bullish; buy first test of Initial Support 7543-53 (7544 HVN, Friday's RTH low) on the plan's projected overnight-low sweep — highest long-side confluence (Keys 3,6,7). Entered 7548 deeper for R:R given bias-changing caution, stop 7542 one point below the zone, target 7566 retest of Pre-Market Support. Clean 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

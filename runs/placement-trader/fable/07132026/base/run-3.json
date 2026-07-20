@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:25.656Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7551.75,
+    "stopLoss": 7541.75,
+    "takeProfit": 7581.75,
+    "rationale": "Bigger-picture Bullish; buy first test of Initial Support 7543-7553 (Friday's RTH low, 7544 HVN, bias-changing). Shallow entry near zone top for the fill; stop one point below far edge; ~3R target into Aggressive Support 7578.75-7587.75 as overnight weakness reverts."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

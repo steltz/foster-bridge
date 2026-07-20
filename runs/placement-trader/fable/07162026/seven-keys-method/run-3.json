@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-20T00:13:27.537Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7580,
+    "stopLoss": 7568.75,
+    "takeProfit": 7614.75,
+    "rationale": "Bigger-picture bullish, ES the stronger market, recap warns against shorting ES. Buy the first test of Initial Support 7570-81 (bias-aligned, Key 3/6) shallow at the leading edge 7580, stop beyond the zone. Target prior close 7614.75 within Pre-Market Resistance 7610-19.50. 3.09:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.25,
+    "dollars": -56.25,
+    "fillTime": 1784223600,
+    "exitTime": 1784227200
+  }
+}

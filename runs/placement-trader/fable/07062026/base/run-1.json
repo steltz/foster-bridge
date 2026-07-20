@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-20T00:13:51.746Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7491,
+    "stopLoss": 7477.75,
+    "takeProfit": 7530.25,
+    "rationale": "Long the Bias-Confirming Bull/Bear zone 7479.50-7493.50, where buyers defended 07/02 and aligned with Bullish intermediate/bigger-picture bias. Shallow entry near the zone's leading edge to prioritize fill; stop beyond far edge; TP at pre-market support 7523.75-7530.25 for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
