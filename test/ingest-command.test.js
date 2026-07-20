@@ -146,3 +146,32 @@ test('a second inbox file compares against the max raised by the first', (t) => 
     `${HEADER}\n1782878400,1,1,1,1,,\n1782878700,2,2,2,2,,\n`
   );
 });
+
+test('aborts with non-zero exit and no write when headers do not match', (t) => {
+  const { incoming, out, run } = harness(t);
+  const existing = `time,open,high,low,close\n1782878400,1,1,1,1\n`;
+  writeFileSync(join(out, 'mes_july.csv'), existing);
+  writeFileSync(join(incoming, 'bad.csv'), `${HEADER}\n1782878700,2,2,2,2,,\n`);
+  const proc = run();
+  assert.notEqual(proc.status, 0);
+  assert.match(proc.stderr, /header does not match/);
+  assert.equal(readFileSync(join(out, 'mes_july.csv'), 'utf8'), existing); // unchanged
+  assert.equal(existsSync(join(incoming, 'bad.csv')), true); // retained for retry
+});
+
+test('reports nothing to ingest for an empty inbox', (t) => {
+  const { run } = harness(t);
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stdout, /nothing to ingest/);
+});
+
+test('warns and leaves a header-only inbox file in place', (t) => {
+  const { incoming, out, run } = harness(t);
+  writeFileSync(join(incoming, 'headeronly.csv'), `${HEADER}\n`);
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stderr, /no data rows — leaving it in place/);
+  assert.equal(existsSync(join(incoming, 'headeronly.csv')), true);
+  assert.equal(existsSync(join(out, 'mes_july.csv')), false);
+});
