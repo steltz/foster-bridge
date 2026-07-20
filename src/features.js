@@ -22,6 +22,8 @@ function parseCombines(raw) {
   return inner.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+const NAMESPACED = /\$\{(DOC|ARTIFACT):([^}]+)\}/g;
+
 function extractBlock(text) {
   const lines = text.split('\n');
   if (lines[0]?.trim() !== '---') return text.trim();
@@ -53,6 +55,9 @@ function validateFeatures(features, repoRoot) {
       throw new Error(f.file + ': feature name "' + f.name + '" must not contain a pipe or newline — it is interpolated into a markdown table');
     }
     if (f.combines) continue; // combo-specific rules run in pass 2, below
+    if (f.block.match(NAMESPACED)) {
+      throw new Error(f.file + ': namespaced placeholders (${DOC:id} / ${ARTIFACT:id}) are only valid in combo bodies');
+    }
     if (f.artifactSuffix && !f.generatorSkill) {
       throw new Error(f.file + ': artifactSuffix requires generatorSkill');
     }
@@ -100,6 +105,41 @@ function validateFeatures(features, repoRoot) {
     if (f.staticDoc || f.artifactSuffix || f.generatorSkill) {
       throw new Error(f.file + ': a combo must not declare staticDoc, artifactSuffix, or generatorSkill of its own — resources come from its components');
     }
+    if (f.block) {
+      if (f.block.includes(PLACEHOLDER) || f.block.includes(DOC_PLACEHOLDER)) {
+        throw new Error(f.file + ': bare ' + DOC_PLACEHOLDER + ' / ' + PLACEHOLDER + ' placeholders are ambiguous in a combo body — use ${DOC:<component-id>} / ${ARTIFACT:<component-id>}');
+      }
+      for (const m of f.block.matchAll(NAMESPACED)) {
+        const [, kind, id] = m;
+        if (!seen.has(id)) {
+          throw new Error(f.file + ': placeholder references "' + id + '" which is not a component of this combo');
+        }
+        const comp = byId.get(id);
+        if (kind === 'DOC' && !comp.staticDoc) {
+          throw new Error(f.file + ': ${DOC:' + id + '} but component "' + id + '" has no staticDoc');
+        }
+        if (kind === 'ARTIFACT' && !comp.artifactSuffix) {
+          throw new Error(f.file + ': ${ARTIFACT:' + id + '} but component "' + id + '" has no artifactSuffix');
+        }
+      }
+      for (const id of f.combines) {
+        const comp = byId.get(id);
+        if (comp.artifactSuffix && !f.block.includes('${ARTIFACT:' + id + '}')) {
+          throw new Error(f.file + ': artifact-backed component "' + id + '" is never referenced by the override body — an unused artifact means the combo is not actually combining it');
+        }
+      }
+    }
+  }
+
+  const autoConcatByKey = new Map();
+  for (const f of features) {
+    if (!f.combines || f.block) continue;
+    const key = f.combines.join(' ');
+    const prior = autoConcatByKey.get(key);
+    if (prior) {
+      throw new Error(prior.file + ' and ' + f.file + ': same components in the same order, both auto-concat — the same variant in all but name');
+    }
+    autoConcatByKey.set(key, f);
   }
 }
 
@@ -129,5 +169,17 @@ export function collectFeatures(featuresDir) {
       };
     });
   validateFeatures(features, repoRoot);
+  const byId = new Map(features.map((f) => [f.id, f]));
+  for (const f of features) {
+    if (!f.combines || f.block) continue;
+    f.block = f.combines
+      .map((id) => {
+        const comp = byId.get(id);
+        return comp.block
+          .replaceAll(PLACEHOLDER, '${ARTIFACT:' + id + '}')
+          .replaceAll(DOC_PLACEHOLDER, '${DOC:' + id + '}');
+      })
+      .join('\n\n');
+  }
   return features;
 }

@@ -288,3 +288,99 @@ test('collectFeatures rejects a combo declaring its own resources', (t) => {
   );
   assert.throws(() => collectFeatures(dir), /greedy\.md.*must not declare/);
 });
+
+test('collectFeatures rejects an empty combines list rather than degrading to a plain feature', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'hollow.md'), '---\nid: hollow\ncombines: []\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /hollow\.md.*at least 2/);
+});
+
+test('collectFeatures auto-concats an empty combo body from namespaced component blocks in declared order', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'both.md'), '---\nid: both\ncombines: [method, scorecard]\n---\n\n');
+  const both = collectFeatures(dir).find((f) => f.id === 'both');
+  assert.equal(
+    both.block,
+    'grade zones via ${DOC:method}\n\nsee ${DOC:scorecard} then adopt ${ARTIFACT:scorecard}'
+  );
+});
+
+test('collectFeatures keeps a combo override body verbatim', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC:method}, then consult ${ARTIFACT:scorecard}\n'
+  );
+  const both = collectFeatures(dir).find((f) => f.id === 'both');
+  assert.equal(both.block, 'read ${DOC:method}, then consult ${ARTIFACT:scorecard}');
+});
+
+test('collectFeatures rejects bare placeholders in a combo override body', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC} and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*bare/);
+});
+
+test('collectFeatures rejects a namespaced placeholder naming a non-component', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC:ghost} and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*"ghost".*not.*component/);
+});
+
+test('collectFeatures rejects ${ARTIFACT:x} where component x has no artifact', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${ARTIFACT:method} and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*"method".*no artifactSuffix/);
+});
+
+test('collectFeatures rejects ${DOC:x} where component x has no staticDoc', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'plain.md'), '---\nid: plain\n---\njust prose\n');
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [plain, scorecard]\n---\nread ${DOC:plain} and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*"plain".*no staticDoc/);
+});
+
+test('collectFeatures rejects an override body that never references an artifact-backed component', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC:method} only\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*"scorecard".*never referenced/);
+});
+
+test('collectFeatures rejects namespaced placeholders in a non-combo feature body', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'plain.md'), '---\nid: plain\n---\nreads ${DOC:method}\n');
+  assert.throws(() => collectFeatures(dir), /plain\.md.*namespaced/);
+});
+
+test('collectFeatures rejects two auto-concat combos with identical components and order', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'a-both.md'), '---\nid: a-both\ncombines: [method, scorecard]\n---\n\n');
+  writeFileSync(join(dir, 'b-both.md'), '---\nid: b-both\ncombines: [method, scorecard]\n---\n\n');
+  assert.throws(() => collectFeatures(dir), /same components.*same order/);
+});
+
+test('collectFeatures allows identical components when the order or an override body differs', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'ab.md'), '---\nid: ab\ncombines: [method, scorecard]\n---\n\n');
+  writeFileSync(join(dir, 'ba.md'), '---\nid: ba\ncombines: [scorecard, method]\n---\n\n');
+  writeFileSync(
+    join(dir, 'custom.md'),
+    '---\nid: custom\ncombines: [method, scorecard]\n---\nblend ${DOC:method} with ${ARTIFACT:scorecard}\n'
+  );
+  assert.equal(collectFeatures(dir).length, 5); // method, scorecard, ab, ba, custom
+});
