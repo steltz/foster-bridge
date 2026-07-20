@@ -114,3 +114,35 @@ test('deletes each inbox file after a successful append', (t) => {
   assert.equal(run().status, 0);
   assert.equal(existsSync(join(incoming, 'gone.csv')), false);
 });
+
+test('splits one inbox file across two monthly files by month', (t) => {
+  const { incoming, out, run } = harness(t);
+  writeFileSync(
+    join(incoming, 'span.csv'),
+    `${HEADER}\n1782878400,1,1,1,1,,\n1785556800,9,9,9,9,,\n` // 2026-07-01 and 2026-08-01 ET
+  );
+  assert.equal(run().status, 0);
+  assert.match(readFileSync(join(out, 'mes_july.csv'), 'utf8'), /1782878400,1,1,1,1,,/);
+  assert.match(readFileSync(join(out, 'mes_august.csv'), 'utf8'), /1785556800,9,9,9,9,,/);
+});
+
+test('buckets a late-July ET candle to July even though it is August in UTC', (t) => {
+  const { incoming, out, run } = harness(t);
+  // 1785556500 === 2026-07-31 23:55 ET === 2026-08-01 03:55 UTC
+  writeFileSync(join(incoming, 'boundary.csv'), `${HEADER}\n1785556500,5,5,5,5,,\n`);
+  assert.equal(run().status, 0);
+  assert.equal(existsSync(join(out, 'mes_august.csv')), false);
+  assert.match(readFileSync(join(out, 'mes_july.csv'), 'utf8'), /1785556500,5,5,5,5,,/);
+});
+
+test('a second inbox file compares against the max raised by the first', (t) => {
+  const { incoming, out, run } = harness(t);
+  // Lexicographic order: a.csv processed before b.csv.
+  writeFileSync(join(incoming, 'a.csv'), `${HEADER}\n1782878400,1,1,1,1,,\n`);
+  writeFileSync(join(incoming, 'b.csv'), `${HEADER}\n1782878700,2,2,2,2,,\n1782878400,1,1,1,1,,\n`);
+  assert.equal(run().status, 0);
+  assert.equal(
+    readFileSync(join(out, 'mes_july.csv'), 'utf8'),
+    `${HEADER}\n1782878400,1,1,1,1,,\n1782878700,2,2,2,2,,\n`
+  );
+});
