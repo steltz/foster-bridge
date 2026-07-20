@@ -144,7 +144,7 @@ function statsOverDays(group, daySet) {
 // feature whose runs all failed to produce a setup would be rendered as
 // losing exactly base's P&L, presenting a pipeline failure as a feature
 // effect.
-export function computeFeatureImpact(groups) {
+export function computeFeatureImpact(groups, features = []) {
   // Key must be injective for the same reason computeScoreboard's is: with
   // naive concatenation, trader "a::fable" + model "x" collides with trader
   // "a" + model "fable::x", pairing a feature group against a DIFFERENT
@@ -154,37 +154,65 @@ export function computeFeatureImpact(groups) {
   for (const g of groups) {
     if (g.variant === 'base') baseByPair.set(pairKey(g), g);
   }
-  const variants = [...new Set(groups.map((g) => g.variant).filter((v) => v !== 'base'))].sort(
-    (a, b) => a.localeCompare(b, 'en')
+  const groupByPairVariant = new Map(
+    groups.map((g) => [JSON.stringify([g.trader, g.model, g.variant]), g])
   );
-  return variants.map((variant) => {
-    const rows = groups
+  // Combo → components, from the live feature files first; cells' own
+  // combines key covers combos whose file has since been retired.
+  const comboMap = new Map(features.filter((f) => f.combines).map((f) => [f.id, f.combines]));
+  for (const g of groups) {
+    if (!comboMap.has(g.variant) && Array.isArray(g.cells[0]?.combines)) {
+      comboMap.set(g.variant, g.cells[0].combines);
+    }
+  }
+  const compareRows = (variant, opponentFor) =>
+    groups
       .filter((g) => g.variant === variant)
       .map((g) => {
-        const base = baseByPair.get(pairKey(g));
-        if (!base) return null;
-        const shared = new Set(g.days.filter((d) => base.days.includes(d)));
+        const opponent = opponentFor(g);
+        if (!opponent) return null;
+        const shared = new Set(g.days.filter((d) => opponent.days.includes(d)));
         if (!shared.size) return null;
-        const b = statsOverDays(base, shared);
+        const o = statsOverDays(opponent, shared);
         const f = statsOverDays(g, shared);
-        if (!b.filledCount || !f.filledCount) return null;
+        if (!o.filledCount || !f.filledCount) return null;
         return {
           trader: g.trader,
           model: g.model,
           days: shared.size,
-          baseRuns: b.runs,
+          baseRuns: o.runs,
           featureRuns: f.runs,
-          baseDollars: b.meanDollars,
+          baseDollars: o.meanDollars,
           featureDollars: f.meanDollars,
-          delta: f.meanDollars - b.meanDollars,
+          delta: f.meanDollars - o.meanDollars,
         };
       })
       .filter(Boolean)
       .sort((a, b) => a.trader.localeCompare(b.trader, 'en') || a.model.localeCompare(b.model, 'en'));
+  const variants = [...new Set(groups.map((g) => g.variant).filter((v) => v !== 'base'))].sort(
+    (a, b) => a.localeCompare(b, 'en')
+  );
+  return variants.map((variant) => {
+    const rows = compareRows(variant, (g) => baseByPair.get(pairKey(g)));
+    const componentComparisons = (comboMap.get(variant) ?? []).map((component) => {
+      const cRows = compareRows(variant, (g) =>
+        groupByPairVariant.get(JSON.stringify([g.trader, g.model, component]))
+      );
+      return {
+        component,
+        rows: cRows,
+        overallDelta: cRows.length ? mean(cRows.map((r) => r.delta)) : null,
+      };
+    });
     // Unweighted across pairs on purpose: a pair is one trader/model
     // verdict on the feature, regardless of how many days backed it. The
     // per-row Days and Runs columns are what expose uneven sampling.
-    return { variant, rows, overallDelta: rows.length ? mean(rows.map((r) => r.delta)) : null };
+    return {
+      variant,
+      rows,
+      overallDelta: rows.length ? mean(rows.map((r) => r.delta)) : null,
+      componentComparisons,
+    };
   });
 }
 
@@ -254,7 +282,7 @@ export function renderScoreboard({ groups, maxCells }, traders = [], features = 
     ),
   ];
 
-  const impact = computeFeatureImpact(groups);
+  const impact = computeFeatureImpact(groups, features);
   if (impact.length) {
     lines.push(
       '',
@@ -286,6 +314,27 @@ export function renderScoreboard({ groups, maxCells }, traders = [], features = 
               feat.rows.length === 1 ? '' : 's'
             }: ${signed(feat.overallDelta)}**`
       );
+      for (const cc of feat.componentComparisons) {
+        const compLabel = nameById.get(cc.component) ?? cc.component;
+        lines.push(
+          '',
+          `#### ${label} vs ${compLabel}`,
+          '',
+          `| Trader | Model | Days | Runs | ${compLabel} $/run | ${label} $/run | Δ |`,
+          '|---|---|---|---|---|---|---|',
+          ...cc.rows.map(
+            (r) =>
+              `| ${r.trader} | ${r.model} | ${r.days} | ${r.baseRuns}v${r.featureRuns} ` +
+              `| ${money(r.baseDollars)} | ${money(r.featureDollars)} | ${signed(r.delta)} |`
+          ),
+          '',
+          cc.overallDelta == null
+            ? 'No comparable (trader, model) pairs yet.'
+            : `**Overall Δ for ${label} vs ${compLabel} across ${cc.rows.length} pair${
+                cc.rows.length === 1 ? '' : 's'
+              }: ${signed(cc.overallDelta)}**`
+        );
+      }
     }
   }
 

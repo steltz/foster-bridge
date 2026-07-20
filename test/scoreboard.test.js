@@ -437,3 +437,89 @@ test('root trader sections carry no Origin line', () => {
   const md = renderScoreboard(board, LINEAGE_TRADERS);
   assert.doesNotMatch(md.split('## basehit-trader @ fable [base]')[1], /^Origin:/m);
 });
+
+// Combos — minimal cell factory. dollars null → NOT_FILLED.
+const comboCell = (trader, model, day, variant, runIndex, dollars, extra = {}) => ({
+  trader,
+  model: { alias: model },
+  day,
+  date: '2026-07-01',
+  variant,
+  runIndex,
+  setup: { side: 'long', entry: 1, stopLoss: 0, takeProfit: 2, rationale: '' },
+  result:
+    dollars == null
+      ? { status: 'NOT_FILLED', points: null, dollars: null }
+      : { status: 'TP', points: dollars / 5, dollars },
+  ...extra,
+});
+
+test('computeFeatureImpact adds componentComparisons for combos, empty for plain features', () => {
+  const cells = [
+    comboCell('t', 'fable', '07012026', 'base', 1, 10),
+    comboCell('t', 'fable', '07012026', 'method', 1, 20),
+    comboCell('t', 'fable', '07012026', 'scorecard', 1, 30),
+    comboCell('t', 'fable', '07012026', 'both', 1, 60, { combines: ['method', 'scorecard'] }),
+  ];
+  const { groups } = computeScoreboard(cells);
+  const features = [
+    { id: 'method', name: 'Method', combines: null },
+    { id: 'scorecard', name: 'Scorecard', combines: null },
+    { id: 'both', name: 'Both', combines: ['method', 'scorecard'] },
+  ];
+  const impact = computeFeatureImpact(groups, features);
+  const both = impact.find((f) => f.variant === 'both');
+  assert.equal(both.rows[0].delta, 50); // vs base, unchanged semantics
+  const vsMethod = both.componentComparisons.find((c) => c.component === 'method');
+  const vsScorecard = both.componentComparisons.find((c) => c.component === 'scorecard');
+  assert.equal(vsMethod.rows[0].delta, 40);
+  assert.equal(vsMethod.overallDelta, 40);
+  assert.equal(vsScorecard.rows[0].delta, 30);
+  assert.deepEqual(impact.find((f) => f.variant === 'method').componentComparisons, []);
+});
+
+test('computeFeatureImpact component comparisons use shared days only and omit unfilled sides', () => {
+  const cells = [
+    comboCell('t', 'fable', '07012026', 'base', 1, 10),
+    comboCell('t', 'fable', '07012026', 'method', 1, 20),
+    comboCell('t', 'fable', '07022026', 'method', 1, 999), // day not shared with combo
+    comboCell('t', 'fable', '07012026', 'both', 1, 60, { combines: ['method', 'scorecard'] }),
+  ];
+  const { groups } = computeScoreboard(cells);
+  const features = [{ id: 'both', name: 'Both', combines: ['method', 'scorecard'] }];
+  const both = computeFeatureImpact(groups, features).find((f) => f.variant === 'both');
+  const vsMethod = both.componentComparisons.find((c) => c.component === 'method');
+  assert.equal(vsMethod.rows[0].days, 1);
+  assert.equal(vsMethod.rows[0].delta, 40); // 999 on the unshared day never leaks in
+  const vsScorecard = both.componentComparisons.find((c) => c.component === 'scorecard');
+  assert.deepEqual(vsScorecard.rows, []); // no scorecard cells at all
+  assert.equal(vsScorecard.overallDelta, null);
+});
+
+test('computeFeatureImpact falls back to the cells combines key when the combo file is gone', () => {
+  const cells = [
+    comboCell('t', 'fable', '07012026', 'base', 1, 10),
+    comboCell('t', 'fable', '07012026', 'method', 1, 20),
+    comboCell('t', 'fable', '07012026', 'both', 1, 60, { combines: ['method', 'scorecard'] }),
+  ];
+  const { groups } = computeScoreboard(cells);
+  const both = computeFeatureImpact(groups, []).find((f) => f.variant === 'both');
+  assert.equal(both.componentComparisons.length, 2);
+  assert.equal(both.componentComparisons[0].component, 'method');
+});
+
+test('renderScoreboard renders combo component comparison tables', () => {
+  const cells = [
+    comboCell('t', 'fable', '07012026', 'base', 1, 10),
+    comboCell('t', 'fable', '07012026', 'method', 1, 20),
+    comboCell('t', 'fable', '07012026', 'both', 1, 60, { combines: ['method', 'scorecard'] }),
+  ];
+  const features = [
+    { id: 'method', name: 'Method', combines: null },
+    { id: 'both', name: 'Both', combines: ['method', 'scorecard'] },
+  ];
+  const md = renderScoreboard(computeScoreboard(cells), [], features);
+  assert.match(md, /#### Both vs Method/);
+  assert.match(md, /Overall Δ for Both vs Method across 1 pair: \+40\.00/);
+  assert.match(md, /#### Both vs scorecard/); // no feature entry → falls back to the id
+});
