@@ -22,7 +22,10 @@ function parseCombines(raw) {
   return inner.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-const NAMESPACED = /\$\{(DOC|ARTIFACT):([^}]+)\}/g;
+// The id class excludes "$" and "{" so an unclosed ${DOC:x cannot greedily
+// merge with the next placeholder into one bogus match — it stays behind as
+// residue for the malformed-placeholder guard below.
+const NAMESPACED = /\$\{(DOC|ARTIFACT):([^${}]+)\}/g;
 
 function extractBlock(text) {
   const lines = text.split('\n');
@@ -39,6 +42,7 @@ function extractBlock(text) {
 }
 
 function validateFeatures(features, repoRoot) {
+  // Pass 1 — id/name rules for every feature, then plain-feature body rules.
   const byId = new Map();
   for (const f of features) {
     if (!SLUG.test(f.id)) {
@@ -83,6 +87,7 @@ function validateFeatures(features, repoRoot) {
     }
   }
 
+  // Pass 2 — combo structure and override-body placeholder rules.
   for (const f of features) {
     if (!f.combines) continue;
     if (f.combines.length < 2) {
@@ -122,6 +127,13 @@ function validateFeatures(features, repoRoot) {
           throw new Error(f.file + ': ${ARTIFACT:' + id + '} but component "' + id + '" has no artifactSuffix');
         }
       }
+      // Anything that looks namespaced but did not match NAMESPACED (empty id,
+      // missing closing brace) would otherwise survive discovery — Guard #0
+      // says invalid features never reach the bench.
+      const residue = f.block.replaceAll(NAMESPACED, '');
+      if (residue.includes('${DOC:') || residue.includes('${ARTIFACT:')) {
+        throw new Error(f.file + ': malformed namespaced placeholder — every ${DOC:...}/${ARTIFACT:...} needs a non-empty component id and closing brace');
+      }
       for (const id of f.combines) {
         const comp = byId.get(id);
         if (comp.artifactSuffix && !f.block.includes('${ARTIFACT:' + id + '}')) {
@@ -131,6 +143,8 @@ function validateFeatures(features, repoRoot) {
     }
   }
 
+  // Pass 3 — two auto-concat combos with identical components and order are
+  // the same variant in all but name.
   const autoConcatByKey = new Map();
   for (const f of features) {
     if (!f.combines || f.block) continue;
@@ -169,6 +183,10 @@ export function collectFeatures(featuresDir) {
       };
     });
   validateFeatures(features, repoRoot);
+  // Runs after validation: components can never be combos, so only unmutated
+  // plain blocks are read. Resolved objects must not be re-validated —
+  // auto-concat combos now have non-empty blocks and would be misread as
+  // override bodies.
   const byId = new Map(features.map((f) => [f.id, f]));
   for (const f of features) {
     if (!f.combines || f.block) continue;

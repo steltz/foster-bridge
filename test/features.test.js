@@ -361,6 +361,24 @@ test('collectFeatures rejects an override body that never references an artifact
   assert.throws(() => collectFeatures(dir), /both\.md.*"scorecard".*never referenced/);
 });
 
+test('collectFeatures rejects an empty-id namespaced placeholder in a combo override body', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${ARTIFACT:} and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*malformed/);
+});
+
+test('collectFeatures rejects an unclosed namespaced placeholder in a combo override body', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC:method and ${ARTIFACT:scorecard}\n'
+  );
+  assert.throws(() => collectFeatures(dir), /both\.md.*malformed/);
+});
+
 test('collectFeatures rejects namespaced placeholders in a non-combo feature body', (t) => {
   const dir = comboRoot(t);
   writeFileSync(join(dir, 'plain.md'), '---\nid: plain\n---\nreads ${DOC:method}\n');
