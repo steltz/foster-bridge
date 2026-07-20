@@ -2,13 +2,15 @@
 import { runBacktest } from './run-command.js';
 import { runScoreboard } from './scoreboard-command.js';
 import { runTranscript } from './transcript-command.js';
+import { runIngest } from './ingest-command.js';
 
 const USAGE =
   'Usage: backtest <command> ...\n' +
   'Commands:\n' +
   '  run         Backtest orders against OHLC data (default when flags are given)\n' +
   '  transcript  Fetch a YouTube video transcript as markdown\n' +
-  '  scoreboard  Regenerate runs/SCOREBOARD.md from benchmark cells';
+  '  scoreboard  Regenerate runs/SCOREBOARD.md from benchmark cells\n' +
+  '  ingest      Append new candles from ticker-data/incoming/ into monthly files';
 
 try {
   const argv = process.argv.slice(2);
@@ -17,6 +19,8 @@ try {
     await runTranscript(rest);
   } else if (first === 'scoreboard') {
     runScoreboard(rest);
+  } else if (first === 'ingest') {
+    runIngest(rest);
   } else if (first === 'run') {
     runBacktest(rest);
   } else if (first === undefined || first.startsWith('--')) {

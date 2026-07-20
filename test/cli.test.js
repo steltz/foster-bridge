@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const cli = fileURLToPath(new URL('../src/cli.js', import.meta.url));
@@ -154,4 +157,17 @@ test('unknown command errors with usage', () => {
   assert.equal(proc.status, 1);
   assert.equal(proc.stdout, '');
   assert.match(proc.stderr, /Unknown command "bogus"/);
+});
+
+test('ingest subcommand reports an empty inbox and exits 0', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'cli-ingest-'));
+  const incoming = join(dir, 'incoming');
+  mkdirSync(incoming, { recursive: true });
+  const proc = spawnSync(
+    process.execPath,
+    [cli, 'ingest', '--incoming', incoming, '--out', join(dir, 'out')],
+    { encoding: 'utf8' }
+  );
+  assert.equal(proc.status, 0, proc.stderr);
+  assert.match(proc.stdout, /nothing to ingest/);
 });
