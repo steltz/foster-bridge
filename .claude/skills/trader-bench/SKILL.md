@@ -90,24 +90,26 @@ Any other alias → abort listing the valid aliases.
    missing file) — abort relaying its error message verbatim; the remedy is
    fixing the named feature file, and no cells have been touched. Otherwise
    the printed array gives each feature's `id`, `name`, `artifactSuffix`,
-   `generatorSkill`, `staticDoc`, and prompt `block`. Entries may also carry
-   `combines` (an ordered component-id list): such a feature is a COMBO — its
-   `block` arrives pre-resolved with namespaced `${DOC:<component-id>}` /
-   `${ARTIFACT:<component-id>}` placeholders (built by auto-concat, or authored
-   as an override body), and its own `artifactSuffix`/`generatorSkill`/
-   `staticDoc` are always null; every resource belongs to a component, found by
-   id in this same array. Combo validation failures (unknown/nested component
-   ids, own resource keys, bare or mismatched placeholders, an override body
-   that skips an artifact-backed component, duplicate auto-concat twins, a
-   component file removed while a combo still references it) surface as the same
-   nonzero exit relayed verbatim; for a removed component the remedy is removing
-   or retiring the referencing combo(s) in the same change. For every feature whose
-   `staticDoc` is non-null, resolve it to an absolute path (repo root joined
-   with `staticDoc`) — `collectFeatures` already confirmed the file exists,
-   so this is a plain join, the same way `GENERAL`/`PERSONAS`/`DOCS_BY_DAY`
-   are resolved to absolute paths elsewhere in this phase.
-   `VARIANTS = ['base', ...featureIds]` (`base` always first). No feature
-   files at all → `VARIANTS = ['base']` only.
+   `generatorSkill`, `staticDoc`, and prompt `block`. Entries may also
+   carry `combines` (an ordered component-id list): such a feature is a
+   COMBO — its `block` arrives pre-resolved with namespaced
+   `${DOC:<component-id>}` / `${ARTIFACT:<component-id>}` placeholders
+   (built by auto-concat, or authored as an override body), and its own
+   `artifactSuffix`/`generatorSkill`/`staticDoc` are always null; every
+   resource belongs to a component, found by id in this same array. Combo
+   validation failures (unknown/nested component ids, own resource keys,
+   bare or mismatched placeholders, an override body that skips an
+   artifact-backed component, duplicate auto-concat twins, a component
+   file removed while a combo still references it) surface as the same
+   nonzero exit relayed verbatim; for a removed component the remedy is
+   removing or retiring the referencing combo(s) in the same change. For
+   every feature whose `staticDoc` is non-null, resolve it to an absolute
+   path (repo root joined with `staticDoc`) — `collectFeatures` already
+   confirmed the file exists, so this is a plain join, the same way
+   `GENERAL`/`PERSONAS`/`DOCS_BY_DAY` are resolved to absolute paths
+   elsewhere in this phase. `VARIANTS = ['base', ...featureIds]` (`base`
+   always first); combo ids enter `VARIANTS` like any other feature id.
+   No feature files at all → `VARIANTS = ['base']` only.
 8. **Feature immutability guard:** compute each feature's hash from its OWN
    `file` field returned by step 7 (e.g. `seven-keys-method.md`) — run
    `shasum -a 256 features/<that file field>`, NOT `features/<id>.md`;
@@ -141,11 +143,12 @@ Any other alias → abort listing the valid aliases.
     for every feature with both `artifactSuffix` and `generatorSkill`, every
     candidate day needs a `<prefix><artifactSuffix>` in its folder. BEFORE
     generating anything, for each (day, feature) whose artifact is missing,
-    check `runs/*/*/<day>/<v>/run-*.json` for EVERY consuming variant `<v>` —
-    the feature's own id plus every combo whose `combines` includes it: a hit
-    means that combination is already benchmarked, so its artifact is frozen and was
-    deleted — abort naming the day and feature, remedy: restore the artifact
-    from git or start a new benchmark era. Generating first and letting step
+    check `runs/*/*/<day>/<v>/run-*.json` for EVERY consuming variant
+    `<v>` — the feature's own id plus every combo whose `combines`
+    includes it: a hit means that combination is already benchmarked, so
+    its artifact is frozen and was deleted — abort naming the day and
+    feature, remedy: restore the artifact from git or start a new
+    benchmark era. Generating first and letting step
     11's hash compare catch it would abort only AFTER committing a fresh
     artifact that contradicts the frozen cells. For the remaining days
     missing one, run that feature's `generatorSkill` flow (its own phases,
@@ -186,8 +189,7 @@ Any other alias → abort listing the valid aliases.
     skipped (day, feature) artifact failures. Example: "2 traders × 10
     days × 4 variants (base, seven-keys-method, seven-keys-scorecard,
     seven-keys-both) × fable, target N=5: 112 cells exist, 288 to run."
-    If nothing is missing,
-    say so and jump to Phase 4.
+    If nothing is missing, say so and jump to Phase 4.
 
 ## Phase 2 — Fan-out (ONE Workflow invocation)
 
@@ -232,7 +234,7 @@ const NL = String.fromCharCode(10)
 const FEATURES = {
   '<plain feature id>': {
     block: [
-      "<lines of the body, ${ARTIFACT} and ${DOC} left intact, as before>",
+      "<lines of the body, ${ARTIFACT} and ${DOC} left intact, one double-quoted string per line per the comment above>",
     ].join(NL),
     // Both BARE booleans, never quoted — the string 'false' is truthy, which
     // would send a feature with no artifact (or no static doc) down that
@@ -253,12 +255,13 @@ const FEATURES = {
     docPath: null,
     combines: ['<component id>', '<component id>'],
     // Absolute per-component staticDoc paths — ONLY components that declare
-    // one appear here.
+    // one appear here; possibly empty, but the key itself is always present.
     docPaths: { '<component id>': '<absolute staticDoc path>' },
     // Component ids that declare artifactSuffix, possibly empty.
     artifactComponents: ['<component id>'],
   },
 }
+// Keyed by artifact-OWNING feature/component ids.
 const ARTIFACTS_BY_DAY = {
   '<MMDDYYYY>': {
     '<feature id>': '<absolute path to that day\'s <prefix><artifactSuffix> — only present for features with an artifact>',
@@ -281,8 +284,8 @@ const SETUP_SCHEMA = {
 }
 phase('Setups')
 const generalBlock = GENERAL.length
-  ? `Next Read ALL of these general trading-strategy documents — session-agnostic guidance that applies to every trade and constrains how this persona operates:\n` +
-    GENERAL.map((g) => `- ${g}`).join('\n') + `\n\n`
+  ? `Next Read ALL of these general trading-strategy documents — session-agnostic guidance that applies to every trade and constrains how this persona operates:` + NL +
+    GENERAL.map((g) => `- ${g}`).join(NL) + NL + NL
   : ''
 const results = await parallel(CELLS.map((cell) => () => {
   const docs = DOCS_BY_DAY[cell.day]
@@ -303,10 +306,10 @@ const results = await parallel(CELLS.map((cell) => () => {
   // missing path here IS a legitimate signal of a preflight bug: fail the
   // cell loudly rather than silently prompting with an empty artifact path.
   // Throwing is contained, not fatal to the run — same mechanism as above —
-  // so this cell alone is lost and gets reported as an anomaly. For combos,
-  // ARTIFACTS_BY_DAY is keyed by the artifact-owning COMPONENT id (unchanged —
-  // component ids are feature ids), and docPaths is inlined per component the
-  // same way docPath is for plain features.
+  // so this cell alone is lost and gets reported as an anomaly. For
+  // combos, ARTIFACTS_BY_DAY is keyed by the artifact-owning COMPONENT id
+  // (unchanged — component ids are feature ids), and docPaths is inlined
+  // per component the same way docPath is for plain features.
   const featureBlock = (() => {
     if (cell.variant === 'base') return ''
     const feature = FEATURES[cell.variant]
@@ -339,13 +342,13 @@ const results = await parallel(CELLS.map((cell) => () => {
     return block.replaceAll('${ARTIFACT}', artifactPath) + NL + NL
   })()
   return agent(
-    `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.\n\n` +
+    `You are a futures trading persona on an independent benchmark run. First Read the persona file at ${PERSONAS[cell.trader]} and fully adopt that trading identity — its bias, entry style, stop and target logic.` + NL + NL +
     generalBlock +
     featureBlock +
-    `Then Read the three documents for the ${docs.date} ES (E-mini S&P 500) session:\n` +
-    `1. Trade plan worksheet (PDF, support/resistance zones): ${docs.pdf}\n` +
-    `2. Trade plan video transcript: ${docs.plan}\n` +
-    `3. Prior-session recap transcript: ${docs.recap}\n\n` +
+    `Then Read the three documents for the ${docs.date} ES (E-mini S&P 500) session:` + NL +
+    `1. Trade plan worksheet (PDF, support/resistance zones): ${docs.pdf}` + NL +
+    `2. Trade plan video transcript: ${docs.plan}` + NL +
+    `3. Prior-session recap transcript: ${docs.recap}` + NL + NL +
     `As this persona, commit to exactly ONE trade for the session: long or short. ` +
     `Anchor your entry, stop loss, and take profit to the support/resistance zones in the trade plan. ` +
     `Prices are ES index points in quarter-point increments (e.g. 7530.25). ` +
@@ -358,7 +361,7 @@ log(`${results.filter(Boolean).length}/${CELLS.length} cells returned setups`)
 return results.filter(Boolean)
 ```
 
-If the Workflow invocation itself fails or returns no results array at all, abort WITHOUT writing any cells — the matrix stays untouched and a rerun tops up cleanly. When the Workflow succeeds, any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues — with the one exception Phase 3 names, where a dropped cell for an artifact-backed or doc-backed variant that has no Phase 1 hash for the missing piece gets no file at all.
+If the Workflow invocation itself fails or returns no results array at all, abort WITHOUT writing any cells — the matrix stays untouched and a rerun tops up cleanly. When the Workflow succeeds, any individual cell absent from the returned array (its agent died) gets a cell file in Phase 3 with status `NO_SETUP` and no `setup` key; the bench continues — with the exceptions Phase 3 names, where a dropped cell missing any Phase 1 hash its schema requires (scalar or map form) gets no file at all.
 
 ## Phase 3 — Judge and persist (no validation of your own)
 
