@@ -52,19 +52,18 @@ the verifier passes it; never write an unverified artifact.
    the lookback agent is skipped entirely.
 6. **Guards:**
    - **Benchmark immutability (always, `force` or not):** any existing
-     benchmark cell under this day's `seven-keys-scorecard` variant folder
-     means the day's keys file is immutable — regeneration is forbidden even
-     if the file was deleted. Check with
-     `ls runs/*/*/<day>/seven-keys-scorecard/run-*.json 2>/dev/null`; any hit
-     → abort: the remedy is a new benchmark era, not an edit. (The literal
-     `seven-keys-scorecard` path segment here is a copy of the `id:` in
-     `features/seven-keys-scorecard.md` — the only feature whose
-     `generatorSkill` is this skill and that reads the generated artifact;
-     `seven-keys-method` never generates or reads it, so it needs no
-     matching guard — not a derived value, so if `seven-keys-scorecard` is
-     ever superseded by a new id, per Guard #2's own remedy, update this
-     path segment to match or this guard silently stops protecting the new
-     variant's artifacts.)
+     benchmark cell under ANY variant that consumes this day's keys file
+     means the file is immutable — regeneration is forbidden even if the
+     file was deleted. Derive the consuming variant ids by running
+     `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`:
+     they are every feature whose `generatorSkill` is `seven-keys` (the
+     artifact owners), plus every combo whose `combines` includes one of
+     those. For each consuming id `<v>`, check
+     `ls runs/*/*/<day>/<v>/run-*.json 2>/dev/null`; any hit → abort naming
+     the variant that froze it: the remedy is a new benchmark era, not an
+     edit. (Derived, not hardcoded, so a renamed scorecard feature or a new
+     combo consuming the artifact is protected automatically — the failure
+     the old literal `seven-keys-scorecard` segment could not catch.)
    - **Overwrite:** if the target day already has a `*_ES_KEYS.md` and
      `force` was not given → abort naming the file and telling the user to
      pass `force`.
