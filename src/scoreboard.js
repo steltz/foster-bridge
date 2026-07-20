@@ -157,12 +157,13 @@ export function computeFeatureImpact(groups, features = []) {
   const groupByPairVariant = new Map(
     groups.map((g) => [JSON.stringify([g.trader, g.model, g.variant]), g])
   );
-  // Combo → components, from the live feature files first; cells' own
+  // Combo → components, from the live feature files first; any cell's own
   // combines key covers combos whose file has since been retired.
   const comboMap = new Map(features.filter((f) => f.combines).map((f) => [f.id, f.combines]));
   for (const g of groups) {
-    if (!comboMap.has(g.variant) && Array.isArray(g.cells[0]?.combines)) {
-      comboMap.set(g.variant, g.cells[0].combines);
+    if (!comboMap.has(g.variant)) {
+      const combines = g.cells.find((c) => Array.isArray(c.combines))?.combines;
+      if (combines) comboMap.set(g.variant, combines);
     }
   }
   const compareRows = (variant, opponentFor) =>
@@ -176,6 +177,7 @@ export function computeFeatureImpact(groups, features = []) {
         const o = statsOverDays(opponent, shared);
         const f = statsOverDays(g, shared);
         if (!o.filledCount || !f.filledCount) return null;
+        // baseRuns/baseDollars hold the OPPONENT side — named for the dominant vs-base case; component comparisons reuse the shape.
         return {
           trader: g.trader,
           model: g.model,
@@ -292,7 +294,9 @@ export function renderScoreboard({ groups, maxCells }, traders = [], features = 
         '(the Days column); days covered by one side never bias Δ. Runs is ' +
         'base-vs-feature run counts over those days — a lopsided pair is a ' +
         'weakly sampled verdict. Pairs where either side has no filled ' +
-        'trades over the shared days are omitted rather than scored zero.',
+        'trades over the shared days are omitted rather than scored zero. ' +
+        'For combos, additional tables compare the combo against each of ' +
+        'its components over the same shared-day rule.',
       ''
     );
     for (const feat of impact) {

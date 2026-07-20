@@ -522,4 +522,6 @@ test('renderScoreboard renders combo component comparison tables', () => {
   assert.match(md, /#### Both vs Method/);
   assert.match(md, /Overall Δ for Both vs Method across 1 pair: \+40\.00/);
   assert.match(md, /#### Both vs scorecard/); // no feature entry → falls back to the id
+  assert.match(md, /\| Method \$\/run \| Both \$\/run \|/);
+  assert.match(md, /\| t \| fable \| 1 \| 1v1 \| 20\.00 \| 60\.00 \| \+40\.00 \|/);
 });
