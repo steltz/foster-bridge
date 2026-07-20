@@ -261,12 +261,17 @@ redundant — both components share the same `staticDoc`.)
 - Scoreboard tests: combo Feature Impact rows (vs base + vs each
   component) over shared days; combos ranked normally; plain-feature
   Feature Impact output unchanged.
-- Bench dry-run test (fixture runs/ tree): missing-set computation
-  includes combos; componentSha256s guard trips on a mutated component.
-- Seven-keys guard test (fixture runs/ tree): regeneration is blocked
-  when a day has cells ONLY under a combo that consumes the artifact
-  (no `seven-keys-scorecard` cells present), and allowed when no
-  consuming variant has cells.
+- Consuming-variant derivation test: `consumingVariants(features, skill)`
+  returns generator-owned features plus combos containing them, excluding
+  combos of non-owning components — the tested core of the seven-keys
+  regeneration guard, whose glob-and-abort steps remain executable prose
+  in the skill file (verified there against the live repo).
+- Bench dry-run and guard-trip scenarios (missing-set computation with
+  combos, componentSha256s mismatch, combo-only-cells regeneration block)
+  are scoped to executable prose in the two SKILL.md files: their hash
+  and glob steps run shell commands no `node --test` case can execute
+  meaningfully. The underlying data they filter is covered by the
+  collectFeatures and consumingVariants unit tests above.
 - Retirement test: a combo referencing a removed component id aborts
   discovery naming the combo and the coupled-removal remedy; removing a
   plain feature with no referencing combos still degrades gracefully.

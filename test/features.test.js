@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { collectFeatures } from '../src/features.js';
+import { collectFeatures, consumingVariants } from '../src/features.js';
 
 test('collectFeatures returns [] for a missing directory', () => {
   assert.deepEqual(collectFeatures(join(tmpdir(), 'no-such-features-dir')), []);
@@ -401,4 +401,23 @@ test('collectFeatures allows identical components when the order or an override 
     '---\nid: custom\ncombines: [method, scorecard]\n---\nblend ${DOC:method} with ${ARTIFACT:scorecard}\n'
   );
   assert.equal(collectFeatures(dir).length, 5); // method, scorecard, ab, ba, custom
+});
+
+test('consumingVariants returns generator-owned features plus combos containing them, in that order', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(
+    join(dir, 'both.md'),
+    '---\nid: both\ncombines: [method, scorecard]\n---\nread ${DOC:method}, then consult ${ARTIFACT:scorecard}\n'
+  );
+  const features = collectFeatures(dir);
+  assert.deepEqual(consumingVariants(features, 'seven-keys'), ['scorecard', 'both']);
+});
+
+test('consumingVariants excludes combos of non-owning components and unrelated generators', (t) => {
+  const dir = comboRoot(t);
+  writeFileSync(join(dir, 'plain.md'), '---\nid: plain\n---\njust prose\n');
+  writeFileSync(join(dir, 'duo.md'), '---\nid: duo\ncombines: [method, plain]\n---\n\n');
+  const features = collectFeatures(dir);
+  assert.deepEqual(consumingVariants(features, 'seven-keys'), ['scorecard']);
+  assert.deepEqual(consumingVariants(features, 'other-skill'), []);
 });

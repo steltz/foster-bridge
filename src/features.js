@@ -201,3 +201,15 @@ export function collectFeatures(featuresDir) {
   }
   return features;
 }
+
+// The variant ids whose benchmark cells consume a generator skill's
+// artifacts: the features it generates for, plus every combo containing
+// one. Generator skills use this to guard regeneration — a day's artifact
+// is frozen by cells under ANY of these ids, not just the owner's.
+export function consumingVariants(features, generatorSkill) {
+  const owners = features.filter((f) => f.generatorSkill === generatorSkill).map((f) => f.id);
+  const combos = features
+    .filter((f) => f.combines && f.combines.some((id) => owners.includes(id)))
+    .map((f) => f.id);
+  return [...owners, ...combos];
+}

@@ -55,10 +55,10 @@ the verifier passes it; never write an unverified artifact.
      benchmark cell under ANY variant that consumes this day's keys file
      means the file is immutable — regeneration is forbidden even if the
      file was deleted. Derive the consuming variant ids by running
-     `node -e "import('./src/features.js').then((m) => console.log(JSON.stringify(m.collectFeatures('features'))))"`:
-     they are every feature whose `generatorSkill` is `seven-keys` (the
-     artifact owners), plus every combo whose `combines` includes one of
-     those. For each consuming id `<v>`, check
+     `node -e "import('./src/features.js').then((m) => console.log(m.consumingVariants(m.collectFeatures('features'), 'seven-keys').join(' ')))"`
+     — the tested helper returns every feature this skill generates for,
+     plus every combo whose `combines` includes one of those. For each
+     consuming id `<v>`, check
      `ls runs/*/*/<day>/<v>/run-*.json 2>/dev/null`; any hit → abort naming
      the variant that froze it: the remedy is a new benchmark era, not an
      edit. (Derived, not hardcoded, so a renamed scorecard feature or a new
