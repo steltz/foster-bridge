@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-20T12:17:04Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7524.75,
+    "stopLoss": 7532.75,
+    "takeProfit": 7500,
+    "rationale": "Neutral-bearish Friday, sell side in firm control: fading the bounce into aggressive resistance 7518.50-7531.50 at the NVPOC 7524.75 confluence, stop one point beyond the far edge. Target the plan's projected move to overnight low/pre-market support 7491.25-7500, exiting at its front edge for 3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

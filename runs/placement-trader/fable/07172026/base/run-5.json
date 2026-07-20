@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-20T12:17:04Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7478.75,
+    "stopLoss": 7467.25,
+    "takeProfit": 7517.75,
+    "rationale": "Responsive long at the 7468.50-7480 bias-confirming Bull/Bear initial support (range exhaustion, first RTH test); plan calls breakdowns below it suspect and bigger picture is bullish. Shallow entry near the 7480 edge, stop 1+ point behind the zone, target ahead of 7518.50-7531.50 aggressive resistance for ~3.4R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}
