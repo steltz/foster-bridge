@@ -184,8 +184,9 @@ Any other alias → abort listing the valid aliases.
 13. **Report the plan, then proceed:** traders × days × variants × model
     alias, cells already present, cells to run, skipped days with reasons,
     skipped (day, feature) artifact failures. Example: "2 traders × 10
-    days × 3 variants (base, seven-keys-method, seven-keys-scorecard) ×
-    fable, target N=5: 84 cells exist, 216 to run." If nothing is missing,
+    days × 4 variants (base, seven-keys-method, seven-keys-scorecard,
+    seven-keys-both) × fable, target N=5: 112 cells exist, 288 to run."
+    If nothing is missing,
     say so and jump to Phase 4.
 
 ## Phase 2 — Fan-out (ONE Workflow invocation)
