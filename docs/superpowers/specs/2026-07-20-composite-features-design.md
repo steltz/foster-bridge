@@ -64,6 +64,16 @@ aborts discovery exactly like an invalid feature does today):
   validation error. Same components with different override bodies (or
   different order) are distinct variants and legal.
 
+**Feature retirement.** Deleting a retired plain feature file remains
+tolerated (it drops out of `VARIANTS`; its cells and scoreboard rows
+persist). Deleting a feature that any combo still references is a
+discovery error that aborts the entire bench — deliberately, for
+consistency with every other guard: the error message must name the
+dangling combo(s) and the remedy ("remove or retire the combos
+referencing it in the same change"). Silently skipping an orphaned combo
+is explicitly rejected: a variant that vanishes from the plan without an
+error reads as "covered" when it isn't.
+
 ## Prompt resolution
 
 `collectFeatures` resolves each combo to a final prompt block:
@@ -124,6 +134,53 @@ features. Specific deltas:
   loudly (contained by `parallel()`, reported as an anomaly) rather than
   prompting with a literal placeholder.
 
+### SKILL.md deliverables
+
+The skill file is the executor — these edits are in scope, not implied.
+The `/trader-bench` SKILL.md changes are a first-class deliverable. The
+implementation plan must rewrite, at minimum:
+
+- **Step 7:** `collectFeatures` output now includes `combines` and
+  per-component resolved resources; the plain-feature fields keep their
+  exact current shape.
+- **Step 8:** for combo variants, also compare each component file's hash
+  against every existing combo cell's `componentSha256s` map.
+- **Step 9:** for combo variants, the static-doc guard reads the map-form
+  `staticDocSha256s` keyed by component id (plain features keep the
+  scalar).
+- **Steps 10–12:** artifact generation/guarding stays keyed by the
+  artifact-owning component feature; the exclusion rule extends so a
+  failed (day, component) artifact excludes that day for the component
+  AND for every combo containing it, each listed separately in the plan
+  report.
+- **Phase 2 script template:** the `FEATURES` constant's per-entry shape
+  changes from scalar `docPath`/`artifact` to a per-component form —
+  `docPaths: {componentId: path}` and `artifactComponents: [ids]` (plain
+  features are a one-entry degenerate case or keep the scalar path;
+  either, but the template must show both). Namespaced placeholder
+  substitution MUST be built escape-free: the search string is assembled
+  by concatenation (`'${DOC:' + id + '}'`), NEVER written literally
+  inside a template literal, where it would interpolate into a
+  ReferenceError at script parse — the same failure class the template's
+  existing NL/double-quote comment guards against.
+- **Phase 3 cell format:** document the combo cell keys (`combines`,
+  `componentSha256s`, `staticDocSha256s`, `artifactSha256s`) beside the
+  existing scalar rules, including the omission rules.
+
+### Generator-skill guard extension (seven-keys)
+
+The seven-keys skill's benchmark-immutability guard currently checks the
+single hardcoded segment `runs/*/*/<day>/seven-keys-scorecard/`. Once a
+combo consumes the artifact, that guard has a hole: a day benchmarked
+only under the combo, whose KEYS file is then deleted, would pass the
+guard and let `/seven-keys <day> force` regenerate an artifact that
+contradicts the combo's frozen `artifactSha256s` — bricking every later
+bench preflight. The guard must instead derive the consuming variant ids
+from `collectFeatures`: the artifact-owning feature plus every combo
+whose `combines` includes it, checking
+`runs/*/*/<day>/<each-consuming-id>/run-*.json`. The skill's existing
+comment about the hardcoded segment is replaced by this derivation.
+
 ## Cell schema (combo cells only)
 
 Combo cells extend the standard cell with:
@@ -165,24 +222,32 @@ Combo cells extend the standard cell with:
 
 `combines: [seven-keys-method, seven-keys-scorecard]` with an override
 body (auto-concat would contradict itself: "grade the zones yourself" vs
-"adopt its scores"). Draft reconciliation, to be edited by the user before
-its first benchmark run freezes it: read the methodology at the shared
-doc, grade the day's zones yourself, then consult the shared scorecard at
-`${ARTIFACT:seven-keys-scorecard}` as a second opinion — where your grades
-disagree with it, reconcile the disagreement in your persona's style
-before choosing a zone.
+"adopt its scores"). Draft body, to be edited by the user before its
+first benchmark run freezes it:
+
+```
+Read the Seven-Keys zone-grading methodology at ${DOC:seven-keys-method}.
+Grade the day's zones on the Seven Keys yourself, then read the shared
+assessment at ${ARTIFACT:seven-keys-scorecard} as a second opinion. Where
+your grades and the shared scorecard disagree, reconcile the disagreement
+in your persona's style before choosing among the zones.
+```
+
+(Referencing `${DOC:seven-keys-scorecard}` too would be legal but
+redundant — both components share the same `staticDoc`.)
 
 ## Error handling summary
 
 | Failure | Behavior |
 |---|---|
-| `combines` names a missing/combo id | discovery error, abort preflight, nothing touched |
+| `combines` names a missing/combo id | discovery error, abort preflight, nothing touched; message names the dangling combo(s) and the coupled-removal remedy |
 | combo declares own resource keys | discovery error |
 | bare placeholder in combo body / namespaced in plain body | discovery error |
 | unreferenced artifact-backed component in override body | discovery error |
 | duplicate auto-concat combos (same components + order) | discovery error |
 | component file edited after combo benchmarked | preflight abort via `componentSha256s` guard |
 | (day, component) artifact missing/failed | day excluded for component AND its combos; reported |
+| KEYS file deleted, day benchmarked only under a combo | `/seven-keys force` regeneration blocked by the derived consuming-variant guard |
 | unresolvable placeholder at fan-out | that cell fails loudly, anomaly-reported; no cell file |
 
 ## Testing
@@ -198,3 +263,10 @@ before choosing a zone.
   Feature Impact output unchanged.
 - Bench dry-run test (fixture runs/ tree): missing-set computation
   includes combos; componentSha256s guard trips on a mutated component.
+- Seven-keys guard test (fixture runs/ tree): regeneration is blocked
+  when a day has cells ONLY under a combo that consumes the artifact
+  (no `seven-keys-scorecard` cells present), and allowed when no
+  consuming variant has cells.
+- Retirement test: a combo referencing a removed component id aborts
+  discovery naming the combo and the coupled-removal remedy; removing a
+  plain feature with no referencing combos still degrades gracefully.
