@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T00:50:01.288Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7517,
+    "stopLoss": 7506.75,
+    "takeProfit": 7547.75,
+    "rationale": "Bigger-picture bias bullish, but overnight NQ failed resistance and broke Friday's low. Skipping to the more significant 7508-7518 range-exhaustion zone for the long, targeting 7543-7553 initial support for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T00:50:01.622Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7521.75,
+    "takeProfit": 7557,
+    "rationale": "Bigger picture Bullish; overnight sell dominance likely drags price into deep, bias-confirming/range-exhaustion zone 7523.25-7535.25 where buyers activate on first test. Stop below zone; target 7544-7557 bias-changing zone for ~3.1:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

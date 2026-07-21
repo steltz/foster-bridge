@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T00:50:02.477Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7534.75,
+    "stopLoss": 7523,
+    "takeProfit": 7571.25,
+    "rationale": "Overnight reclaim of yesterday's RTH high confirms failed breakdown; buyers control per plan/keys. Shallow entry near top of Aggressive Support 7524-7536.50. Stop 1pt beyond zone low. Target back edge of Initial Resistance 7561.25-7571.25, ~3.1R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 36.5,
+    "dollars": 182.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783610400
+  }
+}
