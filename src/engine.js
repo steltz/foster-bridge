@@ -2,9 +2,11 @@ import { minutesOfDayForTimestamp } from './session.js';
 
 // Replays candles chronologically for a single order.
 // Rules (see spec): touch = fill at entry price; the fill candle itself is
-// checked for exits; SL is checked before TP so an ambiguous candle that
-// spans both resolves to the worst case; still-open positions close at the
-// final candle's close (EOD).
+// checked for exits; an ambiguous candle (one whose range spans both SL and
+// TP) resolves via slHitsFirst's candle-shape heuristic below, not a blanket
+// "SL always wins" rule — see
+// docs/superpowers/specs/2026-07-20-ambiguous-candle-resolution-design.md;
+// still-open positions close at the final candle's close (EOD).
 //
 // options.openMinutes and options.cutoffMinutes (with options.tz) bound the
 // local time-of-day window in which NEW entries may fill: no entry before
@@ -18,6 +20,19 @@ import { minutesOfDayForTimestamp } from './session.js';
 // resistance). Price already past the entry on the wrong side when it becomes
 // active does not fill; it only becomes eligible again after returning to the
 // correct side ("armed"). Only in-window candles arm or fill an order.
+// A bullish candle (close >= open) is assumed to have dipped to its low
+// before rallying to its high (Open -> Low -> High -> Close); a bearish
+// candle is assumed to have rallied to its high before dropping to its low
+// (Open -> High -> Low -> Close). This is a property of the candle alone —
+// never of the order's stop distance — so an ambiguous candle resolves the
+// same way regardless of how tight a trader's stop is. A flat candle
+// (close === open) is treated as bullish.
+function slHitsFirst(candle, side) {
+  const bullish = candle.close >= candle.open;
+  // long: SL sits on the low side, TP on the high side. short: mirrored.
+  return side === 'long' ? bullish : !bullish;
+}
+
 export function simulateOrder(order, candles, options = {}) {
   const { side, entry, stopLoss, takeProfit } = order;
   const { openMinutes = null, cutoffMinutes = null, tz = 'UTC' } = options;
@@ -53,9 +68,13 @@ export function simulateOrder(order, candles, options = {}) {
       }
     }
     const slHit = side === 'long' ? candle.low <= stopLoss : candle.high >= stopLoss;
-    if (slHit) return { status: 'SL', fillTime, exitTime: candle.time, exitPrice: stopLoss };
-
     const tpHit = side === 'long' ? candle.high >= takeProfit : candle.low <= takeProfit;
+    if (slHit && tpHit) {
+      return slHitsFirst(candle, side)
+        ? { status: 'SL', fillTime, exitTime: candle.time, exitPrice: stopLoss }
+        : { status: 'TP', fillTime, exitTime: candle.time, exitPrice: takeProfit };
+    }
+    if (slHit) return { status: 'SL', fillTime, exitTime: candle.time, exitPrice: stopLoss };
     if (tpHit) return { status: 'TP', fillTime, exitTime: candle.time, exitPrice: takeProfit };
   }
 
