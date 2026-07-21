@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:43.911378+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7532.5,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "side": "long",
+    "rationale": "Long: overnight breakout above yesterday's RTH high confirms the failed breakdown, buy side back in control (bullish bias). Entered Aggressive Support 7524-7536.50 (VPOC/prior-close confluence), stop 1pt beyond 7524 far edge, targeting Initial Resistance zone front edge 7561.25 for ~3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.75,
+    "dollars": 143.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:40.409111+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7484.25,
+    "stopLoss": 7460.5,
+    "takeProfit": 7563,
+    "rationale": "Long the 7479.50-7493.50 automatic-fade zone (Bull/Bear pivot, 7482.50 HVN, Range Exhaustion, full bullish-bias alignment - the sheet's highest-confluence zone), skipping past the merely 'moderate' aggressive support. Daisy-chain stop behind Range Extreme 7461.50-7470.50 per lookback caveat. Target 7563-7573 for 3.3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:38.061862+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7485.25,
+    "stopLoss": 7478.25,
+    "takeProfit": 7515.25,
+    "rationale": "Bigger-picture/intermediate bias is bullish with no citable shift, so trading with it (Bias Tie-Break). Buying the 7479.50-7493.50 Bull/Bear zone \u2014 bias-confirming, 7482.50 HVN, same level that produced a strong bounce in the prior recap. Target: next zone, 7510-7520.50 Initial Support."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

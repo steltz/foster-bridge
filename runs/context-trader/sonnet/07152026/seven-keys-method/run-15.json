@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:33.939398+00:00",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7591.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.75,
+    "rationale": "Bigger-picture bias bullish; overnight balance sits in upper range, buyers defending pullbacks (per 07/14 recap precedent). Buy Aggressive Support (7587.75-7597.75), aligned with dominant bias (Key 6) so no confirmation needed. Stop 1pt below zone; target Initial Resistance (7606.25-7615.25) edge for 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 15,
+    "dollars": 75,
+    "fillTime": 1784128500,
+    "exitTime": 1784129400
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:45.383790+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7553,
+    "stopLoss": 7542,
+    "takeProfit": 7598,
+    "side": "long",
+    "rationale": "Long at Initial Support 7543-7553 (HVN 7544, Friday's RTH low), entered at zone's near edge (7553) per R:R-priority. Stop 7542, one point beyond zone's far edge. Target: Pre-Market Resistance 7598-7607 near edge (~4:1 R:R). Bigger-picture bias remains bullish; overnight NQ weakness isn't a citable ES reversal, so trade with bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

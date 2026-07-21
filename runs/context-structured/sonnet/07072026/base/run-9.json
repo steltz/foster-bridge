@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:39.752216+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7488.25,
+    "stopLoss": 7478.25,
+    "takeProfit": 7518.25,
+    "rationale": "Long at 7488.25 in the 7479.50-7493.50 zone \u2014 the day's highest-confluence support (Bias Confirming, Bull/Bear, Range Exhaustion, HVN 7482.50) \u2014 aligned with the bullish intermediate/bigger-picture bias. NQ weakness risks a deeper, exhausted pullback past aggressive/initial support before buyers engage here. Target: 7510-7520.50 zone, next meaningful resistance."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:41.615993+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7544.5,
+    "side": "long",
+    "rationale": "Long at 7493.50 (front edge of the 7477.50-7493.50 Bull/Bear zone, HVN 7482.50) with bias alignment per the tie-break rule, since the overnight breakdown remains unconfirmed. Stop 7476.50 (1pt below zone). Target 7544.50, inside the 7544-7551.75 HVN/launching-point resistance zone. R:R = 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -17,
+    "dollars": -85,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

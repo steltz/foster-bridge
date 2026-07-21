@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:44.763506+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7622,
+    "side": "short",
+    "stopLoss": 7637.75,
+    "takeProfit": 7574.75,
+    "rationale": "Overnight NQ failed at its resistance and broke Friday's low, pulling ES back into Initial Resistance (7611.50-7623.50) near Friday's close/VPOC. Selling back-of-zone; stop defensively beyond the stacked Bias-Confirming zone (7627.25-7636.75) per recap guidance; target pre-market support (7566-7576), 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

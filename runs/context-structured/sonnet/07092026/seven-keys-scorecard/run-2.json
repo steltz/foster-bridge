@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:44.144112+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7508.25,
+    "stopLoss": 7498.25,
+    "takeProfit": 7548,
+    "rationale": "Overnight reclaim of 7536.50 confirms the failed breakdown; buyers control, so I trade with the bullish bias. Skipping the shallow, already-tested Aggressive Support, I buy Initial Support 7499.50-7508.50 (Keys: strong, approach/timeframe/bias stack, plan's first-test dip-buy zone). Stop beyond zone; target Pre-Market Resistance 7548, ~4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

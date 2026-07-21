@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:34.478263+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7493.25,
+    "stopLoss": 7480.75,
+    "takeProfit": 7534.75,
+    "rationale": "Long from bias-confirming support 7481.75-7495.75, the intraday bull/bear zone that launched yesterday's balance breakout \u2014 aligned with intermediate/bigger-picture bullish bias and recap's control-shift narrative. Stop 7480.75 (1pt beyond far edge). Target 7534.75, front edge of next resistance zone; ~3.3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

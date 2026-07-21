@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:47.502941+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7556,
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "side": "long",
+    "rationale": "Long from pre-market support 7544-7556, the launching point of today's post-CPI rally (Key 5) and aligned with the Bigger-Picture bullish bias (Key 6). First RTH test of this zone offers strong confluence. Target the near edge of pre-market resistance 7596-7605; stop 1pt beyond 7544."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

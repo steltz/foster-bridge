@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:50.294904+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7625.5,
+    "stopLoss": 7637.75,
+    "takeProfit": 7581,
+    "rationale": "Short 7625.50 inside 7624.75-7636.75 bias-confirming Initial Resistance \u2014 overnight rejected there again after yesterday's failed breakout at this same zone, confirming sellers still in control. Stop 7637.75 (1pt beyond far edge). Target 7581 (Initial Support 7570-7581), ~3.6:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

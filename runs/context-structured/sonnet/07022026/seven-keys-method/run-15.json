@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:37.098707+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7493.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7549.5,
+    "side": "long",
+    "rationale": "Long from the 7481.75-7495.75 Bull/Bear zone \u2014 Key 5 launch point of yesterday's breakout, Key 6 full alignment with the intermediate/bigger-picture bullish bias, HVN 7482.50 confluence (automatic-fade grade). Stop 1pt beyond 7480.75; target 7549.50 aggressive support (holding-above zone), 4.29:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:41.462291+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7483.75,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Buying the 7477.50-7493.50 Bull/Bear zone (bias-confirming, first RTH test) \u2014 the plan's own line for whether the overnight breakdown succeeds or fails. Per Bias Tie-Break, no confirmed control shift exists yet, so default to the Bigger-Picture Bullish bias. Stop 1pt below zone; target front edge of 7506-7516 aggressive resistance for ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

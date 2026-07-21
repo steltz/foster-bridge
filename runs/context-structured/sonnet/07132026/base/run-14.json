@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:45.460486+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7528.75,
+    "side": "long",
+    "stopLoss": 7523,
+    "takeProfit": 7548,
+    "rationale": "Bigger-picture bias bullish, intermediate neutral-bullish; overnight NQ/ES weakness is an open question, not a cited control-shift, so per Bias Tie-Break I trade with bias. Plan flags 7543-53 Initial Support as sell-side dominant on approach, so I skip to the deeper, higher-confluence 7524-7534 zone (Open Gap 7528.75/NVPOC 7524.75), targeting recovery toward the 7544 HVN. R:R ~3.35:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

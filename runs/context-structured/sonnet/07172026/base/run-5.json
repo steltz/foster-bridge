@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:52.125725+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7525,
+    "stopLoss": 7532.5,
+    "takeProfit": 7502.5,
+    "rationale": "Short-term bias is neutral-bearish per the plan (overnight Nasdaq balance breakdown, sell side in firm control); Friday/OpEx favors sellers defending bounces. Selling aggressive resistance 7518.50-7531.50 (NVPOC 7524.75, open gap) targeting aggressive support 7502.50-7510.50, stop 7532.50 beyond the zone \u2014 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

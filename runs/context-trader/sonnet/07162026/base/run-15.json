@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:34.016396+00:00",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7534.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7570.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap warns against shorting ES next session. Judging overnight-dominant sellers likely to breach the 7570-7581 initial support, I skip it and buy the deeper 7523.25-7535.25 bias-confirming zone (range exhaustion, buyers active first test). Stop 1pt beyond zone; target reclaim of 7570-7581 for exact 3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

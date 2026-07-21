@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:34.439724+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7494.25,
+    "side": "long",
+    "stopLoss": 7480.75,
+    "takeProfit": 7534.75,
+    "rationale": "Long at 7481.75-7495.75, the Bias Confirming support (7482.50 HVN) \u2014 the pivotal zone from the prior recap's balance-breakout long, aligned with intermediate/bigger-picture bullish bias. Stop 1pt below the 7481.75 far edge; target 7534.75, the pre-market resistance/breakout-strength zone, for a clean 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

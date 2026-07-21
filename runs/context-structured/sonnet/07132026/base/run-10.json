@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:45.306416+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7512.5,
+    "side": "long",
+    "stopLoss": 7507,
+    "takeProfit": 7529,
+    "rationale": "Long from 7508-7518 (Bias Confirming, Range Exhaustion) \u2014 deeper/safer than 7543-53, which the plan flags as sell-side dominant. Stop 7507 (1pt beyond far edge). Target 7529 in 7524-34 zone (Open Gap 7528.75), 3:1, aligned with bigger-picture bullish bias per tie-break rule."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

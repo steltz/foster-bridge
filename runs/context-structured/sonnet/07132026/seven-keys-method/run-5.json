@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:45.692348+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7511.25,
+    "stopLoss": 7507,
+    "takeProfit": 7524,
+    "rationale": "Bigger-picture bias is bullish; overnight NQ weakness lacks a citable control-shift, so Bias Tie-Break defaults long. Skipping the fragile Initial Support (7543-53, sellers-dominant per plan) for the deeper 7508-7518 zone \u2014 Bias Confirming, Range Exhaustion, first test. Entry 7511.25, stop 7507.00 (1pt beyond 7508), target 7524.00 (7524-34 zone), 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

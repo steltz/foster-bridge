@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:48.787607+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7550.25,
+    "side": "long",
+    "stopLoss": 7542.75,
+    "takeProfit": 7572.75,
+    "rationale": "Bigger-picture bias bullish; 07/14 recap shows buyers defending pullbacks, no shift to sell control. Resting buy at Initial Support 7544-7557 (HVN, Launching Point, Bias-Changing) \u2014 highest-confluence zone in the plan. Stop 7542.75 (beyond far edge). Target 7564.25-7575.25 Pre-Market Support, ~3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

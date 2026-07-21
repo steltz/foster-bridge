@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:50.140151+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7554,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "side": "long",
+    "rationale": "Skipping the thinner, moderate-grade aggressive/PM supports (7587-97, 7580-84, 7564-75) for the strong, best-confluence 7544-7557 zone \u2014 Initial Support, 7544 HVN, post-CPI launching point, fully bias-aligned. Entry 7554 (aggressive edge, Key 6 momentum-with-bias). Stop 7543, one point beyond the 7544 far edge. Target 7606.25 Initial Resistance, ~4.75:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

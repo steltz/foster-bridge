@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:39.870625+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7546.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7584.5,
+    "rationale": "Long at Initial Support 7538.25-7546.75 (7544 HVN), the zone the AM plan flags for an intermarket long trigger. Bias stays bullish (intermediate/bigger picture) per tie-break \u2014 NQ weakness is a caution, not a citable control shift. Stop below far edge 7538.25; target Pre-Market Resistance 7584.50-7591.75, ~4:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

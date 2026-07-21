@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:48.980886+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7557,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bias is bullish. Initial Support 7544-7557 (HVN, Launching Point, Bias Changing) is the same zone that launched the 7/14 post-CPI rally per the recap. Buying the zone's near edge (7557) vs stop 1pt beyond far edge (7543) clears 3.5:1 to Initial Resistance 7606.25-7615.25, the next Bias-Changing level."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

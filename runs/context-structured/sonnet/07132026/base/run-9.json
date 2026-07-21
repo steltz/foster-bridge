@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:45.266658+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7511.75,
+    "stopLoss": 7507,
+    "takeProfit": 7526,
+    "side": "long",
+    "rationale": "Long, skipping past shallow 7543-7553 (Initial Support, flagged sell-side dominant on first test) to the deeper, higher-confluence 7508-7518 zone (Bias Confirming, Range Exhaustion). No citable control-shift overrides Bigger-Picture Bullish bias, so trade with it. Target: next zone 7524-7534 (open gap) at exactly 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

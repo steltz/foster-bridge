@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:53.490311+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "17c2d0069fb1c82dd3c924186aced173907252d930972cf7e8be08fbc4b1e6a3",
+  "setup": {
+    "entry": 7524.75,
+    "side": "short",
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "rationale": "Short 7518.50-7531.50, the plan's aggressive resistance and the seven-keys' top-rated \"featured fade\" (NVPOC 7524.75, open gap 7528.75, best bias alignment). Entry at NVPOC, stop 7532.50 (1pt beyond zone), target 7500 (top of pre-market support 7491.25-7500). Fits neutral-bearish short-term bias, sell side in firm control, Friday de-risking. R:R 3.19:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

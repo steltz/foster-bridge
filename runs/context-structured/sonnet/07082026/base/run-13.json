@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:41.653929+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7396.25,
+    "side": "long",
+    "stopLoss": 7389.25,
+    "takeProfit": 7416,
+    "rationale": "Bigger-picture bias is bullish and today's breakdown attempt is unconfirmed (still neutral) \u2014 no citable reversal, so tie-break rule defaults long. Buying deep Bias-Confirming support 7390.50-7401.75 (open gap 7401.75), the plan's \"better\" support requiring above-average volume, i.e. exhausted on arrival. Stop beyond far edge; target 7409-7416 zone top."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

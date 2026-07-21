@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:38.713553+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7492.25,
+    "stopLoss": 7478.25,
+    "takeProfit": 7569,
+    "side": "long",
+    "rationale": "Long from the 7479.50-7493.50 bull/bear zone (Seven-Keys automatic-fade: HVN, proven Thursday launch, full bullish alignment). Stop 7478.25, beyond the defended floor. Target 7569, the plan's Initial Resistance, for 5.5R \u2014 bias-aligned, no citable reason to fight the dominant bullish tape."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

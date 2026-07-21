@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:52.163787+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7525,
+    "side": "short",
+    "stopLoss": 7532.5,
+    "takeProfit": 7502.5,
+    "rationale": "Short at NVPOC 7524.75 inside Aggressive Resistance 7518.50-7531.50; stop 7532.50 (1pt beyond zone top). Overnight multi-day NQ balance breakdown confirmed seller control (per recap), overriding the bullish intermediate bias per tie-break rule. Target 7502.50, top of Aggressive Support, for 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

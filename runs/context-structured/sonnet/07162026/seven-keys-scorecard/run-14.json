@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:51.890767+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "entry": 7531,
+    "stopLoss": 7522.25,
+    "takeProfit": 7557,
+    "side": "long",
+    "rationale": "Buying automatic-fade support 7523.25-7535.25 (Keys: bias confirming, range exhaustion, open gap 7528.75/NVPOC 7524.75, first test) \u2014 skip shallower 7570-81 initial support, anticipating an exhausted breakdown reaching this deeper, highest-confluence zone, aligned with neutral-bullish/bullish larger-timeframe bias. Stop 1pt beyond low edge; target 7544-7557 Launching Point zone (~3:1)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

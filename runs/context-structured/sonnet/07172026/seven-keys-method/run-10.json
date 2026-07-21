@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:52.902567+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7477.25,
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "rationale": "Long Initial Support 7468.50-7480 (Bull/Bear, Range Exhaustion, Bias Confirming) on first RTH test \u2014 aligns with the Bigger-Picture Bullish/Intermediate Neutral-Bullish bias while short-term selling is overextended per the plan's own framing. Target Aggressive Resistance near edge 7518.50. Stop 1pt beyond zone low. R:R ~4.2:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

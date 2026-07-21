@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:48.474483+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7593.25,
+    "stopLoss": 7586.75,
+    "takeProfit": 7612.75,
+    "rationale": "Buying Aggressive Support 7587.75-7597.75 (\"Holding Above Signals Strength\"), aligned with the plan's bigger-picture bullish bias and prior-day recap showing buy-side control. Entry 7593.25 (upper zone), stop 7586.75 (1pt beyond far edge), target 7612.75 inside Initial Resistance 7606.25-7615.25 for a clean 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

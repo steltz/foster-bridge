@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:42.077468+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7483.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "side": "long",
+    "rationale": "Long at the Bull/Bear support 7477.50-7493.50 (Bias Confirming, 7482.50 HVN) \u2014 first test, aligned with Bigger-Picture Bullish bias per tie-break rule since today's overnight breakdown is unconfirmed. Stop 7476.50 (1pt beyond far edge). Target front edge of next resistance, 7506-7516, for 3.37R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.75,
+    "dollars": -33.75,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

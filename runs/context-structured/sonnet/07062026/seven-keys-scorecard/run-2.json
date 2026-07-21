@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:38.905061+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7487.25,
+    "stopLoss": 7478.25,
+    "takeProfit": 7514.25,
+    "side": "long",
+    "rationale": "Skipping past moderate-grade 7510-7520.50 to rest a buy at the automatic-fade bull/bear zone 7479.50-7493.50: HVN, proven Thursday 3R launch, full bullish intermediate/bigger-picture alignment, exhausted arrival. Stop 7478.25, 1pt+ beyond zone floor. Target the next zone up, Initial Support 7510-7520.50, for a clean 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

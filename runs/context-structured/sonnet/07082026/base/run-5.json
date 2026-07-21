@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:41.345638+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7490,
+    "stopLoss": 7476.5,
+    "takeProfit": 7530.25,
+    "side": "long",
+    "rationale": "Longing the 7477.50-93.50 Bull/Bear zone (Bias Confirming, HVN 7482.50) \u2014 the plan's key pivot for a failed overnight breakdown, aligned with the Bigger Picture bullish bias. Stop 7476.50 (1pt beyond far edge). Target 7530.25, inside 7524.75-7534.75, the next meaningful resistance the plan flags as first sign of failed-breakdown strength (~3R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.5,
+    "dollars": -67.5,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

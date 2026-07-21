@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:50.371109+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7625.25,
+    "stopLoss": 7637.75,
+    "takeProfit": 7581,
+    "rationale": "Short the 7624.75-7636.75 bias-confirming Initial Resistance \u2014 overnight already rejected here, sell side dominant since (citable shift overriding bullish larger-timeframe bias; also the zone that capped 07/15's failed breakout). Stop 7637.75, 1pt beyond far edge. Target 7581, top of Initial Support (7570-7581); ~3.5:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

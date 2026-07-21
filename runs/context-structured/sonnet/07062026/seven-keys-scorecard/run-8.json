@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:39.136146+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7492.75,
+    "stopLoss": 7478.5,
+    "takeProfit": 7593.25,
+    "side": "long",
+    "rationale": "Long from automatic-fade support 7479.50-7493.50 (bull/bear, 7482.50 HVN, proven Thursday 3R launch, full bias alignment) \u2014 the sheet's only automatic-fade zone. Stop 7478.50 below the proven floor. Target bias-confirming resistance 7593.25-7604.25, the plan's stated bullish-continuation level. Trades WITH bullish intermediate/bigger-picture bias per tie-break rule."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

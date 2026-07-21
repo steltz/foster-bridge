@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:37.754518+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7485.25,
+    "side": "long",
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Long the Bull/Bear zone 7479.50-7493.50 (bias confirming), where buyers decisively reversed the market last session, aligned with the bullish intermediate/bigger-picture bias and no citable shift today. Stop 7478.50, one point beyond the far edge. Target the Initial Support zone near 7510 for 3.7:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

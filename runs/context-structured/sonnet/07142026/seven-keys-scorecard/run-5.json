@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:48.044246+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "long",
+    "entry": 7555,
+    "stopLoss": 7543,
+    "takeProfit": 7609.25,
+    "rationale": "Long from 7544-7556, the explicit post-CPI launch point (Key 5 strong, HVN, bias-aligned with bullish intermediate/bigger-picture). No citable shift favors shorting 7609.25-7620.25 despite its seller history, so target it instead. Stop 7543 (1pt beyond far edge); R:R 4.5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:39.520339+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7541.25,
+    "side": "long",
+    "stopLoss": 7537.25,
+    "takeProfit": 7553.25,
+    "rationale": "Bias intermediate/bigger-picture bullish; prior recap confirmed buyers controlling aggressive support into a rally. Skipping past aggressive support (7563-73) \u2014 already tested overnight \u2014 to deeper, plan-cited Initial Support 7538.25-7546.75 (7544 HVN, intermarket-trigger zone) for better location, targeting Pre-Market Support 7551.50-7559, a clean 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4,
+    "dollars": -20,
+    "fillTime": 1783434300,
+    "exitTime": 1783434900
+  }
+}

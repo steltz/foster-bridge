@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:50.487660+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7527.25,
+    "side": "long",
+    "stopLoss": 7522.25,
+    "takeProfit": 7542.25,
+    "rationale": "Long at 7523.25-7535.25, the bias-confirming range-exhaustion zone (NVPOC 7524.75) where the plan says buyers are active on first test after a break of initial support. Bigger-picture bias is bullish and the recap warns against shorting tomorrow. Stop below 7523.25; target 7544-57 launch zone, 3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:34.517107+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7492,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "rationale": "Long at 7481.75-7495.75, the bias-confirming bull/bear zone (7482.50 HVN) \u2014 deeper and more significant than the merely bias-changing 7510.50-7520.50 initial support. Aligns with bigger-picture/intermediate bullish bias and recap's buy-side-control thesis. Stop 7480.75 (beyond zone). Target 7558.50, the bias-confirming initial-resistance zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

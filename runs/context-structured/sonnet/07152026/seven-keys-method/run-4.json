@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:49.172408+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7554,
+    "stopLoss": 7543,
+    "takeProfit": 7587,
+    "side": "long",
+    "rationale": "Long the deeper Initial Support zone 7544-7557 (7544 HVN, plan-stated Launching Point) rather than shallower Aggressive/Pre-Market supports \u2014 reached only if sell-side momentum exhausts the decline, then aligns with bigger-picture bullish bias (Keys 5/6). Entry 7554 (upper zone), stop 7543 (1pt beyond low edge), target 7587 (Aggressive Support flip zone), 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

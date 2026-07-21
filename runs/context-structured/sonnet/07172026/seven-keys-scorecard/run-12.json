@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:53.566943+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "17c2d0069fb1c82dd3c924186aced173907252d930972cf7e8be08fbc4b1e6a3",
+  "setup": {
+    "entry": 7474.75,
+    "stopLoss": 7467.25,
+    "takeProfit": 7518.5,
+    "side": "long",
+    "rationale": "Long at initial support 7468.50-7480 (bull/bear, range-exhaustion, KEYS-strong, largest structural TF today). Bias tie-break: overnight NQ weakness isn't a confirmed sustained break, so default to intermediate/bigger-picture bullish bias. Stop 7467.25, beyond zone. Target aggressive resistance 7518.50-7531.50, next meaningful zone, ~5.8R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

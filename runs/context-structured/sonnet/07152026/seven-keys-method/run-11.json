@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:49.444480+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7557,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "side": "long",
+    "rationale": "Long at 7544-7557 support (Initial Support, 7544 HVN, post-CPI Launching Point, Bias Changing) \u2014 the sheet's best-confluence, fully bias-aligned zone. Entry 7557 (upper zone, easiest fill per bias-aligned/lookback guidance). Stop 7543, 1pt beyond the 7544 far edge. Target 7606.25 (Initial Resistance/Bias Changing), ~3.5:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:40.023104+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7491.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7593.75,
+    "rationale": "Long at 7479.50-7493.50 support, the plan's highest-confluence zone (Bull/Bear, Bias Confirming, HVN 7482.50, explicit Range Exhaustion), aligned with Intermediate/Bigger Picture bullish bias. Stop 1pt beyond far edge (7478.50). Target Initial Resistance/Bias Confirming 7593.75-7604.25 near edge, the same inflection prior session rallied into."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

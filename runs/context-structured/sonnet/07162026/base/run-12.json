@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:50.641133+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7597.75,
+    "stopLoss": 7604.5,
+    "takeProfit": 7577.5,
+    "rationale": "Short inside Aggressive Resistance 7593.50-7603.50: overnight action rejected the higher bias-confirming resistance (7624.75-7636.75) and sellers have been dominant since \u2014 holding below this zone signals continued weakness. Stop 7604.50 (1pt beyond far edge). Target Initial Support 7570-7581, the next meaningful zone, for an exact 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.75,
+    "dollars": -33.75,
+    "fillTime": 1784210700,
+    "exitTime": 1784210700
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:42.543534+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7395.5,
+    "stopLoss": 7389.5,
+    "takeProfit": 7413.75,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias is bullish; overnight breakdown is only an unconfirmed attempt, so the tie-break defaults long. Zone 7390.50-7401.75 grades strong (Key5 gap-launch, Key6 full alignment, Key3 deep-exhaustion first test) \u2014 best long confluence, entry inside zone, stop 1pt beyond 7390.50, target into 7409-7416 reaction zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:45.498257+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7528,
+    "stopLoss": 7523,
+    "takeProfit": 7543,
+    "side": "long",
+    "rationale": "Long from 7524-7534 (Open Gap 7528.75/NVPOC 7524.75), the deeper zone after the plan flags Initial Support 7543-53 as likely to give way to smaller-timeframe sell dominance. Bigger-picture bias stays bullish per plan/recap with no citable control shift overnight. Stop 1pt beyond 7524; target 7543, 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

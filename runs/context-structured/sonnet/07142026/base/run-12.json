@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:47.152829+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7556,
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "side": "long",
+    "rationale": "Long at 7556, top of the 7544-7556 launching-point support (post-CPI rally origin) \u2014 deeper, higher-confluence zone than aggressive support 7571-7582, aligned with bigger-picture bullish bias and today's CPI breakout above prior RTH high. Stop 7543 (1pt beyond far edge). Target 7596, pre-market resistance, ~3.08:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

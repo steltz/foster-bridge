@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:48.670466+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7556,
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7595,
+    "rationale": "Bigger-picture bias is bullish and the recap confirms sustained buy-side control post-CPI with no citable shift \u2014 trade with bias. Skipping past aggressive support to the deeper, high-confluence 7544-7557 zone (Initial Support, 7544 HVN, Launching Point). Entry 7556, stop 7543 (1pt beyond zone low), target 7595 at Aggressive Support (7587.75-7597.75) = 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

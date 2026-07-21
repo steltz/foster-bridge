@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:44.608547+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7530.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7552.75,
+    "side": "long",
+    "rationale": "Long at aggressive support 7524-7536.50, keys-graded strong (stacks Keys 3/4/5/6): overnight reclaim of yesterday's RTH high 7536.50 confirms the failed breakdown, bullish bigger-picture control, and plan's \"holding above signals strength.\" Stop 1.25pt beyond 7524 far edge; target 7552.75 inside pre-market resistance 7548-7558, 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 22.5,
+    "dollars": 112.5,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

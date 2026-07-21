@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:47.230332+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7555,
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "rationale": "Bigger-picture bias is bullish; CPI already broke above yesterday's high overnight. Buying the 7544-7556 zone \u2014 the CPI rally's launching point/HVN, best confluence with bullish alignment \u2014 not the shallower 7571-7582 zone. Stop 7543 (beyond far edge). Target 7596, next resistance zone, for 3.4:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

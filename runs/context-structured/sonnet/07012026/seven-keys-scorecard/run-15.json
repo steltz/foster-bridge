@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:35.944635+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7517.5,
+    "stopLoss": 7509.5,
+    "takeProfit": 7558.5,
+    "side": "long",
+    "rationale": "Long at 7510.50-7520.50 initial support \u2014 day's first RTH test, where Keys 3+4+5+6 all align (breakout floor, bullish bias). Stop 1pt beyond far edge 7510.50. Target 7558.50, the bias-confirming Initial Resistance zone plan/recap both cite as the natural exit for this breakout continuation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

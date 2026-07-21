@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:52.476476+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7479.25,
+    "side": "long",
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "rationale": "Long at Initial Support 7468.50-7480 (bias-confirming, bull/bear zone) \u2014 this exact zone drew responsive buyers on first RTH test yesterday (entry 7479.25). Aligns with intermediate/bigger-picture bullish bias despite short-term neutral-bearish tape. Target Aggressive Resistance 7518.50-7531.50 (near edge); stop 7467.50, one point beyond zone. R:R \u22483.3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

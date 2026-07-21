@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:40.099752+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7544.25,
+    "stopLoss": 7537.25,
+    "takeProfit": 7565.25,
+    "side": "long",
+    "rationale": "Skipping past shallower Aggressive Support (7563-73) to Initial Support 7538.25-7546.75 (Bias Changing, 7544 HVN) \u2014 plan explicitly flags an NQ intermarket trigger validating longs here given NQ's deeper overnight pullback, aligned with bullish intermediate/bigger-picture bias. Stop 1pt beyond zone low; target = Aggressive Support flip-resistance, exact 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7,
+    "dollars": -35,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

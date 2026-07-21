@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:41.540253+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7490,
+    "stopLoss": 7476.5,
+    "takeProfit": 7530.5,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish while short-term is neutral (no citable shift), so trade with bias. Buying the 7477.50-7493.50 Bull/Bear/HVN zone, the day's key pivot, targeting the 7524.75-7534.75 resistance zone for a clean 3:1, stop 7476.50 beyond the far edge."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.5,
+    "dollars": -67.5,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

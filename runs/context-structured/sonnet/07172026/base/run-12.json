@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:52.398445+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7524.75,
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "rationale": "Short at NVPOC 7524.75 inside Aggressive Resistance 7518.50-7531.50 (\"holding below signals weakness\"). Transcript cites overnight multi-day Nasdaq balance breakdown, a citable control-shift overriding bullish bigger-picture bias. Stop 7532.50 (1pt beyond zone's far edge). Target 7500, top of Pre-Market Support 7491.25-7500, ~3.2R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

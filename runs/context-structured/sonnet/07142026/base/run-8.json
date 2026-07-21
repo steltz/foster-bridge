@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:46.998430+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7554,
+    "side": "long",
+    "stopLoss": 7542.75,
+    "takeProfit": 7596,
+    "rationale": "Bullish bigger-picture bias plus CPI-driven breakout above RTH high favors longs. Skipping past aggressive support (7571-7582) to the deeper 7544-7556 launching-point zone, whose hold keeps the breakout intact per the plan. Stop below 7544; target 7596-7605 pre-market resistance for ~3.7:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

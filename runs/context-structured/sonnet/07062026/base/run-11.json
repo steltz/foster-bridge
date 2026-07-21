@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:38.099542+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7485.25,
+    "side": "long",
+    "stopLoss": 7478.25,
+    "takeProfit": 7510,
+    "rationale": "Long 7485.25 inside 7479.50-7493.50 Bull/Bear zone (bias confirming, 7482.50 HVN) \u2014 same level that produced a confirmed 3R bounce in the prior recap. Stop 7478.25 beyond the far edge. Target 7510.00 at Initial Support, ~3.5R, aligned with intermediate/bigger-picture bullish bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

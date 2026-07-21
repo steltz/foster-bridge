@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:52.748966+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7519.5,
+    "side": "short",
+    "stopLoss": 7532.5,
+    "takeProfit": 7480,
+    "rationale": "Short at 7519.50 inside Aggressive Resistance 7518.50-7531.50 (Open Gap 7528.75, NVPOC 7524.75). Sell side in firm control (NQ overnight balance breakdown), short-term bias neutral-bearish, Friday de-risking favors resistance fades over bigger-picture bullish bias. Stop 7532.50 (1pt beyond zone). Target 7480.00, bias-confirming Initial Support/bull-bear zone: 3.04:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:41.384085+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7488.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "side": "long",
+    "rationale": "Long at 7477.50-7493.50 Bull/Bear zone (Bias Confirming, 7482.50 HVN), the plan's key inflection level. Breakdown attempt is unconfirmed\u2014no citable failed-breakdown yet\u2014so Bias Tie-Break favors bigger-picture bullish/neutral-bullish bias. Target 7524.75 pre-market resistance/gap zone; stop 1pt beyond far edge."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

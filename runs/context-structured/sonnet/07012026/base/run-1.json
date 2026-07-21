@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:34.245350+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493,
+    "stopLoss": 7480.5,
+    "takeProfit": 7534.75,
+    "side": "long",
+    "rationale": "Long at 7481.75-7495.75, the Bias-Confirming HVN support that launched 06/30's balance-breakout rally \u2014 deepest, highest-confluence zone, aligned with intermediate/bigger-picture bullish bias and the recap's confirmed buy-side control shift. Stop 7480.50 (beyond far edge). Target 7534.75 pre-market resistance, 3.3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:51.500462+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "73bf0d7424abdbc172194fddc831fc9e767caae7fe0d43be67617d34ee57a182",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7554.25,
+    "rationale": "Long at Seven-Keys automatic-fade support 7523.25-7535.25 (range exhaustion, bias-confirming, gap/NVPOC, first test) \u2014 deeper than initial support 7570-81 since overnight selling isn't a citable bias shift, so I default to the bullish bigger-picture bias. Stop 7522.25 below zone; target 7554.25 at the 7544-57 launching-point zone, 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

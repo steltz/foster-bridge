@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:47.347020+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7555.75,
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7609.25,
+    "rationale": "Long at 7544-7556 \u2014 the fresh pre-market launch point of today's post-CPI breakout, anchored by the 7544 HVN, first RTH test with buyers defending. Aligns with bullish bigger-picture bias. Stop 7543 (1pt beyond zone); target 7609.25 initial resistance for ~4.2:1, clearing the strong-confluence 2.5:1 floor."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:39.909478+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7488.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7518.5,
+    "side": "long",
+    "rationale": "Buying the 7479.50-7493.50 zone \u2014 Bull/Bear, Bias Confirming, flagged for Range Exhaustion, with explicit \"higher probability for buyers\" language in the plan. Aligns with the bigger-picture bullish bias and yesterday's confirmed buyer control at aggressive support. Stop beyond zone; target 7510-7520.50 NVPOC zone for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:46.767836+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7579.5,
+    "stopLoss": 7569.75,
+    "takeProfit": 7609.25,
+    "rationale": "Long at Aggressive Support 7571-7582 (entry 7579.50), aligning with the bigger-picture bullish bias and today's CPI-driven breakout above yesterday's RTH high. Stop 7569.75, one point beyond the zone's far edge. Target 7609.25 at Initial Resistance, the next meaningful bias-changing zone, for ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

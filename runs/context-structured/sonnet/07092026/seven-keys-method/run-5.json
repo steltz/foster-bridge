@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:43.678592+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7504,
+    "stopLoss": 7498.5,
+    "takeProfit": 7524,
+    "rationale": "Long at initial support 7499.50-7508.50, the plan's explicit first-test responsive-buyer zone, reached only after aggressive support and the pre-market shelf give way \u2014 exhaustion plus alignment with the Bullish bigger-picture bias (overnight failed-breakdown recovery). Stop 1pt beyond 7499.50; target reclaims aggressive support's front edge 7524, ~3.6:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

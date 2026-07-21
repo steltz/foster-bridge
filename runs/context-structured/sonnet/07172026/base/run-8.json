@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:52.242345+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7525,
+    "stopLoss": 7532.5,
+    "takeProfit": 7502.5,
+    "side": "short",
+    "rationale": "Short at Aggressive Resistance 7518.50-7531.50 (NVPOC 7524.75, Open Gap 7528.75), stop 1pt beyond far edge, targeting Aggressive Support 7502.50-7510.50 (3:1). Overnight NASDAQ multi-day balance breakdown left sell side in firm control; short-term bias neutral-bearish, and Friday close favors sellers fading bounces into resistance."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

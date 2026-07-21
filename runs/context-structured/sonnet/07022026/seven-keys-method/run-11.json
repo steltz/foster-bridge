@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:36.947021+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7493.25,
+    "side": "long",
+    "stopLoss": 7480.25,
+    "takeProfit": 7549.5,
+    "rationale": "Long at 7493.25 inside the 7481.75-7495.75 bull/bear HVN zone \u2014 today's only bias-confirming support, the exact launch point of the prior session's breakout per the recap, aligned with the bigger-picture bullish bias (Keys 4-6 stacked, automatic-fade quality). Stop 7480.25, beyond the far edge. Target 7549.50, next meaningful aggressive-support/VPOC pivot, ~4.3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

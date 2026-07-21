@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:51.068224+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7530.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7554.25,
+    "side": "long",
+    "rationale": "Bigger-picture and intermediate bias are bullish; no confirmed bearish shift yet, so trading with the larger bias per tie-break. Skipping shallow 7570-81 to buy the deeper, higher-confluence 7523.25-7535.25 zone (bias-confirming, range exhaustion, gap 7528.75/NVPOC 7524.75), targeting 7544-7557 launching-point zone at 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

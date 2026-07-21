@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:39.713988+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7544,
+    "side": "long",
+    "stopLoss": 7537,
+    "takeProfit": 7565,
+    "rationale": "Long at 7544 (HVN) inside Initial Support 7538.25-7546.75 \u2014 the plan names this exact zone as the intermarket long trigger if NQ also tests significant support, aligning with intermediate/bigger-picture bullish bias over the shallower Aggressive Support. Stop 7537 (beyond far edge), target 7565 in 7563-7573 zone, 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7,
+    "dollars": -35,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

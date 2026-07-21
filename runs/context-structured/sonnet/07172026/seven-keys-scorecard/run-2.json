@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:53.176092+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "17c2d0069fb1c82dd3c924186aced173907252d930972cf7e8be08fbc4b1e6a3",
+  "setup": {
+    "side": "short",
+    "entry": 7540,
+    "stopLoss": 7550.25,
+    "takeProfit": 7500,
+    "rationale": "Short at 7540, inside pre-market resistance 7539-7549 (7544 HVN) \u2014 Keys grade: strong, \"analog of yesterday's best trade.\" Aligns with short-term neutral-bearish bias and Friday de-risking. Stop 7550.25, one point beyond the zone's far edge. Target 7500, top of pre-market support 7491.25-7500, the plan's next meaningful zone. R:R ~3.9:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:34.940647+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7495.5,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias bullish. Overnight's deep retracement off 7558.50-7568.50 risks initial support (7510.50-7520.50) failing, so I skip to the deeper 7481.75-7495.75 zone \u2014 yesterday's breakout launch point, Bias Confirming \u2014 targeting a return to 7558.50 Initial Resistance for a 4.3:1 reward-to-risk."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

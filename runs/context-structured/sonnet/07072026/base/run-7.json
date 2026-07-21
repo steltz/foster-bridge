@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:39.674346+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7486.25,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "side": "long",
+    "rationale": "Bigger-picture bias bullish; recap's long-off-support playbook worked yesterday. NQ weakness risks a deeper ES pullback past aggressive/initial support, so I skip to 7479.50-7493.50 \u2014 bull/bear, bias-confirming, range-exhaustion, HVN 7482.50 confluence. Entry 7486.25, stop 7478.50 (1pt beyond zone), target 7510 (next zone), ~3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

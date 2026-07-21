@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:46.334435+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7616.5,
+    "side": "short",
+    "stopLoss": 7637.75,
+    "takeProfit": 7553,
+    "rationale": "Short zone 7611.50-7623.50 (Initial Resistance, keys-graded strong, bias-changing, buy-side dominance blocking automatic fade). Overnight NQ rejected resistance and broke Friday's low, a citable shift justifying the countertrend fade. Daisy-chain stop beyond 7627.25-7636.75; target Initial Support 7543-7553, ~3:1, per lookback's five-session shelf-and-major pattern."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

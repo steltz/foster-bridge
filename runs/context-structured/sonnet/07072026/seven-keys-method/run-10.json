@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:40.368968+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7544,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "rationale": "Long at Initial Support 7538.25-7546.75 (HVN 7544), the deeper, higher-confluence zone graded 'strong' in the Keys \u2014 first RTH test, prior rally launch, full bullish alignment \u2014 versus the already-retested 7563-73 shelf. Stop 7537.25 beyond zone. Target the plan's Initial Resistance/bias-confirming zone at 7593.75."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.75,
+    "dollars": -33.75,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

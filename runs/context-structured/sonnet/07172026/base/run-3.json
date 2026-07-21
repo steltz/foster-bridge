@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:52.047395+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7476,
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "side": "long",
+    "rationale": "Long at Initial Support 7468.50-7480 (Bull/Bear, Bias Confirming, Range Exhaustion) \u2014 the plan's highest-confluence support, aligned with bullish intermediate/bigger-picture bias after overnight Nasdaq-driven liquidation left ES overextended. Stop 7467.50 (1pt beyond zone), target Aggressive Resistance 7518.50 for 5:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

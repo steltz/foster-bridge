@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:52.086598+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7480,
+    "side": "long",
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "rationale": "Long at Initial Support 7468.50-7480 \u2014 the Bias Confirming, Bull/Bear, Range Exhaustion zone, aligning with the bullish intermediate/bigger-picture bias after a multi-day ES/NQ decline leaves the market overextended arriving there. Entry 7480 (zone top), stop 7467.50 (1pt beyond far edge), target 7518.50 (Aggressive Resistance near edge), ~3.1R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

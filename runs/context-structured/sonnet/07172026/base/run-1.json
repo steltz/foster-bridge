@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:51.969135+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558,
+    "side": "short",
+    "stopLoss": 7566,
+    "takeProfit": 7524.75,
+    "rationale": "Overnight Nasdaq balance breakdown (a genuine, citable control shift) overrides the bigger-picture bullish label, aligning with short-term neutral-bearish/sell-side-control. Fading first test of Initial Resistance 7556-7564, targeting NVPOC 7524.75 inside Aggressive Resistance 7518.50-7531.50; stop above zone at 7566; ~4.2:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

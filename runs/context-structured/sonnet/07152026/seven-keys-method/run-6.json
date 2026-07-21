@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:49.249653+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7557,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "side": "long",
+    "rationale": "Bought Initial Support 7544-7557 \u2014 yesterday's CPI-breakout launching point (HVN), aligning with the plan's Bigger-Picture-Bullish bias (Keys 5/6). Skipped shallower Aggressive Support 7587.75-7597.75, expecting an exhausted test of this deeper, more significant zone. Stop 7543 (1pt beyond 7544 far edge). Target 7606.25, Initial Resistance, ~3.5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

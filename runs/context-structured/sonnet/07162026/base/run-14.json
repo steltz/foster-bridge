@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:50.718072+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7531,
+    "stopLoss": 7522.25,
+    "takeProfit": 7557,
+    "rationale": "Bigger-picture bias is Bullish; overnight seller activity at resistance is intraday noise, not a citable control shift, so I trade with the larger bias per the tie-break rule. Skipping shallow 7570-7581 initial support for deeper, high-confluence 7523.25-7535.25 (bias confirming, range exhaustion, open gap/NVPOC, prior-day buyer-response zone), targeting 7544-7557 HVN/launching-point zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

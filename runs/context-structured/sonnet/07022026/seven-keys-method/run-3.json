@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:36.638408+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7616.5,
+    "stopLoss": 7623.5,
+    "takeProfit": 7595.25,
+    "rationale": "Short at 7611.50-7622.50 \u2014 the plan's own words flag this bias-confirming zone as highest-probability for sellers on first test, given post-NFP upside exhaustion and holiday-thinned risk appetite limiting continuation. Stop 1pt beyond far edge (7623.50). Target the 7595.25-7604.25 zone below for 3.04:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

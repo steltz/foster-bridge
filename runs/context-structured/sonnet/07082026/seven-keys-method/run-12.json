@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:42.192808+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7485.5,
+    "stopLoss": 7476.5,
+    "takeProfit": 7512.5,
+    "side": "long",
+    "rationale": "Long from the 7477.50-7493.50 bull/bear zone (HVN 7482.50) \u2014 the multi-day range base and top Seven-Keys support grade \u2014 aligned with bullish bigger-picture bias per the tie-break rule against an unresolved breakdown attempt. Stop 1pt below zone floor; target 7512.50 at 7506-7516 Aggressive Resistance, 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783522200,
+    "exitTime": 1783524000
+  }
+}

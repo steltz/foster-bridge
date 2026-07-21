@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:45.422041+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7512.25,
+    "stopLoss": 7507,
+    "takeProfit": 7528,
+    "rationale": "Long at 7508-7518, the Range-Exhaustion/Bias-Confirming support beneath Initial Support (7543-7553). Overnight NQ failed resistance and broke Friday's low exactly as the recap warned, pulling ES to this deeper, exhausted, significant zone aligned with the Bigger-Picture-Bullish bias. Target 7524-7534 (3:1); stop 1pt beyond 7508."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

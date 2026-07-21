@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:41.730727+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7484.25,
+    "stopLoss": 7476.25,
+    "takeProfit": 7508.25,
+    "side": "long",
+    "rationale": "Long at the 7477.50-7493.50 bull/bear pivot (HVN 7482.50, bias-confirming) \u2014 with bigger-picture bias bullish and no citable reason to fade it, tie-break defaults long on this overnight breakdown-attempt day. Stop 7476.25, beyond far edge. Target 7508.25 inside next zone, 7506-7516 aggressive resistance, ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783522200,
+    "exitTime": 1783524000
+  }
+}

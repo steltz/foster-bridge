@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:52.202341+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7472,
+    "stopLoss": 7467.5,
+    "takeProfit": 7486,
+    "rationale": "Long at 7468.50-7480 (Initial Support, Bull/Bear, Bias Confirming, Range Exhaustion) \u2014 the plan explicitly flags responsive buyers here and calls a breakdown below \"suspect and prone to failure,\" aligning with the bullish intermediate/bigger-picture bias against an overextended short-term selloff. Target next zone 7482.50-7487.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

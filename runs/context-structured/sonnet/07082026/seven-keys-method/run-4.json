@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:41.884745+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7484,
+    "side": "long",
+    "stopLoss": 7476.5,
+    "takeProfit": 7510,
+    "rationale": "Buying the 7477.50-7493.50 bull/bear zone (bias confirming, 7482.50 HVN) \u2014 the pivot the overnight breakdown attempt is testing. No confirmed shift exists yet, so tie-break defaults to the bigger-picture bullish bias. Entry 7484, stop 7476.50 (beyond zone), target 7510 NVPOC in the 7506-7516 aggressive-resistance zone. R:R 3.47:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

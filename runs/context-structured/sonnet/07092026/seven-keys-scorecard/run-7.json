@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:44.338092+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7533,
+    "side": "long",
+    "stopLoss": 7523,
+    "takeProfit": 7563,
+    "rationale": "Long at aggressive support 7524-7536.50 \u2014 VPOC 7524.75, overnight breakout reclaiming yesterday's RTH high 7536.50, and full Keys 3/4/5/6 stack per the KEYS scorecard, aligned with bullish bigger-picture bias and the recap's failed-breakdown thesis. Target inside Initial Resistance 7561.25-7571.25 for 3:1 R:R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 30,
+    "dollars": 150,
+    "fillTime": 1783606500,
+    "exitTime": 1783608900
+  }
+}

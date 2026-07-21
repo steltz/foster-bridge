@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:40.757179+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "entry": 7482.5,
+    "side": "long",
+    "stopLoss": 7460.5,
+    "takeProfit": 7546.75,
+    "rationale": "Long from 7479.50-7493.50 (Bull/Bear support), the day's only automatic-fade zone: exhausted first test, largest timeframe, full bullish-bias alignment. Daisy-chain stop below 7461.50-7470.50 per Keys' mandatory caveat on this zone's edge-probing history. Target 7538.25-7546.75 (Initial Support, HVN 7544), the next graded 'strong' zone, for ~2.9R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

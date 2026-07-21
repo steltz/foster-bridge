@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:49.675515+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7554,
+    "rationale": "Long 7544-7557 (Initial Support/7544 HVN, launching point of the post-CPI breakout) \u2014 the Keys sheet's best long confluence, aligned with the bullish bias, buyer-proven yesterday per lookback (\"trust strong grades again\"). Stop 7543 (beyond far edge). Target 7606.25, Initial Resistance, the next meaningful zone up.",
+    "side": "long",
+    "stopLoss": 7543,
+    "takeProfit": 7606.25
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

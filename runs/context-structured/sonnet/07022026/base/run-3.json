@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:36.061021+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7552,
+    "stopLoss": 7548.25,
+    "takeProfit": 7567,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight buy-side dominance already pushed ES into 7567-7579 initial resistance. Buying the pullback into 7549.50-7558.50 aggressive support (\"Holding Above Signals Strength\") for continuation, with stop 1.25pts beyond its 7549.50 far edge and target at the 7567-7579 initial resistance zone, ~4:1 R:R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 15,
+    "dollars": 75,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:46.883016+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7580.25,
+    "stopLoss": 7569.75,
+    "takeProfit": 7611.75,
+    "side": "long",
+    "rationale": "Buying aggressive support 7571-7582 (holding above = signals strength), aligned with bullish bigger-picture bias and today's overnight buying/post-CPI breakout continuation above yesterday's RTH high. Stop 7569.75 (1+ pt beyond zone low). Target 7611.75 inside initial resistance 7609.25-7620.25, delivering 3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.5,
+    "dollars": -52.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

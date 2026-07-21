@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:50.332949+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7627.25,
+    "stopLoss": 7637.75,
+    "takeProfit": 7581,
+    "side": "short",
+    "rationale": "Short from 7624.75-7636.75 (bias-confirming Initial Resistance, same zone that rejected 07/15's breakout per recap), aligning with overnight sell dominance below aggressive resistance. Stop 1pt beyond zone top (7637.75). Target 7570-7581 Initial Support, whose break confirms today's bearish shift; ~4.4:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:43.286111+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7530.25,
+    "stopLoss": 7523,
+    "takeProfit": 7552,
+    "side": "long",
+    "rationale": "Long at Aggressive Support 7524-7536.50 (\"Holding Above Signals Strength\"), aligned with bigger-picture bullish bias and overnight confirmation (break above prior RTH high, failed breakdown, buyers in control). Stop 7523.00, one point beyond the zone's far edge. Target: Pre-Market Resistance 7548-7558, the next meaningful zone, for a clean 3:1 R:R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 21.75,
+    "dollars": 108.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

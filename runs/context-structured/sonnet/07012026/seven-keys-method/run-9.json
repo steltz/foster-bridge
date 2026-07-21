@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:35.133469+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7495.25,
+    "stopLoss": 7480.75,
+    "takeProfit": 7538.75,
+    "rationale": "Long at 7481.75-7495.75, the multi-day bull/bear floor (Bias Confirming, 7482.50 HVN) that launched yesterday's breakout \u2014 stronger confluence than the shallower 7510.50-7520.50 initial support. Bias stays bullish per recap/plan (no citable shift). Stop beyond the 7481.75 far edge; target 7534.75-7542.75, the plan's next resistance, for 3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

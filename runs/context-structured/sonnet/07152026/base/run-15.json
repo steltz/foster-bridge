@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:49.019105+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7554,
+    "stopLoss": 7542.75,
+    "takeProfit": 7587.75,
+    "side": "long",
+    "rationale": "Long 7554.00 inside the plan's Initial Support/Launching-Point zone (7544-7557, 7544 HVN, post-CPI breakout origin), aligned with bullish bigger-picture bias. Stop 7542.75, 1.25pts beyond the zone's far edge. Target 7587.75, near edge of prior-session VPOC/Aggressive Support zone (7587.75-7597.75), for a clean 3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

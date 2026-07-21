@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:47.269273+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7554.25,
+    "stopLoss": 7542.75,
+    "takeProfit": 7599,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish; no citable reversal event today, so trade with it. Skip aggressive support (7571-7582), likely to give way given neutral short-term chop, for the deeper 7544-7556 zone \u2014 the CPI-breakout's launching point (7544 HVN) \u2014 targeting pre-market resistance 7596-7605, ~3.9R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

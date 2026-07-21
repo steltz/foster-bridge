@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:52.786976+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7524.25,
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "side": "short",
+    "rationale": "Short at aggressive resistance 7518.50-7531.50 (open gap 7528.75, NVPOC 7524.75) \u2014 short-term bias bearish, sell side confirmed control per 07/16 recap (broke initial support, closed weak). Key 6: aggressive zones work when bias aligns, no need for deeper zone. Stop 7532.50 beyond far edge; target 7491.25-7500 pre-market support, ~2.9:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.25,
+    "dollars": -41.25,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

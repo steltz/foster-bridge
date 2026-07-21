@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:42.269442+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7490.75,
+    "stopLoss": 7476.5,
+    "takeProfit": 7533.5,
+    "rationale": "Long the 7477.50-7493.50 bull/bear zone (HVN 7482.50) \u2014 the plan's explicit control line; bigger-picture bias is bullish with no citable shift, so default with-bias per tie-break rule. High confluence (bias-confirming, bull/bear, HVN). Stop 1pt beyond far edge; target 7524.75-7534.75 breakout-strength zone, exactly 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -14.25,
+    "dollars": -71.25,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

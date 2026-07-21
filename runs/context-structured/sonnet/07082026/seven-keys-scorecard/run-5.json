@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:42.501948+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7488.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "side": "long",
+    "rationale": "Long inside 7477.50-7493.50 bull/bear support (HVN 7482.50, multi-day range-base launch, bullish bigger-picture alignment \u2014 Seven Keys 'strong'). Bias tie-break favors the intact bullish backdrop absent a confirmed breakdown. Entry 7488.25, stop 7476.50 (1pt beyond zone), target 7524.75 PM-resistance/gap zone, ~3.1R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

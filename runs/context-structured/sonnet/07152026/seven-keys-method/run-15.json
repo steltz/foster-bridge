@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:49.598602+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7596.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "side": "long",
+    "rationale": "Long at aggressive support 7587.75-7597.75 (holding here signals continued overnight strength, aligned with the bullish bigger-picture bias); stop 7586.75 (1pt beyond far edge); target front edge of bias-confirming zone 7627.25-7636.75, the plan's stated range-expansion objective. R:R ~3.05:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

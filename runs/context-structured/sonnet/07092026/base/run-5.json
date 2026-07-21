@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T09:22:43.088609+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7552.75,
+    "rationale": "Long at Aggressive Support 7524-7536.50 (plan: \"Holding Above Signals Strength\"), aligned with bigger-picture/intermediate-bullish bias; recap and morning video confirm yesterday's breakdown attempt failed, buyers back in control overnight. Target 7548-7558 (Pre-Market Resistance/Break-out zone) for 3:1; stop 1.25pts beyond the zone's 7524 far edge."
+  },
+  "result": {
+    "status": "TP",
+    "points": 22.5,
+    "dollars": 112.5,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

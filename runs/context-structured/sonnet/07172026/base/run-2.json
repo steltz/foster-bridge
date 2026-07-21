@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T09:22:52.007646+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7472.75,
+    "stopLoss": 7467.5,
+    "takeProfit": 7491.25,
+    "side": "long",
+    "rationale": "Long at initial support 7468.50-7480 (bias confirming, bull/bear, range-exhaustion) \u2014 plan says breakdown attempts there are \"suspect,\" skipping shallower aggressive/pre-market supports above, aligning with intermediate/bigger-picture bullish bias over today's neutral-bearish label. Stop 7467.50 (1pt beyond far edge); target 7491.25 (pre-market support), ~3.5:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

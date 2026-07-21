@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:38.943163+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "side": "long",
+    "entry": 7483.25,
+    "stopLoss": 7477.5,
+    "takeProfit": 7515.25,
+    "rationale": "Long from 7479.50-7493.50 \u2014 the day's only automatic-fade zone: bull/bear, 7482.50 HVN, proven Thursday 3R launch, full bullish alignment, exhausted arrival. Stop 7477.50 beyond the floor (daisy-chain caution). Target 7515.25 inside 7510-7520.50 initial support, ~5.6R, trading with the bullish intermediate/bigger-picture bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

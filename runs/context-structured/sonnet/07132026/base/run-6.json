@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:44.906625+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7513.25,
+    "stopLoss": 7506.75,
+    "takeProfit": 7532.75,
+    "rationale": "Long at 7513.25 inside the 7508-7518 Range Exhaustion/Bias Confirming support zone, skipped past the shakier 7543-7553 Initial Support the plan flags for sell-side dominance. Trades with the Bigger Picture Bullish bias (tie-break: no citable bearish shift). Stop 7506.75 beyond zone; target 7532.75 in the 7524-7534 zone, 3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

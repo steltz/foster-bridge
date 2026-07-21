@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:47.695748+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7578,
+    "stopLoss": 7569.75,
+    "takeProfit": 7609.25,
+    "rationale": "Bigger-picture and intermediate bias are bullish; overnight buyers held support in both ES and NQ, reversing yesterday's NQ divergence, and CPI drove a break above yesterday's high. Buying Aggressive Support 7571-7582 (plan: \"holding above signals strength\") targets Initial Resistance 7609.25-7620.25, the zone the plan links to this support holding."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.25,
+    "dollars": -41.25,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

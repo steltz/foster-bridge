@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-method",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T09:22:38.790080+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7482.5,
+    "side": "long",
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Automatic-fade zone 7479.50-7493.50 (bull/bear, 7482.50 HVN) is the single highest-confluence zone on the board: proven Thursday launch, full alignment with intermediate/bigger-picture bullish bias, exhausted arrival. Trading with bias per tie-break rule. Entry at HVN, stop 1pt beyond zone floor, target 7510 VPOC zone for 6.9:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

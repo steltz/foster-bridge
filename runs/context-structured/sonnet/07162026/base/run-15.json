@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:50.755726+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7531,
+    "stopLoss": 7522.25,
+    "takeProfit": 7557,
+    "rationale": "Buying 7523.25-7535.25 (bias-confirming, range-exhaustion, first-test zone). Entry 7531.00, stop 7522.25 (1pt beyond far edge), target 7557.00 (7544-7557 zone), ~3:1 R:R. Bigger-picture bias is bullish; overnight selling lacks a citable control-shift, so trading with the larger-timeframe bias per tie-break rule."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

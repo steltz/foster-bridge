@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:45.615323+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7530,
+    "stopLoss": 7522.75,
+    "takeProfit": 7551.75,
+    "rationale": "Long 7524-7534 (Open Gap 7528.75/NVPOC 7524.75). Plan flags Initial Support 7543-53 as risky (sell-side dominant heading in), so I skip to this deeper, bias-changing zone that keeps the still-bullish bigger-picture structure intact. Stop 7522.75, 1pt+ beyond the low edge; target 7551.75, top of Initial Support, ~3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

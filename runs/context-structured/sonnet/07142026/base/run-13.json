@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:47.191134+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7579.75,
+    "stopLoss": 7570,
+    "takeProfit": 7609.25,
+    "rationale": "Bigger-picture bias is bullish and today's CPI print drove a break above yesterday's RTH high (7610.50) \u2014 no citable reason to fade it. Buying the pullback into Aggressive Support 7571-7582 (plan: \"holding above signals strength\"), targeting Initial Resistance 7609.25-7620.25, the plan's next bias-confirming zone above. Stop 1pt beyond zone low (7571). R:R \u22483:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

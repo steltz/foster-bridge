@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:40.137729+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7568,
+    "stopLoss": 7562,
+    "takeProfit": 7593.75,
+    "rationale": "Long the Aggressive Support zone 7563-7573 \u2014 the exact zone that launched the prior session's decisive rally (recap) and where today's plan notes overnight responsive buyers already active. Aligns with bullish intermediate/bigger-picture bias. Stop 7562 (1pt beyond far edge). Target 7593.75, the Initial Resistance/Bias Confirming zone, ~4.3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1783433100,
+    "exitTime": 1783433100
+  }
+}

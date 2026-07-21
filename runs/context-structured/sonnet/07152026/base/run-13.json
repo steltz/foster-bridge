@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:48.941745+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7555,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "side": "long",
+    "rationale": "Long at Initial Support 7544-7557 (7544 HVN, Launching Point) \u2014 the deeper, more significant support the plan names as where \"responsive buyers step in\" if aggressive/pre-market support give way, trading with the bigger-picture bullish bias. Target: Initial Resistance 7606.25 (first bias-changing resistance). Stop 7543, one point beyond the zone's far edge; R:R ~4.3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

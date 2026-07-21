@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:49.326993+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7550,
+    "stopLoss": 7543,
+    "takeProfit": 7571,
+    "rationale": "Bigger-picture bias bullish; 07/14 recap shows buy-side dominance. Skipping shallow 7587.75-7597.75 aggressive support for deeper, higher-confluence 7544-7557 zone (Initial Support, Launching Point, 7544 HVN, bias-aligned). Stop 1pt beyond 7544 far edge; target 7571 inside 7564.25-7575.25 pre-market support, 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

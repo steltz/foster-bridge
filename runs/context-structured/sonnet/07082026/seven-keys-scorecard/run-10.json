@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:42.698487+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7483.75,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "side": "long",
+    "rationale": "Long at 7477.50-7493.50, the bull/bear support pivot \u2014 Seven Keys grades it \"strong\" (HVN, bias alignment) and it aligns WITH the bigger-picture bullish/intermediate neutral-bullish bias; no citable bearish shift yet, so no tie-break override. Stop 7476.50 (1pt beyond far edge). Target 7506.00, front of the plan's 7506-7516 resistance, for 3.07:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

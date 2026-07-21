@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:34.130560+00:00",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7521,
+    "side": "short",
+    "stopLoss": 7532.75,
+    "takeProfit": 7485.75,
+    "rationale": "Overnight liquidation and NQ's multi-day balance breakdown leave sell side in firm control into a Friday close; plan flags 7518.50-7531.50 (NVPOC 7524.75, open gap 7528.75) as the level where \"holding below signals continued weakness.\" Fading this resistance targets 7482.50-7487.50 HVN, just above initial support, for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

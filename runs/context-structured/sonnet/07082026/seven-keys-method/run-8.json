@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:42.040095+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7450,
+    "side": "long",
+    "stopLoss": 7443.5,
+    "takeProfit": 7477.5,
+    "rationale": "Bias tie-break defaults to bigger-picture bullish absent a confirmed failed-breakdown shift. Long the 7444.50-7454.75 Initial Support/Range-Exhaustion zone \u2014 plan explicitly notes buyers active here on first test after breaking two shallower supports (exhausted approach, Key 3), targeting reclaim of 7477.50-93.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

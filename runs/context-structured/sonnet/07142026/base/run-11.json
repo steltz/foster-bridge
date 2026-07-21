@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:47.114212+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7576,
+    "side": "long",
+    "stopLoss": 7570,
+    "takeProfit": 7596,
+    "rationale": "Long at Aggressive Support 7571-7582, the plan's continuation zone (\"holding above signals strength\") for the post-CPI bullish reaction, aligning with the bigger-picture bullish bias and overnight buyer activity at support. Stop 7570 (1pt beyond far edge). Target 7596, near edge of Pre-Market Resistance 7596-7605, ~3.3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

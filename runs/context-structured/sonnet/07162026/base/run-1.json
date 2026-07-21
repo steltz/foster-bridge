@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:50.218910+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7627.75,
+    "stopLoss": 7638,
+    "takeProfit": 7581,
+    "side": "short",
+    "rationale": "Short at 7624.75-7636.75 (Bias Confirming, Initial Resistance; contains prior-day high 7626.25) \u2014 overnight rally was rejected here, a citable control shift to sellers overriding the bullish larger-timeframe bias per tie-break. Stop 7638.00, one-plus point beyond the zone's far edge. Target 7581.00, the initial-support zone's near edge (4.6R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

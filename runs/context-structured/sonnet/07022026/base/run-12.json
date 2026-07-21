@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:36.406408+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7488.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7567,
+    "side": "long",
+    "rationale": "Long at the bias-confirming bull/bear zone 7481.75-7495.75 (7482.50 HVN), which per the recap held to keep yesterday's breakout intact \u2014 strongest confluence with the intermediate/bigger-picture bullish bias. Stop 1pt beyond 7481.75. Target next meaningful zone, Initial Resistance 7567-7579, for ~9.8:1 R:R, well above the 2.5:1 floor."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

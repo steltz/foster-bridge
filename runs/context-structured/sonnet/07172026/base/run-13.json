@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:52.438482+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7519.5,
+    "stopLoss": 7532.5,
+    "takeProfit": 7480,
+    "rationale": "Sell side in firm control (plan/recap confirm multi-day balance breakdown); short a bounce into 7518.50-7531.50 aggressive resistance (Open Gap 7528.75, NVPOC 7524.75). Stop 7532.50, one point beyond zone. Target 7480, top of 7468.50-7480 bias-confirming initial support; ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

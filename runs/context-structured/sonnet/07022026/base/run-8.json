@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:36.252829+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7492,
+    "side": "long",
+    "stopLoss": 7480.75,
+    "takeProfit": 7526,
+    "rationale": "Long from 7481.75-7495.75 Bull/Bear bias-confirming zone (HVN 7482.50) \u2014 recap confirms this level kept yesterday's bullish breakout intact, aligning with the bigger-picture bullish bias. Stop 7480.75, one point beyond the far edge. Target 7520.25-7529.25 pre-market support, the next meaningful zone, delivering ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.25,
+    "dollars": -56.25,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

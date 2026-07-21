@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:43.600542+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7534,
+    "stopLoss": 7523,
+    "takeProfit": 7567,
+    "rationale": "Long from Aggressive Support 7524-7536.50, the overnight breakout's launch point that reclaimed yesterday's RTH high, confirming the failed breakdown and buy-side control (Keys 5/6, strong grade, first RTH test). Stop 7523.00, one point beyond the zone low. Target Initial Resistance 7561.25-7571.25, the plan's breakout-confirmation level, for 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 33,
+    "dollars": 165,
+    "fillTime": 1783606500,
+    "exitTime": 1783609500
+  }
+}

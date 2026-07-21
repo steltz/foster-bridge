@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:51.346632+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7554.25,
+    "rationale": "Long from support 7523.25-7535.25, the Seven-Keys automatic-fade zone (range exhaustion, bias confirming, open gap 7528.75/NVPOC 7524.75), aligned with bullish bigger-picture bias per the tie-break rule. Stop 1pt beyond 7523.25 far edge; target inside 7544-7557 Launching Point zone for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

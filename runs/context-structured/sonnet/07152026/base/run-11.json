@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:48.863775+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7591.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.75,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish; recap confirms buy-side dominance from yesterday's post-CPI breakout, favoring longs. Buying the first pullback into Aggressive Support (7587.75-7597.75, \"Holding Above Signals Strength\") targets Initial Resistance (7606.25-7615.25), a Bias Changing zone, for a clean 3:1 reward-to-risk."
+  },
+  "result": {
+    "status": "TP",
+    "points": 15,
+    "dollars": 75,
+    "fillTime": 1784128500,
+    "exitTime": 1784129400
+  }
+}

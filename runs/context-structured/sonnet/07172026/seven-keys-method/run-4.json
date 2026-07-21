@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:52.668516+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7524.75,
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "side": "short",
+    "rationale": "Short at Aggressive Resistance 7518.50-7531.50 (Open Gap 7528.75, NVPOC 7524.75), aligned with today's neutral-bearish call after overnight NQ balance breakdown and firm sell-side control. Entry 7524.75, stop 7532.50 (1pt beyond zone), target 7500.00, top of Pre-Market Support 7491.25-7500, the plan's stated downside objective. R:R 3.2:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

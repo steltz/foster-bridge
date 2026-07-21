@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:41.192427+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7488.5,
+    "side": "long",
+    "stopLoss": 7476.5,
+    "takeProfit": 7524.75,
+    "rationale": "Buying the 7477.50-7493.50 Bull/Bear zone (Bias Confirming, 7482.50 HVN) \u2014 both TP and recap converge here as the pivotal level, and the overnight breakdown attempt remains unconfirmed, so default to the bigger-picture bullish bias. Stop 7476.50; target front of 7524.75-7534.75 pre-market resistance for 3.02R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:50.564639+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7529.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7550.25,
+    "rationale": "Trading with the larger-timeframe bullish bias per tie-break (no confirmed control-shift cited; recap flagged caution on shorting ES vs Nasdaq strength). Buying the bias-confirming range-exhaustion zone 7523.25-7535.25 (gap/NVPOC, first-test buyers) after initial support 7570-7581 gives way; target 7544-7557 (launching point)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

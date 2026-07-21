@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "seven-keys-method",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:50.991598+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7581,
+    "side": "long",
+    "stopLoss": 7569,
+    "takeProfit": 7624.75,
+    "rationale": "Long 7570-7581 (strong, initial support): prior-day low 7571.75 inside, overlapping yesterday's 7564.25-7575.25 reversal launch. Bigger-picture bias bullish; recap warns against shorting ES given NQ-relative strength. Stop 7569 beyond far edge; target 7624.75, bias-confirming initial resistance, ~3.65R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784223600,
+    "exitTime": 1784227200
+  }
+}

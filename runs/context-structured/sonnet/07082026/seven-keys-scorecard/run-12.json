@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:42.776721+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7398,
+    "stopLoss": 7389.5,
+    "takeProfit": 7423.5,
+    "side": "long",
+    "rationale": "Skipping the bull/bear zone (7477.50-93.50) and initial support (7444.50-54.75) for the plan's deeper \"better support\" 7390.50-7401.75 (Gap, bias-confirming, deepest exhaustion). No citable breakdown confirmation yet, so tie-break defaults long with bigger-picture bullish bias. Target 7420.50-7423.50 Range Extreme, ~3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

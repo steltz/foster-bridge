@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:37.946066+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7491.75,
+    "stopLoss": 7478.5,
+    "takeProfit": 7530.25,
+    "side": "long",
+    "rationale": "Long at the Bull/Bear zone (7479.50-7493.50), the plan's deepest Bias-Confirming support, aligned with bigger-picture bullish bias and where the prior recap showed buyers defending after range exhaustion. Stop 1pt beyond zone low (7478.50); target next zone, Pre-Market Support (7523.75-7530.25), for ~2.9R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

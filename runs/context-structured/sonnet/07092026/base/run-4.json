@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T09:22:43.050708+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7552.75,
+    "rationale": "Long at Aggressive Support 7524-7536.50, the first pullback zone below an overnight breakout of yesterday's RTH high confirming the failed breakdown and buy-side control (bigger-picture bullish). Stop 7522.75, beyond the zone's far edge. Target 7552.75 inside Pre-Market Resistance 7548-7558, next meaningful zone, for exact 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 22.5,
+    "dollars": 112.5,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

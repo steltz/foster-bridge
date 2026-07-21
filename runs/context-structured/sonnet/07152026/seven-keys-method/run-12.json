@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:49.483092+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7592.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7610.75,
+    "side": "long",
+    "rationale": "Long at Aggressive Support 7587.75-7597.75, the plan's key gating zone: overnight buyers already defended pullbacks into it and holding it aligns with the Bigger-Picture-Bullish/Neutral-Bullish directional bias, with no evidence of a control shift to fade. Target: Initial Resistance 7606.25-7615.25, the next meaningful zone. Stop 1pt beyond far edge (7587.75). R:R = 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

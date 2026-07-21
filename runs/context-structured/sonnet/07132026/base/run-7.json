@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:44.991620+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7513,
+    "stopLoss": 7507,
+    "takeProfit": 7531,
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight NQ weakness has no citable control-shift, so default with larger-timeframe bias. Plan flags sell-side dominance into 7543-53 and 7524-34, so skip those for the deeper, Bias-Confirming 7508-7518 Range Exhaustion zone. Target: 7524-34 (Open Gap/NVPOC), ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

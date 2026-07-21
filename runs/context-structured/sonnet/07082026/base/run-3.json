@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:41.268973+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7485.25,
+    "stopLoss": 7476.25,
+    "takeProfit": 7512.25,
+    "rationale": "Bigger-picture bias is bullish; overnight breakdown is unconfirmed and short-term reads neutral, so per the tie-break rule I trade with the larger trend. Buying the 7477.50-7493.50 Bull/Bear zone (HVN 7482.50) for a bounce, targeting Aggressive Resistance 7506-7516 \u2014 a clean 3:1 versus a stop 1.25pts below the zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783522200,
+    "exitTime": 1783524000
+  }
+}

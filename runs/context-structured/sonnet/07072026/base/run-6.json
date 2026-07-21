@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:39.635986+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7544.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7567.25,
+    "side": "long",
+    "rationale": "Buying Initial Support 7538.25-7546.75 (HVN 7544, bias-changing) \u2014 the plan's own intermarket-trigger zone, reached only if Aggressive Support 7563-73 first gives way, aligning with bullish intermediate/bigger-picture bias. Stop 1pt beyond 7538.25 far edge; target 7567.25 inside broken Aggressive Support (now resistance) for 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

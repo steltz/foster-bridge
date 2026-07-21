@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T09:22:48.748692+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7595,
+    "stopLoss": 7586.5,
+    "takeProfit": 7620.25,
+    "side": "long",
+    "rationale": "Long at Aggressive Support 7587.75-7597.75 \u2014 prior close 7591.25 and VPOC 7590.50 sit inside it, and the plan flags holding it as signaling continued overnight strength, aligned with the bigger-picture bullish bias. Stop 7586.50 (beyond zone). Target 7620.25, the Break-out-Signals-Strength zone (~2.97:1 R:R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.5,
+    "dollars": -42.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T09:22:52.281148+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7479,
+    "side": "long",
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "rationale": "Buying initial support 7468.50-7480 \u2014 bias-confirming, bull/bear, range-exhaustion confluence \u2014 since the plan flags a breakdown there as overextended and \"prone to failure,\" aligning with the bullish intermediate/bigger-picture bias over the merely neutral-bearish short-term tape. Stop 1pt beyond 7468.50; target aggressive resistance 7518.50-7531.50 (~3.4R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

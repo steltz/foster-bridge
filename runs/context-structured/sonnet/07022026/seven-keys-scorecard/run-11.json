@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T09:22:37.524193+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "side": "long",
+    "entry": 7495.25,
+    "stopLoss": 7480.75,
+    "takeProfit": 7549.5,
+    "rationale": "Long from the day's only automatic-fade zone, support 7481.75-7495.75 (Bull/Bear line, bias-confirming, 7482.50 HVN, launch point of yesterday's breakout) \u2014 Keys 3-6 fully stack. Stop 1pt beyond 7481.75. Target 7549.50-7558.50 (aggressive support holding VPOC 7551.75), ~3.7R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -14.5,
+    "dollars": -72.5,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

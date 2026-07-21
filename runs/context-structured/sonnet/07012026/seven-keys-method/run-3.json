@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T09:22:34.902136+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7492.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "rationale": "Long inside 7481.75-7495.75, the exact launch point of yesterday's balance-breakout rally (Key 5) and the bull/bear pivot aligned with the bigger-picture/intermediate bullish bias (Key 6) \u2014 stacked confluence, first RTH test since the launch. Short-term-neutral chatter isn't a citable reversal, so I default with bias. Target: 7558.50-7568.50 bias-confirming resistance."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

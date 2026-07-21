@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T09:22:43.989614+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7530.25,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "side": "long",
+    "rationale": "Long at Aggressive Support 7524-7536.50 (Holding Above Signals Strength). Overnight break above yesterday's RTH high confirms yesterday's breakdown failed and buy side is back in control, aligning with the Bigger-Picture Bullish bias per the recap and plan. Stop 7523.00 (1pt beyond zone's far/low edge). Target near edge of Initial Resistance 7561.25-7571.25, ~4.3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 31,
+    "dollars": 155,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

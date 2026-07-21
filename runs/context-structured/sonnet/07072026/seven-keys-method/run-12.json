@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T09:22:40.447396+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7488.5,
+    "stopLoss": 7478.25,
+    "takeProfit": 7519.25,
+    "side": "long",
+    "rationale": "Long at 7479.50-7493.50: bias-confirming, bull/bear pivot with an HVN, and the plan itself notes range exhaustion by this depth \u2014 higher-confluence than the shallower 7563-7573 aggressive support. Stop 7478.25 beyond the far edge; target 7519.25 in the next zone (7510-7520.50) for ~3R, with bullish bigger-picture bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

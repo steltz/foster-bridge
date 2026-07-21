@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-21T09:22:46.118982+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7512,
+    "side": "long",
+    "stopLoss": 7506.75,
+    "takeProfit": 7527.75,
+    "rationale": "Long at 7512, inside 7508-7518 \u2014 the plan's downside range-exhaustion zone, graded \"strong\" (exhaustion, first test, bullish bigger-picture alignment). Overnight NQ/ES weakness is already folded into a neutral short-term read, not a citable bias shift, so I default to the bullish larger-timeframe bias. Stop 7506.75 beyond the far edge; target 7527.75 inside the next zone, 7524-7534, for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

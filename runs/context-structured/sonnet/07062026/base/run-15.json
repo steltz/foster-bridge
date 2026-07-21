@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:38.252682+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7487.25,
+    "stopLoss": 7478.5,
+    "takeProfit": 7513.5,
+    "side": "long",
+    "rationale": "Buying inside the Bull/Bear zone (7479.50-7493.50), the day's bias-confirming zone and exact spot where buyers relaunched the recovery in the prior (07/02) recap session. Bigger-picture/intermediate bias stays bullish with no citable shift, so tie-break favors trading with bias. Stop 1pt beyond far edge; target Initial Support (7510-7520.50) for a clean 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

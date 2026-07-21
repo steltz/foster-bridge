@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T09:22:50.409840+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7554.25,
+    "rationale": "Bigger-picture bias bullish. Plan names 7523.25-7535.25 as bias-confirming/range-exhaustion (open gap, NVPOC) where \"buyers can be active on first test\" if initial support (7570-81) gives way \u2014 deepest, highest-confluence zone. Buy there, stop 1pt beyond far edge (7522.25), target the 7544-7557 launching-point/HVN zone for 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

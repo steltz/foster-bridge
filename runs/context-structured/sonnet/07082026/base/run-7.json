@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T09:22:41.424188+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7493.25,
+    "stopLoss": 7476.5,
+    "takeProfit": 7544,
+    "rationale": "Bigger-picture bias is bullish; the overnight breakdown attempt is unconfirmed, so per the tie-break rule I trade with the larger trend. Buying the 7477.50-7493.50 Bull/Bear zone (Bias Confirming, HVN) \u2014 the pivot that must fail to hold for the breakdown to succeed. Stop 7476.50, target 7544-7551.75 (failed-breakdown bullish zone), 3.03:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.75,
+    "dollars": -83.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

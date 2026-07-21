@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T09:22:48.825556+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7550,
+    "side": "long",
+    "stopLoss": 7542.5,
+    "takeProfit": 7572.5,
+    "rationale": "Long at Initial Support 7544-7557 (7544 HVN, Launching Point) \u2014 the highest-confluence zone, aligning with the Bigger Picture bullish bias and the recap's dominant buy-side control (avoid fading strength, buy pullbacks). Entry 7550 inside zone; stop 7542.50, beyond the 7544 far edge; target 7572.50 inside the 7564.25-7575.25 pre-market-support zone (3:1 R:R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

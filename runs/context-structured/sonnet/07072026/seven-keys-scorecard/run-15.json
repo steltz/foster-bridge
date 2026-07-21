@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 15,
+  "timestamp": "2026-07-21T09:22:41.153905+00:00",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "b87062ea5fd39fcb50b1cc42b49739143cd18b78537ff28c587708c275ced889",
+  "setup": {
+    "side": "long",
+    "entry": 7544.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "rationale": "Long at Initial Support 7538.25-7546.75 (seven-keys: strong \u2014 first RTH test, 7544 HVN, prior rally launch, bullish alignment). Stop 7537.25, one point beyond the zone's far edge. Target 7593.75, the plan's Initial Resistance/bias-confirming inflection that the 07/06 recap confirmed buyers were defending into today."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.5,
+    "dollars": -37.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}
