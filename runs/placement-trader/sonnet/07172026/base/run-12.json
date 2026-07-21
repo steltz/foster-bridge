@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:34.814Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7518.5,
+    "stopLoss": 7532.75,
+    "takeProfit": 7475.75,
+    "side": "short",
+    "rationale": "Short-term bias is neutral-bearish, sell side in firm control overnight. Plan projects any relief bounce off support running straight into Aggressive Resistance 7518.50-7531.50 first (\"holding below signals weakness\"). Enter shallow at the leading edge 7518.50, stop 7532.75 beyond the far edge, target bias-confirming Initial Support (7468.50-7480) at ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -14.25,
+    "dollars": -71.25,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

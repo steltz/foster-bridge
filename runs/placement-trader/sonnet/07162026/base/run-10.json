@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:33.265Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7600.5,
+    "stopLoss": 7604.5,
+    "takeProfit": 7588.5,
+    "rationale": "Overnight sellers rejected the bias-confirming resistance above and remain dominant; shorting aggressive resistance 7593.50-7603.50, the plan's key pivot, entering deep at 7600.50 for better price given moderate hold-odds. Stop 7604.50 clears the zone; target 7588.50 HVN yields 3R downside continuation."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4,
+    "dollars": -20,
+    "fillTime": 1784210700,
+    "exitTime": 1784210700
+  }
+}

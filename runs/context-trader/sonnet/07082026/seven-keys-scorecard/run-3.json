@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T03:27:10.399Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7401.75,
+    "stopLoss": 7389.25,
+    "takeProfit": 7444.5,
+    "side": "long",
+    "rationale": "Bigger-picture and intermediate bias are bullish; the overnight breakdown is unconfirmed. Skipping the ambiguous bull/bear battleground (7477.50-93.50), I rest a long in the fully-aligned, open-gap support 7390.50-7401.75 (Key 6: classic larger-timeframe buy vs capitulation), stop below 7390.50, target front of Initial Support 7444.50-7454.75 for ~3.4R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

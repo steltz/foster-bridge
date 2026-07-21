@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T03:27:08.199Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7543.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7563,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias bullish; resting long at the more significant Initial Support zone (7538.25-7546.75, Bias Changing/HVN) rather than the already-tapped Aggressive Support. Stop below zone; target near-edge of Aggressive Support (7563) for ~3:1, consistent with prior session's proven support-to-resistance rotation."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

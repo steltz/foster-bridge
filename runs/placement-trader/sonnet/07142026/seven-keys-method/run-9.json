@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:30.779Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7575,
+    "stopLoss": 7570,
+    "takeProfit": 7609.25,
+    "rationale": "Long at aggressive support 7571-7582 (moderate grade: Key 6 alignment with bullish bias + post-CPI breakout, but limited structural confluence) — moderate odds demand a deeper-in-zone entry. Stop 1pt beyond far edge (7571). Target 7609.25, the strong-graded bias-changing initial-resistance zone, the next meaningful level."
+  },
+  "result": {
+    "status": "SL",
+    "points": -5,
+    "dollars": -25,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

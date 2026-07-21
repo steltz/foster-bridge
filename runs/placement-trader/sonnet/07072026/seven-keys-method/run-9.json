@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:24.882Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7546.25,
+    "stopLoss": 7537.25,
+    "takeProfit": 7573,
+    "side": "long",
+    "rationale": "Intermediate/bigger-picture bias bullish; recap shows aggressive-support longs worked. Plan flags Initial Support 7538.25-7546.75 (HVN 7544) as the fresh first-RTH-test long trigger, reinforced if NQ tests its own overnight support in tandem. Entry set shallow near zone top for fill probability; stop 1pt below far edge; target reclaims Aggressive Support 7563-73 (~3R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

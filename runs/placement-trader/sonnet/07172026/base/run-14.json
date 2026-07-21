@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:34.889Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7518.5,
+    "stopLoss": 7532.5,
+    "takeProfit": 7480,
+    "side": "short",
+    "rationale": "Short-term bias is neutral-bearish, sell side in firm control after overnight breakdown. Plan flags 7518.50-7531.50 as Aggressive Resistance (\"holding below signals weakness\"), a bias-aligned automatic-fade zone into the weekend. Enter shallow at the leading edge 7518.50, stop 1pt beyond 7531.50, target Initial Support/bull-bear zone 7468.50-7480 (~2.75R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -14,
+    "dollars": -70,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

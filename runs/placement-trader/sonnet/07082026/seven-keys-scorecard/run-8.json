@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:26.809Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "entry": 7492.75,
+    "stopLoss": 7476,
+    "takeProfit": 7544,
+    "side": "long",
+    "rationale": "Long at the bull/bear support 7477.50-7493.50 — Seven-Keys 'strong,' aligned with bigger-picture bullish/intermediate neutral-bullish bias, the day's most significant inflection, and the shallowest reachable zone off the open. Stop below zone floor at 7476.00; target the 7544-7551.75 pre-market resistance/launching-point zone for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.75,
+    "dollars": -83.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

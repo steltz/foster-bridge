@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:23.938Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "side": "short",
+    "entry": 7594.25,
+    "stopLoss": 7605.25,
+    "takeProfit": 7556.5,
+    "rationale": "Short entered shallow (7594.25) inside 7593.25-7604.25 resistance — Keys' strongest confluence on the sheet (balance-area high, proven sellers Thursday and 07/02's 3R fade), overriding bullish bias. Stop 7605.25, one point beyond the far edge. Target 7556.50, the aggressive-support zone, for ~3.4R."
+  },
+  "result": {
+    "status": "EOD",
+    "points": 0.75,
+    "dollars": 3.75,
+    "fillTime": 1783357500,
+    "exitTime": 1783367700
+  }
+}

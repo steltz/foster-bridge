@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T03:27:08.278Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7569.75,
+    "stopLoss": 7561.75,
+    "takeProfit": 7593.75,
+    "rationale": "Bigger-picture/intermediate bias is bullish, and overnight buyers already responded at Aggressive Support (7563-7573) after sellers rejected the Initial Resistance/Bias Confirming zone. Trading with that bias, resting long inside 7563-7573; stop 1 pt beyond the far edge; target the 7593.75-7604.25 Bias Confirming inflection zone flagged in the prior recap, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783433100,
+    "exitTime": 1783433100
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:21.293Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7551.75,
+    "stopLoss": 7548.5,
+    "takeProfit": 7595.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight buy side dominant into NFP rally, prior-day breakout intact above bull/bear zone. Since this zone isn't bias-confirming and short-term bias is neutral, I place deep in aggressive support 7549.50-7558.50 (better price, accept lower fill odds). Stop 1pt beyond far edge; target plan's projected range-expansion zone 7595.25-7604.25."
+  },
+  "result": {
+    "status": "SL",
+    "points": -3.25,
+    "dollars": -16.25,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}

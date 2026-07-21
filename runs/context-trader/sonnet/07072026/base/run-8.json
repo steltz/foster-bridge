@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:08.087Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7546.75,
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "side": "long",
+    "rationale": "Long at Initial Support (7538.25-7546.75), the plan's explicit intermarket-trigger zone since NQ already tested its equivalent overnight low. Bigger-picture/intermediate bias bullish; aggressive support (7563-73) held overnight. Stop 7537.25 (1pt beyond zone); target Bias Confirming/Initial Resistance zone at 7593.75 (~4.9R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

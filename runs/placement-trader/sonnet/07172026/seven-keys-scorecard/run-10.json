@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:35.715Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "17c2d0069fb1c82dd3c924186aced173907252d930972cf7e8be08fbc4b1e6a3",
+  "setup": {
+    "side": "short",
+    "entry": 7519,
+    "stopLoss": 7532.75,
+    "takeProfit": 7480,
+    "rationale": "Short-term bias neutral-bearish, sell side in firm control, Friday de-risking favors resistance fades. Shallow entry in the strong-graded, keys-featured aggressive resistance 7518.50-7531.50 (first reachable fade off any early bounce); stop beyond zone at 7532.75; target bias-confirming initial support 7468.50-7480 (~2.8R)."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.75,
+    "dollars": -68.75,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

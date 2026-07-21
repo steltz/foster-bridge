@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:21.143Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7520.25,
+    "stopLoss": 7509.25,
+    "takeProfit": 7558.5,
+    "side": "long",
+    "rationale": "Long at the strong-graded 7510.50-7520.50 initial-support zone: shallower and bias-aligned vs. the deeper 7481.75-7495.75, which only sets up after a bearish breakdown that would undercut the long thesis. Entry near the zone's top/leading edge for fill priority; stop below 7510.50; target the 7558.50-7568.50 bias-confirming initial-resistance zone (~3.5R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

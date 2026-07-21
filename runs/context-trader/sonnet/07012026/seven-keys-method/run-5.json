@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:04.029Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "side": "long",
+    "rationale": "Bias is bullish; recap names 7481.75-7495.75 (HVN 7482.50) as the bull/bear zone that launched yesterday's breakout — deeper confluence than the thin 7510.50-7520.50 initial support. Entering top of that zone, stop below its far edge, targeting the bias-confirming initial resistance 7558.50-7568.50 as plan's stated exit."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

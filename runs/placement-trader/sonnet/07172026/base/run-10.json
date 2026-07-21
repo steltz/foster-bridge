@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:34.739Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7480,
+    "side": "long",
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "rationale": "Two sessions of firm sell-side control push ES into 7468.50-7480 — Initial Support, Bull/Bear, Bias-Confirming, Range Exhaustion all stack here, the plan's highest-confluence zone. Enter shallow near the top edge (7480.00) to secure fill; stop 7467.50, one point past the far edge; target 7518.50, near edge of Aggressive Resistance, for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

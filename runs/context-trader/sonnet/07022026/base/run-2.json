@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:04.899Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7558.25,
+    "stopLoss": 7548.5,
+    "takeProfit": 7595.25,
+    "rationale": "Buying the plan's Aggressive Support 7549.50-7558.50 — explicitly cited as confirming the post-NFP bullish structure if held. Stop 1pt below zone. Target first Bias Confirming resistance 7595.25-7604.25, ahead of the stronger seller zone at 7611.50-7622.50, for ~3.8:1 R:R with the larger bullish bias."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

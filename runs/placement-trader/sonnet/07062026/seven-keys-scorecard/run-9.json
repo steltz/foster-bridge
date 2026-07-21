@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:23.899Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "aad25b554ac4aa375345c7bab3b2479cd68cfe088ed3df7e28462549a4f13bf8",
+  "setup": {
+    "entry": 7493.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7538.25,
+    "side": "long",
+    "rationale": "Long from the automatic-fade bull/bear zone 7479.50-7493.50: full Key confluence (HVN, proven Thursday launch, bullish-bias alignment, exhausted arrival) earns a shallow fill at the zone's leading (top) edge. Stop one point below the zone floor. Target the pre-market support shelf 7538.25-7546.75 for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

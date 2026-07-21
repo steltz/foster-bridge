@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:13.879Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7576.25,
+    "stopLoss": 7569.75,
+    "takeProfit": 7596,
+    "side": "long",
+    "rationale": "Bigger-picture bias is Bullish; CPI drove a break above yesterday's RTH high. Plan's own scenario: holding Aggressive Support (7571-7582) \"signals strength\" and \"could lead to a move back up into pre-market and initial resistance.\" Buying that zone, stop beyond its far edge, target Pre-Market Resistance (7596-7605) for ~3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

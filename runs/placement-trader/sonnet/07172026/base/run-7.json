@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T03:27:34.626Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7524.75,
+    "side": "short",
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "rationale": "Short-term bias neutral-bearish, sell side in firm control (Nasdaq multi-day balance breakdown). Fading aggressive resistance 7518.50-7531.50 (NVPOC 7524.75, Open Gap 7528.75) on first RTH test; \"holding below\" signals continued weakness. Stop 7532.50, beyond zone's far edge. Target pre-market support 7491.25-7500 top edge, ~3.2R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

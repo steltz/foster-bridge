@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:30.403Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7581.5,
+    "stopLoss": 7569.75,
+    "takeProfit": 7616.75,
+    "rationale": "Bigger-picture bias is bullish. Plan flags 7571-7582 (Aggressive Support) — holding above it signals strength toward resistance. Entering shallow near the zone's top edge (7581.50) prioritizes fill probability. Stop 1.25pts beyond the zone's far edge (7571). Target: Initial Resistance 7609.25-7620.25, the plan's stated bullish continuation objective, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11.75,
+    "dollars": -58.75,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:13.046Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7512.25,
+    "stopLoss": 7507,
+    "takeProfit": 7528.75,
+    "rationale": "Overnight NQ failed resistance and broke Friday's low, pressuring ES; plan flags initial support (7543-53) and 7524-34 as at-risk \"bias-changing\" zones likely to give way. I skip those and buy the deeper 7508-7518 zone (bias-confirming, range exhaustion) — highest confluence, aligned with the still-bullish bigger-picture bias. Stop 7507, target 7528.75 open gap."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

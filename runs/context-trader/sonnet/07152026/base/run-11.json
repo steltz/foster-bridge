@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T03:27:15.617Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7596.75,
+    "side": "long",
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture bias is Bullish (Intermediate Neutral-Bullish) and the 7/14 recap shows buy-side dominance (\"avoid the short side\"). Buying Aggressive Support 7587.75-7597.75 (holding signals strength); stop 1pt beyond far edge at 7586.75; target the Bias-Confirming resistance 7627.25-7636.75 (06/17 Initial Resistance) for ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

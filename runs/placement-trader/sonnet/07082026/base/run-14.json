@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:26.050Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493.5,
+    "side": "long",
+    "stopLoss": 7476.25,
+    "takeProfit": 7544.75,
+    "rationale": "Long at shallow/top edge of the Bull/Bear zone (7477.50-7493.50) — bias-confirming, HVN, the pivot sellers must break-and-hold below. Overnight breakdown is unconfirmed (neutral short-term, bullish bigger picture), so I fade with the larger bias. Stop beyond zone's far edge; target front of 7544-7551.75 breakout/HVN resistance for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -17.25,
+    "dollars": -86.25,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

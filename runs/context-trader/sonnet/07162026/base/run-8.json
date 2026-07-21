@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:16.979Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7528.75,
+    "stopLoss": 7521.75,
+    "takeProfit": 7550,
+    "side": "long",
+    "rationale": "Bought bias-confirming, range-exhaustion support 7523.25-7535.25 (open gap 7528.75, NVPOC 7524.75) where the plan says buyers are active on first test; stop beyond zone low 7523.25; target the 7544-7557 HVN/launching-point zone for ~3:1 R:R. Recap flags ES strength vs Nasdaq, favoring longs over shorts."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

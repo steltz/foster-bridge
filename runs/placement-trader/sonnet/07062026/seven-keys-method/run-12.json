@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:23.516Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7493.5,
+    "stopLoss": 7478.25,
+    "takeProfit": 7538.25,
+    "rationale": "Bigger-picture/intermediate bias bullish, short-term neutral. Bull/Bear zone 7479.50-7493.50 grades highest on Seven Keys: Bias Confirming, HVN, launched yesterday's 100+pt bounce (Key5), aligns with larger bias (Key6). Enter shallow at zone top 7493.50 (first-touch, high hold-odds); stop 7478.25 beyond zone; target pre-market support 7538.25 (~2.9R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

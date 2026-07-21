@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:05.013Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558.5,
+    "side": "long",
+    "stopLoss": 7548,
+    "takeProfit": 7595.25,
+    "rationale": "Long at top of 7549.50-7558.50 aggressive support (\"holding above signals strength\" post-NFP breakout), riding the intermediate/bigger-picture bullish bias while price sits just off initial resistance. Stop 7548.00, 1.5pts beyond zone's far edge. Target first bias-confirming resistance 7595.25-7604.25 (near edge), flagged for first-test sellers. R:R ~3.5:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.5,
+    "dollars": -52.5,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

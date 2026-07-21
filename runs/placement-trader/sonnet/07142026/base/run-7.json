@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T03:27:30.211Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7582,
+    "stopLoss": 7570,
+    "takeProfit": 7618,
+    "side": "long",
+    "rationale": "Long at Aggressive Support (7571-7582), entered shallow near the zone's top since holding above it signals strength and aligns with the bullish intermediate/bigger-picture bias plus today's CPI breakout. Stop 7570 (below zone). Target Initial Resistance (7609.25-7620.25), the next meaningful zone, for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

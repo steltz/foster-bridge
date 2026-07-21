@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:30.815Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7582,
+    "stopLoss": 7569.75,
+    "takeProfit": 7618.75,
+    "side": "long",
+    "rationale": "Bigger-picture bias Bullish; aggressive support 7571-7582 is the plan's stated \"holding above signals strength\" continuation zone on first test post-CPI. Entered shallow at zone top for fill priority; stop beyond far edge 7571; target 7618.75 inside Initial Resistance 7609.25-7620.25 per plan's projected path, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12.25,
+    "dollars": -61.25,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

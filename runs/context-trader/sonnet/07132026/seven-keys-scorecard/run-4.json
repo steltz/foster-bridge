@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:13.386Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7502,
+    "stopLoss": 7498.25,
+    "takeProfit": 7524.75,
+    "side": "long",
+    "rationale": "Long at 7499.50-7503.50, the Keys-graded strongest support (range extreme, 07/09 initial-support launch point, bullish-alignment). Overnight NQ/ES weakness is day-timeframe noise against an unchanged Bigger-Picture-Bullish structure, so I trade with that bias. Stop behind the extreme at 7498.25; target 7524-7534 (Gap/NVPOC) for ~6R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

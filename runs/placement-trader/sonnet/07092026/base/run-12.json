@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:27.453Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7536.5,
+    "side": "long",
+    "stopLoss": 7523,
+    "takeProfit": 7580.75,
+    "rationale": "Long via aggressive support 7524-7536.50 (bias-confirming, plan's key strength level near prior close); shallow entry at zone's leading edge 7536.50 for high-hold-odds fill. Stop 1pt beyond zone at 7523.00. Target upside-range-expansion zone 7580.75-7591.75 for ~3.3R, per plan's bullish continuation path."
+  },
+  "result": {
+    "status": "TP",
+    "points": 44.25,
+    "dollars": 221.25,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}

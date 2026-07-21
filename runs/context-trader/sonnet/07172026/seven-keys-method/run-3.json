@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T03:27:18.768Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7519.5,
+    "stopLoss": 7532.5,
+    "takeProfit": 7480,
+    "rationale": "Short at aggressive resistance 7518.50-7531.50 (holding-below signals weakness, open-gap/NVPOC confluence) — nearest zone, aligned with today's neutral-bearish sell-side-control bias and yesterday's close under broken support. Stop 1pt beyond zone (7532.50). Target initial-support/bull-bear zone 7468.50-7480, ~3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

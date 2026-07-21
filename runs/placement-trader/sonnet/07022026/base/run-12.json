@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:21.556Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558.25,
+    "side": "long",
+    "stopLoss": 7548.5,
+    "takeProfit": 7595.25,
+    "rationale": "Long fade at 7549.50-7558.50 aggressive support (first pullback from overnight highs, aligns with bullish bigger-picture bias); stop 1pt beyond zone at 7548.50; target front edge of 7595.25-7604.25 bias-confirming resistance (~3.8R), the next meaningful zone before holiday-capped 7611.50-7622.50 ceiling."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.75,
+    "dollars": -48.75,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

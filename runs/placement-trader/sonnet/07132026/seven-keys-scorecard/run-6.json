@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:29.686Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "entry": 7622.25,
+    "side": "short",
+    "stopLoss": 7637.75,
+    "takeProfit": 7553.25,
+    "rationale": "Short, back-of-zone at Initial Resistance 7611.50-7623.50 (Keys: strong, bias-changing, \"short defensively only\"). Overnight NQ rejection erased Friday's gains, mirroring the 07/10 recap's exact winning short there. Stop beyond bias-confirming 7627.25-7636.75 (buy-side dominant, no blind fade). Target Initial Support 7543-7553, per recap playbook."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

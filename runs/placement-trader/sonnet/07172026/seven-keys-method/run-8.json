@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:35.150Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7524.5,
+    "stopLoss": 7532.5,
+    "takeProfit": 7500,
+    "side": "short",
+    "rationale": "Short-term bias neutral-bearish, sell side in control after overnight NQ balance breakdown; Friday bounces into resistance draw sellers. Fading Aggressive Resistance 7518.50-7531.50 (open gap 7528.75, NVPOC 7524.75) on first test, targeting Pre-Market Support 7491.25-7500, stop 1pt beyond zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

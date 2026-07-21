@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:29.043Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7548.25,
+    "side": "long",
+    "stopLoss": 7542,
+    "takeProfit": 7566,
+    "rationale": "Bigger-picture bias is bullish; fading Initial Support 7543-7553 (7544 HVN, Friday's RTH low, bias-changing zone) aligns with it. Transcript flags sell-side dominance into this zone, so entry sits mid-zone (7548.25) not the shallow edge. Stop 7542 clears the zone; target 7566, the next shelf (pre-market support), ~2.8R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

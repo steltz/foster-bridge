@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:06.646Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7485.25,
+    "stopLoss": 7478,
+    "takeProfit": 7510,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish; trading with it at the plan's bull/bear zone (7479.50-7493.50, Bias Confirming, HVN 7482.50) where the prior session's recap already showed buyers defending for a 3R bounce. Stop below zone at 7478.00; target the first zone above, Initial Support 7510-7520.50, for ~3.4:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

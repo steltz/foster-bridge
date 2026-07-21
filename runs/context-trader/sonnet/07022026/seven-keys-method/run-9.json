@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:05.657Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7488.75,
+    "side": "long",
+    "stopLoss": 7480.75,
+    "takeProfit": 7595.25,
+    "rationale": "Buying the 7481.75-7495.75 bull/bear zone: bolded Bias Confirming, HVN 7482.50, and per the recap the launch point of the still-intact bullish breakout. Aligns with intermediate/bigger-picture bullish bias (Keys 4-7). Stop 1pt below zone. Target the plan's stated upside zone, 7595.25-7604.25, below the 7611.50-22.50 holiday-liquidity ceiling."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

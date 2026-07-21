@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:12.213Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "entry": 7536.25,
+    "stopLoss": 7522.75,
+    "takeProfit": 7593.75,
+    "side": "long",
+    "rationale": "Overnight reclaim of yesterday's RTH high (7536.50) confirms the balance-breakdown failed; buyers back in control per bias doc, so trade with bias. Buy aggressive support 7524-7536.50 (VPOC 7524.75, prior close inside, strong Seven-Keys grade) at the zone front—no need to wait deeper. Stop below zone; target first responsive-seller test 7593.75-7604.25 (~4.3R)."
+  },
+  "result": {
+    "status": "TP",
+    "points": 57.5,
+    "dollars": 287.5,
+    "fillTime": 1783606500,
+    "exitTime": 1783618200
+  }
+}

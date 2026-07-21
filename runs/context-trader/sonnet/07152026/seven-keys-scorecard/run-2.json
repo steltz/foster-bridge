@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:16.257Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "entry": 7554,
+    "stopLoss": 7543,
+    "takeProfit": 7587.75,
+    "side": "long",
+    "rationale": "Long at 7544-7557 (Initial Support/Launching Point, HVN 7544, prior RTH low) — Seven Keys' strongest long confluence, calibration-backed per lookback, aligned with bullish bigger-picture bias. Stop 7543 (1pt beyond zone's far edge). Target 7587.75, the aggressive-support zone's near edge, for ~3.1:1 reward-to-risk."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

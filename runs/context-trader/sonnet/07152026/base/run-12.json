@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:15.654Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7597,
+    "side": "long",
+    "stopLoss": 7586.75,
+    "takeProfit": 7631,
+    "rationale": "Bigger-picture bias is bullish; 07/14 recap confirmed buy-side control and overnight 07/15 balance holds in the upper range above 7587.75-7597.75 aggressive support. Buying near the zone's top targets the 7627.25-7636.75 bias-confirming resistance (past 7606.25-7615.25 initial resistance), stop one point below 7587.75, ~3.3:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.25,
+    "dollars": -51.25,
+    "fillTime": 1784127000,
+    "exitTime": 1784131500
+  }
+}

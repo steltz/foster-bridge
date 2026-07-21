@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:21.407Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7611.5,
+    "stopLoss": 7623.5,
+    "takeProfit": 7575.5,
+    "side": "short",
+    "rationale": "Overnight NFP rally already reached initial resistance (7567-7579); plan projects continued push into 7611.50-7622.50, its highest-conviction bias-confirming seller zone on first test, capped by holiday-weekend risk appetite. Shallow entry 7611.50 (leading edge), stop 7623.50 beyond zone, target 7575.50 at the 7567-7579 zone, ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

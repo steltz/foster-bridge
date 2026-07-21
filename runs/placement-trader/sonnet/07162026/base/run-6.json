@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:33.116Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7594.25,
+    "stopLoss": 7604.75,
+    "takeProfit": 7557,
+    "rationale": "Overnight sellers already rejected the bias-confirming zone above and remain dominant; shorting the reachable Aggressive Resistance 7593.50-7603.50 near its leading edge, stop beyond 7604.75, targeting the 7544-7557 downside-expansion zone the plan projects on a breakdown, ~3.5R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.5,
+    "dollars": -52.5,
+    "fillTime": 1784210400,
+    "exitTime": 1784210700
+  }
+}

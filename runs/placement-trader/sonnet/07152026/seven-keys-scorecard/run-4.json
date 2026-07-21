@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:32.553Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "side": "long",
+    "entry": 7588.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.25,
+    "rationale": "Bullish bias intact (bigger-picture bullish, overnight balancing upper range); trade the aggressive support 7587.75-7597.75, the shallowest zone within today's reach, bias-aligned per Key 6 (KEYS grade: moderate). Moderate grade earns a deeper entry near the far edge. Stop 1pt beyond zone low; target initial resistance 7606.25, the plan's next meaningful level."
+  },
+  "result": {
+    "status": "SL",
+    "points": -2,
+    "dollars": -10,
+    "fillTime": 1784131200,
+    "exitTime": 1784131500
+  }
+}

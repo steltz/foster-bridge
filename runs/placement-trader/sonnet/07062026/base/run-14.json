@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:23.101Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493.5,
+    "stopLoss": 7478.5,
+    "takeProfit": 7538.25,
+    "side": "long",
+    "rationale": "Long at 7493.50, the leading (near) edge of the Bull/Bear zone 7479.50-7493.50 — Bias Confirming, 7482.50 HVN, aligned with the bigger-picture bullish bias, and proven by the 07/02 recap's sharp bounce there. Stop 7478.50, one point past the far edge. Target 7538.25 (pre-market support 7538.25-7546.75 near edge), ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

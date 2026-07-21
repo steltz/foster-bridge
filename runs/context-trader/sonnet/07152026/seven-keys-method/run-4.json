@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:15.842Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7596.75,
+    "side": "long",
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "rationale": "Long at Aggressive Support 7587.75-7597.75 (Holding Above Signals Strength, sits on VPOC 7590.50/prior close). Bigger-picture bias Bullish; recap shows buyers defending this level dominantly. Key 6: aggressive zone valid with aligned bias. Stop 1pt beyond zone (7586.75); target Bias-Confirming resistance 7627.25-7636.75 (06/17 initial resistance) for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

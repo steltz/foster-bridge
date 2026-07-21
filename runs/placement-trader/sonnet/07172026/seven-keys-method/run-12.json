@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:35.300Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7524.75,
+    "stopLoss": 7532.5,
+    "takeProfit": 7502.5,
+    "rationale": "Short-term bias neutral-bearish, sell side in firm control (recap: prior day broke initial support). Aggressive Resistance 7518.50-7531.50 (Open Gap 7528.75, NVPOC 7524.75) is today's pivotal first-test zone; holding below confirms weakness. Entry at NVPOC 7524.75, stop 1pt beyond zone (7532.50), target Aggressive Support 7502.50-7510.50 for ~2.9R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.75,
+    "dollars": -38.75,
+    "fillTime": 1784297100,
+    "exitTime": 1784297400
+  }
+}

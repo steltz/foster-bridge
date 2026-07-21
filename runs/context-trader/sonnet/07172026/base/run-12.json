@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:18.615Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7480,
+    "stopLoss": 7467.25,
+    "takeProfit": 7518.5,
+    "side": "long",
+    "rationale": "Resting buy at top of initial support 7468.50-7480 (bias-confirming, bull/bear, range-exhaustion zone) — the deeper, high-confluence zone where bigger-picture/intermediate bullish bias should attract responsive buyers despite short-term bearish exhaustion, echoing the prior session's rewarded support long. Stop 1.25pt below zone low; target aggressive resistance 7518.50-7531.50, ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

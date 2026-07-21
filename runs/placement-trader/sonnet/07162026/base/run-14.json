@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:33.416Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7598.75,
+    "stopLoss": 7604.5,
+    "takeProfit": 7581,
+    "side": "short",
+    "rationale": "Overnight sellers rejected the bias-confirming resistance above and broke the 7600-7604 hold level flagged in the prior recap, a genuine shift justifying a short against the bullish bigger-picture bias. Selling deeper in aggressive resistance (7593.50-7603.50, lower hold-odds), stop beyond it, targeting the next zone, initial support (7570-7581), for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -5.75,
+    "dollars": -28.75,
+    "fillTime": 1784210700,
+    "exitTime": 1784210700
+  }
+}

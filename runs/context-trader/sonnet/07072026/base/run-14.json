@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:08.316Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7546.75,
+    "side": "long",
+    "stopLoss": 7537.25,
+    "takeProfit": 7593.75,
+    "rationale": "Long at Initial Support (7538.25-7546.75), the plan's named intermarket-trigger long zone with 7544 HVN. Stop 7537.25, one point beyond the zone's far edge. Target Initial Resistance/Bias Confirming zone at 7593.75, mirroring 07/06's support-to-bias-confirming long and honoring the bullish intermediate/bigger-picture bias."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9.5,
+    "dollars": -47.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

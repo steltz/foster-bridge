@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:34.550Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7480,
+    "stopLoss": 7467.5,
+    "takeProfit": 7518.5,
+    "side": "long",
+    "rationale": "Long at 7480, shallow edge of the bias-confirming, bull/bear, range-exhaustion initial support (7468.50-7480) — plan and recap both flag this as today's downside destination, where breakdowns are 'suspect and prone to failure.' Stop 7467.50 below zone; target aggressive resistance 7518.50, ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

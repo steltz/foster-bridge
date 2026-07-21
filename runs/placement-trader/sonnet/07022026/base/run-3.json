@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T03:27:21.218Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558.25,
+    "stopLoss": 7548.25,
+    "takeProfit": 7595.25,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias bullish; buy side dominant overnight into 7567-79. Buy shallow at aggressive support 7549.50-7558.50 (holding = strength), stop beyond 7549.50 far edge, target next bias-confirming zone 7595.25-7604.25 before sellers likely engage 7611.50-7622.50."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

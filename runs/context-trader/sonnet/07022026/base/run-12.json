@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:05.279Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7493.5,
+    "stopLoss": 7480.25,
+    "takeProfit": 7611.5,
+    "side": "long",
+    "rationale": "Long at 7481.75-7495.75 bull/bear bias-confirming zone (HVN 7482.50) — the level that held all of 7/1, keeping the breakout intact. Deeper, more significant location than aggressive support above. Target the plan's stated upside cap, 7611.50-7622.50 bias-confirming resistance, before holiday-weekend risk appetite fades. Stop below zone."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13.25,
+    "dollars": -66.25,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:03.570Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7493.75,
+    "stopLoss": 7480.5,
+    "takeProfit": 7534.75,
+    "rationale": "Long at 7481.75-7495.75, today's bull/bear support (Bias Confirming, 7482.50 HVN) — same zone that held yesterday's balance breakout; intermediate/bigger-picture bias is bullish and recap wants buyers active on pullbacks. Stop 1.25pt below zone. Target first resistance shelf 7534.75-7542.75 (break-out-signals-strength/pre-market resistance) for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

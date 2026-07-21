@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T03:27:19.748Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7558.5,
+    "rationale": "Long at the 7481.75-7495.75 bull-bear zone (Bias Confirming, HVN 7482.50) — the linchpin level both today's plan and 06/30 recap center the breakout on. Enter shallow at 7495.75 (leading edge); stop 7480.75 beyond far edge; target 7558.50, the Initial Resistance bias-confirming zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

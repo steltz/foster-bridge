@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:15.428Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7596.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "side": "long",
+    "rationale": "Bigger-picture bias is bullish; plan flags 7587.75-7597.75 as aggressive support, holding above signals strength. Buy near zone top for fill, stop below zone, target 7627.25-7636.75 (bias-confirming, 06/17 initial resistance) — the plan's first upside-expansion zone — for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:11.308Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7529.25,
+    "rationale": "Overnight already broke above yesterday's RTH high, confirming buy-side control per the plan and the recap's failed-breakdown resolution. I buy the pullback into Aggressive Support 7524-7536.50 (entry 7529.25), stop 7522.75 beyond the zone, target 7548 (Pre-Market Resistance front edge) for ~2.9:1.",
+    "side": "long",
+    "stopLoss": 7522.75,
+    "takeProfit": 7548
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

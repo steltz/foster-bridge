@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-method",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:35.225Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7520,
+    "stopLoss": 7532.5,
+    "takeProfit": 7480,
+    "rationale": "Short-term bias bearish; sell side in control after overnight NQ liquidation. Shallow entry at aggressive resistance 7518.50-7531.50 (gap/NVPOC confluence, first-test) fades the bounce, aligned with bias. Stop 7532.50, 1pt beyond zone. Target 7480, initial support/bull-bear zone — plan's stated downside objective, ~3.2R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12.5,
+    "dollars": -62.5,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

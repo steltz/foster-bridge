@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-21T03:27:10.891Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7532.5,
+    "stopLoss": 7522.75,
+    "takeProfit": 7561.25,
+    "side": "long",
+    "rationale": "Overnight break above prior RTH high and failed 07/08 breakdown confirm buy side control (bigger picture bullish). Buying inside Aggressive Support (7524-7536.50), where price closed pinned to VPOC 7524.75. Stop placed beyond zone's far edge; target Initial Resistance (7561.25-7571.25) for ~2.95:1 reward-to-risk."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.75,
+    "dollars": 143.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

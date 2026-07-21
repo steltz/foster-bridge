@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:31.302Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "entry": 7574.25,
+    "stopLoss": 7569.75,
+    "takeProfit": 7596,
+    "side": "long",
+    "rationale": "Long the CPI breakout. Aggressive support 7571-7582 is the plan's bullish pivot: Key-6 textbook-aligned (aggressive zone + post-CPI strength + bullish big picture), first pullback test, shallow and reachable off the open. Moderate grade demands a deeper entry (7574.25); stop 7569.75 clears the far edge; target 7596 (pre-market resistance), ~4.8R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4.5,
+    "dollars": -22.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

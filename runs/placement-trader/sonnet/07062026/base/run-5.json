@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:22.762Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7517.25,
+    "side": "long",
+    "stopLoss": 7508.75,
+    "takeProfit": 7551.5,
+    "rationale": "Long with bigger-picture/intermediate bullish bias and the plan's noted recovery off Thursday's low. Entering Initial Support (7510-7520.50, Bias-Changing, recently reclaimed) — shallowest zone clearing the hold bar within today's realistic range; deeper placement reflects moderate hold-odds. Stop beyond 7510; target Aggressive Support (7551.50), ~4R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

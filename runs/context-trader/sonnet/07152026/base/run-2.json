@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:15.275Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7591.5,
+    "side": "long",
+    "stopLoss": 7586.75,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bullish bias plus 07/14 recap's dominant buy-side control favor fading into Aggressive Support (7587.75-7597.75), the plan's key strength pivot (\"as long as holding above, overnight strength remains in play\"). Target Initial Resistance (7606.25-7615.25) for ~3:1; stop 1pt below zone at 7586.75, since a break there opens the bearish scenario."
+  },
+  "result": {
+    "status": "SL",
+    "points": -4.75,
+    "dollars": -23.75,
+    "fillTime": 1784131200,
+    "exitTime": 1784131500
+  }
+}

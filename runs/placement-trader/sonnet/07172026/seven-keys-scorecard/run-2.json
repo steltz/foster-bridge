@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:35.414Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "17c2d0069fb1c82dd3c924186aced173907252d930972cf7e8be08fbc4b1e6a3",
+  "setup": {
+    "side": "short",
+    "entry": 7519.5,
+    "stopLoss": 7532.5,
+    "takeProfit": 7480.25,
+    "rationale": "Short-term bias bearish, sell side in control (Key 6). 7518.50-7531.50 is today's featured aggressive-resistance fade (NVPOC/gap confluence, strong grade) — entering shallow near its leading edge maximizes fill odds. Stop 1pt beyond far edge 7531.50. Target daisy-chains to strong 7468.50-7480 bull/bear initial-support zone, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1784296800,
+    "exitTime": 1784297400
+  }
+}

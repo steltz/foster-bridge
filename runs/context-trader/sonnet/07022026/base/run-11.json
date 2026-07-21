@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 11,
+  "timestamp": "2026-07-21T03:27:05.240Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7493.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7532.75,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap shows buyers defended the 7481.75-7495.75 bull/bear bias-confirming zone. Resting a long inside that deepest, most significant support (per plan's own trade-location note), anticipating an exhausted pullback through minor supports. Stop below zone; target the 7531.75-7541.75 aggressive support zone for a clean 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -13,
+    "dollars": -65,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

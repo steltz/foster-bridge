@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:21.671Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7553.25,
+    "stopLoss": 7548.5,
+    "takeProfit": 7567,
+    "rationale": "Long 7553.25 inside 7549.50-7558.50 aggressive support (bias-aligned first test, realistic reach off the overnight NFP rally). Stop 7548.50, one point below the zone. Target 7567, leading edge of Initial Resistance (7567-7579) — ~2.9R, above the 2.5R floor."
+  },
+  "result": {
+    "status": "TP",
+    "points": 13.75,
+    "dollars": 68.75,
+    "fillTime": 1783003200,
+    "exitTime": 1783003200
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:27.298Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7536.25,
+    "side": "long",
+    "stopLoss": 7523,
+    "takeProfit": 7571.25,
+    "rationale": "Overnight break above yesterday's RTH high confirms buyers back in control (bigger-picture bullish). Long the Aggressive Support retest 7524-7536.50 (launch-zone, high hold-odds) — shallow entry near its top edge for fill priority. Stop 1pt beyond 7524. Target Initial Resistance 7561.25-7571.25, ~2.6R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 35,
+    "dollars": 175,
+    "fillTime": 1783606500,
+    "exitTime": 1783610400
+  }
+}

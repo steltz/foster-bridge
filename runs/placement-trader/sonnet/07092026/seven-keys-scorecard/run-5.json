@@ -1,0 +1,31 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:28.172Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7533,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "rationale": "Overnight break above yesterday's 7536.50 RTH high confirms the failed-breakdown, bigger-picture-bullish thesis, so longs carry the alignment edge. Aggressive Support 7524-7536.50 (Keys strong) sits right at the open, cleanly reachable. Entered shallow-in-zone; stop one point beyond it; target front edge of Initial Resistance 7561.25-71.25 for 2.8R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.25,
+    "dollars": 141.25,
+    "fillTime": 1783606500,
+    "exitTime": 1783608900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 14,
+  "timestamp": "2026-07-21T03:27:24.580Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7572,
+    "stopLoss": 7561.75,
+    "takeProfit": 7604.25,
+    "side": "long",
+    "rationale": "Bigger-picture/intermediate bias bullish; overnight buyers already reacted at Aggressive Support 7563-73, the shallowest reachable zone, echoing yesterday's textbook aggressive-support long. Entering shallow near 7572 for fill probability, stop beyond the zone at 7561.75, target the Initial Resistance/Bias Confirming zone at 7604.25 for ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

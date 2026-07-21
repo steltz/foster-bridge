@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:05.164Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7558.5,
+    "side": "long",
+    "stopLoss": 7548.25,
+    "takeProfit": 7595.25,
+    "rationale": "Plan: buy side dominant, intermediate/bigger-picture bias bullish. Long the 7549.50-7558.50 aggressive support (entry near zone top for fill odds), stop 7548.25 beyond its far edge. Target 7595.25-7604.25 bias-confirming resistance, the first significant zone below 7611.50-7622.50, where plan flags heavier seller activity."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10.25,
+    "dollars": -51.25,
+    "fillTime": 1783002300,
+    "exitTime": 1783003200
+  }
+}

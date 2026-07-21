@@ -1,0 +1,30 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 10,
+  "timestamp": "2026-07-21T03:27:16.068Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7596.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7627.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap confirms buy-side control and warns against shorting until deep resistance. Buy Aggressive Support 7587.75-7597.75 (VPOC 7590.50 confluence, first RTH test), stop beyond its floor. Skip the weaker Bias-Changing Initial Resistance and target the more significant Bias-Confirming/06-17-resistance zone 7627.25-7636.75 for ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

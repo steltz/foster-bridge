@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:21.330Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7611.5,
+    "stopLoss": 7623.5,
+    "takeProfit": 7575.5,
+    "rationale": "Plan flags 7611.50-7622.50 as the bias-confirming zone where sellers are most likely active on first test, with holiday-weekend risk appetite capping upside there. Enter shallow at the zone's leading edge, stop 1pt beyond 7622.50, target the 7567-7579 initial-resistance zone (~3R)."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

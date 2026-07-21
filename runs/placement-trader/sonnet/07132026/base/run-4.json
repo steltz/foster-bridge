@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:28.631Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7547.75,
+    "stopLoss": 7541.75,
+    "takeProfit": 7566,
+    "side": "long",
+    "rationale": "Bigger-picture bullish/neutral-bullish bias favors buying the overnight NQ-driven pullback, not fading it. Placing the resting long mid-to-deep in Initial Support (7543-7553, HVN, Bias Changing) since the plan flags sell-side dominance/caution there. Stop beyond the zone's far edge (7543). Target: reclaim of Pre-Market Support (7566), the overnight low, ~3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

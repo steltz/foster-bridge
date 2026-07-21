@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:31.872Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7597.75,
+    "stopLoss": 7586.75,
+    "takeProfit": 7630.75,
+    "rationale": "Bigger-picture bias bullish; recap shows buyers defending pullbacks before pushing to resistance. Enter shallow at Aggressive Support (7587.75-7597.75, \"Holding Above Signals Strength\"), shallowest reachable support below prior close/VPOC. Stop 1pt beyond zone. Target 7627.25-7636.75 (06/17 Initial Resistance/Bias Confirming), plan's stated range-expansion zone, for 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -11,
+    "dollars": -55,
+    "fillTime": 1784126400,
+    "exitTime": 1784131500
+  }
+}

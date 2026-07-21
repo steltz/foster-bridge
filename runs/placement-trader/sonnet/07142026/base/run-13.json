@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T03:27:30.442Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7582,
+    "side": "long",
+    "stopLoss": 7570,
+    "takeProfit": 7618,
+    "rationale": "Aggressive Support 7571-7582 is bias-confirming (holds bullish bigger-picture bias, post-CPI break above yesterday's high); entered shallow at 7582, the leading edge, to prioritize fill on this high-hold-odds zone. Stop 7570, one point beyond the far edge. Target 7618, inside Initial Resistance 7609.25-7620.25, for a clean 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

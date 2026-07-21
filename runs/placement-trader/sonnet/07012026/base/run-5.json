@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:19.823Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7495.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7534.75,
+    "rationale": "Long, shallow edge (7495.75) of the 7481.75-7495.75 Bias Confirming/HVN zone — yesterday's pivotal support that triggered a 3-4R rally, aligned with bullish intermediate/bigger-picture bias. Stop 7480.75, one point beyond the far edge. Target 7534.75, near edge of next zone (7534.75-7542.75, Break-out Signals Strength), ~2.6R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-21T03:27:20.279Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7520.25,
+    "stopLoss": 7509.5,
+    "takeProfit": 7552.5,
+    "rationale": "Long at the shallow (upper) edge of 7510.50-7520.50, today's Initial Support/bull-bear pivot graded 'strong' (Keys 3-6 align, bias-confirming) on the scorecard; overnight retracement already brings price into it at the open. Stop 1pt beyond far edge at 7509.50; target the 7547.75-7555.25 resistance zone (~3R), the plan's next projected level en route to 7558.50-7568.50."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

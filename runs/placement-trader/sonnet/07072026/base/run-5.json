@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-21T03:27:24.237Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7564.25,
+    "stopLoss": 7561.75,
+    "takeProfit": 7584.5,
+    "rationale": "Long off Aggressive Support (7563-7573) — the shallow zone already tested overnight, aligning with intermediate/bigger-picture bullish bias and yesterday's textbook long from this same level. Lower hold-odds (not bias-confirming) demands deep entry near the far edge; stop 1.5pt beyond zone low; target Pre-Market Resistance (7584.50-7591.75) leading edge, ~8R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -2.5,
+    "dollars": -12.5,
+    "fillTime": 1783432800,
+    "exitTime": 1783432800
+  }
+}

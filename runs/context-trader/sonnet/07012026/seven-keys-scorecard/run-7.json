@@ -1,0 +1,31 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 7,
+  "timestamp": "2026-07-21T03:27:04.595Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "35bed2c083e9b493d698843c9606bf2456b1f884be093a2ac3bd13d4d32a7f54",
+  "setup": {
+    "entry": 7487.75,
+    "side": "long",
+    "stopLoss": 7480.25,
+    "takeProfit": 7510.5,
+    "rationale": "Long, per intermediate/bigger-picture bullish bias. Bypassing aggressive 7510.50-7520.50 initial support for the deeper, higher-confluence 7481.75-7495.75 bull/bear zone (floor of yesterday's balance breakout; keys 4+5+6 stack hard). Entry 7487.75 inside zone, stop 7480.25 beyond it, target 7510.50 reclaim for ~3:1 R:R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-21T03:27:10.854Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7535,
+    "stopLoss": 7523,
+    "takeProfit": 7580.75,
+    "side": "long",
+    "rationale": "Overnight broke above yesterday's RTH high, confirming the 07/08 breakdown failed and buyers regained control (recap). Long at Aggressive Support 7524-7536.50 top edge; stop below the zone at 7523; target the plan's first upside expansion zone, 7580.75-7591.75 front edge, for ~3.8R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 45.75,
+    "dollars": 228.75,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}

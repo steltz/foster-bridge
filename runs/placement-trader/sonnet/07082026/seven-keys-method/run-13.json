@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 13,
+  "timestamp": "2026-07-21T03:27:26.505Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7493.25,
+    "side": "long",
+    "stopLoss": 7476.5,
+    "takeProfit": 7544,
+    "rationale": "Bigger-picture/intermediate bias bullish; buying the Bias-Confirming 7477.50-7493.50 Bull/Bear zone (HVN, likely first RTH test) anticipates a failed breakdown. Shallow entry near the leading edge given high hold-odds; stop below zone. Target 7544-7551.75, the plan's cited failed-breakdown confirmation level, ~3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -16.75,
+    "dollars": -83.75,
+    "fillTime": 1783521900,
+    "exitTime": 1783524000
+  }
+}

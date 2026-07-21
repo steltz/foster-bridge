@@ -1,0 +1,28 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:15.541Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7595.25,
+    "stopLoss": 7586.75,
+    "takeProfit": 7620.25,
+    "rationale": "Bigger-picture/intermediate bias bullish; recap shows buy side firmly in control after CPI breakout. Resting long inside Aggressive Support (7587.75-7597.75), fillable near top per dominant-bias location tradeoff. Stop 1pt+ beyond zone's far edge. Target the Break-out-Signals-Strength zone (7620.25-7623.50) that confirms the plan's bullish range-expansion scenario. ~2.9:1 R:R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8.5,
+    "dollars": -42.5,
+    "fillTime": 1784128500,
+    "exitTime": 1784131500
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-method",
+  "runIndex": 9,
+  "timestamp": "2026-07-21T03:27:29.306Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "entry": 7572,
+    "side": "long",
+    "stopLoss": 7564.75,
+    "takeProfit": 7598,
+    "rationale": "Bigger-picture bias is bullish with no genuine shift shown, so I trade with it. Overnight weakness (NQ rejection, break of Fri low) delivers a first-test RTH approach into pre-market support 7566-7576 — a real overnight-defined level. Entry 7572, stop 7564.75 (beyond far edge 7566), target 7598 (pre-market resistance 7598-7607 edge), ~3.6R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1783959900,
+    "exitTime": 1783960500
+  }
+}

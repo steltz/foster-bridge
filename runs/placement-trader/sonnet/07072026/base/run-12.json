@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 12,
+  "timestamp": "2026-07-21T03:27:24.504Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7573,
+    "stopLoss": 7562,
+    "takeProfit": 7604.25,
+    "rationale": "Bullish intermediate/bigger-picture bias. Aggressive Support 7563-7573 launched all of yesterday's rally and overnight buyers already defended it — first RTH test, high hold-odds. Shallow entry at 7573 to secure fill; stop 7562 beyond far edge; target Bias Confirming/Initial Resistance zone top 7604.25 for ~2.8R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

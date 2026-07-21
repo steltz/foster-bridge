@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 8,
+  "timestamp": "2026-07-21T03:27:30.250Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7582,
+    "stopLoss": 7570,
+    "takeProfit": 7618,
+    "side": "long",
+    "rationale": "Bigger-picture bias bullish; CPI strength broke above yesterday's RTH high. Aggressive support 7571-7582 (\"Holding Above Signals Strength\") is the shallow, reachable pullback zone — enter shallow near its top edge for fill priority. Stop 1pt beyond far edge (7571). Target Initial Resistance zone 7609.25-7620.25 for a clean 3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -12,
+    "dollars": -60,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

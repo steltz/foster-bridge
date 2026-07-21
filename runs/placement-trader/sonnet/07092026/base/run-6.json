@@ -1,0 +1,28 @@
+{
+  "trader": "placement-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 6,
+  "timestamp": "2026-07-21T03:27:27.221Z",
+  "personaSha256": "c4a5f91dc2b6b43062b356237f5ba98fc97433c2f973d81e11497a6ad2aa12fa",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "entry": 7536.5,
+    "stopLoss": 7523,
+    "takeProfit": 7580.75,
+    "side": "long",
+    "rationale": "Overnight break above yesterday's RTH high (7536.50) confirms the failed breakdown, buy side in control, bias bullish. Enter shallow at leading edge of Aggressive Support 7524-7536.50; stop one point beyond far edge (7523.00); target range-expansion resistance 7580.75-7591.75 for ~3.3R."
+  },
+  "result": {
+    "status": "TP",
+    "points": 44.25,
+    "dollars": 221.25,
+    "fillTime": 1783606500,
+    "exitTime": 1783613100
+  }
+}
