@@ -35,12 +35,36 @@ test('long exits at stop loss', () => {
   });
 });
 
-test('candle spanning both SL and TP resolves to SL (worst case)', () => {
+test('long: ambiguous candle resolves to SL when the candle is bullish (dip before rally)', () => {
   const candles = [
     c(1, 101, 102, 100, 101),
-    c(2, 101, 111, 94, 108),   // spans both 95 and 110
+    c(2, 101, 111, 94, 108),   // bullish (close 108 >= open 101); spans both 95 and 110
   ];
   assert.equal(simulateOrder(longOrder, candles).status, 'SL');
+});
+
+test('long: ambiguous candle resolves to TP when the candle is bearish (rally before selloff)', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),
+    c(2, 111, 111, 94, 95),    // bearish (close 95 < open 111); spans both 95 and 110
+  ];
+  assert.equal(simulateOrder(longOrder, candles).status, 'TP');
+});
+
+test('short: ambiguous candle resolves to TP when the candle is bullish', () => {
+  const candles = [
+    c(1, 99, 101, 98, 99),
+    c(2, 89, 106, 88, 95),     // bullish (close 95 >= open 89); spans both 105 and 90
+  ];
+  assert.equal(simulateOrder(shortOrder, candles).status, 'TP');
+});
+
+test('short: ambiguous candle resolves to SL when the candle is bearish', () => {
+  const candles = [
+    c(1, 99, 101, 98, 99),
+    c(2, 106, 106, 88, 89),    // bearish (close 89 < open 106); spans both 105 and 90
+  ];
+  assert.equal(simulateOrder(shortOrder, candles).status, 'SL');
 });
 
 test('fill and exit can happen on the same candle', () => {
