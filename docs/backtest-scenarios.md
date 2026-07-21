@@ -36,7 +36,7 @@ Net +54.25 pts / +$271.25 despite going 1-for-4 — the hedge carried the day.
 Verified: the 7632 session high printed *before* buy-dip-1's fill, so its
 stop-out (not a 7625 take-profit) is correct.
 
-### 3. Ambiguous-candle rule (SL wins worst case) — 2026-07-14
+### 3. Ambiguous-candle rule (candle-shape tie-break) — 2026-07-14, updated 2026-07-20
 
 The 08:30 news candle spans 57.25 pts (O 7559.25 / H 7613.75 / L 7556.5 / C 7596)
 — the widest candle in the file. Two identical longs at 7580 with TP 7595,
@@ -47,11 +47,24 @@ differing only in stop placement:
 | tight-stop | 7570 (inside the candle's range) | SL on the fill candle itself, −10 pts |
 | wide-stop | 7550 (below the candle's low) | TP on the fill candle itself, +15 pts |
 
-Both filled and exited on the same 08:30 candle. The tight stop triggers the
-worst-case rule even though the candle closed up at 7596 and likely hit the
-target first in reality. **Takeaway: on 5-minute data, stops tighter than one
-candle's range systematically backtest worse than reality.** Finer-grained
-data (1-minute) shrinks this distortion.
+Both filled and exited on the same 08:30 candle. This candle is bullish
+(close 7596 >= open 7559.25), so under the shape-based tie-break it still
+resolves the tight-stop order to SL — not from a blanket worst-case rule, but
+because the assumed intrabar path (a small early dip below 7570, then the
+rally to new highs) plausibly stops the trade out before the later rally
+reaches the target.
+
+The rule genuinely varies by candle shape, though. A hypothetical bearish
+mirror of the same candle — same range, but opening near the high and
+closing near the low (e.g. O 7610 / H 7613.75 / L 7556.5 / C 7560) — would
+resolve the same tight-stop long to **TP** instead: the assumed path rallies
+to the high first, then sells off, so the target is reached before the stop.
+**Takeaway: on 5-minute data, an ambiguous candle's resolution now depends on
+that candle's own bullish/bearish shape, not on how tight the trader's stop
+is** — see
+`docs/superpowers/specs/2026-07-20-ambiguous-candle-resolution-design.md`.
+Finer-grained data (1-minute) would still shrink how often this ambiguity
+arises at all.
 
 ### 4. JSON output for scripting
 

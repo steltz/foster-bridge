@@ -81,8 +81,12 @@ starts **pending**.
    - long: SL hit if `low <= stopLoss` (exit at `stopLoss`); TP hit if
      `high >= takeProfit` (exit at `takeProfit`)
    - short: SL hit if `high >= stopLoss`; TP hit if `low <= takeProfit`
-   - If a single candle satisfies both, **the stop loss wins** (worst-case
-     convention so results never overstate performance).
+   - If a single candle satisfies both, the candle's own shape resolves the
+     tie: a bullish candle (`close >= open`) is assumed to have dipped to its
+     low before rallying to its high, a bearish candle the reverse — whichever
+     of SL/TP sits on the earlier-visited extreme wins. This never depends on
+     the order's stop distance — see
+     `docs/superpowers/specs/2026-07-20-ambiguous-candle-resolution-design.md`.
 3. **End of day:** a position still open after the last candle is force-closed
    at that candle's `close` and labeled `EOD`. A never-filled order is
    labeled `NOT_FILLED`.
@@ -143,7 +147,9 @@ TDD with `node:test`. Engine tests use small synthetic candle arrays covering:
 
 - order never touched → `NOT_FILLED`
 - fill then TP; fill then SL (long and short)
-- ambiguous candle spanning both SL and TP → SL wins
+- ambiguous candle spanning both SL and TP → resolved by candle shape, not a
+  blanket SL-wins rule (see
+  `docs/superpowers/specs/2026-07-20-ambiguous-candle-resolution-design.md`)
 - fill and exit within the same candle
 - open at end of day → `EOD` close at last close
 - validation rejections (bad SL/TP ordering, malformed CSV)
