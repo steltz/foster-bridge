@@ -65,7 +65,7 @@ export function simulateOrder(order, candles, options = {}) {
     exitPrice,
     maxAdverseExcursion,
     maxFavorableExcursion,
-    rMultiple: ((exitPrice - entry) * direction) / riskDistance,
+    rMultiple: riskDistance === 0 ? null : ((exitPrice - entry) * direction) / riskDistance,
     closestApproach: null,
   });
 

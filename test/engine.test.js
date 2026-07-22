@@ -279,3 +279,15 @@ test('closestApproach reports the tightest miss for a short order that never fil
   assert.equal(r.status, 'NOT_FILLED');
   assert.equal(r.closestApproach, 4); // |96 - 100|, the closer of the two highs
 });
+
+test('rMultiple is null (not Infinity/NaN) when entry equals stopLoss', () => {
+  const zeroRiskOrder = { id: 'zero-risk', side: 'long', entry: 100, stopLoss: 100, takeProfit: 110, qty: 1 };
+  // A single bearish candle: touches entry 100 to fill, and since stopLoss
+  // also sits at 100, the same candle immediately satisfies both SL and TP
+  // (94 <= 100 and 111 >= 110) -- ambiguous-candle resolution picks TP
+  // because the candle is bearish (close 95 < open 111).
+  const candles = [c(1, 111, 111, 94, 95)];
+  const r = simulateOrder(zeroRiskOrder, candles);
+  assert.equal(r.status, 'TP');
+  assert.equal(r.rMultiple, null);
+});
