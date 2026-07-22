@@ -97,6 +97,10 @@ P/L per order:
   for shorts
 - dollars = `points * multiplier`
 - `NOT_FILLED` orders have no P/L and are excluded from win/loss counts.
+- Outcome-quality metrics (`maxAdverseExcursion`, `maxFavorableExcursion`,
+  `rMultiple` for filled orders; `closestApproach` for `NOT_FILLED`) are
+  also computed per order — see
+  `docs/superpowers/specs/2026-07-22-run-enrichment-design.md`.
 
 ## Day selection
 
@@ -111,7 +115,9 @@ candles is an error.
 Default: a human-readable table on stdout, one row per order —
 `id, side, status (TP|SL|EOD|NOT_FILLED), fill time, exit time, exit price,
 P/L points, P/L dollars` — followed by a summary: orders placed, filled, wins,
-losses, net points, net dollars. Times are formatted in `--tz`.
+losses, net points, net dollars. Times are formatted in `--tz`. The table also
+carries `MAE`/`MFE`/`R`/`CLOSEST` columns for the outcome-quality metrics
+above.
 
 `--json`: the same data as a JSON object `{ session, orders: [...],
 summary: {...} }` for downstream tooling.
