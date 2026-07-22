@@ -17,7 +17,10 @@ function formatTime(unixSeconds, tz) {
 }
 
 export function formatTable({ session, results, summary }, tz) {
-  const headers = ['ID', 'SIDE', 'STATUS', 'FILL', 'EXIT', 'EXIT PX', 'PTS', 'USD'];
+  const headers = [
+    'ID', 'SIDE', 'STATUS', 'FILL', 'EXIT', 'EXIT PX', 'PTS', 'USD',
+    'MAE', 'MFE', 'R', 'CLOSEST',
+  ];
   const rows = results.map((r) => [
     r.id,
     r.side,
@@ -27,6 +30,10 @@ export function formatTable({ session, results, summary }, tz) {
     r.exitPrice === null ? '-' : String(r.exitPrice),
     r.points === null ? '-' : r.points.toFixed(2),
     r.dollars === null ? '-' : r.dollars.toFixed(2),
+    r.maxAdverseExcursion === null ? '-' : r.maxAdverseExcursion.toFixed(2),
+    r.maxFavorableExcursion === null ? '-' : r.maxFavorableExcursion.toFixed(2),
+    r.rMultiple === null ? '-' : r.rMultiple.toFixed(2),
+    r.closestApproach === null ? '-' : r.closestApproach.toFixed(2),
   ]);
   const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((row) => row[i].length)));
   const line = (cells) => cells.map((cell, i) => cell.padEnd(widths[i])).join('  ').trimEnd();
