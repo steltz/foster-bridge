@@ -358,7 +358,7 @@ const results = await parallel(CELLS.map((cell) => () => {
     `A long requires stopLoss < entry < takeProfit; a short requires takeProfit < entry < stopLoss. ` +
     `Include a rationale of at most 50 words citing which plan level(s) you are using. ` +
     `Also report primaryZone (the specific price zone you anchored to, e.g. "7481.75-7495.75"), ` +
-    `confidence (an integer 1-5 for how strongly you favored this setup over any alternative), ` +
+    `confidence (an integer 1-5, where 5 is most confident and 1 is least, for how strongly you favored this setup over any alternative), ` +
     `and, only if you seriously weighed a different zone or side, rejectedAlternative ` +
     `(at most 30 words: what it was and why you passed on it).`,
     { label: `${cell.trader}/${cell.day}/${cell.variant}#${cell.runIndex}`, schema: SETUP_SCHEMA, model: MODEL }
