@@ -27,6 +27,18 @@ import { minutesOfDayForTimestamp } from './session.js';
 // never of the order's stop distance — so an ambiguous candle resolves the
 // same way regardless of how tight a trader's stop is. A flat candle
 // (close === open) is treated as bullish.
+//
+// Alongside fill/exit, two outcome-quality metrics are tracked in the same
+// pass — see docs/superpowers/specs/2026-07-22-run-enrichment-design.md:
+// - closestApproach: while still pending and in-window, the smallest
+//   distance from entry the touch-side price (low for a long, high for a
+//   short) reached. Only meaningful for NOT_FILLED (null otherwise); an
+//   order that was never entry-eligible in any in-window candle gets null
+//   here too, since "how close" has no answer without a candle to measure.
+// - maxAdverseExcursion / maxFavorableExcursion: once filled, the worst/best
+//   unrealized move (in points, using each candle's full high/low — the
+//   same granularity the fill/exit rules already use) seen from the fill
+//   candle through the exit candle inclusive. Both are null until filled.
 function slHitsFirst(candle, side) {
   const bullish = candle.close >= candle.open;
   // long: SL sits on the low side, TP on the high side. short: mirrored.
@@ -36,8 +48,26 @@ function slHitsFirst(candle, side) {
 export function simulateOrder(order, candles, options = {}) {
   const { side, entry, stopLoss, takeProfit } = order;
   const { openMinutes = null, cutoffMinutes = null, tz = 'UTC' } = options;
+  const direction = side === 'long' ? 1 : -1;
+  const riskDistance = Math.abs(entry - stopLoss);
   let fillTime = null;
   let armed = false; // has price been on the entry's correct side, in-window?
+  let closestApproach = null;
+  let maxAdverseExcursion = 0;
+  let maxFavorableExcursion = 0;
+
+  // rMultiple is deliberately qty-independent (a per-unit ratio), so it's
+  // comparable across orders regardless of position size.
+  const finish = (status, exitTime, exitPrice) => ({
+    status,
+    fillTime,
+    exitTime,
+    exitPrice,
+    maxAdverseExcursion,
+    maxFavorableExcursion,
+    rMultiple: ((exitPrice - entry) * direction) / riskDistance,
+    closestApproach: null,
+  });
 
   for (const candle of candles) {
     if (fillTime === null) {
@@ -48,6 +78,10 @@ export function simulateOrder(order, candles, options = {}) {
       const afterOpen = openMinutes === null || localMinutes >= openMinutes;
       const beforeCutoff = cutoffMinutes === null || localMinutes < cutoffMinutes;
       if (!afterOpen || !beforeCutoff) continue; // not active for entry
+
+      const touchSidePrice = side === 'long' ? candle.low : candle.high;
+      const distance = Math.abs(touchSidePrice - entry);
+      if (closestApproach === null || distance < closestApproach) closestApproach = distance;
 
       if (side === 'long') {
         const touch = candle.low <= entry;
@@ -67,22 +101,32 @@ export function simulateOrder(order, candles, options = {}) {
         }
       }
     }
+
+    const adverse = side === 'long' ? entry - candle.low : candle.high - entry;
+    const favorable = side === 'long' ? candle.high - entry : entry - candle.low;
+    if (adverse > maxAdverseExcursion) maxAdverseExcursion = adverse;
+    if (favorable > maxFavorableExcursion) maxFavorableExcursion = favorable;
+
     const slHit = side === 'long' ? candle.low <= stopLoss : candle.high >= stopLoss;
     const tpHit = side === 'long' ? candle.high >= takeProfit : candle.low <= takeProfit;
     if (slHit && tpHit) {
       return slHitsFirst(candle, side)
-        ? { status: 'SL', fillTime, exitTime: candle.time, exitPrice: stopLoss }
-        : { status: 'TP', fillTime, exitTime: candle.time, exitPrice: takeProfit };
+        ? finish('SL', candle.time, stopLoss)
+        : finish('TP', candle.time, takeProfit);
     }
-    if (slHit) return { status: 'SL', fillTime, exitTime: candle.time, exitPrice: stopLoss };
-    if (tpHit) return { status: 'TP', fillTime, exitTime: candle.time, exitPrice: takeProfit };
+    if (slHit) return finish('SL', candle.time, stopLoss);
+    if (tpHit) return finish('TP', candle.time, takeProfit);
   }
 
   if (fillTime === null) {
-    return { status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null };
+    return {
+      status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+      maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null,
+      closestApproach,
+    };
   }
   const last = candles[candles.length - 1];
-  return { status: 'EOD', fillTime, exitTime: last.time, exitPrice: last.close };
+  return finish('EOD', last.time, last.close);
 }
 
 export function simulate(candles, orders, multiplier, options = {}) {

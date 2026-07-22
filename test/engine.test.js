@@ -12,6 +12,8 @@ test('order never touched is NOT_FILLED', () => {
   const candles = [c(1, 120, 125, 115, 120)];
   assert.deepEqual(simulateOrder(longOrder, candles), {
     status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+    maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null,
+    closestApproach: 15,
   });
 });
 
@@ -22,6 +24,8 @@ test('long fills on touch then exits at take profit', () => {
   ];
   assert.deepEqual(simulateOrder(longOrder, candles), {
     status: 'TP', fillTime: 1, exitTime: 2, exitPrice: 110,
+    maxAdverseExcursion: 0, maxFavorableExcursion: 11, rMultiple: 2,
+    closestApproach: null,
   });
 });
 
@@ -32,6 +36,8 @@ test('long exits at stop loss', () => {
   ];
   assert.deepEqual(simulateOrder(longOrder, candles), {
     status: 'SL', fillTime: 1, exitTime: 2, exitPrice: 95,
+    maxAdverseExcursion: 6, maxFavorableExcursion: 2, rMultiple: -1,
+    closestApproach: null,
   });
 });
 
@@ -71,6 +77,8 @@ test('fill and exit can happen on the same candle', () => {
   const candles = [c(1, 108, 111, 100, 110)]; // touches entry 100 AND high >= 110
   assert.deepEqual(simulateOrder(longOrder, candles), {
     status: 'TP', fillTime: 1, exitTime: 1, exitPrice: 110,
+    maxAdverseExcursion: 0, maxFavorableExcursion: 11, rMultiple: 2,
+    closestApproach: null,
   });
 });
 
@@ -81,6 +89,8 @@ test('position open at end of day closes at last close as EOD', () => {
   ];
   assert.deepEqual(simulateOrder(longOrder, candles), {
     status: 'EOD', fillTime: 1, exitTime: 2, exitPrice: 103,
+    maxAdverseExcursion: 1, maxFavorableExcursion: 4, rMultiple: 0.6,
+    closestApproach: null,
   });
 });
 
@@ -91,6 +101,8 @@ test('short exits at take profit when price falls', () => {
   ];
   assert.deepEqual(simulateOrder(shortOrder, candles), {
     status: 'TP', fillTime: 1, exitTime: 2, exitPrice: 90,
+    maxAdverseExcursion: 1, maxFavorableExcursion: 11, rMultiple: 2,
+    closestApproach: null,
   });
 });
 
@@ -101,6 +113,8 @@ test('short exits at stop loss when price rises', () => {
   ];
   assert.deepEqual(simulateOrder(shortOrder, candles), {
     status: 'SL', fillTime: 1, exitTime: 2, exitPrice: 105,
+    maxAdverseExcursion: 6, maxFavorableExcursion: 2, rMultiple: -1,
+    closestApproach: null,
   });
 });
 
@@ -109,6 +123,11 @@ test('does not fill an entry on or after the cutoff time', () => {
   const candles = [c(atCutoff, 101, 102, 100, 101)];    // would touch entry 100
   assert.deepEqual(simulateOrder(longOrder, candles, { cutoffMinutes: 840, tz: 'UTC' }), {
     status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+    // The only candle is at-or-after the cutoff, so it's never scanned for
+    // closest-approach either — an order that was never entry-eligible has
+    // no meaningful "how close did it get" answer.
+    maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null,
+    closestApproach: null,
   });
 });
 
@@ -121,6 +140,8 @@ test('fills before the cutoff and still manages the exit after it', () => {
   ];
   assert.deepEqual(simulateOrder(longOrder, candles, { cutoffMinutes: 840, tz: 'UTC' }), {
     status: 'TP', fillTime: before, exitTime: after, exitPrice: 110,
+    maxAdverseExcursion: 0, maxFavorableExcursion: 11, rMultiple: 2,
+    closestApproach: null,
   });
 });
 
@@ -176,6 +197,8 @@ test('does not fill an entry before the open time', () => {
   const candles = [c(early, 108, 111, 100, 110)];     // would touch entry and TP
   assert.deepEqual(simulateOrder(longOrder, candles, { openMinutes: 600, tz: 'UTC' }), {
     status: 'NOT_FILLED', fillTime: null, exitTime: null, exitPrice: null,
+    maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null,
+    closestApproach: null,
   });
 });
 
@@ -235,4 +258,24 @@ test('a losing short counts as a loss in the summary', () => {
   assert.deepEqual(summary, {
     orders: 1, filled: 1, wins: 0, losses: 1, netPoints: -5, netDollars: -25,
   });
+});
+
+test('a losing long that first ran in its favor shows high MFE alongside the loss', () => {
+  const candles = [
+    c(1, 101, 102, 100, 101),  // fill (touches entry 100)
+    c(2, 101, 108, 101, 107),  // rallies to 108 (favorable) before pulling back
+    c(3, 107, 107, 94, 96),    // reverses hard, low <= 95 -> SL
+  ];
+  const r = simulateOrder(longOrder, candles);
+  assert.equal(r.status, 'SL');
+  assert.equal(r.maxFavorableExcursion, 8);   // 108 - 100
+  assert.equal(r.maxAdverseExcursion, 6);     // 100 - 94
+  assert.equal(r.rMultiple, -1);              // (95 - 100) / 5
+});
+
+test('closestApproach reports the tightest miss for a short order that never fills', () => {
+  const candles = [c(1, 90, 95, 88, 92), c(2, 90, 96, 89, 93)];
+  const r = simulateOrder(shortOrder, candles); // shortOrder entry 100
+  assert.equal(r.status, 'NOT_FILLED');
+  assert.equal(r.closestApproach, 4); // |96 - 100|, the closer of the two highs
 });
