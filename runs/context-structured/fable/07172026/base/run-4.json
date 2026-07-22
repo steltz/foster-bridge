@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:23.040Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.25,
+    "takeProfit": 7494.5,
+    "rationale": "Buying initial support 7468.50-7480: bias-confirming bull/bear zone with range-exhaustion confluence, market overextended into it, aligned with bullish bigger-picture bias. Stop 7467.25 beyond far edge; target 7494.50 in the 7491.25-7500 zone for 3.04R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

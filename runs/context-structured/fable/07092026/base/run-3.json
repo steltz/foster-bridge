@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-22T10:25:20.173Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7530,
+    "stopLoss": 7523,
+    "takeProfit": 7551,
+    "rationale": "Long aggressive support 7524-7536.50: prior-day VPOC 7524.75 and close sit inside, and the overnight failed breakdown put buyers back in control, aligned with the bullish bigger-picture bias. Stop 7523, one point beyond the far edge; target 7551 inside 7548-7558 pre-market resistance, 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 21,
+    "dollars": 105,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:20.210Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7529.25,
+    "stopLoss": 7523,
+    "takeProfit": 7548,
+    "rationale": "Long inside aggressive support 7524-7536.50: overnight break above yesterday's RTH high confirms the failed breakdown with buyers back in control; plan says holding this zone signals strength. Stop 7523, one point beyond the far edge; target 7548, front of pre-market resistance — exactly 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:19.081Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7543,
+    "stopLoss": 7537,
+    "takeProfit": 7563,
+    "rationale": "Long inside initial support 7538.25-7546.75 (7544 HVN, first-test buyers, NQ intermarket trigger), aligned with bullish intermediate bias; NQ weakness should flush shallower zones first. Stop 7537 beyond far edge; target 7563, broken aggressive support, 3.3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

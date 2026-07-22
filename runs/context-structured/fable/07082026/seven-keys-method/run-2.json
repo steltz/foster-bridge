@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:19.760Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7483.75,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Buying the 7477.50-7493.50 bull/bear zone (7482.50 HVN) on first RTH test: bigger-picture bullish bias plus an unconfirmed overnight breakdown attempt makes this bias-confirming zone the best-confluence long. Stop 7476.50 beyond the far edge; target 7506, front of aggressive resistance, 3.07R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000
+  }
+}

@@ -1,17 +1,20 @@
 # Trader Scoreboard
 
-990 cells · 6 trader@model@variant groups. Every group is scored alone; P&L is never combined across traders, models, or variants.
+1155 cells · 9 trader@model@variant groups. Every group is scored alone; P&L is never combined across traders, models, or variants.
 
 ## Ranking (mean net USD per run)
 
 | # | Trader | Model | Variant | Days | Runs | Mean $/run | Std $ | Min $ | Max $ | Win % | Fill % |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | context-structured | sonnet | seven-keys-scorecard | 11 | 15 | -1.58 | 85.98 | -148.75 | 150.00 | 25% | 32% |
-| 2 | context-trader | sonnet | seven-keys-method | 11 | 15 | -23.67 | 90.56 | -173.75 | 108.75 | 23% | 42% |
-| 3 | context-structured | sonnet | seven-keys-method | 11 | 15 | -32.58 | 100.18 | -231.25 | 168.75 | 20% | 40% |
-| 4 | context-trader | sonnet | seven-keys-scorecard | 11 | 15 | -39.17 | 77.63 | -191.25 | 126.25 | 22% | 36% |
-| 5 | context-trader | sonnet | base | 11 | 15 | -90.33 | 86.15 | -293.75 | 21.25 | 16% | 53% |
-| 6 | context-structured | sonnet | base | 11 | 15 | -101.42 | 70.02 | -197.50 | 43.75 | 17% | 46% |
+| 1 | context-structured | fable | base | 11 | 5 | 50.50 | 118.05 | -95.00 | 176.25 | 30% | 36% |
+| 2 | context-structured | fable | seven-keys-scorecard | 11 | 5 | 50.50 | 27.90 | 2.50 | 75.00 | 31% | 29% |
+| 3 | context-structured | sonnet | seven-keys-scorecard | 11 | 15 | -1.58 | 85.98 | -148.75 | 150.00 | 25% | 32% |
+| 4 | context-trader | sonnet | seven-keys-method | 11 | 15 | -23.67 | 90.56 | -173.75 | 108.75 | 23% | 42% |
+| 5 | context-structured | fable | seven-keys-method | 11 | 5 | -28.50 | 80.94 | -98.75 | 98.75 | 17% | 33% |
+| 6 | context-structured | sonnet | seven-keys-method | 11 | 15 | -32.58 | 100.18 | -231.25 | 168.75 | 20% | 40% |
+| 7 | context-trader | sonnet | seven-keys-scorecard | 11 | 15 | -39.17 | 77.63 | -191.25 | 126.25 | 22% | 36% |
+| 8 | context-trader | sonnet | base | 11 | 15 | -90.33 | 86.15 | -293.75 | 21.25 | 16% | 53% |
+| 9 | context-structured | sonnet | base | 11 | 15 | -101.42 | 70.02 | -197.50 | 43.75 | 17% | 46% |
 
 ## Feature Impact
 
@@ -21,26 +24,96 @@ Each row compares base and feature over their shared day set only (the Days colu
 
 | Trader | Model | Days | Runs | Base $/run | Seven-Keys methodology $/run | Δ |
 |---|---|---|---|---|---|---|
+| context-structured | fable | 11 | 5v5 | 50.50 | -28.50 | -79.00 |
 | context-structured | sonnet | 11 | 15v15 | -101.42 | -32.58 | +68.83 |
 | context-trader | sonnet | 11 | 15v15 | -90.33 | -23.67 | +66.67 |
 
-**Overall Δ for Seven-Keys methodology across 2 trader/model pairs: +67.75**
+**Overall Δ for Seven-Keys methodology across 3 trader/model pairs: +18.83**
 ### Seven-Keys precomputed scorecard
 
 | Trader | Model | Days | Runs | Base $/run | Seven-Keys precomputed scorecard $/run | Δ |
 |---|---|---|---|---|---|---|
+| context-structured | fable | 11 | 5v5 | 50.50 | 50.50 | +0.00 |
 | context-structured | sonnet | 11 | 15v15 | -101.42 | -1.58 | +99.83 |
 | context-trader | sonnet | 11 | 15v15 | -90.33 | -39.17 | +51.17 |
 
-**Overall Δ for Seven-Keys precomputed scorecard across 2 trader/model pairs: +75.50**
+**Overall Δ for Seven-Keys precomputed scorecard across 3 trader/model pairs: +50.33**
 
 ## Lineage
 
 ```
 context-trader                 sonnet/base 15r: -90.33 · sonnet/seven-keys-method 15r: -23.67 · sonnet/seven-keys-scorecard 15r: -39.17
-└─ context-structured          sonnet/base 15r: -101.42 (Δ vs origin: -11.08) · sonnet/seven-keys-method 15r: -32.58 (Δ vs origin: -8.92) · sonnet/seven-keys-scorecard 15r: -1.58 (Δ vs origin: +37.58)
+└─ context-structured          fable/base 5r: 50.50 · fable/seven-keys-method 5r: -28.50 · fable/seven-keys-scorecard 5r: 50.50 · sonnet/base 15r: -101.42 (Δ vs origin: -11.08) · sonnet/seven-keys-method 15r: -32.58 (Δ vs origin: -8.92) · sonnet/seven-keys-scorecard 15r: -1.58 (Δ vs origin: +37.58)
      Restructured the markdown into a numbered decision procedure with hard-constraints/heuristics split into separate sections, a worked numeric example, an explicit tie-break rule for conflicting bias signals, a confluence-to-minimum-R:R table in place of graduated prose, a pre-submit self-check checklist, and a contrastive anti-pattern example — the trading logic and rules are unchanged from context-trader.
 ```
+
+## context-structured @ fable [base]
+
+Origin: context-trader — Restructured the markdown into a numbered decision procedure with hard-constraints/heuristics split into separate sections, a worked numeric example, an explicit tie-break rule for conflicting bias signals, a confluence-to-minimum-R:R table in place of graduated prose, a pre-submit self-check checklist, and a contrastive anti-pattern example — the trading logic and rules are unchanged from context-trader. · origin has no runs at fable/base
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 11 | 9.75 | 48.75 |
+| 2 | 11 | 35.25 | 176.25 |
+| 3 | 11 | 31.5 | 157.50 |
+| 4 | 11 | -19 | -95.00 |
+| 5 | 11 | -7 | -35.00 |
+
+Wins: 6 · Losses: 14 · Avg win: 26.63 pts · Avg loss: -7.80 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 6.00 |
+| 07022026 | 5 | 5L/0S | 5.00 |
+| 07062026 | 5 | 5L/0S | 1.00 |
+| 07072026 | 5 | 5L/0S | 3.00 |
+| 07082026 | 5 | 5L/0S | 56.00 |
+| 07092026 | 5 | 5L/0S | 1.00 |
+| 07132026 | 5 | 5L/0S | 1.00 |
+| 07142026 | 5 | 5L/0S | 29.50 |
+| 07152026 | 5 | 5L/0S | 21.75 |
+| 07162026 | 5 | 5L/0S | 1.75 |
+| 07172026 | 5 | 5L/0S | 0.75 |
+
+### Pipeline errors
+
+None.
+
+## context-structured @ fable [seven-keys-scorecard]
+
+Origin: context-trader — Restructured the markdown into a numbered decision procedure with hard-constraints/heuristics split into separate sections, a worked numeric example, an explicit tie-break rule for conflicting bias signals, a confluence-to-minimum-R:R table in place of graduated prose, a pre-submit self-check checklist, and a contrastive anti-pattern example — the trading logic and rules are unchanged from context-trader. · origin has no runs at fable/seven-keys-scorecard
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 11 | 15 | 75.00 |
+| 2 | 11 | 12.5 | 62.50 |
+| 3 | 11 | 0.5 | 2.50 |
+| 4 | 11 | 11.25 | 56.25 |
+| 5 | 11 | 11.25 | 56.25 |
+
+Wins: 5 · Losses: 11 · Avg win: 27.45 pts · Avg loss: -7.89 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 2.00 |
+| 07022026 | 5 | 5L/0S | 3.00 |
+| 07062026 | 5 | 5L/0S | 1.00 |
+| 07072026 | 5 | 5L/0S | 7.50 |
+| 07082026 | 5 | 5L/0S | 70.50 |
+| 07092026 | 5 | 5L/0S | 2.50 |
+| 07132026 | 5 | 4L/1S | 118.00 |
+| 07142026 | 5 | 5L/0S | 4.00 |
+| 07152026 | 5 | 5L/0S | 2.75 |
+| 07162026 | 5 | 5L/0S | 5.25 |
+| 07172026 | 5 | 0L/5S | 0.25 |
+
+### Pipeline errors
+
+None.
 
 ## context-structured @ sonnet [seven-keys-scorecard]
 
@@ -123,6 +196,40 @@ Wins: 16 · Losses: 54 · Avg win: 31.78 pts · Avg loss: -10.73 pts
 | 07152026 | 15 | 15L/0S | 42.75 |
 | 07162026 | 15 | 13L/2S | 71.25 |
 | 07172026 | 15 | 9L/6S | 51.50 |
+
+### Pipeline errors
+
+None.
+
+## context-structured @ fable [seven-keys-method]
+
+Origin: context-trader — Restructured the markdown into a numbered decision procedure with hard-constraints/heuristics split into separate sections, a worked numeric example, an explicit tie-break rule for conflicting bias signals, a confluence-to-minimum-R:R table in place of graduated prose, a pre-submit self-check checklist, and a contrastive anti-pattern example — the trading logic and rules are unchanged from context-trader. · origin has no runs at fable/seven-keys-method
+
+| Run | Days | Pts | USD |
+|---|---|---|---|
+| 1 | 11 | 19.75 | 98.75 |
+| 2 | 11 | -19 | -95.00 |
+| 3 | 11 | -19.75 | -98.75 |
+| 4 | 11 | -8.25 | -41.25 |
+| 5 | 11 | -1.25 | -6.25 |
+
+Wins: 3 · Losses: 15 · Avg win: 23.67 pts · Avg loss: -6.63 pts
+
+### Setup stability
+
+| Day | Runs | Sides | Entry spread |
+|---|---|---|---|
+| 07012026 | 5 | 5L/0S | 33.00 |
+| 07022026 | 5 | 5L/0S | 2.75 |
+| 07062026 | 5 | 5L/0S | 1.25 |
+| 07072026 | 5 | 5L/0S | 3.00 |
+| 07082026 | 5 | 5L/0S | 68.75 |
+| 07092026 | 5 | 5L/0S | 4.50 |
+| 07132026 | 5 | 5L/0S | 0.75 |
+| 07142026 | 5 | 5L/0S | 30.00 |
+| 07152026 | 5 | 5L/0S | 7.75 |
+| 07162026 | 5 | 5L/0S | 1.25 |
+| 07172026 | 5 | 5L/0S | 2.75 |
 
 ### Pipeline errors
 
@@ -304,6 +411,9 @@ None.
 
 | Trader | Model | Variant | Cells | Days | Runs | Status |
 |---|---|---|---|---|---|---|
+| context-structured | fable | base | 55 | 11 | 5 | ⚠ under-tested (max 165) |
+| context-structured | fable | seven-keys-method | 55 | 11 | 5 | ⚠ under-tested (max 165) |
+| context-structured | fable | seven-keys-scorecard | 55 | 11 | 5 | ⚠ under-tested (max 165) |
 | context-structured | sonnet | base | 165 | 11 | 15 | ok |
 | context-structured | sonnet | seven-keys-method | 165 | 11 | 15 | ok |
 | context-structured | sonnet | seven-keys-scorecard | 165 | 11 | 15 | ok |

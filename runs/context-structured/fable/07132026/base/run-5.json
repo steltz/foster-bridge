@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-22T10:25:20.817Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7527,
+    "stopLoss": 7523,
+    "takeProfit": 7543,
+    "rationale": "Bigger-picture bullish bias; plan cautions initial support, so resting buy at deeper 7524-7534 zone (open gap 7528.75, NVPOC 7524.75, bias-changing, first test) where market arrives exhausted. Stop 7523 beyond far edge; target 7543 front of initial support zone, 4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

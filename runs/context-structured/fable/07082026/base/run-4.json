@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:19.646Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7448,
+    "stopLoss": 7443.5,
+    "takeProfit": 7461.5,
+    "rationale": "Long first test of initial support 7444.50-7454.75, a range-exhaustion zone where the plan says buyers can be active; bigger-picture bias is bullish (tie-break). Stop 7443.50 is one point beyond the far edge; target 7461.50 at broken pre-market support gives exactly 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

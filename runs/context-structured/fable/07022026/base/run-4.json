@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:17.948Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7487,
+    "stopLoss": 7480.5,
+    "takeProfit": 7509,
+    "rationale": "Long the 7481.75-7495.75 bull/bear bias-confirming zone — plan's most significant trade location (yesterday's breakout area, HVN 7482.50), aligned with bullish intermediate bias. Stop 7480.50 beyond far edge; target 7509 inside 7505.75-7512.75 for 3.4:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

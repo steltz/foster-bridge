@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:18.439Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7485.25,
+    "stopLoss": 7478.5,
+    "takeProfit": 7510,
+    "rationale": "Long the 7479.50-7493.50 bull/bear bias-confirming zone (7482.50 HVN): buyers defended it on 07/02 and it aligns with the bullish intermediate bias. Stop 7478.50, one point beyond the far edge; target 7510, front of initial support/prior VPOC — 3.67:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

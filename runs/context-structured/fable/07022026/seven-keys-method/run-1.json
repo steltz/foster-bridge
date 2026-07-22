@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-22T10:25:18.022Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7486,
+    "stopLoss": 7480.75,
+    "takeProfit": 7505.75,
+    "rationale": "Resting buy inside the 7481.75-7495.75 bull/bear bias-confirming zone — breakout launch point, HVN 7482.50, aligned with the intermediate bullish bias, exhausted arrival. Stop 7480.75 (one point beyond far edge); target 7505.75, front edge of initial support / prior-day low, 3.6R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -5.25,
+    "dollars": -26.25,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:19.570Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7396,
+    "stopLoss": 7389.25,
+    "takeProfit": 7420.5,
+    "rationale": "Bigger-picture bullish; plan calls 7390.50-7401.75 (bias-confirming, open gap 7401.75) the better support below skipped initial support 7444.50-7454.75. Resting long 7396, stop 7389.25 beyond far edge, target 7420.50 range-extreme zone for 3.6R on an exhausted new-range-extreme arrival."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

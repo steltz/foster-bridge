@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-22T10:25:19.608Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7452,
+    "stopLoss": 7443.5,
+    "takeProfit": 7477.5,
+    "rationale": "Long at initial support 7444.50-7454.75: first-test zone with Range Exhaustion tag, aligned with bigger-picture bullish bias (tie-break vs neutral breakdown attempt). Stop 7443.50, one point beyond far edge. Target 7477.50, the Bull/Bear zone's lower edge — exactly 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

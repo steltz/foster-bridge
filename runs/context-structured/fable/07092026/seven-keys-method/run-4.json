@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:20.401Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7530,
+    "stopLoss": 7523,
+    "takeProfit": 7551.25,
+    "rationale": "Long the 7524-7536.50 Aggressive Support: failed breakdown put buyers back in control, and this bias-aligned zone holds prior VPOC 7524.75. Stop 7523, one point beyond the far edge; target 7551.25 open gap in the 7548-7558 pre-market resistance, 3.04:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 21.25,
+    "dollars": 106.25,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

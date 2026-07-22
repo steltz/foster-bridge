@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:20.514Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7532.5,
+    "stopLoss": 7523,
+    "takeProfit": 7561,
+    "rationale": "Buying aggressive support 7524-7536.50: first RTH retest of the overnight breakout above 7536.50, Keys 3-6 stacked (strongest confluence on the sheet), fully aligned with the bullish failed-breakdown bias. Stop 7523, one point behind the zone; 3:1 target 7561 in front of initial resistance 7561.25-7571.25."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.5,
+    "dollars": 142.5,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900
+  }
+}

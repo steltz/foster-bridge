@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-22T10:25:21.571Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7580,
+    "stopLoss": 7570,
+    "takeProfit": 7610,
+    "rationale": "Long inside aggressive support 7571-7582: bias-aligned (bigger-picture bullish) and post-CPI strength holding above it signals continuation — Key 6 says aggressive zones work when bias aligns. Stop 7570, one point beyond the far edge; target 7610 at the front of initial resistance 7609.25-7620.25 for 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

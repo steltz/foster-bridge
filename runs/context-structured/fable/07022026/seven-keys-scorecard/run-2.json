@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:18.249Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "0818ed88cf050ca29ba548d0cc3ee740f47eb86a74bf3da6535e2c57ddbccadb",
+  "setup": {
+    "side": "long",
+    "entry": 7488.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7512.75,
+    "rationale": "Resting buy inside the 7481.75-7495.75 Bull/Bear zone — the keys scorecard's lone automatic-fade: launch point of yesterday's breakout, 7482.50 HVN, exhausted ~90-pt arrival, fully bias-aligned. Stop 7480.75 (1 pt beyond far edge); target 7512.75 at Initial Support/prior day low for 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -8,
+    "dollars": -40,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900
+  }
+}

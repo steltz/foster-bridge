@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-22T10:25:22.474Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7527,
+    "stopLoss": 7522,
+    "takeProfit": 7542,
+    "rationale": "Resting long at bias-confirming 7523.25-7535.25 support: range exhaustion, open gap 7528.75, NVPOC 7524.75, first-test buyer zone aligned with the bullish bigger-picture bias. Stop 7522 beyond the 7523.25 far edge; target 7542 fronting the 7544-7557 launching-point zone. 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-22T10:25:17.259Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7494,
+    "stopLoss": 7480.5,
+    "takeProfit": 7534.75,
+    "rationale": "Long inside 7481.75-7495.75 bias-confirming support (7482.50 HVN) — the zone the plan says buyers must hold to keep the balance breakout alive, aligned with the bullish intermediate bias. Stop 7480.50 beyond the far edge; target 7534.75 pre-market resistance zone for ~3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

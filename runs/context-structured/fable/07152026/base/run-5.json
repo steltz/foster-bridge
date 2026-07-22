@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-22T10:25:21.945Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7554,
+    "stopLoss": 7543,
+    "takeProfit": 7587.75,
+    "rationale": "Long initial support 7544-7557: 7544 HVN and launching point of the post-CPI rally, aligned with the bullish bigger-picture bias, reached only after an exhausting break of three shallower supports. Stop 7543 beyond the far edge; target 7587.75 front of aggressive support zone, ~3.1:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

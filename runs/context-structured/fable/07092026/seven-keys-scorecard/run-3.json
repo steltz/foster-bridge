@@ -1,0 +1,31 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-22T10:25:20.553Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "af94049b8635756726ff3bc2da4beb3585035178a2683c900c08f0a86548dba3",
+  "setup": {
+    "side": "long",
+    "entry": 7530,
+    "stopLoss": 7523,
+    "takeProfit": 7551,
+    "rationale": "Long aggressive support 7524-7536.50: first RTH retest of the overnight breakout above 7536.50, with close 7528.75 and VPOC 7524.75 inside — Keys 3-6 stack, strong grade, bias-aligned. Stop 7523 beyond the far edge; target 7551 at Open Gap 7551.25 in pre-market resistance 7548-7558; 3:1."
+  },
+  "result": {
+    "status": "TP",
+    "points": 21,
+    "dollars": 105,
+    "fillTime": 1783606800,
+    "exitTime": 1783607100
+  }
+}

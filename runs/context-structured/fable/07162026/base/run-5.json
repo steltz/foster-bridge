@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-22T10:25:22.512Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7526.25,
+    "stopLoss": 7522.25,
+    "takeProfit": 7544,
+    "rationale": "Resting buy inside 7523.25-7535.25 bias-confirming support (range exhaustion, open gap 7528.75, NVPOC 7524.75), aligned with the bullish bigger-picture bias for an exhausted first-test arrival. Stop 7522.25, one point beyond the far edge; target 7544, front of the 7544-7557 launching-point zone, about 4.4:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

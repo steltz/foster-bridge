@@ -1,0 +1,30 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:19.195Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7543.25,
+    "stopLoss": 7537.25,
+    "takeProfit": 7563,
+    "rationale": "Long at initial support 7538.25-7546.75 (7544 HVN, first test, bullish intermediate bias). NQ weakness argues the shallow 7563-73 zone gives way and ES arrives exhausted here. Stop 7537.25 beyond the zone; target 7563, underside of broken aggressive support — 3.3R."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900
+  }
+}

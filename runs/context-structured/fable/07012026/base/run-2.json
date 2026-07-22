@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:17.302Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7490,
+    "stopLoss": 7480.5,
+    "takeProfit": 7518.5,
+    "rationale": "Buying the 7481.75-7495.75 bias-confirming bull/bear zone (7482.50 HVN, launch of the balance breakout) — plan says the breakout stays in play while buyers hold it, aligned with the bullish intermediate bias. Stop 7480.50 beyond the far edge; target 7518.50 at broken initial support, 3R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:22.963Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.5,
+    "takeProfit": 7494,
+    "rationale": "Long initial support 7468.50-7480 — bias-confirming bull/bear, range-exhaustion zone; bigger-picture bullish and the plan calls breakdowns below it suspect on an exhausted first test. Stop 7467.50 one point beyond the far edge; target 7494 inside the 7491.25-7500 pre-market zone, ~3.1:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

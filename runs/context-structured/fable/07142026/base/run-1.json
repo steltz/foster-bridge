@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-22T10:25:21.230Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7576.5,
+    "stopLoss": 7570,
+    "takeProfit": 7596,
+    "rationale": "Buying aggressive support 7571-7582: plan says holding above it signals continued post-CPI strength, aligned with the bullish bigger-picture bias. Stop 7570 is one point beyond the far edge; target 7596 fronts pre-market resistance 7596-7605 for exactly 3:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}

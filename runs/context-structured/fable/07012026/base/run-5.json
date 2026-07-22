@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-22T10:25:17.414Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7480.75,
+    "takeProfit": 7510.5,
+    "rationale": "Long the 7481.75-7495.75 bias-confirming support: 7482.50 HVN, yesterday's bull/bear launch zone of the balance breakout, aligned with bullish intermediate bias — market arrives exhausted after flushing 7510.50-7520.50 and 7499.25-7504.25. Stop 7480.75 beyond far edge; target 7510.50 initial support, 3.1R."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

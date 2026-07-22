@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-22T10:25:21.270Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7550,
+    "stopLoss": 7543,
+    "takeProfit": 7571,
+    "rationale": "Buying pre-market support 7544-7556 — launching point of the post-CPI upside move with 7544 HVN, aligned with the bigger-picture bullish bias. Entry 7550 inside the zone, stop 7543 one point beyond the far edge, target 7571 at aggressive support for exactly 3:1."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null
+  }
+}

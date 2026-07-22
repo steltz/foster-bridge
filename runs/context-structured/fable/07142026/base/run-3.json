@@ -1,0 +1,28 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-22T10:25:21.308Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7578.75,
+    "stopLoss": 7569.75,
+    "takeProfit": 7609.25,
+    "rationale": "Long inside aggressive support 7571-7582: plan says holding above it signals continued post-CPI strength, aligned with the bullish bigger-picture bias. Stop 7569.75 beyond the 7571 far edge; target 7609.25, front of initial resistance 7609.25-7620.25, for 3.4:1."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1784037600,
+    "exitTime": 1784037900
+  }
+}
