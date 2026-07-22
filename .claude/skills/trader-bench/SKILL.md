@@ -272,13 +272,16 @@ const CELLS = [
 ]
 const SETUP_SCHEMA = {
   type: 'object',
-  required: ['side', 'entry', 'stopLoss', 'takeProfit', 'rationale'],
+  required: ['side', 'entry', 'stopLoss', 'takeProfit', 'rationale', 'primaryZone', 'confidence'],
   properties: {
     side: { enum: ['long', 'short'] },
     entry: { type: 'number' },
     stopLoss: { type: 'number' },
     takeProfit: { type: 'number' },
     rationale: { type: 'string', maxLength: 400 },
+    primaryZone: { type: 'string', maxLength: 100 },
+    confidence: { type: 'integer', minimum: 1, maximum: 5 },
+    rejectedAlternative: { type: 'string', maxLength: 200 },
   },
   additionalProperties: false,
 }
@@ -353,7 +356,11 @@ const results = await parallel(CELLS.map((cell) => () => {
     `Anchor your entry, stop loss, and take profit to the support/resistance zones in the trade plan. ` +
     `Prices are ES index points in quarter-point increments (e.g. 7530.25). ` +
     `A long requires stopLoss < entry < takeProfit; a short requires takeProfit < entry < stopLoss. ` +
-    `Include a rationale of at most 50 words citing which plan level(s) you are using.`,
+    `Include a rationale of at most 50 words citing which plan level(s) you are using. ` +
+    `Also report primaryZone (the specific price zone you anchored to, e.g. "7481.75-7495.75"), ` +
+    `confidence (an integer 1-5 for how strongly you favored this setup over any alternative), ` +
+    `and, only if you seriously weighed a different zone or side, rejectedAlternative ` +
+    `(at most 30 words: what it was and why you passed on it).`,
     { label: `${cell.trader}/${cell.day}/${cell.variant}#${cell.runIndex}`, schema: SETUP_SCHEMA, model: MODEL }
   ).then((setup) => ({ ...cell, setup }))
 }))
@@ -382,8 +389,11 @@ node src/cli.js run --data "$CSV" --orders <scratchpad>/bench-<trader>-<day>-<va
 Interpret strictly by the CLI's verdict:
 
 - exit 0 → parse the JSON; `orders[0]` gives `status` (TP | SL | EOD |
-  NOT_FILLED), `points`, `dollars`, `fillTime`, `exitTime`. A far-off entry
-  is simply `NOT_FILLED` — that IS the answer.
+  NOT_FILLED), `points`, `dollars`, `fillTime`, `exitTime`, and now also
+  `maxAdverseExcursion`, `maxFavorableExcursion`, `rMultiple` (all `null`
+  for `NOT_FILLED`, populated for every other status) and `closestApproach`
+  (populated only for `NOT_FILLED`, `null` otherwise). A far-off entry is
+  simply `NOT_FILLED` — that IS the answer.
 - exit 1 and stderr matches the CLI's order-validation wording (`requires
   stopLoss < entry < takeProfit` / `requires takeProfit < entry <
   stopLoss` / `must be a number`) → status `INVALID`, `note` = that stderr
@@ -415,8 +425,8 @@ record the anomaly for the final summary and move on. Cell format:
   "componentSha256s": { "<component id>": "<that component FILE's hash from Phase 1 — ONLY on combo cells>" },
   "staticDocSha256s": { "<component id>": "<its staticDoc hash — ONLY on combo cells; keys only for components declaring one; omit the whole map when none do>" },
   "artifactSha256s": { "<component id>": "<the day's artifact hash — ONLY on combo cells; keys only for artifact-backed components; omit the whole map when none are>" },
-  "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "..." },
-  "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>" },
+  "setup": { "side": "...", "entry": 0, "stopLoss": 0, "takeProfit": 0, "rationale": "...", "primaryZone": "...", "confidence": 0, "rejectedAlternative": "..." },
+  "result": { "status": "...", "points": 0, "dollars": 0, "fillTime": "<from CLI JSON, verbatim>", "exitTime": "<from CLI JSON, verbatim>", "maxAdverseExcursion": 0, "maxFavorableExcursion": 0, "rMultiple": 0, "closestApproach": null },
   "note": "<only for INVALID / CLI_ERROR>"
 }
 ```
@@ -425,7 +435,17 @@ Omit `setup` for NO_SETUP cells; `result` is then `{ "status": "NO_SETUP" }`.
 For NOT_FILLED, keep the CLI's null points/dollars/fillTime/exitTime as
 null. Statuses INVALID and CLI_ERROR keep the submitted `setup` and use
 `result` = `{ "status": "INVALID" }` / `{ "status": "CLI_ERROR" }` plus the
-top-level `note`. Every cell — including NO_SETUP — records `variant`,
+top-level `note` — no CLI order object was ever produced for these, so
+`result` carries no `maxAdverseExcursion`/`maxFavorableExcursion`/
+`rMultiple`/`closestApproach` keys at all, exactly like today's `points`/
+`dollars`/`fillTime`/`exitTime` are already absent from those two statuses.
+For every other status, copy `maxAdverseExcursion`/`maxFavorableExcursion`/
+`rMultiple`/`closestApproach` into `result` verbatim from the CLI's JSON —
+no validation of your own, same as every other CLI-reported field. In
+`setup`, omit `rejectedAlternative` entirely when the persona didn't return
+it (`SETUP_SCHEMA` doesn't require it); `primaryZone` and `confidence` are
+always present, same as `side`/`entry`/`stopLoss`/`takeProfit`/`rationale`.
+Every cell — including NO_SETUP — records `variant`,
 `personaSha256`, and `generalSha256`. Plain feature cells use the scalar
 `featureSha256` / `staticDocSha256` / `artifactSha256` rules above and NEVER
 the map forms; combo cells always record `combines`, `featureSha256` (the
