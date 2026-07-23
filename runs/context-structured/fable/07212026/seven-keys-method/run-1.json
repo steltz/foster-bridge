@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T13:18:05.830Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7394,
+    "stopLoss": 7389.5,
+    "takeProfit": 7409,
+    "rationale": "Resting buy in the 7390.50-7401.75 bias-confirming gap zone — recap's named destination if the hammered bull/bear (7468.50-7482.50) breaks. Exhausted first-test arrival aligned with bullish bigger picture; stop 7389.50 behind the zone, target 7409 (06/29 low zone), 3.33:1.",
+    "primaryZone": "7390.50-7401.75",
+    "confidence": 3,
+    "rejectedAlternative": "Long at bull/bear 7468.50-7482.50: third test after repeated hammering, recap warns a breakdown there could have legs — first-test edge gone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 116.5
+  }
+}

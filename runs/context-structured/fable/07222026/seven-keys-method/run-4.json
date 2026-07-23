@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "seven-keys-method",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T13:18:06.566Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7475.25,
+    "stopLoss": 7467.5,
+    "takeProfit": 7498.5,
+    "rationale": "Bull/bear 7468.50-7482.50 is the multi-day balance-area low: bias-confirming, 7482.50 HVN, aligned with the bullish bigger picture, first RTH test with the market exhausted after breaking three supports; plan says sustainable breakdown unlikely pre-earnings. 3:1 back into broken initial support 7498.25-7505.75.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at initial support 7498.25-7505.75 — shallower, bias-changing only; the deeper bias-confirming bull/bear zone offers far better confluence and exhausted arrival."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 53.5
+  }
+}

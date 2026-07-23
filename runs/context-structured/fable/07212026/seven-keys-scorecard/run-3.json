@@ -1,0 +1,38 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T13:18:06.113Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "90f80d45ee1560273b9c81c40c03f717b42e6a9ce934ca1a3fe10b9cd068ee50",
+  "setup": {
+    "side": "long",
+    "entry": 7481.75,
+    "stopLoss": 7467.5,
+    "takeProfit": 7527.75,
+    "rationale": "Long the 7468.50-7482.50 Initial Support/Bull-Bear zone (7482.50 HVN) — automatic-fade confluence that launched yesterday's last-hour bounce and the overnight bounce to ~7530, aligned with the bullish larger-timeframe bias. Stop one point beyond the far edge; target fronts pre-market resistance 7528-7534 for 3.2R.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7541-7552 initial resistance (strong grade, first RTH test) — counter-trend with no citable bias shift, so the tie-break rule defaulted me with-trend."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 28.75
+  }
+}

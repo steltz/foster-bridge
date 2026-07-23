@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T13:18:05.718Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7478,
+    "stopLoss": 7467.25,
+    "takeProfit": 7510.25,
+    "rationale": "Resting buy inside the 7468.50-7482.50 Initial Support / Bull-Bear zone (7482.50 HVN), the plan's key buyer-defense area, defended overnight and in the prior session's last hour. Stop 7467.25 beyond the far edge; target 7510.25 at the 7509.50-7514.50 zone for 3:1.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short at initial resistance 7541-7552; passed because it fights the bigger-picture bullish bias and overnight sellers at 7530 may cap price before it fills."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 32.5
+  }
+}

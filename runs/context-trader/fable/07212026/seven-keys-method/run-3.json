@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T13:18:07.174Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7544,
+    "stopLoss": 7553,
+    "takeProfit": 7514.5,
+    "rationale": "Monday's failed breakout left sellers in control; plan expects sellers active on first test of initial resistance 7541-7552, the bias-changing zone, with the average 24-hour range high capping upside on below-average volume. Resting short inside the zone, stop beyond it, targeting aggressive support 7509.50-7514.50 (~3.3:1).",
+    "primaryZone": "7541-7552",
+    "confidence": 3,
+    "rejectedAlternative": "Long the 7468.50-7482.50 bull/bear zone: heavy confluence, but third-plus test with the recap explicitly warning of a breakdown with legs while sellers stay dominant."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1784647500,
+    "exitTime": 1784652600,
+    "maxAdverseExcursion": 9.5,
+    "maxFavorableExcursion": 6.5,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

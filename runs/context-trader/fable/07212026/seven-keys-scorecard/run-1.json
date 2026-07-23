@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T13:18:07.311Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "90f80d45ee1560273b9c81c40c03f717b42e6a9ce934ca1a3fe10b9cd068ee50",
+  "setup": {
+    "side": "short",
+    "entry": 7546,
+    "stopLoss": 7553.25,
+    "takeProfit": 7514.5,
+    "rationale": "First RTH test of 7541-7552 Initial Resistance (yesterday's high 7552); keys grade it strong and its analog paid twice. 07/20 failed breakout left sellers in control; below-average volume caps breakout odds. Stop 1.25 beyond zone; conservative target at 7509.50-7514.50 aggressive support gives ~4.3R.",
+    "primaryZone": "7541-7552",
+    "confidence": 4,
+    "rejectedAlternative": "Long the 7468.50-7482.50 automatic-fade bull/bear zone — passed because repeated hammering raises breakdown risk and the overnight bounce already consumed its first-test edge."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1784649900,
+    "exitTime": 1784652600,
+    "maxAdverseExcursion": 7.5,
+    "maxFavorableExcursion": 2.25,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

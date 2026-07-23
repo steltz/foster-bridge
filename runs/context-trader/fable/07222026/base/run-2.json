@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T13:18:07.591Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7477.75,
+    "stopLoss": 7467.25,
+    "takeProfit": 7510.75,
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rationale": "Bigger-picture bullish; plan caps downside at the bias-confirming Bull/Bear zone 7468.50-7482.50 (7482.50 HVN, multi-day balance low), where buyers are likely on first test — recap showed it defended overnight. Overnight sell pressure may exhaust mid-range supports, so I buy the deep zone targeting pre-market support 7510.75 (~3.1R).",
+    "rejectedAlternative": "Long at initial support 7498.25-7505.75 — mid-range zone requiring defensive execution; weaker confluence and worse location with sellers dominant overnight."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 51
+  }
+}

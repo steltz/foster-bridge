@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T13:18:06.607Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7473.75,
+    "stopLoss": 7467.5,
+    "takeProfit": 7492.5,
+    "rationale": "Buying the bias-confirming Bull/Bear zone 7468.50-7482.50 — multi-day balance-area low defended overnight per the recap, aligned with the bullish bigger-picture bias, first RTH test with ES exhausted after breaking three shallower supports. Stop 7467.50 behind the zone; 3:1 target 7492.50 inside the 7488.75-7495 HVN zone.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rejectedAlternative": "Short at initial resistance 7544-7556: upside capped pre-earnings, but countertrend to the bullish bias with no citable shift, and recap warned off shorting ES."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 55
+  }
+}

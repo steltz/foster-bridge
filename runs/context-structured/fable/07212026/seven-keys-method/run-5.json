@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T13:18:05.991Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7544,
+    "stopLoss": 7553,
+    "takeProfit": 7514.5,
+    "rationale": "First RTH test of initial resistance 7541-7552: Monday's failed breakout launched the selloff from here, recap says sellers regained control, avg 24-hour range high caps the zone, and below-average volume undercuts breakouts. Stop 7553 behind the zone; target aggressive support 7509.50-7514.50 for 3.3R.",
+    "primaryZone": "7541-7552",
+    "confidence": 3,
+    "rejectedAlternative": "Long at bull/bear 7468.50-7482.50 — bias-aligned and high confluence, but a third/fourth test with the recap explicitly warning of a breakdown with legs."
+  },
+  "result": {
+    "status": "SL",
+    "points": -9,
+    "dollars": -45,
+    "fillTime": 1784647500,
+    "exitTime": 1784652600,
+    "maxAdverseExcursion": 9.5,
+    "maxFavorableExcursion": 6.5,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

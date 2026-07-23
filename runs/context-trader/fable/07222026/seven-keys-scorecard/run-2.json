@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T13:18:08.075Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "c16b7a7bfce82896e1ce52819645480e1d8eb01246cbab11f6ad0a04c0f6ff8e",
+  "setup": {
+    "side": "long",
+    "entry": 7482.25,
+    "stopLoss": 7467.5,
+    "takeProfit": 7544,
+    "rationale": "Bull/Bear zone 7468.50-7482.50 is the day's automatic-fade candidate: Bias-Confirming, 7482.50 HVN, multi-day balance-area low, full bullish alignment. Resting buy at zone top, stop 1pt below far edge, targeting Initial Resistance 7544 for ~4.2R.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 5,
+    "rejectedAlternative": "Long at Initial Support 7498.25-7505.75 — only moderate grade, single label, no HVN stacking; the deeper Bull/Bear zone offers far better confluence and location."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 46.5
+  }
+}

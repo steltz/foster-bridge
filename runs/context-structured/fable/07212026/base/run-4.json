@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T13:18:05.755Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7472,
+    "stopLoss": 7467.25,
+    "takeProfit": 7493.75,
+    "rationale": "Buying the 7468.50-7482.50 bull/bear initial support: strongest confluence on the map (bias-confirming, 7482.50 HVN, overnight buyers active, Monday's first RTH test bounced) and aligned with the bigger-picture bullish bias per tie-break. Target 7493.75 pre-market support/7495 HVN cluster, ~4.6R.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short at 7541-7552 initial resistance on recap weakness — passed because no confirmed breakdown; tie-break defaults with bullish larger-timeframe bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 38.5
+  }
+}

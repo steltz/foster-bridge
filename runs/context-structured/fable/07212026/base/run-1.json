@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T13:18:05.639Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7475,
+    "stopLoss": 7467.5,
+    "takeProfit": 7497.5,
+    "rationale": "Long the 7468.50-7482.50 bull/bear zone: bigger-picture bias is bullish and overnight buyers again defended it. Strongest reason is stacked confluence — initial support, 7482.50 HVN, repeated first-test responses. Stop 7467.50 beyond the far edge; target 7497.50 at the 7495 HVN inside 7493.75-7502.75 for 3R.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7541-7552 initial resistance on first test; passed because it fights the bigger-picture bullish bias and needs a breakout that below-average volume makes unlikely."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 35.5
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T13:18:06.649Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "c16b7a7bfce82896e1ce52819645480e1d8eb01246cbab11f6ad0a04c0f6ff8e",
+  "setup": {
+    "side": "long",
+    "entry": 7478.5,
+    "stopLoss": 7467.5,
+    "takeProfit": 7511.5,
+    "rationale": "Buying the 7468.50-7482.50 Bull/Bear zone — the keys file's lone automatic-fade candidate (Bias-Confirming, 7482.50 HVN, multi-day balance-area low, full bullish alignment). Stop 7467.50 sits one point beyond the far edge; target 7511.50 inside the 7510.75-7515.75 zone gives exactly 3:1.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 5,
+    "rejectedAlternative": "Short at Initial Resistance 7544-7556 (strong grade, overnight sellers) — countertrend to bullish bias and recap explicitly warned against shorting ES given NQ strength."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 50.25
+  }
+}

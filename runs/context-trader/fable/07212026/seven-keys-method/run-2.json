@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T13:18:07.127Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7473.75,
+    "stopLoss": 7467.25,
+    "takeProfit": 7493.75,
+    "rationale": "Resting buy inside the 7468.50-7482.50 initial support/bull-bear zone: multi-day balance low, 7482.50 HVN, launched Friday's bounce, defended overnight, aligned with bullish bigger picture. Stop 1.25 beyond the zone; target front of 7493.75-7502.75 pre-market support pocket for 3.1R.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7541-7552 initial resistance first test; passed because it fights the bullish bigger picture and reaching it would itself signal strength per the recap."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 36.75
+  }
+}

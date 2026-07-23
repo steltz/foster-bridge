@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07222026",
+  "date": "2026-07-22",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T13:18:06.235Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7472,
+    "stopLoss": 7467.25,
+    "takeProfit": 7488.75,
+    "rationale": "Buying the bull/bear bias-confirming zone 7468.50-7482.50: multi-day balance low with 7482.50 HVN, aligned with the bullish bigger-picture bias, defended overnight per the recap, and the plan calls a pre-earnings breakdown unlikely. Target 7488.75, front of the next zone, for 3.5:1.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at initial support 7498.25-7505.75 — passed because mid-range zones call for defensive execution and the bull/bear zone has far stronger confluence."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 56.75
+  }
+}

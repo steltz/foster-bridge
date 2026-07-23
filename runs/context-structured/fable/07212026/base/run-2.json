@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07212026",
+  "date": "2026-07-21",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T13:18:05.680Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7473,
+    "stopLoss": 7467.5,
+    "takeProfit": 7493.75,
+    "rationale": "Buying the bull/bear initial support 7468.50-7482.50 — best confluence on the sheet (bias-confirming, 7482.50 HVN, overnight buyers defended it) aligned with the bullish bigger-picture bias. Stop one point beyond the far edge; 3.8R target at the 7493.75-7502.75 zone.",
+    "primaryZone": "7468.50-7482.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7541-7552 initial resistance first test; passed — needs a ~60-point rally to fill and fights the bullish bigger-picture bias after overnight stabilization."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 37.5
+  }
+}
