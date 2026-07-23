@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07172026",
+  "date": "2026-07-17",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:45:12.859Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7479.25,
+    "stopLoss": 7467.25,
+    "takeProfit": 7515.25,
+    "rationale": "Sell side controls but market is overextended into the 7468.50-7480 initial support — bull/bear, bias-confirming, range exhaustion — where the plan says breakdowns are suspect and responsive buyers defend, aligned with the bullish bigger picture. Stop behind the zone; 3R target just ahead of 7518.50-7531.50 aggressive resistance.",
+    "primaryZone": "7468.50-7480",
+    "confidence": 3,
+    "rejectedAlternative": "Short aggressive resistance 7518.50-7531.50 with the neutral-bearish bias; passed because the market was already overextended near significant support, capping downside follow-through."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25.5
+  }
+}

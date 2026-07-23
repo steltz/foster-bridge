@@ -1,0 +1,38 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:35:04.777Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "ef764c2d3460e821679037deb21f89aae7c95e2351d12d7c6b4f3d93f1f3af72",
+  "setup": {
+    "side": "long",
+    "entry": 7474.25,
+    "stopLoss": 7467.25,
+    "takeProfit": 7538,
+    "rationale": "7468.50-7479.50 is the Keys sheet's lone automatic-fade zone: Bias Confirming Bull/Bear, launch point of Friday's 60+pt rally, aligned with the bullish bigger-picture. Stop 1pt below 7468.50 far edge; target the next major pivot, Initial Resistance/Bull-Bear 7538-7549, for stacked confluence and asymmetric R:R.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 5,
+    "rejectedAlternative": "Short 7538-7549 (strong-graded resistance) was countertrend against the bullish bigger-picture bias with no citable control-shift, so the tie-break rule defaults to trading with bias instead."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 24.75
+  }
+}

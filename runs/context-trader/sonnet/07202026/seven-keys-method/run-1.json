@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:35:05.179Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7478.75,
+    "stopLoss": 7467.25,
+    "takeProfit": 7513.75,
+    "rationale": "Skipping the first-tested Initial Support to rest deeper at the Bull/Bear zone (7468.50-79.50) — the same level that launched Friday's rally (Key 5) — Bias Confirming (Key 4) and aligned with intermediate neutral-bullish/bigger-picture bullish bias (Key 6). Target Pre-Market Support 7510-17.50; stop 1.25pt beyond zone.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Shorting Initial Resistance/Bull-Bear (7538-49) after overnight rejection above Friday's high — passed, countertrend to bigger-picture bullish bias with no confirmed shift, only Bias Changing."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 20.25
+  }
+}

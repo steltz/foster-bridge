@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:45:13.480Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7481,
+    "takeProfit": 7509.75,
+    "rationale": "Bigger-picture bullish; Friday's buyers defended the bull/bear area hard. Resting buy inside initial support 7482-7492 (7482.50 HVN, plan: responsive buyers defend first test), stop one point behind the zone, target just ahead of broken pre-market support 7510-7517.50 for ~3.1R.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Short initial resistance 7538-7549 after the overnight probe drew sellers; passed because it fights the bullish larger-timeframe bias with less confluence."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 11
+  }
+}

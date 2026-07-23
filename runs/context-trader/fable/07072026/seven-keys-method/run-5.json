@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:09.114Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7486,
+    "stopLoss": 7478.25,
+    "takeProfit": 7510,
+    "rationale": "NQ weakness risks flushing ES through aggressive/initial support, so I rest my buy at the plan's bull/bear zone 7479.50-7493.50 — Bias Confirming, 7482.50 HVN, range exhaustion, aligned with bullish bigger picture. Stop beyond the zone; target NVPOC 7510 zone for ~3.1R.",
+    "primaryZone": "7479.50-7493.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at 7538.25-7546.75 initial support: closer and first test, but NQ-conditioned with less confluence, and a breakdown there is an explicit bearish trigger."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 43.5
+  }
+}

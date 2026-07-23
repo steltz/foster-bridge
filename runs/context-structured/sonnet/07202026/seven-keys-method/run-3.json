@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:35:04.653Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7474.5,
+    "stopLoss": 7467.5,
+    "takeProfit": 7498,
+    "rationale": "Bull/Bear zone 7468.50-7479.50 is Bias Confirming, the same level that launched Friday's massive rally per the recap, and aligns with the bigger-picture bullish bias. Entry inside zone, stop beyond 7468.50, target 7495-7498 pre-market support/HVN for ~3.4:1.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Considered shallower Initial Support 7482-7492 (first-test defend zone) but it's only Bias Changing, less confluence than the deeper Bull/Bear zone's confirming/launch-point/bias-alignment stack."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 24.5
+  }
+}

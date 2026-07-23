@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T11:35:04.495Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.5,
+    "takeProfit": 7538,
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rationale": "Buying the Bull/Bear zone (7468.50-7479.50), Bias Confirming and the exact launch point of Friday's rally (7472→7539), aligned with the Bigger Picture bullish bias. Target is Initial Resistance/Bull-Bear (7538-7549), matching Friday's actual high — same zones, same thesis repeating.",
+    "rejectedAlternative": "Initial Support (7482-7492) — shallower, only Bias Changing (not Confirming), and not Friday's actual rally launch point; passed over for the deeper, higher-confluence Bull/Bear zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25
+  }
+}

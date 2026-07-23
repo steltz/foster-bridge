@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:45:06.421Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7487,
+    "stopLoss": 7480.75,
+    "takeProfit": 7509.75,
+    "rationale": "Bigger-picture bullish bias plus Friday's defended bull/bear low favor longs. Resting buy inside initial support 7482-7492 (7482.50 HVN), first RTH test where the plan expects responsive buyers; stop beyond the 7482 far edge; target just ahead of the 7510-7517.50 zone, about 3.6R.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Shorting initial resistance 7538-7549 after the overnight probe drew sellers — passed because it fights the bigger-picture bullish bias with no citable control shift."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 12
+  }
+}

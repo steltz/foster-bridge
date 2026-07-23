@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:35:04.457Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.5,
+    "takeProfit": 7495,
+    "rationale": "Long the 7468.50-7479.50 Bull/Bear zone — plan's only Bias-Confirming support nearby, and the exact level that launched Friday's rally (proven reaction). Aligns with bigger-picture bullish/intermediate neutral-bullish bias per the Bias Tie-Break rule, overriding today's merely neutral short-term read.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Shallower Initial Support 7482-7492 (Bias Changing, first-test only) — passed for the deeper, higher-confluence Bull/Bear zone the docs suggest the market reaches exhausted."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25
+  }
+}

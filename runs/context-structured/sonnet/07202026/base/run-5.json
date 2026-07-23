@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:35:04.535Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.5,
+    "takeProfit": 7538,
+    "rationale": "Long at the Bias Confirming Bull/Bear support zone (7468.50-7479.50): worksheet's intermediate/bigger-picture bias is Neutral-Bullish/Bullish, and this zone mirrors the recap's precedent — an analogous deep, significant support that sparked a sharp reversal rally last session. Target: Initial Resistance/Intraday Bull-Bear zone (7538-7549).",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 3,
+    "rejectedAlternative": "Initial support 7482-7492 (Bias Changing, HVN) — shallower, more likely to fill, but lacks the Bias Confirming tag and weaker precedent versus the deeper bull/bear zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25
+  }
+}

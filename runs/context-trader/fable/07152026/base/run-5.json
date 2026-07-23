@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:11.856Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7574,
+    "stopLoss": 7563.25,
+    "takeProfit": 7606.25,
+    "rationale": "Bigger-picture bullish, recap confirms buy-side dominance. Resting long at 7564.25-7575.25 pre-market support, where buyers defended prior session; stop 1pt below zone edge; target front of 7606.25-7615.25 initial resistance for exactly 3R.",
+    "primaryZone": "7564.25-7575.25",
+    "confidence": 4,
+    "rejectedAlternative": "Long at aggressive support 7587.75-7597.75 — recap flagged it as aggressive location where a break doesn't invalidate the bullish thesis; stop behind it is poor."
+  },
+  "result": {
+    "status": "TP",
+    "points": 32.25,
+    "dollars": 161.25,
+    "fillTime": 1784132400,
+    "exitTime": 1784137500,
+    "maxAdverseExcursion": 2.25,
+    "maxFavorableExcursion": 37,
+    "rMultiple": 3,
+    "closestApproach": null
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:35:05.333Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.25,
+    "takeProfit": 7541,
+    "rationale": "Resting buy inside 7468.50-7479.50 (Bull/Bear, bias-confirming) — Seven Keys grades it automatic-fade: launch point of Friday's 60+pt rally, aligned with bullish bigger picture. Stop 1.25pts beyond zone low. Target the 7538-7549 Initial Resistance/Bull-Bear zone, next meaningful resistance.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 5,
+    "rejectedAlternative": "Considered shallower 7482-7492 Initial Support (strong, HVN, Friday first-test defense) but passed — 7468.50-79.50's automatic-fade grade offers better confluence and location."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25
+  }
+}

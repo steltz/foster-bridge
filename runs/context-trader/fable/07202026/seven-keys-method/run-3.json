@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:13.716Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7488.25,
+    "stopLoss": 7481,
+    "takeProfit": 7510,
+    "rationale": "Bigger picture bullish; plan says responsive buyers defend Initial Support 7482-7492 (7482.50 HVN) on first test, and Friday's reversal launched from just below. Resting limit mid-zone at 7488.25, stop one point behind the zone, target 7510 at broken Pre-Market Support — exactly 3R.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7538-7549 Initial Resistance: overnight probe drew sellers, but it fights the neutral-bullish/bullish larger-timeframe bias and the first-test edge was partly spent overnight."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 10.75
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:07.951Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "short",
+    "entry": 7613.25,
+    "stopLoss": 7623.75,
+    "takeProfit": 7580,
+    "rationale": "Plan flags sellers on first test of 7611.50-7622.50, upside likely capped there into the long weekend; market arrives exhausted after the post-NFP push above the 7595.25-7604.25 range top. Resting short inside the zone, stop beyond its far edge, targeting the 7567-7579 retest for ~3.2R.",
+    "primaryZone": "7611.50-7622.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at 7481.75-7495.75 bull/bear: reaching it implies failed-breakout liquidation into a long weekend, and a fill is unlikely from post-NFP highs."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 19.5
+  }
+}

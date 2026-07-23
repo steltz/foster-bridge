@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:13.992Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "ef764c2d3460e821679037deb21f89aae7c95e2351d12d7c6b4f3d93f1f3af72",
+  "setup": {
+    "side": "long",
+    "entry": 7474.25,
+    "stopLoss": 7467.5,
+    "takeProfit": 7495,
+    "rationale": "Resting buy mid-zone at the 7468.50-7479.50 Bull/Bear Bias-Confirming support — the keys sheet's lone automatic-fade candidate, Friday's proven ~60pt launch point, aligned with the bullish bigger picture. Stop 1pt behind the zone; target front of 7495-7498 HVN/prior-close zone for 3.07R.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 5,
+    "rejectedAlternative": "Buying 7482-7492 initial support: strong grade, but its stop sits inside the superior auto-fade zone below; deeper zone offers better location and confluence."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 24.75
+  }
+}

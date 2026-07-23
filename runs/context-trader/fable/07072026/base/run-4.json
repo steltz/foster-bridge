@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07072026",
+  "date": "2026-07-07",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T11:45:08.880Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7543.5,
+    "stopLoss": 7537,
+    "takeProfit": 7563,
+    "rationale": "Intermediate/bigger-picture bias bullish. Plan endorses longs at initial support 7538.25-7546.75 (7544 HVN) on an intermarket trigger with NQ at significant support. Resting 7543.50, stop 7537 behind the zone, target 7563 at broken aggressive support (7563-7573) for 3:1.",
+    "primaryZone": "7538.25-7546.75",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7593.75-7604.25 bias-confirming zone; passed because it fights the bullish intermediate bias and a break-hold there confirms buyer control."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6.5,
+    "dollars": -32.5,
+    "fillTime": 1783433700,
+    "exitTime": 1783434900,
+    "maxAdverseExcursion": 7.75,
+    "maxFavorableExcursion": 11.75,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

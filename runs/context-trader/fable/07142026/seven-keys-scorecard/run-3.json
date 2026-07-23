@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07142026",
+  "date": "2026-07-14",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:11.583Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "9b974eca5d164127c3a952e4e40b244cf91f202d2e4ba5b34803299e6ebe8089",
+  "setup": {
+    "side": "long",
+    "entry": 7555.75,
+    "stopLoss": 7543,
+    "takeProfit": 7596,
+    "rationale": "Buying first test of 7544-7556, the CPI launch point (7544 HVN) — strongest Key 5 support, aligned with bullish big picture. Front-of-zone entry per lookback; stop one point behind zone; target front of 7596-7605 pre-market resistance for 3.16R.",
+    "primaryZone": "7544-7556",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7609.25-7620.25: seller-proven and strong-graded, but countertrend to post-CPI strength and bullish big picture, with pre-market sellers having spent part of the reaction."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 0.75
+  }
+}

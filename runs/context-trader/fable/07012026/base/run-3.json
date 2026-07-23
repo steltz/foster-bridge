@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07012026",
+  "date": "2026-07-01",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:07.098Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7480.75,
+    "takeProfit": 7510.5,
+    "rationale": "Intermediate/bigger bias bullish; breakout intact only above 7481.75-7495.75 bias-confirming bull/bear zone (7482.50 HVN, prior low 7495.75). Resting long inside it at 7488, stop beyond far edge, targeting broken initial support 7510.50 for ~3.1R.",
+    "primaryZone": "7481.75-7495.75",
+    "confidence": 3,
+    "rejectedAlternative": "Long at initial support 7510.50-7520.50 — only bias-changing, and the plan calls a breakdown through it bearish, so a fill there comes amid weakening structure."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 45
+  }
+}

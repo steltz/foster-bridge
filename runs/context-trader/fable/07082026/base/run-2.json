@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:45:09.387Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7483.75,
+    "stopLoss": 7476.5,
+    "takeProfit": 7506,
+    "rationale": "Buying the 7477.50-7493.50 bull/bear zone (bias confirming, 7482.50 HVN) with the bullish bigger-picture bias; a hold here is the plan's failed-breakdown bullish pattern. Stop one point behind the zone; target the 7506-7516 aggressive resistance for ~3.1R.",
+    "primaryZone": "7477.50-7493.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7506-7516 aggressive resistance into initial support; passed because it fights the bullish bigger-picture bias and breakdown attempts often fail."
+  },
+  "result": {
+    "status": "SL",
+    "points": -7.25,
+    "dollars": -36.25,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000,
+    "maxAdverseExcursion": 8.75,
+    "maxFavorableExcursion": 7,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

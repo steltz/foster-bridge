@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:35:05.059Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7486,
+    "stopLoss": 7480.75,
+    "takeProfit": 7540,
+    "rationale": "Long at Initial Support 7482-7492 (7482.50 HVN), the plan's stated first-test buyer-defense zone, aligned with Intermediate/Bigger-Picture bullish bias. Stop below zone at 7480.75. Target Initial Resistance/Bull-Bear zone 7538-7549 for ~10R, echoing recap's strong buyer reaction at this same support area Friday.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Aggressive support 7521-7523.75 — passed; overnight selling into Friday's high probe signaled fragility, and it lacks the HVN confluence/buyer-defense role cited at 7482-7492."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 13
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T11:45:11.042Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "cf1c6d5a37bb48ab17232cea1fe9669c885add58d1e58dab2f9897b576359892",
+  "setup": {
+    "side": "short",
+    "entry": 7619,
+    "stopLoss": 7637.75,
+    "takeProfit": 7553,
+    "rationale": "Fading strong-graded initial resistance 7611.50-7623.50: Friday's failed breakout plus overnight NQ rejection launched the breakdown here. Back-of-zone entry, daisy-chain stop behind 7627.25-7636.75 per recap guidance, targeting initial support 7543-7553. About 3.5R, defensive against the bullish bigger picture.",
+    "primaryZone": "7611.50-7623.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at 7499.50-7503.50 range extreme: best support confluence, but needs an outsized liquidation to fill and strong grades have calibrated as reference, not execution."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 8.5
+  }
+}

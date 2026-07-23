@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:07.680Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7490.5,
+    "stopLoss": 7480.5,
+    "takeProfit": 7520.25,
+    "rationale": "Intermediate/bigger-picture bias bullish with yesterday's breakout intact; plan names 7481.75-7495.75 bull/bear bias-confirming zone (HVN 7482.50) as the most significant trade location. Resting buy inside it, stop one point beyond the far edge, target underside of pre-market support 7520.25 for ~3R.",
+    "primaryZone": "7481.75-7495.75",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7611.50-7622.50 first-test fade into the holiday weekend — rejected as counter to the bullish intermediate bias with no documented control shift."
+  },
+  "result": {
+    "status": "SL",
+    "points": -10,
+    "dollars": -50,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900,
+    "maxAdverseExcursion": 10.75,
+    "maxFavorableExcursion": 12.5,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

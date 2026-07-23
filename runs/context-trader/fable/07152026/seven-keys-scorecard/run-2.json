@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:45:12.125Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "209870c2ab454500ddd204e8e25a49c87d6c673ffd2c5e80c5f56b60aa56031f",
+  "setup": {
+    "side": "long",
+    "entry": 7554.25,
+    "stopLoss": 7543,
+    "takeProfit": 7587.75,
+    "rationale": "Bullish larger-timeframe bias; buying the strong-graded 7544-7557 Initial Support / post-CPI Launching Point (7544 HVN, prior RTH low 7556.50), calibration-backed in the keys file. Entry inside the zone, stop one point beyond the far edge, target the 7587.75 aggressive-support/prior-value shelf for ~3:1.",
+    "primaryZone": "7544-7557",
+    "confidence": 4,
+    "rejectedAlternative": "Short at 7657.50-7667.50 (strongest resistance confluence) — counter-bias and ~65 pts above, unlikely to trade; aggressive support 7587.75-7597.75 rejected as stop-behind-zone is invalid there."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 17.5
+  }
+}

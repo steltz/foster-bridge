@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:10.230Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7532.5,
+    "stopLoss": 7523,
+    "takeProfit": 7561.25,
+    "rationale": "Overnight break above prior RTH high confirms the failed breakdown; buyers control within a bullish bigger picture. Buying aggressive support 7524-7536.50 (prior-day value, VPOC 7524.75, breakout retest — Keys 4/5/6 confluence), stop one point behind the zone, targeting front of initial resistance 7561.25 for ~3R.",
+    "primaryZone": "7524-7536.50",
+    "confidence": 4,
+    "rejectedAlternative": "Deeper long at initial support 7499.50-7508.50 — reaching it breaks aggressive support, the plan's early warning, degrading the bullish thesis."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.75,
+    "dollars": 143.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900,
+    "maxAdverseExcursion": 3,
+    "maxFavorableExcursion": 31.25,
+    "rMultiple": 3.026315789473684,
+    "closestApproach": null
+  }
+}

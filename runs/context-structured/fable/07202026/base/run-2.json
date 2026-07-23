@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:45:06.463Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7484.25,
+    "stopLoss": 7481,
+    "takeProfit": 7495,
+    "rationale": "Long the 7482-7492 Initial Support (7482.50 HVN): plan says responsive buyers defend on first test, market arrives exhausted after breaking 7510-17.50 and 7495-98, aligned with bigger-picture bullish bias. Stop 7481 beyond far edge; target 7495 front of next zone, ~3.3:1.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Long the 7468.50-7479.50 bull/bear zone — deeper and bias-confirming, but already defended Friday and market may never reach it; first-test initial support offers better fill odds."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 14.75
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07062026",
+  "date": "2026-07-06",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:08.338Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7486.25,
+    "stopLoss": 7478.25,
+    "takeProfit": 7510,
+    "rationale": "Long the 7479.50-7493.50 bull/bear bias-confirming zone (7482.50 HVN), where 07/02 buyers stepped in with intermediate/bigger-picture bias bullish. Stop 1+ point beyond the zone; target 7510, front of the 7510-7520.50 initial-support zone and prior VPOC, for ~3:1.",
+    "primaryZone": "7479.50-7493.50",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7593.25-7604.25 bias-confirming resistance: worked 07/02, but pre-weekend risk-off catalyst is gone and it fights the bullish larger bias."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 70
+  }
+}

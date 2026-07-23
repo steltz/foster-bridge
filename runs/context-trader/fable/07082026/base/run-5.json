@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:09.505Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7415.25,
+    "stopLoss": 7407.75,
+    "takeProfit": 7444.5,
+    "rationale": "Overnight breakdown used near-max range and already violated initial support (low 7428.75); bigger picture bullish, failed-breakdown potential. Resting long at the plan's stated better support 7409-7416 (06/29 low), stop behind the zone, targeting broken initial support 7444.50 for roughly 3.9R.",
+    "primaryZone": "7409-7416",
+    "confidence": 3,
+    "rejectedAlternative": "Long at initial support 7444.50-7454.75 — overnight already traded through it and the plan calls the lower zones better support, so I passed for deeper location."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 54
+  }
+}

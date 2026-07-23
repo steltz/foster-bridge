@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:35:04.377Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7477.75,
+    "stopLoss": 7467.5,
+    "takeProfit": 7538,
+    "rationale": "Buying 7468.50-7479.50 (bull/bear, bias-confirming zone) — the exact level that launched Friday's rally per the recap, aligning with the bigger-picture bullish bias. No overnight breakdown occurred, only a rejected probe above Friday's highs, so trading with the trend. Target initial resistance/bull-bear zone at 7538.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 5,
+    "rejectedAlternative": "Shorting pre-market/aggressive resistance (7510-7523.75) counter-trend — passed: no citable bearish shift overnight, and it fights the bigger-picture bullish bias for weaker confluence."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 21.25
+  }
+}

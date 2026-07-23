@@ -1,0 +1,38 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:06.899Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "ef764c2d3460e821679037deb21f89aae7c95e2351d12d7c6b4f3d93f1f3af72",
+  "setup": {
+    "side": "long",
+    "entry": 7476,
+    "stopLoss": 7467.5,
+    "takeProfit": 7510,
+    "rationale": "Long the 7468.50-7479.50 Bias-Confirming Bull/Bear zone — the keys sheet's automatic-fade candidate and launch point of Friday's ~60pt rally, aligned with the bullish bigger picture. Entry 7476 inside the zone, stop 7467.50 beyond the far edge, target 7510 at broken pre-market support; ~4R.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long 7482-7492 Initial Support (strong grade): shallower, weaker confluence than the deeper automatic-fade Bull/Bear zone with Friday's proven launch."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 23
+  }
+}

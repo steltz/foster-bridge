@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:13.599Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7488,
+    "stopLoss": 7481,
+    "takeProfit": 7509,
+    "rationale": "Plan: responsive buyers defend initial support 7482-7492 (7482.50 HVN) on first test; bigger-picture bias bullish and Friday's recap showed buyers controlling the lows. Entry 7488 inside the zone, stop 7481 behind it, target 7509 front-running the 7510-7517.50 zone for 3R.",
+    "primaryZone": "7482-7492",
+    "confidence": 4,
+    "rejectedAlternative": "Deeper long at bull/bear 7468.50-7479.50: better location but likely unfilled, and plan expects first-test defense at initial support."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 11
+  }
+}

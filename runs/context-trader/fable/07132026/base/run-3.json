@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07132026",
+  "date": "2026-07-13",
+  "variant": "base",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:10.618Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7528,
+    "stopLoss": 7523,
+    "takeProfit": 7543,
+    "rationale": "Overnight failed breakout (NQ rejecting initial resistance) makes buying initial support 7543-7553 risky per recap sequencing, so I rest deeper at the 7524-7534 bias-changing zone (gap 7528.75, NVPOC 7524.75, above 7508-7518 exhaustion), with the bullish bigger picture, targeting 7543 for 3R.",
+    "primaryZone": "7524-7534",
+    "confidence": 3,
+    "rejectedAlternative": "Short at initial resistance 7611.50-7623.50; passed because it fights the bullish bigger-picture bias and the recap warned ES shorts require defensive daisy-chain structure."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 32
+  }
+}

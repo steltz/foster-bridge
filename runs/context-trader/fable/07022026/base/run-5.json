@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "base",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:07.757Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "short",
+    "entry": 7612.5,
+    "stopLoss": 7623.5,
+    "takeProfit": 7579,
+    "rationale": "Plan flags higher-probability responsive sellers on first test of the 7611.50-22.50 bias-confirming zone, with long-weekend risk appetite capping upside there. Sell limit inside the zone, stop one point beyond its far edge, target the top of 7567-79 initial resistance for ~3R.",
+    "primaryZone": "7611.50-7622.50",
+    "confidence": 4,
+    "rejectedAlternative": "Long at bull/bear 7481.75-95.75: with-bias and most significant, but ~90 points away, unlikely to fill, and a tag there implies failed-breakout liquidation."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 18.75
+  }
+}

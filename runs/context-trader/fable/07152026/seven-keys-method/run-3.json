@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07152026",
+  "date": "2026-07-15",
+  "variant": "seven-keys-method",
+  "runIndex": 3,
+  "timestamp": "2026-07-23T11:45:11.973Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7554,
+    "stopLoss": 7543,
+    "takeProfit": 7606.25,
+    "rationale": "Bullish bigger-picture bias favors longs. Buying 7544-7557 initial support: 7544 HVN launching point (Keys 4/5/6), defended yesterday's 7556.50 RTH low, exhaustion likely on a decline there (Key 3). Stop one point beyond the zone; target front of 7606.25-7615.25 initial resistance, ~4.75R.",
+    "primaryZone": "7544-7557",
+    "confidence": 4,
+    "rejectedAlternative": "Long at 7587.75-7597.75 aggressive support — recap warned a stop behind it is invalid since breaking it doesn't kill the bullish thesis; poor location."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 17.75
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:45:09.784Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7481.75,
+    "stopLoss": 7476.25,
+    "takeProfit": 7506,
+    "rationale": "Buying the 7477.50-7493.50 Bull/Bear (HVN 7482.50), the sheet's highest-significance inflection, aligned with the neutral-bullish/bullish larger bias. Entry at the HVN, stop 1.25 behind the zone floor, target front of 7506-7516 aggressive resistance for ~4.4R.",
+    "primaryZone": "7477.50-7493.50",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7544-7551.75 retest: strong confluence but countertrend to the bigger-picture bullish bias and needs a 60+ point bounce to fill."
+  },
+  "result": {
+    "status": "SL",
+    "points": -5.5,
+    "dollars": -27.5,
+    "fillTime": 1783523700,
+    "exitTime": 1783524000,
+    "maxAdverseExcursion": 6.75,
+    "maxFavorableExcursion": 9,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

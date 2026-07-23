@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07162026",
+  "date": "2026-07-16",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T11:45:12.393Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7529,
+    "stopLoss": 7522,
+    "takeProfit": 7550,
+    "rationale": "Overnight sellers dominant below aggressive resistance; plan maps breakdown through 7570-7581 into 7523.25-7535.25 bias-confirming range-exhaustion support (gap 7528.75, NVPOC 7524.75) where buyers act on first test. Long with bullish bigger-picture bias; stop behind zone, 3R target into 7544-7557.",
+    "primaryZone": "7523.25-7535.25",
+    "confidence": 4,
+    "rejectedAlternative": "Short at aggressive resistance 7593.50-7603.50 with overnight flow — passed because it fights the bigger-picture bullish bias at a non-bias-affecting zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 50.5
+  }
+}

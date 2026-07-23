@@ -1,0 +1,35 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07092026",
+  "date": "2026-07-09",
+  "variant": "base",
+  "runIndex": 4,
+  "timestamp": "2026-07-23T11:45:10.060Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7532,
+    "stopLoss": 7522.75,
+    "takeProfit": 7560.75,
+    "rationale": "Overnight broke yesterday's RTH high — failed breakdown, buyers back in control. Buying first pullback into aggressive support 7524-7536.50 (prev VPOC 7524.75, close 7528.75); plan says holding above it signals strength. Stop behind zone; target front of initial resistance 7561.25-7571.25 for about 3.1R.",
+    "primaryZone": "7524-7536.50",
+    "confidence": 4,
+    "rejectedAlternative": "Deeper long at initial support 7499.50-7508.50: better location, but reaching it requires breaking aggressive support — an early warning sign — and likely goes unfilled with buyers in control."
+  },
+  "result": {
+    "status": "TP",
+    "points": 28.75,
+    "dollars": 143.75,
+    "fillTime": 1783606800,
+    "exitTime": 1783608900,
+    "maxAdverseExcursion": 2.5,
+    "maxFavorableExcursion": 31.75,
+    "rMultiple": 3.108108108108108,
+    "closestApproach": null
+  }
+}

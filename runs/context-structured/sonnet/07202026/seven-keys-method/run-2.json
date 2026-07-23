@@ -1,0 +1,37 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "seven-keys-method",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:35:04.612Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7474,
+    "stopLoss": 7467.5,
+    "takeProfit": 7495,
+    "rationale": "Long the 7468.50-7479.50 Bull/Bear zone — Bias Confirming, the same launch point that fueled Friday's massive rally (Key 5), aligned with intermediate/bigger-picture bullish bias (Key 6). Entry 7474.00, stop 7467.50 beyond far edge, target 7495.00 Pre-Market Support/HVN, ~3.2R.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Shorting pre-market resistance 7510-7517.50 on bearish continuation — passed since bias is bullish and no citable shift justifies fading it."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 25
+  }
+}

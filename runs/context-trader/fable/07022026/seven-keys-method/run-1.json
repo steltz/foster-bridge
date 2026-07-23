@@ -1,0 +1,37 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07022026",
+  "date": "2026-07-02",
+  "variant": "seven-keys-method",
+  "runIndex": 1,
+  "timestamp": "2026-07-23T11:45:07.796Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "185310c645f4a5399537ac538725754600993e1ee4f20503cbcc325b2c9a4118",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "setup": {
+    "side": "long",
+    "entry": 7486.75,
+    "stopLoss": 7480.75,
+    "takeProfit": 7504.75,
+    "rationale": "Intermediate/bigger-picture bias bullish, prior breakout intact. Bull/Bear zone 7481.75-7495.75 grades highest on Seven Keys: multi-day balance breakout and launching point, HVN 7482.50, bias-confirming, exhausted first RTH test. Stop 7480.75 behind the zone; 3R target 7504.75 just below initial support.",
+    "primaryZone": "7481.75-7495.75",
+    "confidence": 4,
+    "rejectedAlternative": "Short 7611.50-7622.50 first-test fade into the long weekend — passed because it fights an intact bullish breakout with no control shift shown."
+  },
+  "result": {
+    "status": "SL",
+    "points": -6,
+    "dollars": -30,
+    "fillTime": 1783011600,
+    "exitTime": 1783014900,
+    "maxAdverseExcursion": 7,
+    "maxFavorableExcursion": 16.25,
+    "rMultiple": -1,
+    "closestApproach": null
+  }
+}

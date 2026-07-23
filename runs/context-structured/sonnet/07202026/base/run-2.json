@@ -1,0 +1,35 @@
+{
+  "trader": "context-structured",
+  "model": {
+    "alias": "sonnet",
+    "id": "claude-sonnet-5"
+  },
+  "day": "07202026",
+  "date": "2026-07-20",
+  "variant": "base",
+  "runIndex": 2,
+  "timestamp": "2026-07-23T11:35:04.418Z",
+  "personaSha256": "debd5648930a33fffdcd096c126e174ff67b00e8aa0fe6daa25536400885148f",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "setup": {
+    "side": "long",
+    "entry": 7474.75,
+    "stopLoss": 7467.5,
+    "takeProfit": 7496.5,
+    "rationale": "Long at the Bias-Confirming bull/bear zone 7468.50-7479.50 — the same zone Friday's recap shows launched a huge rally into 7539, aligning with the Bullish bigger-picture bias. Stop 1pt below zone low; target the 7495-7498 pre-market-support/HVN zone for a 3:1 R:R.",
+    "primaryZone": "7468.50-7479.50",
+    "confidence": 4,
+    "rejectedAlternative": "Initial support 7482-7492 (first-test zone, bias changing) — passed on it since it's too close to the bull/bear zone for adequate R:R and carries less confluence than the deeper, bias-confirming zone."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 24.25
+  }
+}

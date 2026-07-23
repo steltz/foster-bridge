@@ -1,0 +1,38 @@
+{
+  "trader": "context-trader",
+  "model": {
+    "alias": "fable",
+    "id": "claude-fable-5"
+  },
+  "day": "07082026",
+  "date": "2026-07-08",
+  "variant": "seven-keys-scorecard",
+  "runIndex": 5,
+  "timestamp": "2026-07-23T11:45:09.901Z",
+  "personaSha256": "97bc94a310af5244b9a2eb2ed91e7d278b1ed485b3e6a67e6ede1c80e3a476c7",
+  "generalSha256": "fb41e4796fb319f95560dcf06fadaf89179979e504af386b35b800edfdc145ba",
+  "featureSha256": "463a81057e71f6a351a2d9c3844416cc6823e1930ebceceb7f9774ec8ffc3cd2",
+  "staticDocSha256": "888108256cc22296e43707c32bc4dee4d360a174e58d969ebb543f810c286853",
+  "artifactSha256": "f49c6459a6eae1c01f73113cf630ca1a37c63c0a7026f2314ad15485517e7d34",
+  "setup": {
+    "side": "long",
+    "entry": 7414,
+    "stopLoss": 7407.75,
+    "takeProfit": 7444.5,
+    "rationale": "Plan calls 7409-7416 a \"better area of support\" (06/29 low, deep exhaustion, strong keys grade); initial support 7444.50-7454.75 is only moderate. Buying with the bullish bigger picture, stop 1.25 pts behind the zone, target the initial-support underside at 7444.50 for ~4.9R.",
+    "primaryZone": "7409-7416",
+    "confidence": 3,
+    "rejectedAlternative": "Short 7544-7551.75 (strongest near-price resistance confluence) — passed because it is countertrend to the bullish bigger picture with no confirmed control shift."
+  },
+  "result": {
+    "status": "NOT_FILLED",
+    "points": null,
+    "dollars": null,
+    "fillTime": null,
+    "exitTime": null,
+    "maxAdverseExcursion": null,
+    "maxFavorableExcursion": null,
+    "rMultiple": null,
+    "closestApproach": 55.25
+  }
+}
