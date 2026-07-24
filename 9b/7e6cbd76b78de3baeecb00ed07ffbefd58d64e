@@ -1,0 +1,21 @@
+batch-service/.env.example
+  s_02dcfeb5026a6d::t_1e5561bd767fc6 7-8
+batch-service/package.json
+  s_02dcfeb5026a6d::t_5b0b9c89c8f642 16-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9b7e6cbd76b78de3baeecb00ed07ffbefd58d64e",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
