@@ -186,7 +186,7 @@ Read the Seven-Keys methodology at ${METHOD_DOC} — that document defines the k
 - key6: alignment with the larger-timeframe bias
 - key7: confluence — how many keys stack here
 
-Copy each zone's prices EXACTLY as the trade plan states them (e.g. "7495.25-7502.75") — never round, invent, or merge zones. Grade each zone automatic-fade | strong | moderate | weak, where automatic-fade means several keys stack so strongly that intraday price action gets no weight. Also state the day's larger-timeframe bias and any environment/volatility notes (scheduled reports, range vs directional).`,
+Copy each zone's prices EXACTLY as the trade plan states them (e.g. "7495.25-7502.75") — never round, invent, or merge zones. Grade each zone automatic-fade | strong | moderate | weak, where automatic-fade means several keys stack so strongly that intraday price action gets no weight. The grade is a same-day filter, not an abstract quality ranking: factor in whether the zone can realistically be tested this session — a zone with excellent larger-timeframe pedigree that sits beyond any plausible single-session move grades moderate at best, with the pedigree recorded in its key4/key5 cells rather than the grade. Grades must discriminate at the top: strong and automatic-fade together should mark only the few zones a trader should prioritize today — no more than about a third of the sheet — and moderate is a deliberate middle call, not a default bucket; it is fine for many distant zones to collapse into weak. Also state the day's larger-timeframe bias and any environment/volatility notes (scheduled reports, range vs directional).`,
       { label: 'current-day', phase: 'Analyze', schema: CURRENT_SCHEMA }
     ),
   ...(LOOKBACK.length
