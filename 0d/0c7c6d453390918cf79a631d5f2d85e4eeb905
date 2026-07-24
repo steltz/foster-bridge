@@ -1,0 +1,21 @@
+docs/superpowers/specs/2026-07-24-batch-api-firestore-foundation-design.md
+  s_7689a54ba3b8a2::t_fa741885ec187a 1-171
+docs/superpowers/plans/2026-07-24-batch-api-firestore-foundation.md
+  s_7689a54ba3b8a2::t_4e1a94554e90e9 1-1302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0d0c7c6d453390918cf79a631d5f2d85e4eeb905",
+  "prompts": {},
+  "sessions": {
+    "s_7689a54ba3b8a2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ede0346b-ba77-4526-9163-312a4f5ef7dc",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
