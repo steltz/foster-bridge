@@ -1,0 +1,27 @@
+batch-service/.env.example
+  s_02dcfeb5026a6d::t_ea8578749a2453 1-10
+batch-service/.firebaserc
+  s_02dcfeb5026a6d::t_e0ded055bad7db 1-5
+batch-service/firestore.rules
+  s_02dcfeb5026a6d::t_0f320e7fcc6a90 1-8
+batch-service/firestore.indexes.json
+  s_02dcfeb5026a6d::t_014ace1c00d2e3 1-4
+batch-service/firebase.json
+  s_02dcfeb5026a6d::t_1af4275abc315d 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "31cf211370932d113a4dd0a240d8be735643a31d",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
