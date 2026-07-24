@@ -187,7 +187,7 @@ Read the Seven-Keys methodology at ${METHOD_DOC} — that document defines the k
 - key7: confluence — how many keys stack here
 
 Copy each zone's prices EXACTLY as the trade plan states them (e.g. "7495.25-7502.75") — never round, invent, or merge zones. Grade each zone automatic-fade | strong | moderate | weak, where automatic-fade means several keys stack so strongly that intraday price action gets no weight. The grade is a same-day filter, not an abstract quality ranking: factor in whether the zone can realistically be tested this session — a zone with excellent larger-timeframe pedigree that sits beyond any plausible single-session move grades moderate at best, with the pedigree recorded in its key4/key5 cells rather than the grade. Grades must discriminate at the top: strong and automatic-fade together should mark only the few zones a trader should prioritize today — no more than about a third of the sheet — and moderate is a deliberate middle call, not a default bucket; it is fine for many distant zones to collapse into weak. Also state the day's larger-timeframe bias and any environment/volatility notes (scheduled reports, range vs directional).`,
-      { label: 'current-day', phase: 'Analyze', schema: CURRENT_SCHEMA }
+      { label: 'current-day', phase: 'Analyze', schema: CURRENT_SCHEMA, model: 'claude-fable-5' }
     ),
   ...(LOOKBACK.length
     ? [
@@ -276,12 +276,19 @@ writing anything; a rerun regenerates cleanly.
 
    ```markdown
    ---
-   generatedBy: <the model id this session runs as, e.g. claude-fable-5>
+   generatedBy: claude-fable-5
    generatedAt: <output of: date -u +%Y-%m-%dT%H:%M:%SZ>
    lookbackSources: [<the lookback keys filenames oldest first when the workflow returned lookbackUsed: true — otherwise []>]
    verified: true
    ---
    ```
+
+   `generatedBy` is always `claude-fable-5` — the current-day analyst that
+   produces the zone grades is pinned to that model in the workflow script
+   regardless of which model this session runs as (a 2026-07-24 blind
+   comparison found it more methodology-faithful and better-calibrated than
+   Sonnet for this specific grading task). The synthesizer and verifier are
+   lighter-weight formatting/fidelity passes and inherit the session model.
 
 3. Write it to `<day folder>/<prefix>_ES_KEYS.md`, then commit exactly that
    file:
