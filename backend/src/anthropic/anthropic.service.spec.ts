@@ -318,5 +318,59 @@ describe('AnthropicService', () => {
       expect.objectContaining({ model: 'claude-opus-5', max_tokens: 0 }),
     );
   });
+
+  it('warmCache strict fires a verify probe and returns its read stats', async () => {
+    create
+      .mockResolvedValueOnce({
+        model: 'claude-sonnet-5',
+        usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
+      })
+      .mockResolvedValueOnce({
+        model: 'claude-sonnet-5',
+        usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 2048 },
+      });
+    const result = await service.warmCache(
+      { system: 'big shared prompt' },
+      { strict: true },
+    );
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 2048,
+      cached: true,
+    });
+  });
+
+  it('warmCache strict throws 502 when the probe never reads the cache', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+    });
+    let caught: unknown;
+    try {
+      await service.warmCache({ system: 'too short' }, { strict: true });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(HttpException);
+    expect((caught as HttpException).getStatus()).toBe(502);
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 502,
+      error: 'Prompt cache was not written',
+    });
+  });
+
+  it('warmCache throws 400 when the context has nothing to cache', async () => {
+    let caught: unknown;
+    try {
+      await service.warmCache({});
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(HttpException);
+    expect((caught as HttpException).getStatus()).toBe(400);
+    expect(create).not.toHaveBeenCalled();
+  });
   }); // describe('caching')
 }); // describe('AnthropicService')
