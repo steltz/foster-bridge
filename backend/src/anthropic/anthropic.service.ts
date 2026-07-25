@@ -60,6 +60,8 @@ export interface BatchResultItem {
   type: string;
   text?: string;
   error?: string;
+  /** Cache-read tokens for a succeeded item; lets callers confirm cache hits. */
+  cacheReadInputTokens?: number;
 }
 
 @Injectable()
@@ -266,7 +268,13 @@ export class AnthropicService {
               text += block.text;
             }
           }
-          items.push({ customId, type: 'succeeded', text });
+          const item: BatchResultItem = { customId, type: 'succeeded', text };
+          const read = result.message.usage?.cache_read_input_tokens;
+          // Only attach when present so existing (usage-less) results are unchanged.
+          if (typeof read === 'number') {
+            item.cacheReadInputTokens = read;
+          }
+          items.push(item);
         } else if (result.type === 'errored') {
           items.push({
             customId,

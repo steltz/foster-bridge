@@ -421,5 +421,25 @@ describe('AnthropicService', () => {
       ],
     });
   });
+
+  it('getBatchResults surfaces cacheReadInputTokens for succeeded items', async () => {
+    async function* gen() {
+      yield {
+        custom_id: 'a',
+        result: {
+          type: 'succeeded',
+          message: {
+            content: [{ type: 'text', text: 'ok' }],
+            usage: { cache_read_input_tokens: 2048 },
+          },
+        },
+      };
+    }
+    batchesResults.mockResolvedValue(gen());
+    const results = await service.getBatchResults('batch_1');
+    expect(results).toEqual([
+      { customId: 'a', type: 'succeeded', text: 'ok', cacheReadInputTokens: 2048 },
+    ]);
+  });
   }); // describe('caching')
 }); // describe('AnthropicService')
