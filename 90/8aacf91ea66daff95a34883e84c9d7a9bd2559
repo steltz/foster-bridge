@@ -1,0 +1,23 @@
+backend/src/app.module.ts
+  s_c543c1cadaca90::t_ea0c7ae8636eea 6,13
+backend/src/demo/firestore-demo.controller.spec.ts
+  s_c543c1cadaca90::t_197d52afa6adb1 1-48
+backend/src/demo/firestore-demo.controller.ts
+  s_c543c1cadaca90::t_6619c943c7bcc3 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "908aacf91ea66daff95a34883e84c9d7a9bd2559",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
