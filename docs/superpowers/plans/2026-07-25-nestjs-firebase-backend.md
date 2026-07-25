@@ -84,6 +84,7 @@ backend/
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.21.0",
     "@nestjs/common": "^10.4.0",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.4.0",
@@ -619,7 +620,13 @@ export class HealthController {
 }
 ```
 
-Note: `Bucket` is imported from `@google-cloud/storage`, which is a transitive dependency of `firebase-admin` and provides the bucket type. If TypeScript cannot resolve it, use `import type { Bucket } from 'firebase-admin/storage'` — but `firebase-admin/storage` re-exports `Bucket`, so prefer that if the `@google-cloud/storage` path errors.
+Note: `Bucket` is imported from `@google-cloud/storage`. This is declared as an
+explicit dependency in `package.json` (pinned to `^7.21.0` to match the version
+`firebase-admin@12` resolves) precisely because pnpm's strict `node_modules`
+does NOT hoist firebase-admin's transitive copy, and `firebase-admin/storage`
+does not re-export `Bucket` in v12. pnpm dedupes the explicit dependency to the
+same instance firebase-admin uses, so the `Bucket` type matches `bucket()`'s
+return type exactly.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
