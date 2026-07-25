@@ -38,6 +38,24 @@ describe('GoogleErrorFilter', () => {
     expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
   });
 
+  it('maps a Storage HTTP-status code (403) to 403', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 403, message: 'Forbidden' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+  });
+
+  it('maps a Storage HTTP-status code (404) to 404', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 404, message: 'Not Found' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
+  it('maps a string code (permission-denied) to 403', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 'permission-denied', message: 'denied' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+  });
+
   it('defaults unknown errors to 500 without leaking the internal message', () => {
     const { host, status, json } = fakeHost();
     filter.catch(new Error('boom'), host);

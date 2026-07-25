@@ -12,11 +12,27 @@ interface GrpcLikeError {
   message?: string;
 }
 
-// google.rpc.Code -> HTTP status for the codes ADC misconfig produces.
-const GRPC_CODE_TO_HTTP: Record<number, HttpStatus> = {
+// Google SDKs surface errors two ways this filter must handle:
+//  - Firestore/gax throw google.rpc.Code numbers (7 = PERMISSION_DENIED, ...)
+//  - @google-cloud/storage throws ApiError whose `.code` IS the HTTP status
+//    number (403/404/401).
+// Both are mapped here (the two numeric spaces do not collide).
+const CODE_TO_HTTP: Record<number, HttpStatus> = {
+  // google.rpc.Code
   5: HttpStatus.NOT_FOUND, // NOT_FOUND
   7: HttpStatus.FORBIDDEN, // PERMISSION_DENIED
   16: HttpStatus.UNAUTHORIZED, // UNAUTHENTICATED
+  // HTTP status numbers (Cloud Storage ApiError.code)
+  401: HttpStatus.UNAUTHORIZED,
+  403: HttpStatus.FORBIDDEN,
+  404: HttpStatus.NOT_FOUND,
+};
+
+// Some Firebase SDK surfaces use string codes instead of numbers.
+const STRING_CODE_TO_HTTP: Record<string, HttpStatus> = {
+  'permission-denied': HttpStatus.FORBIDDEN,
+  'not-found': HttpStatus.NOT_FOUND,
+  unauthenticated: HttpStatus.UNAUTHORIZED,
 };
 
 @Catch()
@@ -39,7 +55,11 @@ export class GoogleErrorFilter implements ExceptionFilter {
 
     const err = exception as GrpcLikeError;
     const mapped =
-      typeof err.code === 'number' ? GRPC_CODE_TO_HTTP[err.code] : undefined;
+      typeof err.code === 'number'
+        ? CODE_TO_HTTP[err.code]
+        : typeof err.code === 'string'
+          ? STRING_CODE_TO_HTTP[err.code]
+          : undefined;
     const status = mapped ?? HttpStatus.INTERNAL_SERVER_ERROR;
     const isServerError = status === HttpStatus.INTERNAL_SERVER_ERROR;
 
