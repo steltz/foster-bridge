@@ -147,4 +147,86 @@ describe('AnthropicService', () => {
     expect((caught as HttpException).getStatus()).toBe(502);
   });
   }); // describe('message')
+
+  describe('batches', () => {
+  it('createBatch maps requests (default + custom ids) and returns a summary', async () => {
+    batchesCreate.mockResolvedValue({
+      id: 'batch_1',
+      processing_status: 'in_progress',
+    });
+    const summary = await service.createBatch([
+      { prompt: 'a' },
+      { customId: 'c2', prompt: 'b' },
+    ]);
+    expect(batchesCreate).toHaveBeenCalledWith({
+      requests: [
+        {
+          custom_id: 'request-0',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: 'a' }],
+          },
+        },
+        {
+          custom_id: 'c2',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: 'b' }],
+          },
+        },
+      ],
+    });
+    expect(summary).toEqual({
+      batchId: 'batch_1',
+      processingStatus: 'in_progress',
+    });
+  });
+
+  it('getBatch returns status and counts', async () => {
+    batchesRetrieve.mockResolvedValue({
+      id: 'batch_1',
+      processing_status: 'ended',
+      request_counts: { succeeded: 1, errored: 1 },
+    });
+    const summary = await service.getBatch('batch_1');
+    expect(batchesRetrieve).toHaveBeenCalledWith('batch_1');
+    expect(summary).toEqual({
+      batchId: 'batch_1',
+      processingStatus: 'ended',
+      requestCounts: { succeeded: 1, errored: 1 },
+    });
+  });
+
+  it('getBatchResults shapes succeeded and errored results keyed by custom_id', async () => {
+    async function* gen() {
+      yield {
+        custom_id: 'a',
+        result: {
+          type: 'succeeded',
+          message: { content: [{ type: 'text', text: 'ok' }] },
+        },
+      };
+      yield {
+        custom_id: 'b',
+        result: {
+          type: 'errored',
+          error: { type: 'invalid_request', message: 'bad' },
+        },
+      };
+    }
+    batchesResults.mockResolvedValue(gen());
+    const results = await service.getBatchResults('batch_1');
+    expect(batchesResults).toHaveBeenCalledWith('batch_1');
+    expect(results).toEqual([
+      { customId: 'a', type: 'succeeded', text: 'ok' },
+      {
+        customId: 'b',
+        type: 'errored',
+        error: JSON.stringify({ type: 'invalid_request', message: 'bad' }),
+      },
+    ]);
+  });
+});
 }); // describe('AnthropicService')

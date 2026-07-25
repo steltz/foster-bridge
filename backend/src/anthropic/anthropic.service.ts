@@ -19,6 +19,24 @@ export interface MessageResult {
   usage: Anthropic.Message['usage'];
 }
 
+export interface BatchRequestInput {
+  customId?: string;
+  prompt: string;
+}
+
+export interface BatchSummary {
+  batchId: string;
+  processingStatus: string;
+  requestCounts?: unknown;
+}
+
+export interface BatchResultItem {
+  customId: string;
+  type: string;
+  text?: string;
+  error?: string;
+}
+
 @Injectable()
 export class AnthropicService {
   constructor(
@@ -61,6 +79,72 @@ export class AnthropicService {
         stopReason: response.stop_reason,
         usage: response.usage,
       };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async createBatch(requests: BatchRequestInput[]): Promise<BatchSummary> {
+    const client = this.clientFactory.get();
+    const model = this.defaultModel;
+    const maxTokens = this.defaultMaxTokens;
+    try {
+      const batch = await client.messages.batches.create({
+        requests: requests.map((r, i) => ({
+          custom_id: r.customId ?? `request-${i}`,
+          params: {
+            model,
+            max_tokens: maxTokens,
+            messages: [{ role: 'user', content: r.prompt }],
+          },
+        })),
+      });
+      return { batchId: batch.id, processingStatus: batch.processing_status };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async getBatch(id: string): Promise<BatchSummary> {
+    const client = this.clientFactory.get();
+    try {
+      const batch = await client.messages.batches.retrieve(id);
+      return {
+        batchId: batch.id,
+        processingStatus: batch.processing_status,
+        requestCounts: batch.request_counts,
+      };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async getBatchResults(id: string): Promise<BatchResultItem[]> {
+    const client = this.clientFactory.get();
+    try {
+      const items: BatchResultItem[] = [];
+      for await (const entry of await client.messages.batches.results(id)) {
+        const customId = entry.custom_id;
+        const result = entry.result;
+        if (result.type === 'succeeded') {
+          let text = '';
+          for (const block of result.message.content) {
+            if (block.type === 'text') {
+              text += block.text;
+            }
+          }
+          items.push({ customId, type: 'succeeded', text });
+        } else if (result.type === 'errored') {
+          items.push({
+            customId,
+            type: 'errored',
+            error: JSON.stringify(result.error),
+          });
+        } else {
+          items.push({ customId, type: result.type, error: result.type });
+        }
+      }
+      return items;
     } catch (err) {
       this.rethrow(err);
     }
