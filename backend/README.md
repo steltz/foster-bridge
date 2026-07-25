@@ -87,3 +87,53 @@ pnpm test:e2e    # e2e: GET /health
 ```
 
 Live GCP connectivity is verified manually via `/health/ready`, not in CI.
+
+## Claude (Anthropic) client
+
+An `AnthropicModule` wraps `@anthropic-ai/sdk` and exposes demo endpoints under
+`/ai`. The SDK client is constructed **lazily** on first use, so the app boots
+and all tests pass without an API key.
+
+### Configuration
+
+| Var | Default |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | *(unset)* — add when you have one |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5` |
+| `ANTHROPIC_MAX_TOKENS` | `4096` |
+
+### Endpoints
+
+```bash
+# Config check — no live call; works before a key is added
+curl localhost:3000/ai/ready
+# -> { "configured": false }   (true once ANTHROPIC_API_KEY is set)
+
+# Single message
+curl -X POST localhost:3000/ai/message \
+  -H 'content-type: application/json' \
+  -d '{"prompt":"Say hi in one word"}'
+
+# Batch: submit, poll, fetch results
+curl -X POST localhost:3000/ai/batch \
+  -H 'content-type: application/json' \
+  -d '{"requests":[{"prompt":"1+1?"},{"customId":"q2","prompt":"2+2?"}]}'
+curl localhost:3000/ai/batch/<batchId>
+curl localhost:3000/ai/batch/<batchId>/results   # 409 until the batch has ended
+```
+
+The Message Batches API processes requests asynchronously at 50% of standard
+price; most batches finish within an hour. Results are keyed by `customId` and
+arrive in any order.
+
+### Smoke-test with a real key
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+pnpm start:dev
+curl -X POST localhost:3000/ai/message -H 'content-type: application/json' \
+  -d '{"prompt":"Say hi"}'
+```
+
+Without a key, `/ai/message` and the batch routes return `401` (from
+`ANTHROPIC_API_KEY is not configured`); `/ai/ready` still returns 200.
