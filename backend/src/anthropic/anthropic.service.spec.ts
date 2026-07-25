@@ -441,5 +441,27 @@ describe('AnthropicService', () => {
       { customId: 'a', type: 'succeeded', text: 'ok', cacheReadInputTokens: 2048 },
     ]);
   });
+  it('createBatch honours a model override so it can match the warmed cache', async () => {
+    batchesCreate.mockResolvedValue({
+      id: 'batch_m',
+      processing_status: 'in_progress',
+    });
+    await service.createBatch([{ prompt: 'a' }], { system: 's' }, {
+      model: 'claude-opus-5',
+    });
+    expect(batchesCreate).toHaveBeenCalledWith({
+      requests: [
+        {
+          custom_id: 'request-0',
+          params: {
+            model: 'claude-opus-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 's', cache_control: CC }],
+            messages: [{ role: 'user', content: 'a' }],
+          },
+        },
+      ],
+    });
+  });
   }); // describe('caching')
 }); // describe('AnthropicService')

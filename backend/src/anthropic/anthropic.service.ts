@@ -197,6 +197,9 @@ export class AnthropicService {
           max_tokens: 0,
           ...built,
         });
+        // Return the probe's stats: it reads the entry the first call wrote, so
+        // cacheReadInputTokens > 0 confirms the cache. (cacheCreationInputTokens
+        // reads 0 here — the write happened on the first call.)
         verification = this.toVerification(probe);
         if (verification.cacheReadInputTokens <= 0) {
           throw new HttpException(
@@ -214,9 +217,12 @@ export class AnthropicService {
   async createBatch(
     requests: BatchRequestInput[],
     context?: CachedContext,
+    opts?: { model?: string },
   ): Promise<BatchSummary> {
     const client = this.clientFactory.get();
-    const model = this.defaultModel;
+    // Caches are model-scoped: to read a warmed entry, pass the SAME model here
+    // that was given to warmCache.
+    const model = opts?.model ?? this.defaultModel;
     const maxTokens = this.defaultMaxTokens;
     try {
       const batch = await client.messages.batches.create({
