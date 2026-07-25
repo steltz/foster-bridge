@@ -505,8 +505,10 @@ export interface MessageInput {
 export interface MessageResult {
   model: string;
   text: string | null;
-  stopReason: string | null;
-  usage: unknown;
+  // Indexed-access types keep the SDK's real shapes without naming fragile
+  // block types (StopReason union; Usage object) — a precise client contract.
+  stopReason: Anthropic.Message['stop_reason'];
+  usage: Anthropic.Message['usage'];
 }
 
 @Injectable()
