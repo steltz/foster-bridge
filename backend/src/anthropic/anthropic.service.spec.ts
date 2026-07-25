@@ -252,4 +252,71 @@ describe('AnthropicService', () => {
     ]);
   });
 });
+
+  describe('caching', () => {
+  const CC = { type: 'ephemeral', ttl: '1h' };
+
+  it('warmCache caches a system prompt with a 1h breakpoint and max_tokens 0', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
+    });
+    const result = await service.warmCache({ system: 'big shared prompt' });
+    expect(create).toHaveBeenCalledWith({
+      model: 'claude-sonnet-5',
+      max_tokens: 0,
+      system: [{ type: 'text', text: 'big shared prompt', cache_control: CC }],
+      messages: [{ role: 'user', content: 'warmup' }],
+    });
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 2048,
+      cacheReadInputTokens: 0,
+      cached: true,
+    });
+  });
+
+  it('warmCache caches a leading message prefix (no system key)', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 4096 },
+    });
+    const result = await service.warmCache({ prefix: 'shared context' });
+    expect(create).toHaveBeenCalledWith({
+      model: 'claude-sonnet-5',
+      max_tokens: 0,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'shared context', cache_control: CC },
+            { type: 'text', text: 'warmup' },
+          ],
+        },
+      ],
+    });
+    // read > 0 also counts as cached; creation 0 means the entry pre-existed.
+    expect(result.cached).toBe(true);
+    expect(result.cacheReadInputTokens).toBe(4096);
+  });
+
+  it('warmCache reports cached=false when nothing was written or read', async () => {
+    create.mockResolvedValue({ model: 'claude-sonnet-5', usage: {} });
+    const result = await service.warmCache({ system: 'too short' });
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 0,
+      cached: false,
+    });
+  });
+
+  it('warmCache honours a model override', async () => {
+    create.mockResolvedValue({ model: 'claude-opus-5', usage: {} });
+    await service.warmCache({ system: 's' }, { model: 'claude-opus-5' });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'claude-opus-5', max_tokens: 0 }),
+    );
+  });
+  }); // describe('caching')
 }); // describe('AnthropicService')
