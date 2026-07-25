@@ -465,9 +465,14 @@ describe('AnthropicService', () => {
     }
     expect(caught).toBeInstanceOf(HttpException);
     expect((caught as HttpException).getStatus()).toBe(429);
+    // 4xx keeps the (safe) upstream message.
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 429,
+      error: 'rate limited',
+    });
   });
 
-  it('defaults an APIError with no status to 502', async () => {
+  it('defaults an APIError with no status to a sanitized 502', async () => {
     const Anthropic = require('@anthropic-ai/sdk').default;
     create.mockRejectedValue(new Anthropic.APIError(undefined, 'connection'));
     let caught: unknown;
@@ -477,6 +482,11 @@ describe('AnthropicService', () => {
       caught = e;
     }
     expect((caught as HttpException).getStatus()).toBe(502);
+    // 5xx is sanitized — the upstream message is NOT leaked to the client.
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 502,
+      error: 'Upstream Anthropic API error',
+    });
   });
   }); // describe('message')
 }); // describe('AnthropicService')
@@ -490,7 +500,13 @@ Expected: FAIL — `service.message is not a function`.
 - [ ] **Step 3: Replace `backend/src/anthropic/anthropic.service.ts`**
 
 ```ts
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_CLIENT, AnthropicClientFactory } from './anthropic.constants';
@@ -513,6 +529,8 @@ export interface MessageResult {
 
 @Injectable()
 export class AnthropicService {
+  private readonly logger = new Logger(AnthropicService.name);
+
   constructor(
     @Inject(ANTHROPIC_CLIENT)
     private readonly clientFactory: AnthropicClientFactory,
@@ -566,6 +584,15 @@ export class AnthropicService {
     if (err instanceof Anthropic.APIError) {
       const status =
         typeof err.status === 'number' ? err.status : HttpStatus.BAD_GATEWAY;
+      if (status >= 500) {
+        // Don't leak upstream 5xx detail to the client; log it server-side
+        // instead — mirrors the global filter's 500-sanitization.
+        this.logger.error(`Anthropic API error ${status}: ${err.message}`);
+        throw new HttpException(
+          { statusCode: status, error: 'Upstream Anthropic API error' },
+          status,
+        );
+      }
       throw new HttpException({ statusCode: status, error: err.message }, status);
     }
     throw err instanceof Error ? err : new Error(String(err));
@@ -1048,6 +1075,15 @@ describe('Anthropic readiness (e2e)', () => {
       .get('/ai/ready')
       .expect(200)
       .expect({ configured: false });
+  });
+
+  it('POST /ai/message -> clean 401 with no key (the defining guarantee)', () => {
+    // The full request → lazy factory → UnauthorizedException → global filter
+    // path must yield a clean 401, not an unhandled construction throw or 500.
+    return request(app.getHttpServer())
+      .post('/ai/message')
+      .send({ prompt: 'hi' })
+      .expect(401);
   });
 });
 ```

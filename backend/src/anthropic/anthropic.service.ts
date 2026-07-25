@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_CLIENT, AnthropicClientFactory } from './anthropic.constants';
@@ -39,6 +45,8 @@ export interface BatchResultItem {
 
 @Injectable()
 export class AnthropicService {
+  private readonly logger = new Logger(AnthropicService.name);
+
   constructor(
     @Inject(ANTHROPIC_CLIENT)
     private readonly clientFactory: AnthropicClientFactory,
@@ -158,6 +166,15 @@ export class AnthropicService {
     if (err instanceof Anthropic.APIError) {
       const status =
         typeof err.status === 'number' ? err.status : HttpStatus.BAD_GATEWAY;
+      if (status >= 500) {
+        // Don't leak upstream 5xx detail to the client; log it server-side
+        // instead — mirrors the global filter's 500-sanitization.
+        this.logger.error(`Anthropic API error ${status}: ${err.message}`);
+        throw new HttpException(
+          { statusCode: status, error: 'Upstream Anthropic API error' },
+          status,
+        );
+      }
       throw new HttpException({ statusCode: status, error: err.message }, status);
     }
     throw err instanceof Error ? err : new Error(String(err));

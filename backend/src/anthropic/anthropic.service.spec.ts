@@ -133,9 +133,14 @@ describe('AnthropicService', () => {
     }
     expect(caught).toBeInstanceOf(HttpException);
     expect((caught as HttpException).getStatus()).toBe(429);
+    // 4xx keeps the (safe) upstream message.
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 429,
+      error: 'rate limited',
+    });
   });
 
-  it('defaults an APIError with no status to 502', async () => {
+  it('defaults an APIError with no status to a sanitized 502', async () => {
     const Anthropic = require('@anthropic-ai/sdk').default;
     create.mockRejectedValue(new Anthropic.APIError(undefined, 'connection'));
     let caught: unknown;
@@ -145,6 +150,11 @@ describe('AnthropicService', () => {
       caught = e;
     }
     expect((caught as HttpException).getStatus()).toBe(502);
+    // 5xx is sanitized — the upstream message is NOT leaked to the client.
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 502,
+      error: 'Upstream Anthropic API error',
+    });
   });
   }); // describe('message')
 

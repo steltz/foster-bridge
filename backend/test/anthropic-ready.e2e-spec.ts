@@ -25,4 +25,13 @@ describe('Anthropic readiness (e2e)', () => {
       .expect(200)
       .expect({ configured: false });
   });
+
+  it('POST /ai/message -> clean 401 with no key (the defining guarantee)', () => {
+    // The full request → lazy factory → UnauthorizedException → global filter
+    // path must yield a clean 401, not an unhandled construction throw or 500.
+    return request(app.getHttpServer())
+      .post('/ai/message')
+      .send({ prompt: 'hi' })
+      .expect(401);
+  });
 });
