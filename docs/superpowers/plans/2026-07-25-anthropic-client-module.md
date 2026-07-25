@@ -683,6 +683,19 @@ The Task 3 spec already declares the batch mocks (`batchesCreate` / `batchesRetr
       },
     ]);
   });
+
+  it('shapes canceled and expired results via the fallback branch', async () => {
+    async function* gen() {
+      yield { custom_id: 'a', result: { type: 'canceled' } };
+      yield { custom_id: 'b', result: { type: 'expired' } };
+    }
+    batchesResults.mockResolvedValue(gen());
+    const results = await service.getBatchResults('batch_1');
+    expect(results).toEqual([
+      { customId: 'a', type: 'canceled', error: 'canceled' },
+      { customId: 'b', type: 'expired', error: 'expired' },
+    ]);
+  });
 });
 ```
 
