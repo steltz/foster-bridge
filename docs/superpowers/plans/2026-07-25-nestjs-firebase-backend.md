@@ -343,7 +343,10 @@ export const STORAGE_BUCKET = Symbol('STORAGE_BUCKET');
 The test mocks `firebase-admin/app` so no network/credentials are needed, and asserts that both DI tokens resolve and that `initializeApp` is only called when no app exists yet.
 
 ```ts
-const initializeApp = jest.fn(() => ({ name: 'test-app' }));
+// Rest param so the inferred mock signature accepts variadic args — needed
+// for the `initializeApp(...args)` spread below and for indexing
+// `.mock.calls[0][0]` under the strict tsconfig + ts-jest type-checking.
+const initializeApp = jest.fn((..._args: unknown[]) => ({ name: 'test-app' }));
 const getApps = jest.fn(() => [] as unknown[]);
 const getApp = jest.fn(() => ({ name: 'test-app' }));
 
