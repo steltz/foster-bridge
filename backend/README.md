@@ -63,6 +63,12 @@ curl localhost:3000/demo/storage/a.txt/url
 `/health/ready` should report `{ "status": "ok", "dependencies": { "firestore": "ok", "storage": "ok" } }`
 once ADC is configured and the principal has Firestore + Storage access.
 
+`/health/ready` is a **diagnostic** probe: it always returns HTTP `200` and
+reports health in the body (`status: "ok" | "degraded"`, plus per-dependency
+`ok`/`error`). The readiness signal is the body, not the status code. If you
+wire this as an orchestrator readiness probe (Cloud Run, k8s) that gates on the
+HTTP status, change the handler to return `503` when `status` is `degraded`.
+
 ### Note on signed URLs under user ADC
 
 `GET /demo/storage/:name/url` generates a v4 signed URL, which requires blob
