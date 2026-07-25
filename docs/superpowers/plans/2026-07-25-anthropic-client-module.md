@@ -179,10 +179,12 @@ export interface AnthropicClientFactory {
 Mocks the SDK default export so no real client is constructed and construction can be counted.
 
 ```ts
+// `default` must be the jest.fn itself (not an arrow wrapper) — the module
+// does `new Anthropic(...)`, and arrow functions are not constructable.
 const AnthropicCtor = jest.fn().mockImplementation(() => ({ __client: true }));
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
-  default: (...args: unknown[]) => AnthropicCtor(...args),
+  default: AnthropicCtor,
 }));
 
 import { Test } from '@nestjs/testing';
