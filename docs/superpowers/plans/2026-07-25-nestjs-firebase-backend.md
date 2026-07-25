@@ -1295,3 +1295,214 @@ Expected: `status: ok` for firestore and storage (given the principal has access
 git status
 # commit any remaining changes with an appropriate semantic message
 ```
+
+---
+
+## Task 9: Harden the exception filter (final-review follow-up)
+
+The final holistic review found two cross-cutting gaps in the Task 6 filter:
+(1) it maps only gRPC numeric codes, so `@google-cloud/storage` `ApiError`s —
+whose `.code` is the HTTP status number (403/404/401) — fall through to 500,
+defeating the filter's purpose on the Storage path the README flags as the most
+likely ADC failure; (2) the filter is registered via `main.ts`'s
+`useGlobalFilters`, which the e2e (booting `AppModule`) does not apply, so
+nothing tests it in the composed app. This task fixes both.
+
+**Files:**
+- Modify: `backend/src/common/google-error.filter.ts`
+- Modify: `backend/src/common/google-error.filter.spec.ts`
+- Modify: `backend/src/app.module.ts`
+- Modify: `backend/src/main.ts`
+- Test: `backend/test/error-filter.e2e-spec.ts` (new)
+
+- [ ] **Step 1: Extend the code map + handle string codes in `google-error.filter.ts`**
+
+Replace the `GRPC_CODE_TO_HTTP` constant and the `mapped` computation.
+
+Replace the constant block:
+
+```ts
+// Google SDKs surface errors two ways this filter must handle:
+//  - Firestore/gax throw google.rpc.Code numbers (7 = PERMISSION_DENIED, ...)
+//  - @google-cloud/storage throws ApiError whose `.code` IS the HTTP status
+//    number (403/404/401).
+// Both are mapped here (the two numeric spaces do not collide).
+const CODE_TO_HTTP: Record<number, HttpStatus> = {
+  // google.rpc.Code
+  5: HttpStatus.NOT_FOUND, // NOT_FOUND
+  7: HttpStatus.FORBIDDEN, // PERMISSION_DENIED
+  16: HttpStatus.UNAUTHORIZED, // UNAUTHENTICATED
+  // HTTP status numbers (Cloud Storage ApiError.code)
+  401: HttpStatus.UNAUTHORIZED,
+  403: HttpStatus.FORBIDDEN,
+  404: HttpStatus.NOT_FOUND,
+};
+
+// Some Firebase SDK surfaces use string codes instead of numbers.
+const STRING_CODE_TO_HTTP: Record<string, HttpStatus> = {
+  'permission-denied': HttpStatus.FORBIDDEN,
+  'not-found': HttpStatus.NOT_FOUND,
+  unauthenticated: HttpStatus.UNAUTHORIZED,
+};
+```
+
+Replace the `mapped` line:
+
+```ts
+    const err = exception as GrpcLikeError;
+    const mapped =
+      typeof err.code === 'number'
+        ? CODE_TO_HTTP[err.code]
+        : typeof err.code === 'string'
+          ? STRING_CODE_TO_HTTP[err.code]
+          : undefined;
+    const status = mapped ?? HttpStatus.INTERNAL_SERVER_ERROR;
+```
+
+Everything else in the filter (imports, `@Catch()`, HttpException pass-through,
+`isServerError` sanitization) is unchanged.
+
+- [ ] **Step 2: Add unit tests for the new mappings in `google-error.filter.spec.ts`**
+
+Add these three tests inside the `describe` block (after the existing
+`maps not-found to 404` test):
+
+```ts
+  it('maps a Storage HTTP-status code (403) to 403', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 403, message: 'Forbidden' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+  });
+
+  it('maps a Storage HTTP-status code (404) to 404', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 404, message: 'Not Found' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
+  it('maps a string code (permission-denied) to 403', () => {
+    const { host, status } = fakeHost();
+    filter.catch({ code: 'permission-denied', message: 'denied' }, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+  });
+```
+
+- [ ] **Step 3: Register the filter via `APP_FILTER` in `app.module.ts`**
+
+So the filter is active in every composed app (including `Test`/e2e builds),
+not just `main.ts`. Replace the file contents with:
+
+```ts
+import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+import configuration from './config/configuration';
+import { FirebaseModule } from './firebase/firebase.module';
+import { GoogleErrorFilter } from './common/google-error.filter';
+import { HealthController } from './health/health.controller';
+import { FirestoreDemoController } from './demo/firestore-demo.controller';
+import { StorageDemoController } from './demo/storage-demo.controller';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    FirebaseModule,
+  ],
+  controllers: [
+    HealthController,
+    FirestoreDemoController,
+    StorageDemoController,
+  ],
+  providers: [{ provide: APP_FILTER, useClass: GoogleErrorFilter }],
+})
+export class AppModule {}
+```
+
+- [ ] **Step 4: Drop the redundant `useGlobalFilters` from `main.ts`**
+
+Now that `APP_FILTER` registers it, remove the duplicate registration.
+Replace `main.ts` contents with:
+
+```ts
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService);
+  const port = config.get<number>('port') ?? 3000;
+  await app.listen(port);
+}
+void bootstrap();
+```
+
+- [ ] **Step 5: Add a composed-app e2e test `backend/test/error-filter.e2e-spec.ts`**
+
+Boots the real `AppModule` but overrides `STORAGE_BUCKET` with a stub that
+throws a Storage-style `ApiError` (numeric HTTP `code`), then asserts the
+running app returns the mapped status + shaped envelope — proving both that the
+filter is installed via `APP_FILTER` and that Storage HTTP codes now map.
+
+```ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { AppModule } from '../src/app.module';
+import { FIRESTORE, STORAGE_BUCKET } from '../src/firebase/firebase.constants';
+
+describe('GoogleErrorFilter (composed app e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+      // Firestore token must resolve, but this test only exercises Storage.
+      .overrideProvider(FIRESTORE)
+      .useValue({})
+      .overrideProvider(STORAGE_BUCKET)
+      .useValue({
+        // Storage ApiError: `.code` is the HTTP status number.
+        getFiles: () =>
+          Promise.reject(
+            Object.assign(new Error('Permission denied'), { code: 403 }),
+          ),
+      })
+      .compile();
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('maps a Storage 403 ApiError to a 403 envelope (filter active in app)', () => {
+    return request(app.getHttpServer())
+      .get('/demo/storage')
+      .expect(403)
+      .expect((res) => {
+        if (res.body.statusCode !== 403) {
+          throw new Error(`expected statusCode 403, got ${res.body.statusCode}`);
+        }
+        if (res.body.path !== '/demo/storage') {
+          throw new Error(`expected path /demo/storage, got ${res.body.path}`);
+        }
+      });
+  });
+});
+```
+
+- [ ] **Step 6: Verify**
+
+Run: `cd backend && pnpm test` (unit suite now 19 tests) then
+`pnpm test:e2e` (now 2 e2e suites: health + error-filter) then `pnpm build`.
+Expected: all green, no TS errors.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add backend/src backend/test
+git commit -m "fix(backend): map Storage HTTP error codes and register filter via APP_FILTER"
+```
