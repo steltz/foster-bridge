@@ -883,7 +883,8 @@ export class StorageDemoController {
 
   @Post()
   async upload(@Body() body: UploadDto) {
-    // Deterministic-ish object name; counter avoids clobbering across calls.
+    // Object name under the demo/ prefix. Defaults to a timestamped name when
+    // none is given; millisecond-resolution collisions are acceptable for a demo.
     const name = `demo/${body.name ?? `object-${Date.now()}.txt`}`;
     await this.bucket.file(name).save(body.content ?? 'hello from ADC', {
       contentType: 'text/plain',
