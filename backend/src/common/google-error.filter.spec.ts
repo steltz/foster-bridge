@@ -1,4 +1,8 @@
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { GoogleErrorFilter } from './google-error.filter';
 
 describe('GoogleErrorFilter', () => {
@@ -34,9 +38,24 @@ describe('GoogleErrorFilter', () => {
     expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
   });
 
-  it('defaults unknown errors to 500', () => {
-    const { host, status } = fakeHost();
+  it('defaults unknown errors to 500 without leaking the internal message', () => {
+    const { host, status, json } = fakeHost();
     filter.catch(new Error('boom'), host);
     expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: 'Internal server error',
+        path: '/demo/firestore',
+      }),
+    );
+  });
+
+  it('passes Nest HttpExceptions through untouched', () => {
+    const { host, status, json } = fakeHost();
+    const exception = new NotFoundException('no such thing');
+    filter.catch(exception, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    expect(json).toHaveBeenCalledWith(exception.getResponse());
   });
 });

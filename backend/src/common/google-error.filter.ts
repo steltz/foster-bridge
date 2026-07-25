@@ -38,12 +38,13 @@ export class GoogleErrorFilter implements ExceptionFilter {
     }
 
     const err = exception as GrpcLikeError;
-    const status =
-      typeof err.code === 'number' && GRPC_CODE_TO_HTTP[err.code]
-        ? GRPC_CODE_TO_HTTP[err.code]
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const mapped =
+      typeof err.code === 'number' ? GRPC_CODE_TO_HTTP[err.code] : undefined;
+    const status = mapped ?? HttpStatus.INTERNAL_SERVER_ERROR;
+    const isServerError = status === HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (isServerError) {
+      // Log the real error server-side...
       this.logger.error(
         `Unhandled error at ${request.url ?? 'unknown'}: ${err.message ?? exception}`,
       );
@@ -51,7 +52,9 @@ export class GoogleErrorFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
-      error: err.message ?? 'Internal server error',
+      // ...but never leak an internal error message to the client on a 500.
+      // Mapped Google API errors (403/404/401) keep their descriptive message.
+      error: isServerError ? 'Internal server error' : (err.message ?? 'Error'),
       path: request.url,
     });
   }
