@@ -372,5 +372,54 @@ describe('AnthropicService', () => {
     expect((caught as HttpException).getStatus()).toBe(400);
     expect(create).not.toHaveBeenCalled();
   });
+
+  it('createBatch stamps the cached prefix on every request when given a context', async () => {
+    batchesCreate.mockResolvedValue({
+      id: 'batch_9',
+      processing_status: 'in_progress',
+    });
+    await service.createBatch(
+      [{ prompt: 'a' }, { customId: 'c2', prompt: 'b' }],
+      { system: 'shared sys', prefix: 'shared ctx' },
+    );
+    expect(batchesCreate).toHaveBeenCalledWith({
+      requests: [
+        {
+          custom_id: 'request-0',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'shared ctx', cache_control: CC },
+                  { type: 'text', text: 'a' },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          custom_id: 'c2',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'shared ctx', cache_control: CC },
+                  { type: 'text', text: 'b' },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
   }); // describe('caching')
 }); // describe('AnthropicService')

@@ -209,20 +209,28 @@ export class AnthropicService {
     }
   }
 
-  async createBatch(requests: BatchRequestInput[]): Promise<BatchSummary> {
+  async createBatch(
+    requests: BatchRequestInput[],
+    context?: CachedContext,
+  ): Promise<BatchSummary> {
     const client = this.clientFactory.get();
     const model = this.defaultModel;
     const maxTokens = this.defaultMaxTokens;
     try {
       const batch = await client.messages.batches.create({
-        requests: requests.map((r, i) => ({
-          custom_id: r.customId ?? `request-${i}`,
-          params: {
-            model,
-            max_tokens: maxTokens,
-            messages: [{ role: 'user', content: r.prompt }],
-          },
-        })),
+        requests: requests.map((r, i) => {
+          const built = context
+            ? this.buildCachedRequest(context, r.prompt)
+            : { messages: [{ role: 'user' as const, content: r.prompt }] };
+          return {
+            custom_id: r.customId ?? `request-${i}`,
+            params: {
+              model,
+              max_tokens: maxTokens,
+              ...built,
+            },
+          };
+        }),
       });
       return { batchId: batch.id, processingStatus: batch.processing_status };
     } catch (err) {
