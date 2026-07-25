@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_CLIENT, AnthropicClientFactory } from './anthropic.constants';
+import {
+  ANTHROPIC_CLIENT,
+  AnthropicClientFactory,
+  ONE_HOUR_CACHE_CONTROL,
+} from './anthropic.constants';
 
 export interface MessageInput {
   prompt: string;
@@ -23,6 +27,21 @@ export interface MessageResult {
   // block types (StopReason union; Usage object) — a precise client contract.
   stopReason: Anthropic.Message['stop_reason'];
   usage: Anthropic.Message['usage'];
+}
+
+export interface CachedContext {
+  /** Cached (1h TTL) system prompt shared across requests. */
+  system?: string;
+  /** Cached (1h TTL) leading user-message block shared across requests. */
+  prefix?: string;
+}
+
+export interface CacheVerification {
+  model: string;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  /** True when this call wrote OR read a cache entry. */
+  cached: boolean;
 }
 
 export interface BatchRequestInput {
@@ -41,6 +60,8 @@ export interface BatchResultItem {
   type: string;
   text?: string;
   error?: string;
+  /** Cache-read tokens for a succeeded item; lets callers confirm cache hits. */
+  cacheReadInputTokens?: number;
 }
 
 @Injectable()
@@ -92,20 +113,132 @@ export class AnthropicService {
     }
   }
 
-  async createBatch(requests: BatchRequestInput[]): Promise<BatchSummary> {
+  /**
+   * The one place a cache breakpoint is placed. The warm-up and batch items all
+   * call this so they emit a byte-identical cached prefix at the same breakpoint.
+   */
+  private buildCachedRequest(
+    context: CachedContext,
+    prompt: string,
+  ): {
+    system?: Anthropic.TextBlockParam[];
+    messages: Anthropic.MessageParam[];
+  } {
+    const system = context.system
+      ? [
+          {
+            type: 'text' as const,
+            text: context.system,
+            cache_control: ONE_HOUR_CACHE_CONTROL,
+          },
+        ]
+      : undefined;
+
+    const messages: Anthropic.MessageParam[] = context.prefix
+      ? [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: context.prefix,
+                cache_control: ONE_HOUR_CACHE_CONTROL,
+              },
+              { type: 'text', text: prompt },
+            ],
+          },
+        ]
+      : [{ role: 'user', content: prompt }];
+
+    return system ? { system, messages } : { messages };
+  }
+
+  private toVerification(resp: Anthropic.Message): CacheVerification {
+    const creation = resp.usage?.cache_creation_input_tokens ?? 0;
+    const read = resp.usage?.cache_read_input_tokens ?? 0;
+    return {
+      model: resp.model,
+      cacheCreationInputTokens: creation,
+      cacheReadInputTokens: read,
+      cached: creation > 0 || read > 0,
+    };
+  }
+
+  /**
+   * Pre-warms the 1h cache for a shared prefix with a max_tokens:0 request (which
+   * writes the cache but bills no output tokens). Standalone by necessity —
+   * max_tokens:0 is rejected inside a Batches request. Returns usage-derived
+   * verification; with { strict: true }, a second probe must read the cache or
+   * this throws.
+   */
+  async warmCache(
+    context: CachedContext,
+    opts?: { model?: string; strict?: boolean },
+  ): Promise<CacheVerification> {
+    if (!context.system && !context.prefix) {
+      throw new HttpException(
+        { statusCode: 400, error: 'CachedContext requires system or prefix' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const client = this.clientFactory.get();
-    const model = this.defaultModel;
+    const model = opts?.model ?? this.defaultModel;
+    const built = this.buildCachedRequest(context, 'warmup');
+    try {
+      const first = await client.messages.create({
+        model,
+        max_tokens: 0,
+        ...built,
+      });
+      let verification = this.toVerification(first);
+      if (opts?.strict) {
+        const probe = await client.messages.create({
+          model,
+          max_tokens: 0,
+          ...built,
+        });
+        // Return the probe's stats: it reads the entry the first call wrote, so
+        // cacheReadInputTokens > 0 confirms the cache. (cacheCreationInputTokens
+        // reads 0 here — the write happened on the first call.)
+        verification = this.toVerification(probe);
+        if (verification.cacheReadInputTokens <= 0) {
+          throw new HttpException(
+            { statusCode: 502, error: 'Prompt cache was not written' },
+            HttpStatus.BAD_GATEWAY,
+          );
+        }
+      }
+      return verification;
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async createBatch(
+    requests: BatchRequestInput[],
+    context?: CachedContext,
+    opts?: { model?: string },
+  ): Promise<BatchSummary> {
+    const client = this.clientFactory.get();
+    // Caches are model-scoped: to read a warmed entry, pass the SAME model here
+    // that was given to warmCache.
+    const model = opts?.model ?? this.defaultModel;
     const maxTokens = this.defaultMaxTokens;
     try {
       const batch = await client.messages.batches.create({
-        requests: requests.map((r, i) => ({
-          custom_id: r.customId ?? `request-${i}`,
-          params: {
-            model,
-            max_tokens: maxTokens,
-            messages: [{ role: 'user', content: r.prompt }],
-          },
-        })),
+        requests: requests.map((r, i) => {
+          const built = context
+            ? this.buildCachedRequest(context, r.prompt)
+            : { messages: [{ role: 'user' as const, content: r.prompt }] };
+          return {
+            custom_id: r.customId ?? `request-${i}`,
+            params: {
+              model,
+              max_tokens: maxTokens,
+              ...built,
+            },
+          };
+        }),
       });
       return { batchId: batch.id, processingStatus: batch.processing_status };
     } catch (err) {
@@ -141,7 +274,13 @@ export class AnthropicService {
               text += block.text;
             }
           }
-          items.push({ customId, type: 'succeeded', text });
+          const item: BatchResultItem = { customId, type: 'succeeded', text };
+          const read = result.message.usage?.cache_read_input_tokens;
+          // Only attach when present so existing (usage-less) results are unchanged.
+          if (typeof read === 'number') {
+            item.cacheReadInputTokens = read;
+          }
+          items.push(item);
         } else if (result.type === 'errored') {
           items.push({
             customId,

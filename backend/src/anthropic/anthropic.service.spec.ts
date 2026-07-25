@@ -252,4 +252,216 @@ describe('AnthropicService', () => {
     ]);
   });
 });
+
+  describe('caching', () => {
+  const CC = { type: 'ephemeral', ttl: '1h' };
+
+  it('warmCache caches a system prompt with a 1h breakpoint and max_tokens 0', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
+    });
+    const result = await service.warmCache({ system: 'big shared prompt' });
+    expect(create).toHaveBeenCalledWith({
+      model: 'claude-sonnet-5',
+      max_tokens: 0,
+      system: [{ type: 'text', text: 'big shared prompt', cache_control: CC }],
+      messages: [{ role: 'user', content: 'warmup' }],
+    });
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 2048,
+      cacheReadInputTokens: 0,
+      cached: true,
+    });
+  });
+
+  it('warmCache caches a leading message prefix (no system key)', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 4096 },
+    });
+    const result = await service.warmCache({ prefix: 'shared context' });
+    expect(create).toHaveBeenCalledWith({
+      model: 'claude-sonnet-5',
+      max_tokens: 0,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'shared context', cache_control: CC },
+            { type: 'text', text: 'warmup' },
+          ],
+        },
+      ],
+    });
+    // read > 0 also counts as cached; creation 0 means the entry pre-existed.
+    expect(result.cached).toBe(true);
+    expect(result.cacheReadInputTokens).toBe(4096);
+  });
+
+  it('warmCache reports cached=false when nothing was written or read', async () => {
+    create.mockResolvedValue({ model: 'claude-sonnet-5', usage: {} });
+    const result = await service.warmCache({ system: 'too short' });
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 0,
+      cached: false,
+    });
+  });
+
+  it('warmCache honours a model override', async () => {
+    create.mockResolvedValue({ model: 'claude-opus-5', usage: {} });
+    await service.warmCache({ system: 's' }, { model: 'claude-opus-5' });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'claude-opus-5', max_tokens: 0 }),
+    );
+  });
+
+  it('warmCache strict fires a verify probe and returns its read stats', async () => {
+    create
+      .mockResolvedValueOnce({
+        model: 'claude-sonnet-5',
+        usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
+      })
+      .mockResolvedValueOnce({
+        model: 'claude-sonnet-5',
+        usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 2048 },
+      });
+    const result = await service.warmCache(
+      { system: 'big shared prompt' },
+      { strict: true },
+    );
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      model: 'claude-sonnet-5',
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 2048,
+      cached: true,
+    });
+  });
+
+  it('warmCache strict throws 502 when the probe never reads the cache', async () => {
+    create.mockResolvedValue({
+      model: 'claude-sonnet-5',
+      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+    });
+    let caught: unknown;
+    try {
+      await service.warmCache({ system: 'too short' }, { strict: true });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(HttpException);
+    expect((caught as HttpException).getStatus()).toBe(502);
+    expect((caught as HttpException).getResponse()).toEqual({
+      statusCode: 502,
+      error: 'Prompt cache was not written',
+    });
+  });
+
+  it('warmCache throws 400 when the context has nothing to cache', async () => {
+    let caught: unknown;
+    try {
+      await service.warmCache({});
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(HttpException);
+    expect((caught as HttpException).getStatus()).toBe(400);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('createBatch stamps the cached prefix on every request when given a context', async () => {
+    batchesCreate.mockResolvedValue({
+      id: 'batch_9',
+      processing_status: 'in_progress',
+    });
+    await service.createBatch(
+      [{ prompt: 'a' }, { customId: 'c2', prompt: 'b' }],
+      { system: 'shared sys', prefix: 'shared ctx' },
+    );
+    expect(batchesCreate).toHaveBeenCalledWith({
+      requests: [
+        {
+          custom_id: 'request-0',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'shared ctx', cache_control: CC },
+                  { type: 'text', text: 'a' },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          custom_id: 'c2',
+          params: {
+            model: 'claude-sonnet-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'shared ctx', cache_control: CC },
+                  { type: 'text', text: 'b' },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('getBatchResults surfaces cacheReadInputTokens for succeeded items', async () => {
+    async function* gen() {
+      yield {
+        custom_id: 'a',
+        result: {
+          type: 'succeeded',
+          message: {
+            content: [{ type: 'text', text: 'ok' }],
+            usage: { cache_read_input_tokens: 2048 },
+          },
+        },
+      };
+    }
+    batchesResults.mockResolvedValue(gen());
+    const results = await service.getBatchResults('batch_1');
+    expect(results).toEqual([
+      { customId: 'a', type: 'succeeded', text: 'ok', cacheReadInputTokens: 2048 },
+    ]);
+  });
+  it('createBatch honours a model override so it can match the warmed cache', async () => {
+    batchesCreate.mockResolvedValue({
+      id: 'batch_m',
+      processing_status: 'in_progress',
+    });
+    await service.createBatch([{ prompt: 'a' }], { system: 's' }, {
+      model: 'claude-opus-5',
+    });
+    expect(batchesCreate).toHaveBeenCalledWith({
+      requests: [
+        {
+          custom_id: 'request-0',
+          params: {
+            model: 'claude-opus-5',
+            max_tokens: 4096,
+            system: [{ type: 'text', text: 's', cache_control: CC }],
+            messages: [{ role: 'user', content: 'a' }],
+          },
+        },
+      ],
+    });
+  });
+  }); // describe('caching')
 }); // describe('AnthropicService')
