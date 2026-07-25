@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-24-batch-api-firestore-foundation-design.md
+  s_02dcfeb5026a6d::t_d47753f28aaf85 190-211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "89557952098e7fa8f9619777860c250ee8dd3338",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
