@@ -1,0 +1,43 @@
+backend/src/app.module.ts
+  s_c543c1cadaca90::t_5c1fce73265be1 1-12
+backend/src/main.ts
+  s_c543c1cadaca90::t_1b5bc74e527de8 1-11
+backend/src/config/configuration.ts
+  s_c543c1cadaca90::t_d70f9baf315b51 1-20
+backend/test/jest-e2e.json
+  s_c543c1cadaca90::t_2b9a448691bcc2 1-7
+backend/jest.config.js
+  s_c543c1cadaca90::t_5bce2f1b57cf00 1-9
+backend/package.json
+  s_c543c1cadaca90::t_a23de4c1eef715 1-40
+backend/nest-cli.json
+  s_c543c1cadaca90::t_d6b4742839275e 1-8
+backend/.gitignore
+  s_c543c1cadaca90::t_2329c38994c486 1-4
+backend/test/app.e2e-spec.ts
+  s_c543c1cadaca90::t_cadbcd37dbc7e5 1-27
+backend/src/health/health.controller.ts
+  s_c543c1cadaca90::t_bb23e85e030136 1-9
+backend/tsconfig.json
+  s_c543c1cadaca90::t_66ea7a06efa206 1-22
+backend/tsconfig.build.json
+  s_c543c1cadaca90::t_d45a2493fc7ebb 1-4
+backend/pnpm-lock.yaml
+  s_c543c1cadaca90::t_c85b6e8517bb72 1-6321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1ef07d321c4901f640f7fa2894a8f59d319f8eb3",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
