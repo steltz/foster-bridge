@@ -963,7 +963,11 @@ git commit -m "feat(backend): add Storage demo endpoints with v4 signed URLs"
 - [ ] **Step 1: Write the failing test `backend/src/common/google-error.filter.spec.ts`**
 
 ```ts
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { GoogleErrorFilter } from './google-error.filter';
 
 describe('GoogleErrorFilter', () => {
@@ -999,10 +1003,27 @@ describe('GoogleErrorFilter', () => {
     expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
   });
 
-  it('defaults unknown errors to 500', () => {
-    const { host, status } = fakeHost();
+  it('defaults unknown errors to 500 without leaking the internal message', () => {
+    const { host, status, json } = fakeHost();
     filter.catch(new Error('boom'), host);
     expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    // The raw 'boom' message must NOT reach the client on a 500.
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: 'Internal server error',
+        path: '/demo/firestore',
+      }),
+    );
+  });
+
+  it('passes Nest HttpExceptions through untouched', () => {
+    const { host, status, json } = fakeHost();
+    const exception = new NotFoundException('no such thing');
+    filter.catch(exception, host);
+    expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    // Body is the exception's own response, not the filter's reshaped envelope.
+    expect(json).toHaveBeenCalledWith(exception.getResponse());
   });
 });
 ```
@@ -1057,12 +1078,13 @@ export class GoogleErrorFilter implements ExceptionFilter {
     }
 
     const err = exception as GrpcLikeError;
-    const status =
-      typeof err.code === 'number' && GRPC_CODE_TO_HTTP[err.code]
-        ? GRPC_CODE_TO_HTTP[err.code]
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const mapped =
+      typeof err.code === 'number' ? GRPC_CODE_TO_HTTP[err.code] : undefined;
+    const status = mapped ?? HttpStatus.INTERNAL_SERVER_ERROR;
+    const isServerError = status === HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    if (isServerError) {
+      // Log the real error server-side...
       this.logger.error(
         `Unhandled error at ${request.url ?? 'unknown'}: ${err.message ?? exception}`,
       );
@@ -1070,7 +1092,9 @@ export class GoogleErrorFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
-      error: err.message ?? 'Internal server error',
+      // ...but never leak an internal error message to the client on a 500.
+      // Mapped Google API errors (403/404/401) keep their descriptive message.
+      error: isServerError ? 'Internal server error' : (err.message ?? 'Error'),
       path: request.url,
     });
   }
@@ -1100,7 +1124,7 @@ void bootstrap();
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `cd backend && pnpm test google-error.filter`
-Expected: PASS — all four tests green.
+Expected: PASS — all five tests green.
 
 - [ ] **Step 6: Run the full unit suite**
 
