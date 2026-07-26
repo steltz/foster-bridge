@@ -27,6 +27,9 @@ export interface CoverageResult {
 // and DST transitions never fall inside RTH.
 export function analyzeCoverage(candles: Candle[], window: CoverageWindow): CoverageResult {
   const { openMin, closeMin, intervalSec, tz } = window;
+  if (intervalSec % 60 !== 0) {
+    throw new Error(`intervalSec must be a whole number of minutes (got ${intervalSec})`);
+  }
   const intervalMin = intervalSec / 60;
   if ((closeMin - openMin) % intervalMin !== 0) {
     throw new Error(
@@ -47,14 +50,22 @@ export function analyzeCoverage(candles: Candle[], window: CoverageWindow): Cove
   const hasClose =
     presentCount > 0 && minutesOfDayForTimestamp(inWindow[presentCount - 1].time, tz) === closeMin - intervalMin;
 
+  // Diagnostic gaps hold ONLY genuine drops (a positive whole-bar multiple of
+  // the interval). Any other non-grid spacing (duplicate timestamp, off-grid
+  // bar) trips `contiguous` instead, so the completeness verdict never depends
+  // on gap bookkeeping — a future change to `gaps` cannot resurrect a false
+  // positive.
   const gaps: CoverageGap[] = [];
+  let contiguous = true;
   for (let i = 1; i < inWindow.length; i++) {
     const delta = inWindow[i].time - inWindow[i - 1].time;
-    if (delta !== intervalSec) {
+    if (delta === intervalSec) continue;
+    contiguous = false;
+    if (delta > intervalSec && delta % intervalSec === 0) {
       gaps.push({ afterTime: inWindow[i - 1].time, missing: delta / intervalSec - 1 });
     }
   }
 
-  const complete = hasOpen && hasClose && gaps.length === 0 && presentCount === expectedCount;
+  const complete = hasOpen && hasClose && contiguous && presentCount === expectedCount;
   return { complete, expectedCount, presentCount, hasOpen, hasClose, gaps };
 }

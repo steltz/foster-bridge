@@ -55,4 +55,26 @@ describe('analyzeCoverage', () => {
     // 390-min RTH with a 3600s (60-min) interval => 6.5 bars, incoherent.
     expect(() => analyzeCoverage(fullDay(), { ...WINDOW, intervalSec: 3600 })).toThrow(/divisible/i);
   });
+
+  it('a duplicate timestamp that masks a drop is still incomplete', () => {
+    // full day minus bar #40, plus a duplicate of bar #10 => presentCount back to 78
+    const candles = [...fullDay().filter((_, i) => i !== 40), fullDay()[10]];
+    const r = analyzeCoverage(candles, WINDOW);
+    expect(r.complete).toBe(false);
+    // gaps must never carry a bogus negative/fractional `missing`
+    expect(r.gaps.every((g) => Number.isInteger(g.missing) && g.missing > 0)).toBe(true);
+  });
+
+  it('an off-grid bar (not on the interval) is incomplete', () => {
+    // insert a bar 2 minutes after the open (09:32) — off the 5-min grid
+    const candles = [...fullDay(), bar(OPEN + 120)];
+    const r = analyzeCoverage(candles, WINDOW);
+    expect(r.complete).toBe(false);
+  });
+
+  it('plain duplicate of a present bar is incomplete', () => {
+    const candles = [...fullDay(), fullDay()[10]];
+    const r = analyzeCoverage(candles, WINDOW);
+    expect(r.complete).toBe(false);
+  });
 });
