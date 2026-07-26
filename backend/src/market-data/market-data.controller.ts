@@ -1,16 +1,11 @@
 import { BadRequestException, Controller, Get, Inject, Param, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MarketDataService } from './market-data.service';
-import { Interval, isInterval } from './candle';
+import { Interval } from './candle';
 
 @Controller('markets/:symbol/:interval')
 export class MarketDataController {
   constructor(@Inject(MarketDataService) private readonly marketData: MarketDataService) {}
-
-  private asInterval(interval: string): Interval {
-    if (!isInterval(interval)) throw new BadRequestException(`Unsupported interval: ${interval}`);
-    return interval;
-  }
 
   @Post('candles')
   @UseInterceptors(FileInterceptor('file'))
@@ -22,18 +17,18 @@ export class MarketDataController {
   ) {
     if (!file) throw new BadRequestException('Missing multipart file field "file"');
     const csvText = file.buffer.toString('utf8');
-    return this.marketData.ingestCsv(symbol, this.asInterval(interval), csvText, { replace: replace === 'true' });
+    return this.marketData.ingestCsv(symbol, interval as Interval, csvText, { replace: replace === 'true' });
   }
 
   @Get('days')
   async days(@Param('symbol') symbol: string, @Param('interval') interval: string) {
-    return this.marketData.listStoredDays(symbol, this.asInterval(interval));
+    return this.marketData.listStoredDays(symbol, interval as Interval);
   }
 
   @Get('candles')
   async candles(@Param('symbol') symbol: string, @Param('interval') interval: string, @Query('date') date: string) {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException('Query param "date" (YYYY-MM-DD) is required');
-    const candles = await this.marketData.getDay(symbol, this.asInterval(interval), date);
+    const candles = await this.marketData.getDay(symbol, interval as Interval, date);
     return { symbol, interval, date, candles: candles ?? [] };
   }
 }
