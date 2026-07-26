@@ -9,8 +9,7 @@ function makeFirestore(dayDoc: any) {
     get: jest.fn(() => Promise.resolve({ exists: !!dayDoc, data: () => dayDoc })),
     collection: jest.fn(() => collection),
   }));
-  const listDocuments = jest.fn(() => Promise.resolve([{ id: '2026-07-14' }, { id: '2026-07-15' }]));
-  const collection: any = jest.fn(() => ({ doc, listDocuments }));
+  const collection: any = jest.fn(() => ({ doc }));
   return { collection } as any;
 }
 
@@ -51,10 +50,12 @@ describe('MarketDataService reads', () => {
   it('listStoredDays returns sorted day metadata', async () => {
     const firestore: any = {
       collection: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({ docs: [
-          { id: '2026-07-15', data: () => ({ count: 78, coverage: { rthComplete: true } }) },
-          { id: '2026-07-14', data: () => ({ count: 40, coverage: { rthComplete: false } }) },
-        ] })),
+        select: jest.fn(() => ({
+          get: jest.fn(() => Promise.resolve({ docs: [
+            { id: '2026-07-15', data: () => ({ count: 78, coverage: { rthComplete: true } }) },
+            { id: '2026-07-14', data: () => ({ count: 40, coverage: { rthComplete: false } }) },
+          ] })),
+        })),
       })),
     };
     const moduleRef = await Test.createTestingModule({

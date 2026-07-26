@@ -62,7 +62,7 @@ export class MarketDataService {
 
   async listStoredDays(symbol: string, interval: Interval): Promise<StoredDay[]> {
     this.validate(symbol, interval);
-    const snap = await this.dayCollection(symbol, interval).get();
+    const snap = await this.dayCollection(symbol, interval).select('count', 'coverage').get();
     return snap.docs
       .map((d) => {
         const data = d.data() as any;
