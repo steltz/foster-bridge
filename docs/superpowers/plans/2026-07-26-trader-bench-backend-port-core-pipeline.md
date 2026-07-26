@@ -76,6 +76,8 @@ describe('configuration benchmark defaults', () => {
     delete process.env.BENCHMARK_MODEL;
     delete process.env.BENCHMARK_REPO_ROOT;
     delete process.env.BENCHMARK_RUN_COUNT;
+    delete process.env.BENCHMARK_MAX_TOKENS;
+    delete process.env.BENCHMARK_EFFORT;
   });
   afterAll(() => {
     process.env = OLD_ENV;
@@ -85,22 +87,28 @@ describe('configuration benchmark defaults', () => {
     expect(configuration().benchmark.model).toBe('claude-fable-5');
   });
 
-  it('defaults defaultRunCount to 5 and repoRoot to a non-empty absolute path', () => {
+  it('defaults defaultRunCount to 5, repoRoot absolute, maxTokens 16000, effort low', () => {
     const cfg = configuration();
     expect(cfg.benchmark.defaultRunCount).toBe(5);
     expect(cfg.benchmark.repoRoot.length).toBeGreaterThan(0);
     expect(cfg.benchmark.repoRoot.startsWith('/')).toBe(true);
+    expect(cfg.benchmark.maxTokens).toBe(16000);
+    expect(cfg.benchmark.effort).toBe('low');
   });
 
   it('honours env overrides', () => {
     process.env.BENCHMARK_MODEL = 'claude-opus-4-8';
     process.env.BENCHMARK_REPO_ROOT = '/tmp/fixture';
     process.env.BENCHMARK_RUN_COUNT = '3';
+    process.env.BENCHMARK_MAX_TOKENS = '8000';
+    process.env.BENCHMARK_EFFORT = 'medium';
     const cfg = configuration();
     expect(cfg.benchmark).toEqual({
       model: 'claude-opus-4-8',
       repoRoot: '/tmp/fixture',
       defaultRunCount: 3,
+      maxTokens: 8000,
+      effort: 'medium',
     });
   });
 });
@@ -132,6 +140,8 @@ export interface AppConfig {
     model: string;
     repoRoot: string;
     defaultRunCount: number;
+    maxTokens: number;
+    effort: string;
   };
 }
 
@@ -158,6 +168,9 @@ export default (): AppConfig => ({
     // '../../..' lands on the repo root (parent of backend/) in both layouts.
     repoRoot: process.env.BENCHMARK_REPO_ROOT ?? resolve(__dirname, '..', '..', '..'),
     defaultRunCount: parseInt(process.env.BENCHMARK_RUN_COUNT ?? '5', 10),
+    // Fable benefits from a large token budget; effort defaults to 'low' for cost.
+    maxTokens: parseInt(process.env.BENCHMARK_MAX_TOKENS ?? '16000', 10),
+    effort: process.env.BENCHMARK_EFFORT ?? 'low',
   },
 });
 ```
@@ -399,6 +412,13 @@ describe('SETUP_SCHEMA / CORE_VARIANTS', () => {
     expect(SETUP_SCHEMA.required).toEqual(['side', 'entry', 'stopLoss', 'takeProfit', 'rationale', 'primaryZone', 'confidence']);
     expect(SETUP_SCHEMA.additionalProperties).toBe(false);
   });
+  it('omits structured-output-illegal constraints (maxLength / minimum / maximum)', () => {
+    const props = SETUP_SCHEMA.properties as Record<string, Record<string, unknown>>;
+    expect(props.rationale.maxLength).toBeUndefined();
+    expect(props.primaryZone.maxLength).toBeUndefined();
+    expect(props.confidence.minimum).toBeUndefined();
+    expect(props.confidence.maximum).toBeUndefined();
+  });
   it('scopes core variants to base + seven-keys-method', () => {
     expect(CORE_VARIANTS).toEqual(['base', 'seven-keys-method']);
   });
@@ -431,8 +451,12 @@ export interface Setup {
   rejectedAlternative?: string;
 }
 
-// JSON schema for structured output (output_config.format). Byte-identical to
-// the SETUP_SCHEMA the legacy trader-bench Workflow used.
+// JSON schema for structured output (output_config.format). NOTE: the
+// structured-outputs validator rejects string maxLength and integer
+// minimum/maximum, and the raw batch path does not strip them, so those
+// constraints are DELIBERATELY omitted here — only type/enum/required/
+// additionalProperties are sent. The reconciler re-validates ranges (confidence
+// 1..5) and side/numeric fields itself (Task 10 buildCell).
 export const SETUP_SCHEMA = {
   type: 'object',
   required: ['side', 'entry', 'stopLoss', 'takeProfit', 'rationale', 'primaryZone', 'confidence'],
@@ -441,17 +465,19 @@ export const SETUP_SCHEMA = {
     entry: { type: 'number' },
     stopLoss: { type: 'number' },
     takeProfit: { type: 'number' },
-    rationale: { type: 'string', maxLength: 400 },
-    primaryZone: { type: 'string', maxLength: 100 },
-    confidence: { type: 'integer', minimum: 1, maximum: 5 },
-    rejectedAlternative: { type: 'string', maxLength: 200 },
+    rationale: { type: 'string' },
+    primaryZone: { type: 'string' },
+    confidence: { type: 'integer' },
+    rejectedAlternative: { type: 'string' },
   },
   additionalProperties: false,
 } as const;
 
-// TP/SL/EOD/NOT_FILLED come straight from the engine; INVALID (bad prices or a
-// backtest rejection) and NO_SETUP (refusal / dead result) are bench-only.
-export type CellStatus = 'TP' | 'SL' | 'EOD' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP';
+// TP/SL/EOD/NOT_FILLED come straight from the engine. Bench-only statuses:
+// INVALID (bad prices / order geometry the judge rejects), NO_SETUP (refusal /
+// dead result), and CLI_ERROR (backtest failed for an environmental reason —
+// missing candles, incomplete session — not the setup's fault).
+export type CellStatus = 'TP' | 'SL' | 'EOD' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP' | 'CLI_ERROR';
 
 export type Variant = string; // 'base' | 'seven-keys-method' in this plan
 export const CORE_VARIANTS: Variant[] = ['base', 'seven-keys-method'];
@@ -912,6 +938,13 @@ describe('RepoInputsService', () => {
     expect(days[0].pdfPath.endsWith('07012026_ES_TP.pdf')).toBe(true);
   });
 
+  it('collectDayIssues reports incomplete folders with the missing suffix(es)', async () => {
+    const svc = await build(root);
+    const issues = svc.collectDayIssues();
+    // 07022026 is missing the recap doc.
+    expect(issues).toEqual([{ day: '07022026', missing: ['*_ES_RECAP.md'] }]);
+  });
+
   it('readMethodsDoc returns the methods content', async () => {
     const svc = await build(root);
     expect(svc.readMethodsDoc()).toBe('METHODS DOC');
@@ -969,6 +1002,11 @@ export interface DayInput {
   pdfPath: string;
   planPath: string;
   recapPath: string;
+}
+
+export interface DayIssue {
+  day: string; // folder name (MMDDYYYY)
+  missing: string[]; // suffixes not found (e.g. '*_ES_RECAP.md')
 }
 
 @Injectable()
@@ -1112,6 +1150,26 @@ export class RepoInputsService {
     return days.sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  // Folders under knowledge-base/es/* that are NOT complete days: report which
+  // of the three required docs are missing so the run summary can surface them.
+  collectDayIssues(): DayIssue[] {
+    const dir = join(this.root, 'knowledge-base', 'es');
+    if (!existsSync(dir)) return [];
+    const required: Array<{ suffix: string; label: string }> = [
+      { suffix: '_ES_TP.pdf', label: '*_ES_TP.pdf' },
+      { suffix: '_ES_TP.md', label: '*_ES_TP.md' },
+      { suffix: '_ES_RECAP.md', label: '*_ES_RECAP.md' },
+    ];
+    const issues: DayIssue[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const files = readdirSync(join(dir, entry.name));
+      const missing = required.filter((r) => !files.some((f) => f.endsWith(r.suffix))).map((r) => r.label);
+      if (missing.length) issues.push({ day: entry.name, missing });
+    }
+    return issues.sort((a, b) => a.day.localeCompare(b.day));
+  }
+
   readMethodsDoc(): string | null {
     const path = join(this.root, 'knowledge-base', 'methods', 'seven-keys.md');
     return existsSync(path) ? readFileSync(path, 'utf8') : null;
@@ -1158,13 +1216,17 @@ jest.mock('@anthropic-ai/sdk', () => ({
 }));
 ```
 
-In the `beforeEach`, add `filesUpload` to the mocks and hang a `beta.files.upload` off `fakeClient`:
+In the `beforeEach`, add the beta mocks (`beta.messages.create`, `beta.messages.batches.{create,retrieve,results}`, `beta.files.upload`) so bench (document/Files) calls route through the beta client while the demo controller's non-beta calls stay on `messages`:
 
 ```ts
   let create: jest.Mock;
   let batchesCreate: jest.Mock;
   let batchesRetrieve: jest.Mock;
   let batchesResults: jest.Mock;
+  let betaCreate: jest.Mock;
+  let betaBatchesCreate: jest.Mock;
+  let betaBatchesRetrieve: jest.Mock;
+  let betaBatchesResults: jest.Mock;
   let filesUpload: jest.Mock;
   let service: AnthropicService;
 
@@ -1173,15 +1235,26 @@ In the `beforeEach`, add `filesUpload` to the mocks and hang a `beta.files.uploa
     batchesCreate = jest.fn();
     batchesRetrieve = jest.fn();
     batchesResults = jest.fn();
+    betaCreate = jest.fn();
+    betaBatchesCreate = jest.fn();
+    betaBatchesRetrieve = jest.fn();
+    betaBatchesResults = jest.fn();
     filesUpload = jest.fn();
     const fakeClient = {
       messages: {
         create,
         batches: { create: batchesCreate, retrieve: batchesRetrieve, results: batchesResults },
       },
-      beta: { files: { upload: filesUpload } },
+      beta: {
+        messages: {
+          create: betaCreate,
+          batches: { create: betaBatchesCreate, retrieve: betaBatchesRetrieve, results: betaBatchesResults },
+        },
+        files: { upload: filesUpload },
+      },
     };
-    // ...rest of beforeEach unchanged...
+    // ...rest of beforeEach unchanged (Test.createTestingModule with
+    // ANTHROPIC_CLIENT useValue { get: () => fakeClient } and the ConfigService)...
 ```
 
 - [ ] **Step: Add the failing tier / files / structured-output / refusal tests.**
@@ -1191,13 +1264,14 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
 ```ts
   describe('tiers + files + structured output', () => {
     const CC = { type: 'ephemeral', ttl: '1h' };
+    const FILES_BETA = ['files-api-2025-04-14'];
 
-    it('buildCachedRequest via warmCache stamps each tier last block and appends an uncached prompt', async () => {
+    it('warmCache renders userTiers with NO system breakpoint and stamps each tier last block', async () => {
       create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 10, cache_read_input_tokens: 0 } });
       await service.warmCache(
         {
-          system: 'SYS',
           userTiers: [
+            { blocks: [{ type: 'text', text: 'general' }] },
             { blocks: [{ type: 'text', text: 'day-a' }, { type: 'text', text: 'day-b' }] },
             { blocks: [{ type: 'text', text: 'persona' }] },
           ],
@@ -1207,11 +1281,11 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
       expect(create).toHaveBeenCalledWith({
         model: 'claude-fable-5',
         max_tokens: 0,
-        system: [{ type: 'text', text: 'SYS', cache_control: CC }],
         messages: [
           {
             role: 'user',
             content: [
+              { type: 'text', text: 'general', cache_control: CC },
               { type: 'text', text: 'day-a' },
               { type: 'text', text: 'day-b', cache_control: CC },
               { type: 'text', text: 'persona', cache_control: CC },
@@ -1220,18 +1294,34 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
           },
         ],
       });
+      // The whole cached prefix lives in messages (M4): no system breakpoint.
+      expect(create.mock.calls[0][0].system).toBeUndefined();
     });
 
-    it('throws 400 when breakpoints exceed 4 (system + 4 tiers)', async () => {
+    it('warmCache with files:true routes to the beta client with the files beta header and shares effort', async () => {
+      betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
+      await service.warmCache(
+        { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        { model: 'claude-fable-5', files: true, effort: 'low' },
+      );
+      expect(create).not.toHaveBeenCalled();
+      const arg = betaCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      expect(arg.max_tokens).toBe(0);
+      // effort IS allowed with max_tokens:0 (format is NOT), so warm carries effort.
+      expect(arg.output_config).toEqual({ effort: 'low' });
+    });
+
+    it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
       let caught: unknown;
       try {
         await service.warmCache({
-          system: 's',
           userTiers: [
             { blocks: [{ type: 'text', text: '1' }] },
             { blocks: [{ type: 'text', text: '2' }] },
             { blocks: [{ type: 'text', text: '3' }] },
             { blocks: [{ type: 'text', text: '4' }] },
+            { blocks: [{ type: 'text', text: '5' }] },
           ],
         });
       } catch (e) {
@@ -1239,44 +1329,61 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
       }
       expect((caught as HttpException).getStatus()).toBe(400);
       expect(create).not.toHaveBeenCalled();
+      expect(betaCreate).not.toHaveBeenCalled();
     });
 
-    it('createBatch applies a per-request context and output_config schema', async () => {
-      batchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+    it('createBatch with files routes to beta batches with betas, output_config (format+effort) and maxTokens', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
       const schema = { type: 'object' } as any;
       await service.createBatch(
-        [
-          { customId: 'k1', prompt: 'go', context: { system: 'S1', userTiers: [{ blocks: [{ type: 'text', text: 't1' }] }] } },
-          { customId: 'k2', prompt: 'go', context: { system: 'S2', userTiers: [{ blocks: [{ type: 'text', text: 't2' }] }] } },
-        ],
+        [{ customId: 'k1', prompt: 'go', context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'f' } }] }] } }],
         undefined,
-        { model: 'claude-fable-5', outputSchema: schema },
+        { model: 'claude-fable-5', outputSchema: schema, maxTokens: 16000, effort: 'low', files: true },
       );
-      const arg = batchesCreate.mock.calls[0][0];
-      expect(arg.requests[0].params.system[0].text).toBe('S1');
-      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema } });
-      expect(arg.requests[1].params.system[0].text).toBe('S2');
+      expect(batchesCreate).not.toHaveBeenCalled();
+      const arg = betaBatchesCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      expect(arg.requests[0].params.max_tokens).toBe(16000);
+      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'low' });
     });
 
-    it('uploadFile posts to the Files API with the beta header and returns the id', async () => {
+    it('createBatch non-files keeps the non-beta path and honours per-request context', async () => {
+      batchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      await service.createBatch(
+        [
+          { customId: 'k1', prompt: 'go', context: { prefix: 'S1' } },
+          { customId: 'k2', prompt: 'go', context: { prefix: 'S2' } },
+        ],
+        undefined,
+        { model: 'claude-fable-5' },
+      );
+      expect(betaBatchesCreate).not.toHaveBeenCalled();
+      const arg = batchesCreate.mock.calls[0][0];
+      expect(arg.requests[0].params.messages[0].content[0].text).toBe('S1');
+      expect(arg.requests[1].params.messages[0].content[0].text).toBe('S2');
+    });
+
+    it('uploadFile posts to the beta Files API in a single-arg call and returns the id', async () => {
       filesUpload.mockResolvedValue({ id: 'file_123' });
       const id = await service.uploadFile(Buffer.from('PDF'), 'x.pdf', 'application/pdf');
       expect(id).toBe('file_123');
-      expect(filesUpload).toHaveBeenCalledWith(
-        { file: expect.objectContaining({ __uploadable: true, filename: 'x.pdf', type: 'application/pdf' }) },
-        { betas: ['files-api-2025-04-14'] },
-      );
+      expect(filesUpload).toHaveBeenCalledWith({
+        file: expect.objectContaining({ __uploadable: true, filename: 'x.pdf', type: 'application/pdf' }),
+        betas: FILES_BETA,
+      });
     });
 
-    it('getBatchResults marks a refusal succeeded-message as type refusal', async () => {
+    it('getBatch/getBatchResults with files:true read the beta batch endpoints; refusal detected', async () => {
+      betaBatchesRetrieve.mockResolvedValue({ id: 'b', processing_status: 'ended', request_counts: {} });
       async function* gen() {
-        yield {
-          custom_id: 'k',
-          result: { type: 'succeeded', message: { stop_reason: 'refusal', content: [], usage: {} } },
-        };
+        yield { custom_id: 'k', result: { type: 'succeeded', message: { stop_reason: 'refusal', content: [], usage: {} } } };
       }
-      batchesResults.mockResolvedValue(gen());
-      const results = await service.getBatchResults('b');
+      betaBatchesResults.mockResolvedValue(gen());
+      const summary = await service.getBatch('b', { files: true });
+      expect(betaBatchesRetrieve).toHaveBeenCalledWith('b', { betas: FILES_BETA });
+      expect(summary.processingStatus).toBe('ended');
+      const results = await service.getBatchResults('b', { files: true });
+      expect(betaBatchesResults).toHaveBeenCalledWith('b', { betas: FILES_BETA });
       expect(results[0]).toMatchObject({ customId: 'k', type: 'refusal', stopReason: 'refusal' });
     });
   });
@@ -1290,10 +1397,19 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
 
 Edit `backend/src/anthropic/anthropic.service.ts`.
 
-Change the import line to also pull `toFile`:
+Change the import line to also pull `toFile`, and add a module-level beta constant:
 
 ```ts
 import Anthropic, { toFile } from '@anthropic-ai/sdk';
+```
+
+Add near the top of the file (after the imports), the Files-API beta id used to
+select the beta client whenever a request carries a `document` block (SDK
+0.115.0's non-beta `DocumentBlockParam.source` has no `file` variant, so a
+`file_id` document 400s on the non-beta path):
+
+```ts
+const FILES_BETA = ['files-api-2025-04-14'];
 ```
 
 Extend `CachedContext`:
@@ -1387,30 +1503,75 @@ Replace `buildCachedRequest` with the tier-aware version:
   }
 ```
 
-Relax the `warmCache` guard to accept tiers (only change the first `if`):
+Replace the whole `warmCache` method — it now accepts `files`/`effort`, routes
+document-bearing warms through the beta client, and shares `effort` with the
+batch (effort is allowed with `max_tokens:0`; `output_config.format` is not, so
+it is never sent on a warm):
 
 ```ts
+  async warmCache(
+    context: CachedContext,
+    opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string },
+  ): Promise<CacheVerification> {
     if (!context.system && !context.prefix && !(context.userTiers && context.userTiers.length)) {
       throw new HttpException(
         { statusCode: 400, error: 'CachedContext requires system, prefix or userTiers' },
         HttpStatus.BAD_REQUEST,
       );
     }
+    const client = this.clientFactory.get();
+    const model = opts?.model ?? this.defaultModel;
+    const files = opts?.files === true;
+    const built = this.buildCachedRequest(context, 'warmup');
+    const params: Record<string, unknown> = {
+      model,
+      max_tokens: 0,
+      ...built,
+      ...(opts?.effort ? { output_config: { effort: opts.effort } } : {}),
+    };
+    const call = () =>
+      files
+        ? client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
+        : client.messages.create(params as any);
+    try {
+      const first = await call();
+      let verification = this.toVerification(first);
+      if (opts?.strict) {
+        const probe = await call();
+        verification = this.toVerification(probe);
+        if (verification.cacheReadInputTokens <= 0) {
+          throw new HttpException(
+            { statusCode: 502, error: 'Prompt cache was not written' },
+            HttpStatus.BAD_GATEWAY,
+          );
+        }
+      }
+      return verification;
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
 ```
 
-Update `createBatch`'s signature and body to accept per-request context and `outputSchema`:
+Replace the whole `createBatch` method — per-request context, `maxTokens`,
+`effort`, `outputSchema`, and beta routing:
 
 ```ts
   async createBatch(
     requests: BatchRequestInput[],
     context?: CachedContext,
-    opts?: { model?: string; outputSchema?: unknown },
+    opts?: { model?: string; outputSchema?: unknown; maxTokens?: number; effort?: string; files?: boolean },
   ): Promise<BatchSummary> {
     const client = this.clientFactory.get();
     const model = opts?.model ?? this.defaultModel;
-    const maxTokens = this.defaultMaxTokens;
+    const maxTokens = opts?.maxTokens ?? this.defaultMaxTokens;
+    const files = opts?.files === true;
+    const outputConfig = {
+      ...(opts?.outputSchema ? { format: { type: 'json_schema', schema: opts.outputSchema } } : {}),
+      ...(opts?.effort ? { effort: opts.effort } : {}),
+    };
     try {
-      const batch = await client.messages.batches.create({
+      const body = {
         requests: requests.map((r, i) => {
           const ctx = r.context ?? context;
           const built = ctx
@@ -1422,13 +1583,14 @@ Update `createBatch`'s signature and body to accept per-request context and `out
               model,
               max_tokens: maxTokens,
               ...built,
-              ...(opts?.outputSchema
-                ? { output_config: { format: { type: 'json_schema', schema: opts.outputSchema } } }
-                : {}),
+              ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
             },
           };
         }),
-      });
+      };
+      const batch = files
+        ? await client.beta.messages.batches.create({ ...body, betas: FILES_BETA } as any)
+        : await client.messages.batches.create(body as any);
       return { batchId: batch.id, processingStatus: batch.processing_status };
     } catch (err) {
       this.rethrow(err);
@@ -1436,9 +1598,39 @@ Update `createBatch`'s signature and body to accept per-request context and `out
   }
 ```
 
-In `getBatchResults`, inside the `result.type === 'succeeded'` branch, detect refusal (replace the succeeded branch body):
+Replace the whole `getBatch` method to route beta batches when `files` is set:
 
 ```ts
+  async getBatch(id: string, opts?: { files?: boolean }): Promise<BatchSummary> {
+    const client = this.clientFactory.get();
+    try {
+      const batch = opts?.files
+        ? await client.beta.messages.batches.retrieve(id, { betas: FILES_BETA } as any)
+        : await client.messages.batches.retrieve(id);
+      return {
+        batchId: batch.id,
+        processingStatus: batch.processing_status,
+        requestCounts: batch.request_counts,
+      };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+```
+
+Replace the whole `getBatchResults` method — beta routing plus refusal detection:
+
+```ts
+  async getBatchResults(id: string, opts?: { files?: boolean }): Promise<BatchResultItem[]> {
+    const client = this.clientFactory.get();
+    try {
+      const items: BatchResultItem[] = [];
+      const stream = opts?.files
+        ? await client.beta.messages.batches.results(id, { betas: FILES_BETA } as any)
+        : await client.messages.batches.results(id);
+      for await (const entry of stream) {
+        const customId = entry.custom_id;
+        const result = entry.result;
         if (result.type === 'succeeded') {
           const msg = result.message;
           if (msg.stop_reason === 'refusal') {
@@ -1454,9 +1646,20 @@ In `getBatchResults`, inside the `result.type === 'succeeded'` branch, detect re
           if (typeof read === 'number') item.cacheReadInputTokens = read;
           items.push(item);
         } else if (result.type === 'errored') {
+          items.push({ customId, type: 'errored', error: JSON.stringify(result.error) });
+        } else {
+          items.push({ customId, type: result.type, error: result.type });
+        }
+      }
+      return items;
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
 ```
 
-Add the `uploadFile` method (place after `message`):
+Add the `uploadFile` method (place after `message`) — single-arg beta call with
+`betas` inside the params object:
 
 ```ts
   /** Uploads bytes to the Anthropic Files API and returns the file_id. */
@@ -1464,7 +1667,7 @@ Add the `uploadFile` method (place after `message`):
     const client = this.clientFactory.get();
     try {
       const file = await toFile(bytes, filename, { type: mediaType });
-      const uploaded = await client.beta.files.upload({ file }, { betas: ['files-api-2025-04-14'] });
+      const uploaded = await client.beta.files.upload({ file, betas: FILES_BETA } as any);
       return uploaded.id;
     } catch (err) {
       this.rethrow(err);
@@ -1503,14 +1706,23 @@ import { fakeFirestore } from '../../test/fake-firestore';
 
 function fakeBucket() {
   const saved: Record<string, Buffer> = {};
+  const downloads: string[] = [];
+  const saves: string[] = [];
   return {
     saved,
+    downloads,
+    saves,
     file: (path: string) => ({
       save: (buf: Buffer) => {
         saved[path] = buf;
+        saves.push(path);
         return Promise.resolve();
       },
-      exists: () => Promise.resolve([path in saved]),
+      exists: () => Promise.resolve([path in saved] as [boolean]),
+      download: () => {
+        downloads.push(path);
+        return Promise.resolve([saved[path]] as [Buffer]);
+      },
     }),
   };
 }
@@ -1530,13 +1742,15 @@ async function build() {
   return { svc: moduleRef.get(DayArtifactsService), bucket, upload, repo: moduleRef.get(BenchmarkRepository) };
 }
 
+const PDF_PATH = 'benchmark/es/07012026/07012026_ES_TP.pdf';
+
 describe('DayArtifactsService', () => {
   it('ensurePdf stores to GCS, uploads to Anthropic, and records the artifact', async () => {
     const { svc, bucket, upload, repo } = await build();
     const res = await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
     expect(res.anthropicFileId).toBe('file_new');
-    expect(res.gcsPath).toBe('benchmark/es/07012026/07012026_ES_TP.pdf');
-    expect(bucket.saved['benchmark/es/07012026/07012026_ES_TP.pdf']).toBeDefined();
+    expect(res.gcsPath).toBe(PDF_PATH);
+    expect(bucket.saved[PDF_PATH]).toBeDefined();
     expect(upload).toHaveBeenCalledTimes(1);
     expect((await repo.getDayArtifact('07012026', 'pdfFile'))?.anthropicFileId).toBe('file_new');
   });
@@ -1547,6 +1761,32 @@ describe('DayArtifactsService', () => {
     const again = await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
     expect(again.anthropicFileId).toBe('file_new');
     expect(upload).toHaveBeenCalledTimes(1); // not re-uploaded
+  });
+
+  it('ensurePdf re-uploads from the GCS copy (not the passed bytes) when the file_id is gone (FIX 8)', async () => {
+    const { svc, bucket, upload, repo } = await build();
+    await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
+    // Simulate the Anthropic file being GC'd: drop the stored id, keep the hash.
+    const stored = await repo.getDayArtifact('07012026', 'pdfFile');
+    await repo.saveDayArtifact('07012026', 'pdfFile', { ...stored!, anthropicFileId: undefined });
+    upload.mockResolvedValueOnce('file_reup');
+    const savesBefore = bucket.saves.length;
+    const res = await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
+    expect(res.anthropicFileId).toBe('file_reup');
+    expect(bucket.downloads).toContain(PDF_PATH); // read the durable origin
+    expect(bucket.saves.length).toBe(savesBefore); // did NOT re-write GCS
+    expect((await repo.getDayArtifact('07012026', 'pdfFile'))?.anthropicFileId).toBe('file_reup');
+  });
+
+  it('ensureFileId returns the stored id, or re-uploads from GCS when absent (FIX 8)', async () => {
+    const { svc, bucket, upload, repo } = await build();
+    await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
+    expect(await svc.ensureFileId('07012026')).toBe('file_new'); // live stored id
+    const stored = await repo.getDayArtifact('07012026', 'pdfFile');
+    await repo.saveDayArtifact('07012026', 'pdfFile', { ...stored!, anthropicFileId: undefined });
+    upload.mockResolvedValueOnce('file_reup');
+    expect(await svc.ensureFileId('07012026')).toBe('file_reup');
+    expect(bucket.downloads).toContain(PDF_PATH);
   });
 
   it('ensureTranscript mirrors text to GCS and records it', async () => {
@@ -1574,9 +1814,13 @@ import { AnthropicService } from '../anthropic/anthropic.service';
 import { BenchmarkRepository, DayArtifactKind } from './benchmark.repository';
 
 // The GCS-backed Bucket surface this service uses (kept minimal so a fake bucket
-// satisfies it in tests).
+// satisfies it in tests). `download()` returns GCS's [Buffer] tuple.
 export interface StorageBucketLike {
-  file(path: string): { save(buf: Buffer): Promise<unknown>; exists(): Promise<[boolean]> };
+  file(path: string): {
+    save(buf: Buffer): Promise<unknown>;
+    exists(): Promise<[boolean]>;
+    download(): Promise<[Buffer]>;
+  };
 }
 
 export interface PdfArtifact {
@@ -1599,14 +1843,25 @@ export class DayArtifactsService {
 
   /**
    * Firebase Storage is the durable origin; the Anthropic Files copy is the
-   * serving copy. When the stored content hash matches, reuse the file_id
-   * without re-writing GCS or re-uploading.
+   * serving copy. When the stored content hash matches and the file_id is live,
+   * reuse it. When the hash matches but the file_id is gone (Anthropic GC'd it),
+   * re-upload from the GCS origin — never from the passed bytes / a repo
+   * checkout. Only genuinely new/changed content writes GCS.
    */
   async ensurePdf(day: string, prefix: string, bytes: Buffer): Promise<PdfArtifact> {
     const contentHash = this.hash(bytes);
     const existing = await this.repo.getDayArtifact(day, 'pdfFile');
-    if (existing && existing.contentHash === contentHash && existing.anthropicFileId) {
-      return { gcsPath: existing.gcsPath, anthropicFileId: existing.anthropicFileId, contentHash };
+    if (existing && existing.contentHash === contentHash) {
+      if (existing.anthropicFileId) {
+        return { gcsPath: existing.gcsPath, anthropicFileId: existing.anthropicFileId, contentHash };
+      }
+      const anthropicFileId = await this.reuploadFromGcs(existing.gcsPath);
+      await this.repo.saveDayArtifact(day, 'pdfFile', {
+        ...existing,
+        anthropicFileId,
+        uploadedAt: new Date().toISOString(),
+      });
+      return { gcsPath: existing.gcsPath, anthropicFileId, contentHash };
     }
     const gcsPath = `benchmark/es/${day}/${prefix}_ES_TP.pdf`;
     await this.bucket.file(gcsPath).save(bytes);
@@ -1618,6 +1873,30 @@ export class DayArtifactsService {
       uploadedAt: new Date().toISOString(),
     });
     return { gcsPath, anthropicFileId, contentHash };
+  }
+
+  /**
+   * A LIVE Anthropic file_id for a day's PDF. Returns the stored id when present;
+   * otherwise re-uploads from the GCS copy (never repo bytes) and persists it.
+   * Used by the cache warmer to keep long-running batches serviceable.
+   */
+  async ensureFileId(day: string): Promise<string> {
+    const existing = await this.repo.getDayArtifact(day, 'pdfFile');
+    if (!existing) throw new Error(`No pdfFile artifact recorded for day ${day}`);
+    if (existing.anthropicFileId) return existing.anthropicFileId;
+    const anthropicFileId = await this.reuploadFromGcs(existing.gcsPath);
+    await this.repo.saveDayArtifact(day, 'pdfFile', {
+      ...existing,
+      anthropicFileId,
+      uploadedAt: new Date().toISOString(),
+    });
+    return anthropicFileId;
+  }
+
+  private async reuploadFromGcs(gcsPath: string): Promise<string> {
+    const [buf] = await this.bucket.file(gcsPath).download();
+    const filename = gcsPath.split('/').pop() as string;
+    return this.anthropic.uploadFile(buf, filename, 'application/pdf');
   }
 
   /** Mirrors a small text doc (TP / RECAP transcript) to GCS + Firestore. */
@@ -1670,33 +1949,37 @@ const bundle: DayBundle = {
 describe('EnvelopeBuilder', () => {
   const builder = new EnvelopeBuilder();
 
-  it('dayBundleContext is system + one tier (the day bundle)', () => {
+  it('dayBundleContext is TWO user tiers (general, day) with NO system breakpoint', () => {
     const ctx = builder.dayBundleContext('GENERAL DOCS', bundle);
-    expect(ctx.system).toContain('GENERAL DOCS');
-    expect(ctx.userTiers).toHaveLength(1);
-    const blocks = ctx.userTiers![0].blocks;
-    expect(blocks[0]).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' } });
-    expect(blocks.some((b: any) => b.type === 'text' && b.text.includes('TP TEXT'))).toBe(true);
-    expect(blocks.some((b: any) => b.type === 'text' && b.text.includes('RECAP TEXT'))).toBe(true);
+    // M4: the whole cached prefix lives in messages so output_config.format on
+    // the batch does not invalidate it, and warm (max_tokens:0, no format) aligns.
+    expect(ctx.system).toBeUndefined();
+    expect(ctx.userTiers).toHaveLength(2);
+    expect((ctx.userTiers![0].blocks[0] as any).text).toContain('GENERAL DOCS');
+    const day = ctx.userTiers![1].blocks;
+    expect(day[0]).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' } });
+    expect(day.some((b: any) => b.type === 'text' && b.text.includes('TP TEXT'))).toBe(true);
+    expect(day.some((b: any) => b.type === 'text' && b.text.includes('RECAP TEXT'))).toBe(true);
   });
 
-  it('base envelope has 3 tiers (day, persona) and NO feature tier', () => {
+  it('base envelope has 3 tiers (general, day, persona), NO system, NO feature tier', () => {
     const env = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', { variant: 'base' });
-    // system + tier2(day) + tier3(persona) = 3 breakpoints, no tier4.
-    expect(env.userTiers).toHaveLength(2);
-    expect(env.userTiers![1].blocks.some((b: any) => b.text.includes('PERSONA'))).toBe(true);
+    expect(env.system).toBeUndefined();
+    expect(env.userTiers).toHaveLength(3);
+    expect((env.userTiers![0].blocks[0] as any).text).toContain('GENERAL');
+    expect(env.userTiers![2].blocks.some((b: any) => b.text.includes('PERSONA'))).toBe(true);
   });
 
-  it('seven-keys-method envelope adds a feature tier with the methods doc', () => {
+  it('seven-keys-method envelope adds a 4th feature tier with the methods doc', () => {
     const env = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
       variant: 'seven-keys-method',
       featureBlock: 'Read the methodology.',
       methodsDoc: 'METHODS BODY',
     });
-    expect(env.userTiers).toHaveLength(3);
-    const tier4 = env.userTiers![2].blocks;
-    expect(tier4.some((b: any) => b.text.includes('METHODS BODY'))).toBe(true);
-    expect(tier4.some((b: any) => b.text.includes('Read the methodology.'))).toBe(true);
+    expect(env.userTiers).toHaveLength(4); // general, day, persona, feature (still <= 4)
+    const feat = env.userTiers![3].blocks;
+    expect(feat.some((b: any) => b.text.includes('METHODS BODY'))).toBe(true);
+    expect(feat.some((b: any) => b.text.includes('Read the methodology.'))).toBe(true);
   });
 
   it('exposes the constant trailing prompt', () => {
@@ -1732,8 +2015,10 @@ export interface VariantSpec {
   methodsDoc?: string; // seven-keys-method's staticDoc content
 }
 
-// Constant task/schema framing appended to Tier 1 (system), shared by the whole
-// matrix for a model. Mirrors the legacy trader-bench agent instructions.
+// Constant task/schema framing. M4: this + the general docs form Tier 1, which
+// now lives in the FIRST USER MESSAGE tier (not `system`), so the batch's
+// output_config.format does not invalidate the cached prefix and the
+// max_tokens:0 warm (which may not carry format) still aligns byte-for-byte.
 const TASK_FRAMING = [
   'You are a futures trading persona on an independent benchmark run.',
   'Commit to exactly ONE trade for the ES (E-mini S&P 500) session: long or short.',
@@ -1750,7 +2035,7 @@ export const TRAILING_PROMPT = 'Produce your single setup now as JSON matching t
 
 @Injectable()
 export class EnvelopeBuilder {
-  private system(generalDocs: string): string {
+  private generalText(generalDocs: string): string {
     return [
       'General trading-strategy documents (session-agnostic guidance that constrains every trade):',
       generalDocs,
@@ -1759,6 +2044,12 @@ export class EnvelopeBuilder {
     ].join('\n');
   }
 
+  // Tier 1: general docs + task framing, as a single cached user text block.
+  private generalTier(generalDocs: string): { blocks: Anthropic.ContentBlockParam[] } {
+    return { blocks: [{ type: 'text', text: this.generalText(generalDocs) }] };
+  }
+
+  // Tier 2: the day bundle — PDF document block (by file_id) + both transcripts.
   private dayTier(bundle: DayBundle): { blocks: Anthropic.ContentBlockParam[] } {
     return {
       blocks: [
@@ -1778,14 +2069,15 @@ export class EnvelopeBuilder {
     };
   }
 
-  /** System + Tier-2 day bundle only — the cheap-to-warm, most-shared tier. */
+  /** Tiers 1-2 (general + day bundle) — the shared, cheap-to-warm prefix. */
   dayBundleContext(generalDocs: string, bundle: DayBundle): CachedContext {
-    return { system: this.system(generalDocs), userTiers: [this.dayTier(bundle)] };
+    return { userTiers: [this.generalTier(generalDocs), this.dayTier(bundle)] };
   }
 
   /** Full 3-tier (base) or 4-tier (feature) envelope for a single cell. */
   fullEnvelope(generalDocs: string, bundle: DayBundle, persona: string, spec: VariantSpec): CachedContext {
     const tiers: Array<{ blocks: Anthropic.ContentBlockParam[] }> = [
+      this.generalTier(generalDocs),
       this.dayTier(bundle),
       { blocks: [{ type: 'text', text: `Adopt this trading persona fully:\n${persona}` }] },
     ];
@@ -1795,7 +2087,7 @@ export class EnvelopeBuilder {
         .trim();
       tiers.push({ blocks: [{ type: 'text', text: featureText }] });
     }
-    return { system: this.system(generalDocs), userTiers: tiers };
+    return { userTiers: tiers };
   }
 }
 ```
@@ -1831,12 +2123,18 @@ import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { AnthropicService } from '../anthropic/anthropic.service';
 import { MarketDataService } from '../market-data/market-data.service';
+import { ContractsService } from '../contracts/contracts.service';
+import { analyzeCoverage } from '../market-data/coverage';
 
 jest.mock('node:fs', () => ({ ...jest.requireActual('node:fs'), readFileSync: jest.fn() }));
+// Coverage is a pure import, not a provider — mock it so day-completeness is
+// controlled per test without hand-building 78-bar candle fixtures.
+jest.mock('../market-data/coverage', () => ({ analyzeCoverage: jest.fn() }));
 
 function makeDeps() {
   const repo = {
     existingRunIndices: jest.fn().mockResolvedValue([]),
+    nonTerminalBatches: jest.fn().mockResolvedValue([]),
     saveBatch: jest.fn().mockResolvedValue(undefined),
   };
   const inputs = {
@@ -1849,6 +2147,7 @@ function makeDeps() {
       { day: '07012026', date: '2026-07-01', prefix: '07012026', pdfPath: '/x/07012026_ES_TP.pdf', planPath: '/x/07012026_ES_TP.md', recapPath: '/x/06302026_ES_RECAP.md' },
       { day: '07022026', date: '2026-07-02', prefix: '07022026', pdfPath: '/y/07022026_ES_TP.pdf', planPath: '/y/07022026_ES_TP.md', recapPath: '/y/07012026_ES_RECAP.md' },
     ]),
+    collectDayIssues: jest.fn().mockReturnValue([]),
   };
   const dayArtifacts = {
     ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', anthropicFileId: 'file_1', contentHash: 'h' }),
@@ -1861,7 +2160,8 @@ function makeDeps() {
   const marketData = {
     getDay: jest.fn(async (_s: string, _i: string, date: string) => (date === '2026-07-01' ? [{ time: 1 }] : null)),
   };
-  return { repo, inputs, dayArtifacts, anthropic, marketData };
+  const contracts = { get: jest.fn(() => ({ rth: { open: '09:30', close: '16:00' }, timezone: 'America/New_York', pointValue: 5 })) };
+  return { repo, inputs, dayArtifacts, anthropic, marketData, contracts };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -1874,14 +2174,18 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
       { provide: AnthropicService, useValue: deps.anthropic },
       { provide: MarketDataService, useValue: deps.marketData },
-      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5 }[k]) } },
+      { provide: ContractsService, useValue: deps.contracts },
+      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 16000, 'benchmark.effort': 'low' }[k]) } },
     ],
   }).compile();
   return moduleRef.get(BenchmarkService);
 }
 
 describe('BenchmarkService.run', () => {
-  beforeEach(() => (readFileSync as jest.Mock).mockReturnValue(Buffer.from('BYTES')));
+  beforeEach(() => {
+    (readFileSync as jest.Mock).mockReturnValue(Buffer.from('BYTES'));
+    (analyzeCoverage as jest.Mock).mockReturnValue({ complete: true });
+  });
 
   it('submits one batch for the day with candles, skips the day without candles', async () => {
     const deps = makeDeps();
@@ -1893,6 +2197,12 @@ describe('BenchmarkService.run', () => {
     expect(call[0]).toHaveLength(2);
     expect(call[2].outputSchema).toBeDefined();
     expect(call[2].model).toBe('claude-fable-5');
+    // Fable batch contract: budget, effort, and beta (files) path.
+    expect(call[2].maxTokens).toBe(16000);
+    expect(call[2].effort).toBe('low');
+    expect(call[2].files).toBe(true);
+    // Warms run on the beta/files path with matching effort.
+    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'low' });
     expect(summary.batchesSubmitted).toBe(1);
     expect(summary.cellsQueued).toBe(2);
     expect(summary.daysSkipped).toEqual([{ day: '07022026', reason: 'no candles' }]);
@@ -1920,6 +2230,36 @@ describe('BenchmarkService.run', () => {
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
     expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
     expect(summary.cellsQueued).toBe(0);
+  });
+
+  it('excludes run-indices already queued in an in-flight batch (FIX 4)', async () => {
+    const deps = makeDeps();
+    // run2 for (context-trader, fable, 07012026, base) is queued but not yet a cell.
+    deps.repo.nonTerminalBatches.mockResolvedValue([
+      { batchId: 'inflight', customIdToCell: { 'context-trader__fable__07012026__base__run2': { date: '2026-07-01', personaSha256: 'p', generalSha256: 'g' } } },
+    ]);
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 2, variants: ['base'] });
+    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    expect(custIds).toEqual(['context-trader__fable__07012026__base__run1']); // run2 not re-submitted
+    expect(summary.cellsQueued).toBe(1);
+  });
+
+  it('skips an incomplete-RTH day before batching (FIX 6)', async () => {
+    const deps = makeDeps();
+    (analyzeCoverage as jest.Mock).mockReturnValue({ complete: false });
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 2, variants: ['base'] });
+    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'incomplete session' });
+  });
+
+  it('reports dropped day-folders missing docs (FIX 7)', async () => {
+    const deps = makeDeps();
+    deps.inputs.collectDayIssues.mockReturnValue([{ day: '07032026', missing: ['*_ES_RECAP.md'] }]);
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, variants: ['base'] });
+    expect(summary.daysSkipped).toContainEqual({ day: '07032026', reason: 'missing docs: *_ES_RECAP.md' });
   });
 
   it('restricts variants to the core set and warms both day-bundle and per-envelope', async () => {
@@ -1957,7 +2297,11 @@ import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
 import { AnthropicService, BatchRequestInput } from '../anthropic/anthropic.service';
 import { MarketDataService } from '../market-data/market-data.service';
-import { CORE_VARIANTS, resolveModel, cellKey, SETUP_SCHEMA, Variant } from './benchmark.types';
+import { ContractsService } from '../contracts/contracts.service';
+import { analyzeCoverage } from '../market-data/coverage';
+import { intervalToSeconds } from '../market-data/candle';
+import { hhmmToMinutes } from '../common/session-time';
+import { CORE_VARIANTS, resolveModel, cellKey, parseCellKey, SETUP_SCHEMA, Variant } from './benchmark.types';
 
 // Symbol/interval the benchmark backtests against (see design §7).
 const SYMBOL = 'MES';
@@ -1986,12 +2330,16 @@ export class BenchmarkService {
     private readonly envelopes: EnvelopeBuilder,
     private readonly anthropic: AnthropicService,
     private readonly marketData: MarketDataService,
+    // ContractsModule is @Global, so ContractsService injects without an import.
+    private readonly contracts: ContractsService,
     private readonly config: ConfigService,
   ) {}
 
   async run(opts: RunOptions = {}): Promise<RunSummary> {
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
+    const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 16000;
+    const effort = this.config.get<string>('benchmark.effort') ?? 'low';
     const variants = (opts.variants ?? CORE_VARIANTS).filter((v) => CORE_VARIANTS.includes(v));
 
     const traders = this.inputs.collectTraders();
@@ -2004,11 +2352,44 @@ export class BenchmarkService {
 
     const summary: RunSummary = { model, batchesSubmitted: 0, cellsQueued: 0, daysSkipped: [] };
 
+    // FIX 7: report day-folders dropped for missing docs.
+    let issues = this.inputs.collectDayIssues();
+    if (opts.days?.length) issues = issues.filter((i) => opts.days!.includes(i.day));
+    for (const issue of issues) {
+      summary.daysSkipped.push({ day: issue.day, reason: `missing docs: ${issue.missing.join(', ')}` });
+    }
+
+    // FIX 4: never re-submit a run-index already queued in an in-flight batch
+    // (a submitted/in-progress/ended batch whose cells are not yet persisted).
+    const inFlight = await this.repo.nonTerminalBatches();
+    const queued = new Map<string, Set<number>>();
+    for (const batch of inFlight) {
+      for (const id of Object.keys(batch.customIdToCell ?? {})) {
+        const p = parseCellKey(id);
+        const k = `${p.trader}|${p.modelAlias}|${p.day}|${p.variant}`;
+        if (!queued.has(k)) queued.set(k, new Set());
+        queued.get(k)!.add(p.runIndex);
+      }
+    }
+
+    const spec = this.contracts.get(SYMBOL);
+    const rthWindow = {
+      openMin: hhmmToMinutes(spec.rth.open),
+      closeMin: hhmmToMinutes(spec.rth.close),
+      intervalSec: intervalToSeconds(INTERVAL),
+      tz: spec.timezone,
+    };
+
     for (const day of days) {
       // Candle prerequisite: a day without ingested OHLC cannot be backtested.
       const candles = await this.marketData.getDay(SYMBOL, INTERVAL, day.date);
       if (!candles || candles.length === 0) {
         summary.daysSkipped.push({ day: day.day, reason: 'no candles' });
+        continue;
+      }
+      // FIX 6: skip an incomplete RTH session before spending on warm/batch.
+      if (!analyzeCoverage(candles, rthWindow).complete) {
+        summary.daysSkipped.push({ day: day.day, reason: 'incomplete session' });
         continue;
       }
 
@@ -2029,7 +2410,10 @@ export class BenchmarkService {
             methodsDoc: feature?.staticDocContent ?? undefined,
           });
           const existing = await this.repo.existingRunIndices(trader.name, model.alias, day.day, variant);
-          const missing = Array.from({ length: runCount }, (_, i) => i + 1).filter((n) => !existing.includes(n));
+          const already = queued.get(`${trader.name}|${model.alias}|${day.day}|${variant}`) ?? new Set<number>();
+          const missing = Array.from({ length: runCount }, (_, i) => i + 1).filter(
+            (n) => !existing.includes(n) && !already.has(n),
+          );
           if (!missing.length) continue;
           enveloped.set(envKey, envelope);
           // Provenance threaded to the batch so the reconciler persists real
@@ -2051,17 +2435,23 @@ export class BenchmarkService {
 
       if (!requests.length) continue;
 
-      // Two-stage warm: day bundle first (Tier 2), then each distinct envelope.
+      // Two-stage warm on the beta/files path with matching effort so the
+      // warm's cached prefix aligns with the batch requests.
       await this.anthropic.warmCache(this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle), {
         model: model.id,
+        files: true,
+        effort,
       });
       for (const envelope of enveloped.values()) {
-        await this.anthropic.warmCache(envelope, { model: model.id });
+        await this.anthropic.warmCache(envelope, { model: model.id, files: true, effort });
       }
 
       const batch = await this.anthropic.createBatch(requests, undefined, {
         model: model.id,
         outputSchema: SETUP_SCHEMA,
+        maxTokens,
+        effort,
+        files: true,
       });
       await this.repo.saveBatch({
         batchId: batch.batchId,
@@ -2121,11 +2511,12 @@ Create `backend/src/benchmark/batch-reconciler.spec.ts`:
 
 ```ts
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { BatchReconciler } from './batch-reconciler';
 import { BenchmarkRepository } from './benchmark.repository';
 import { AnthropicService } from '../anthropic/anthropic.service';
 import { BacktestService } from '../execution/backtest.service';
+import { ScoreboardService } from './scoreboard.service';
 import { cellKey } from './benchmark.types';
 
 const KEY = cellKey({ trader: 'context-trader', modelAlias: 'fable', day: '07012026', variant: 'base', runIndex: 1 });
@@ -2160,7 +2551,8 @@ function makeDeps() {
       results: [{ status: 'TP', points: 10, dollars: 50, fillTime: 1, exitTime: 2, maxAdverseExcursion: 1, maxFavorableExcursion: 2, rMultiple: 2, closestApproach: null }],
     }),
   };
-  return { repo, anthropic, backtest, created };
+  const scoreboard = { generate: jest.fn().mockResolvedValue({ markdown: '#', json: {}, generatedAt: 't' }) };
+  return { repo, anthropic, backtest, scoreboard, created };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -2170,13 +2562,14 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: AnthropicService, useValue: deps.anthropic },
       { provide: BacktestService, useValue: deps.backtest },
+      { provide: ScoreboardService, useValue: deps.scoreboard },
     ],
   }).compile();
   return moduleRef.get(BatchReconciler);
 }
 
 describe('BatchReconciler.reconcile', () => {
-  it('backtests a succeeded setup and writes a scored cell', async () => {
+  it('backtests a succeeded setup and writes a scored cell; reads the beta batch', async () => {
     const deps = makeDeps();
     const rec = await build(deps);
     await rec.reconcile();
@@ -2188,6 +2581,9 @@ describe('BatchReconciler.reconcile', () => {
     expect(cell.personaSha256).toBe('psha');
     expect(cell.generalSha256).toBe('gsha');
     expect(cell.date).toBe('2026-07-01');
+    // Bench batches were created on the beta/files path, so reads use it too.
+    expect(deps.anthropic.getBatch).toHaveBeenCalledWith('batch_1', { files: true });
+    expect(deps.anthropic.getBatchResults).toHaveBeenCalledWith('batch_1', { files: true });
     expect(deps.backtest.run).toHaveBeenCalledWith(expect.objectContaining({
       symbol: 'MES', interval: 'min-5', date: '2026-07-01', session: 'rth', allowIncomplete: false,
       orders: [{ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110 }],
@@ -2203,21 +2599,44 @@ describe('BatchReconciler.reconcile', () => {
     expect(cell.setup).toBeUndefined();
   });
 
-  it('marks the batch reconciled', async () => {
+  it('marks the batch reconciled and regenerates the scoreboard for the model alias (FIX 3)', async () => {
     const deps = makeDeps();
     const rec = await build(deps);
     await rec.reconcile();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', expect.objectContaining({ status: 'reconciled' }));
+    expect(deps.scoreboard.generate).toHaveBeenCalledWith('fable');
   });
 
-  it('treats a backtest 404/422 as an INVALID cell, not a crash', async () => {
+  it('maps order-geometry BadRequest to INVALID (FIX 5)', async () => {
     const deps = makeDeps();
-    deps.backtest.run.mockRejectedValue(new NotFoundException('no candles'));
+    deps.backtest.run.mockRejectedValue(new BadRequestException('long requires stopLoss < entry < takeProfit'));
     const rec = await build(deps);
     await expect(rec.reconcile()).resolves.toBeUndefined();
     const cell = deps.created.find((c) => c.runIndex === 1);
     expect(cell.result.status).toBe('INVALID');
+    expect(cell.note).toContain('requires stopLoss');
+  });
+
+  it('maps a 404 (no candles) / 422 (incomplete) to CLI_ERROR (FIX 5)', async () => {
+    const deps = makeDeps();
+    deps.backtest.run.mockRejectedValue(new NotFoundException('no candles'));
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('CLI_ERROR');
     expect(cell.note).toContain('no candles');
+  });
+
+  it('rejects an out-of-range confidence as INVALID (FIX 5 validation)', async () => {
+    const deps = makeDeps();
+    deps.anthropic.getBatchResults.mockResolvedValue([
+      { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 9 }) },
+    ]);
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('INVALID');
+    expect(deps.backtest.run).not.toHaveBeenCalled(); // never reached the judge
   });
 
   it('is idempotent: createCell swallowing AlreadyExists lets reconcile re-run', async () => {
@@ -2236,6 +2655,7 @@ describe('BatchReconciler.reconcile', () => {
     await rec.reconcile();
     expect(deps.anthropic.getBatchResults).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'in_progress' });
+    expect(deps.scoreboard.generate).not.toHaveBeenCalled();
   });
 
   it('marks a canceled/expired/errored batch terminal without reconciling results', async () => {
@@ -2258,11 +2678,19 @@ describe('BatchReconciler.reconcile', () => {
 Create `backend/src/benchmark/batch-reconciler.ts`:
 
 ```ts
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
 import { AnthropicService, BatchResultItem } from '../anthropic/anthropic.service';
 import { BacktestService } from '../execution/backtest.service';
+import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkCell, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
 
 const SYMBOL = 'MES';
@@ -2277,6 +2705,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
     private readonly repo: BenchmarkRepository,
     private readonly anthropic: AnthropicService,
     private readonly backtest: BacktestService,
+    private readonly scoreboard: ScoreboardService,
   ) {}
 
   // Startup reconciliation: drains batches that finished while the server was off.
@@ -2301,7 +2730,8 @@ export class BatchReconciler implements OnApplicationBootstrap {
   }
 
   private async reconcileBatch(batch: BatchDoc): Promise<void> {
-    const summary = await this.anthropic.getBatch(batch.batchId);
+    // Bench batches were created on the beta/files path, so read them there too.
+    const summary = await this.anthropic.getBatch(batch.batchId, { files: true });
     const status = summary.processingStatus;
 
     if (status === 'in_progress') {
@@ -2314,13 +2744,15 @@ export class BatchReconciler implements OnApplicationBootstrap {
     }
     if (status !== 'ended') return; // 'submitted' / unknown: wait for the next tick
 
-    const results = await this.anthropic.getBatchResults(batch.batchId);
+    const results = await this.anthropic.getBatchResults(batch.batchId, { files: true });
     for (const item of results) {
       // customId IS the cellKey; the CellMeta supplies date + content hashes.
       const meta = batch.customIdToCell[item.customId];
       await this.repo.createCell(await this.buildCell(batch, item.customId, meta, item));
     }
     await this.repo.updateBatch(batch.batchId, { status: 'reconciled', endedAt: new Date().toISOString() });
+    // Refresh the materialized scoreboard for this model now that cells landed.
+    await this.scoreboard.generate(batch.model.alias);
   }
 
   private async buildCell(
@@ -2364,6 +2796,11 @@ export class BatchReconciler implements OnApplicationBootstrap {
     } catch {
       return withMetaNote({ ...base, result: { status: 'INVALID' }, note: 'unparseable setup JSON' });
     }
+    // Light re-validation of the ranges/shape the schema no longer enforces
+    // (structured outputs rejects maxLength/minimum/maximum — see SETUP_SCHEMA).
+    if (!this.validSetup(setup)) {
+      return withMetaNote({ ...base, result: { status: 'INVALID' }, note: 'setup failed validation' });
+    }
 
     try {
       const bt = await this.backtest.run({
@@ -2388,10 +2825,33 @@ export class BatchReconciler implements OnApplicationBootstrap {
       };
       return withMetaNote({ ...base, setup, result });
     } catch (err) {
-      // Missing candles (404), incomplete session (422) or bad order geometry
-      // (400 from normalizeOrders) — record the cell as INVALID, never crash.
-      return withMetaNote({ ...base, setup, result: { status: 'INVALID' }, note: (err as Error).message });
+      // Preserve the judge's verdict: bad order geometry / "must be a number"
+      // (BadRequest 400 from normalizeOrders) is the SETUP's fault -> INVALID;
+      // missing candles (404) or an incomplete session (422), and any other
+      // failure, are environmental -> CLI_ERROR.
+      let status: CellStatus;
+      if (err instanceof BadRequestException) status = 'INVALID';
+      else if (err instanceof NotFoundException || err instanceof UnprocessableEntityException) status = 'CLI_ERROR';
+      else status = 'CLI_ERROR';
+      return withMetaNote({ ...base, setup, result: { status }, note: (err as Error).message });
     }
+  }
+
+  // Required fields present, side in {long,short}, numeric prices, integer
+  // confidence 1..5. Mirrors the constraints stripped from SETUP_SCHEMA.
+  private validSetup(s: any): boolean {
+    return (
+      !!s &&
+      (s.side === 'long' || s.side === 'short') &&
+      Number.isFinite(s.entry) &&
+      Number.isFinite(s.stopLoss) &&
+      Number.isFinite(s.takeProfit) &&
+      typeof s.rationale === 'string' &&
+      typeof s.primaryZone === 'string' &&
+      Number.isInteger(s.confidence) &&
+      s.confidence >= 1 &&
+      s.confidence <= 5
+    );
   }
 }
 ```
@@ -2420,29 +2880,43 @@ Create `backend/src/benchmark/cache-warmer.spec.ts`:
 
 ```ts
 import { Test } from '@nestjs/testing';
-import { readFileSync } from 'node:fs';
+import { ConfigService } from '@nestjs/config';
 import { CacheWarmer } from './cache-warmer';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
+import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { AnthropicService } from '../anthropic/anthropic.service';
-
-jest.mock('node:fs', () => ({ ...jest.requireActual('node:fs'), readFileSync: jest.fn() }));
 
 function makeDeps() {
   const repo = {
     nonTerminalBatches: jest.fn().mockResolvedValue([
-      { batchId: 'b1', day: '07012026', date: '2026-07-01', pdfPrefix: '07012026', model: { alias: 'fable', id: 'claude-fable-5' }, status: 'submitted', customIdToCell: {}, submittedAt: 't' },
+      {
+        batchId: 'b1', day: '07012026', date: '2026-07-01', pdfPrefix: '07012026',
+        model: { alias: 'fable', id: 'claude-fable-5' }, status: 'submitted',
+        customIdToCell: {
+          // Two distinct (trader, variant): base and seven-keys-method (2 run
+          // indices of base collapse to one distinct envelope).
+          'context-trader__fable__07012026__base__run1': {},
+          'context-trader__fable__07012026__base__run2': {},
+          'context-trader__fable__07012026__seven-keys-method__run1': {},
+        },
+        submittedAt: 't',
+      },
     ]),
-    getDayArtifact: jest.fn(async (_day: string, kind: string) =>
-      kind === 'pdfFile'
-        ? { contentHash: 'h', gcsPath: 'gs', anthropicFileId: 'file_1', uploadedAt: 't' }
-        : { contentHash: 'h', gcsPath: 'gs', content: kind === 'tpTranscript' ? 'TP' : 'RECAP', uploadedAt: 't' },
-    ),
+    getDayArtifact: jest.fn(async (_day: string, kind: string) => ({
+      contentHash: 'h', gcsPath: 'gs', content: kind === 'tpTranscript' ? 'TP' : 'RECAP', uploadedAt: 't',
+    })),
   };
-  const inputs = { collectGeneralDocs: jest.fn().mockReturnValue({ files: [], concatenated: 'GEN', sha256: 'g' }) };
+  const inputs = {
+    collectGeneralDocs: jest.fn().mockReturnValue({ files: [], concatenated: 'GEN', sha256: 'g' }),
+    collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null, file: 'context-trader.md', content: 'PERSONA', sha256: 'p' }]),
+    collectFeatures: jest.fn().mockReturnValue([{ id: 'seven-keys-method', name: 'm', file: 'seven-keys-method.md', block: 'B', sha256: 'f', staticDoc: 'd', staticDocContent: 'METHODS', staticDocSha256: 'd' }]),
+  };
+  const dayArtifacts = { ensureFileId: jest.fn().mockResolvedValue('file_live') };
   const anthropic = { warmCache: jest.fn().mockResolvedValue({ cached: true }) };
-  return { repo, inputs, anthropic };
+  const config = { get: (k: string) => (k === 'benchmark.effort' ? 'low' : undefined) };
+  return { repo, inputs, dayArtifacts, anthropic, config };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -2452,23 +2926,32 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       EnvelopeBuilder,
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
+      { provide: DayArtifactsService, useValue: deps.dayArtifacts },
       { provide: AnthropicService, useValue: deps.anthropic },
+      { provide: ConfigService, useValue: deps.config },
     ],
   }).compile();
   return moduleRef.get(CacheWarmer);
 }
 
 describe('CacheWarmer.warm', () => {
-  beforeEach(() => (readFileSync as jest.Mock).mockReturnValue(Buffer.from('x')));
-
-  it('re-warms the day bundle for each non-terminal batch using stored artifacts', async () => {
+  it('re-warms a FULL envelope per distinct (trader,variant) of an in-flight batch (FIX 9)', async () => {
     const deps = makeDeps();
     const warmer = await build(deps);
     await warmer.warm();
-    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(1);
-    const [ctx, opts] = deps.anthropic.warmCache.mock.calls[0];
-    expect(opts.model).toBe('claude-fable-5');
-    expect(ctx.userTiers[0].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_1' } });
+    // base + seven-keys-method = 2 distinct envelopes (base run1/run2 collapse).
+    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(2);
+    // Uses a LIVE file_id (re-derivable from GCS) for the day-bundle tier.
+    expect(deps.dayArtifacts.ensureFileId).toHaveBeenCalledWith('07012026');
+    for (const [ctx, opts] of deps.anthropic.warmCache.mock.calls) {
+      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'low' });
+      // Tier 0 general, Tier 1 day-bundle document referencing the live file_id.
+      expect(ctx.userTiers[1].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_live' } });
+      expect((ctx.userTiers[2].blocks[0] as any).text).toContain('PERSONA');
+    }
+    // One of the two envelopes carries the 4th feature tier.
+    const tierCounts = deps.anthropic.warmCache.mock.calls.map(([ctx]) => ctx.userTiers.length).sort();
+    expect(tierCounts).toEqual([3, 4]);
   });
 
   it('no-ops when there are no in-flight batches', async () => {
@@ -2491,11 +2974,14 @@ Create `backend/src/benchmark/cache-warmer.ts`:
 
 ```ts
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
+import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { AnthropicService } from '../anthropic/anthropic.service';
+import { parseCellKey } from './benchmark.types';
 
 // 55 minutes < the 1h ephemeral TTL. @Interval fires every fixed span from
 // boot; a cron minute field cannot express "every 55 minutes" (see plan note).
@@ -2508,8 +2994,10 @@ export class CacheWarmer {
   constructor(
     private readonly repo: BenchmarkRepository,
     private readonly inputs: RepoInputsService,
+    private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
     private readonly anthropic: AnthropicService,
+    private readonly config: ConfigService,
   ) {}
 
   @Interval('bench-cache-warm', WARM_INTERVAL_MS)
@@ -2517,23 +3005,46 @@ export class CacheWarmer {
     const batches = await this.repo.nonTerminalBatches();
     if (!batches.length) return;
     const general = this.inputs.collectGeneralDocs().concatenated;
-    // De-dup by day: one warm keeps the whole day's matrix hot.
+    const traders = new Map(this.inputs.collectTraders().map((t) => [t.name, t]));
+    const features = new Map(this.inputs.collectFeatures().map((f) => [f.id, f]));
+    const effort = this.config.get<string>('benchmark.effort') ?? 'low';
+    // Avoid re-warming the same (model, day, trader, variant) twice this pass.
     const seen = new Set<string>();
+
     for (const batch of batches) {
-      if (seen.has(batch.day)) continue;
-      seen.add(batch.day);
       try {
-        const pdf = await this.repo.getDayArtifact(batch.day, 'pdfFile');
+        // Live file_id — re-derived from the GCS origin if Anthropic GC'd it.
+        const fileId = await this.dayArtifacts.ensureFileId(batch.day);
         const tp = await this.repo.getDayArtifact(batch.day, 'tpTranscript');
         const recap = await this.repo.getDayArtifact(batch.day, 'recapTranscript');
-        if (!pdf?.anthropicFileId) continue;
-        const ctx = this.envelopes.dayBundleContext(general, {
+        const bundle = {
           date: batch.date,
-          anthropicFileId: pdf.anthropicFileId,
+          anthropicFileId: fileId,
           tpTranscript: tp?.content ?? '',
           recapTranscript: recap?.content ?? '',
-        });
-        await this.anthropic.warmCache(ctx, { model: batch.model.id });
+        };
+        const distinct = new Set<string>();
+        for (const id of Object.keys(batch.customIdToCell ?? {})) {
+          const p = parseCellKey(id);
+          distinct.add(`${p.trader}::${p.variant}`);
+        }
+        for (const key of distinct) {
+          const dedup = `${batch.model.id}|${batch.day}|${key}`;
+          if (seen.has(dedup)) continue;
+          seen.add(dedup);
+          const [traderName, variant] = key.split('::');
+          const trader = traders.get(traderName);
+          if (!trader) continue;
+          const feature = variant === 'base' ? undefined : features.get(variant);
+          // Re-warm the FULL envelope so persona + feature tiers stay hot for
+          // long-running batches — not just the shared day-bundle tier.
+          const envelope = this.envelopes.fullEnvelope(general, bundle, trader.content, {
+            variant,
+            featureBlock: feature?.block,
+            methodsDoc: feature?.staticDocContent ?? undefined,
+          });
+          await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort });
+        }
       } catch (err) {
         this.logger.error(`Re-warm for day ${batch.day} failed: ${(err as Error).message}`);
       }
@@ -3312,8 +3823,11 @@ import { CacheWarmer } from './cache-warmer';
 import { ScoreboardService } from './scoreboard.service';
 
 @Module({
-  // AnthropicModule + FirebaseModule are @Global, but importing AnthropicModule
-  // explicitly documents the dependency; MarketData/Execution are not global.
+  // AnthropicModule + FirebaseModule + ContractsModule are @Global (ContractsService
+  // for BenchmarkService's coverage check, FIRESTORE/STORAGE_BUCKET for the repo /
+  // day-artifacts); MarketData/Execution are not global so they're imported.
+  // Intra-module deps: BatchReconciler -> ScoreboardService (regenerate on
+  // reconcile); CacheWarmer -> DayArtifactsService (live file_id) + ConfigService.
   imports: [AnthropicModule, MarketDataModule, ExecutionModule],
   providers: [
     BenchmarkRepository,
@@ -3406,24 +3920,29 @@ class FakeAPIError extends Error {
 }
 
 jest.mock('@anthropic-ai/sdk', () => {
+  // Shared mock fns so the (memoized) client exposes the SAME batch across the
+  // non-beta and beta surfaces. Bench uses the BETA surface for warm/create/
+  // retrieve/results/files; the non-beta surface stays for the demo controller.
+  const messageCreate = jest.fn().mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
+  const batchesCreate = jest.fn().mockResolvedValue({ id: 'batch_e2e', processing_status: 'in_progress' });
+  const batchesRetrieve = jest.fn(async () => ({ id: 'batch_e2e', processing_status: batchState.status, request_counts: {} }));
+  const batchesResults = jest.fn(async () => {
+    async function* gen() {
+      // Two cells for one trader x base x runCount 2.
+      yield { custom_id: 'context-trader__fable__07012026__base__run1', result: succeeded('long') };
+      yield { custom_id: 'context-trader__fable__07012026__base__run2', result: succeeded('short') };
+    }
+    return gen();
+  });
+  const filesUpload = jest.fn().mockResolvedValue({ id: 'file_e2e' });
+  const batches = { create: batchesCreate, retrieve: batchesRetrieve, results: batchesResults };
   const ctor: any = function () {
     return {
-      messages: {
-        create: jest.fn().mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } }),
-        batches: {
-          create: jest.fn().mockResolvedValue({ id: 'batch_e2e', processing_status: 'in_progress' }),
-          retrieve: jest.fn(async () => ({ id: 'batch_e2e', processing_status: batchState.status, request_counts: {} })),
-          results: jest.fn(async () => {
-            async function* gen() {
-              // Two cells for one trader x base x runCount 2.
-              yield { custom_id: 'context-trader__fable__07012026__base__run1', result: succeeded('long') };
-              yield { custom_id: 'context-trader__fable__07012026__base__run2', result: succeeded('short') };
-            }
-            return gen();
-          }),
-        },
+      messages: { create: messageCreate, batches },
+      beta: {
+        messages: { create: messageCreate, batches },
+        files: { upload: filesUpload },
       },
-      beta: { files: { upload: jest.fn().mockResolvedValue({ id: 'file_e2e' }) } },
     };
   };
   ctor.APIError = FakeAPIError;
@@ -3444,7 +3963,14 @@ import { ScoreboardService } from '../src/benchmark/scoreboard.service';
 
 function fakeBucket() {
   const saved: Record<string, Buffer> = {};
-  return { saved, file: (path: string) => ({ save: (b: Buffer) => { saved[path] = b; return Promise.resolve(); }, exists: () => Promise.resolve([path in saved] as [boolean]) }) };
+  return {
+    saved,
+    file: (path: string) => ({
+      save: (b: Buffer) => { saved[path] = b; return Promise.resolve(); },
+      exists: () => Promise.resolve([path in saved] as [boolean]),
+      download: () => Promise.resolve([saved[path]] as [Buffer]),
+    }),
+  };
 }
 
 function seedRepo(): string {
