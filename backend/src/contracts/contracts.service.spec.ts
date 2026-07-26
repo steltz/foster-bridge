@@ -14,6 +14,11 @@ describe('ContractsService', () => {
     expect(() => service.get('XYZ')).toThrow(NotFoundException);
   });
 
+  it('get() throws for inherited Object.prototype keys', () => {
+    expect(() => service.get('constructor')).toThrow(NotFoundException);
+    expect(() => service.get('toString')).toThrow(NotFoundException);
+  });
+
   it('has() reflects membership', () => {
     expect(service.has('NQ')).toBe(true);
     expect(service.has('XYZ')).toBe(false);

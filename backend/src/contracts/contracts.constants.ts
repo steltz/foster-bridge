@@ -8,41 +8,41 @@ export interface ContractSpec {
   rth: { open: string; close: string }; // 'HH:MM' local to `timezone`
 }
 
-export const CONTRACTS: Record<string, ContractSpec> = {
-  MES: {
+export const CONTRACTS: Record<string, ContractSpec> = Object.freeze({
+  MES: Object.freeze({
     symbol: 'MES',
     name: 'Micro E-mini S&P 500',
     pointValue: 5,
     tickSize: 0.25,
     currency: 'USD',
     timezone: 'America/New_York',
-    rth: { open: '09:30', close: '16:00' },
-  },
-  ES: {
+    rth: Object.freeze({ open: '09:30', close: '16:00' }),
+  }),
+  ES: Object.freeze({
     symbol: 'ES',
     name: 'E-mini S&P 500',
     pointValue: 50,
     tickSize: 0.25,
     currency: 'USD',
     timezone: 'America/New_York',
-    rth: { open: '09:30', close: '16:00' },
-  },
-  NQ: {
+    rth: Object.freeze({ open: '09:30', close: '16:00' }),
+  }),
+  NQ: Object.freeze({
     symbol: 'NQ',
     name: 'E-mini Nasdaq-100',
     pointValue: 20,
     tickSize: 0.25,
     currency: 'USD',
     timezone: 'America/New_York',
-    rth: { open: '09:30', close: '16:00' },
-  },
-  MNQ: {
+    rth: Object.freeze({ open: '09:30', close: '16:00' }),
+  }),
+  MNQ: Object.freeze({
     symbol: 'MNQ',
     name: 'Micro E-mini Nasdaq-100',
     pointValue: 2,
     tickSize: 0.25,
     currency: 'USD',
     timezone: 'America/New_York',
-    rth: { open: '09:30', close: '16:00' },
-  },
-};
+    rth: Object.freeze({ open: '09:30', close: '16:00' }),
+  }),
+}) as Record<string, ContractSpec>;
