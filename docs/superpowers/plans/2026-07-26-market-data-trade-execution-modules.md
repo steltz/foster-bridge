@@ -375,13 +375,15 @@ export function fromStored(s: StoredCandle): Candle {
   return { time: s.t, open: s.o, high: s.h, low: s.l, close: s.c };
 }
 
-export type Interval = 'min-1' | 'min-5' | 'min-15' | 'min-60';
+// Only intervals that evenly divide the 390-minute RTH window are supported, so
+// completeness is always a whole number of bars. min-60 is excluded on purpose:
+// 09:30-16:00 is 6.5 hours, so hourly bars can never fully cover RTH.
+export type Interval = 'min-1' | 'min-5' | 'min-15';
 
 const INTERVAL_SECONDS: Record<Interval, number> = {
   'min-1': 60,
   'min-5': 300,
   'min-15': 900,
-  'min-60': 3600,
 };
 
 export function isInterval(value: string): value is Interval {
@@ -572,6 +574,11 @@ describe('analyzeCoverage', () => {
     expect(r.complete).toBe(true);
     expect(r.presentCount).toBe(78);
   });
+
+  it('throws when the window is not divisible by the interval', () => {
+    // 390-min RTH with a 3600s (60-min) interval => 6.5 bars, incoherent.
+    expect(() => analyzeCoverage(fullDay(), { ...WINDOW, intervalSec: 3600 })).toThrow(/divisible/i);
+  });
 });
 ```
 
@@ -613,6 +620,11 @@ export interface CoverageResult {
 export function analyzeCoverage(candles: Candle[], window: CoverageWindow): CoverageResult {
   const { openMin, closeMin, intervalSec, tz } = window;
   const intervalMin = intervalSec / 60;
+  if ((closeMin - openMin) % intervalMin !== 0) {
+    throw new Error(
+      `RTH window (${closeMin - openMin} min) is not divisible by interval (${intervalMin} min)`,
+    );
+  }
   const expectedCount = (closeMin - openMin) / intervalMin;
 
   const inWindow = candles
@@ -854,6 +866,15 @@ describe('MarketDataService.ingestCsv', () => {
     expect(summary.days[0]).toMatchObject({ added: 0, updated: 0, unchanged: true });
     expect(tx.set).not.toHaveBeenCalled();
   });
+
+  it('rejects candles whose timestamps do not align to the interval grid', async () => {
+    const { firestore } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    // OPEN+60 is a 1-min offset — not a multiple of 300s, i.e. mislabeled data.
+    await expect(
+      service.ingestCsv('MES', 'min-5', csv([[OPEN, 1, 2, 0, 1], [OPEN + 60, 2, 3, 1, 2]]), {}),
+    ).rejects.toThrow(/align|interval/i);
+  });
 });
 ```
 
@@ -903,6 +924,18 @@ Methods inside `MarketDataService`:
     this.validate(symbol, interval);
     const spec = this.contracts.get(symbol);
     const candles = parseCsv(csvText);
+
+    // Reject mislabeled uploads: every candle must sit on the interval grid.
+    // A truncated/gappy day still aligns (gaps are whole multiples of the
+    // interval); sub-interval spacing (e.g. 1-min data sent to min-5) does not.
+    const intervalSec = intervalToSeconds(interval);
+    const misaligned = candles.find((c) => c.time % intervalSec !== 0);
+    if (misaligned) {
+      throw new BadRequestException(
+        `Candle time ${misaligned.time} is not aligned to the ${interval} interval ` +
+          `(${intervalSec}s); the CSV does not match this interval`,
+      );
+    }
 
     // Group by ET calendar day.
     const byDay = new Map<string, Candle[]>();
@@ -1633,7 +1666,6 @@ export interface BacktestRequest {
   orders: RawOrder[];
   entryCutoff?: string; // 'HH:MM' or 'off'; default '14:00'
   openBuffer?: number;  // minutes after RTH open; default 30
-  tz?: string;          // default contract timezone
   allowIncomplete?: boolean;
 }
 
@@ -1665,7 +1697,9 @@ export class BacktestService {
 
   async run(req: BacktestRequest): Promise<BacktestResult> {
     const spec = this.contracts.get(req.symbol); // 404 on unknown symbol
-    const tz = req.tz ?? spec.timezone;
+    // The RTH window is defined relative to the contract's own timezone; there
+    // is no request-level override, which would desync the grid from spec.rth.
+    const tz = spec.timezone;
     const session = req.session ?? 'rth';
     const orders = normalizeOrders(req.orders);
 
@@ -1854,7 +1888,7 @@ Add a "Market data & backtest" section to `backend/README.md` covering:
 - `GET /markets/:symbol/:interval/days` → stored days with `complete`.
 - `GET /markets/:symbol/:interval/candles?date=YYYY-MM-DD` → a day's candles.
 - `POST /backtest` (JSON `BacktestRequest`) → results/summary/coverage; note the `422` incomplete-session gate and `allowIncomplete` escape hatch.
-- Note supported symbols (MES/ES/NQ/MNQ) and intervals (min-1/5/15/60), and that half-days are excluded (flagged incomplete).
+- Note supported symbols (MES/ES/NQ/MNQ) and intervals (min-1/5/15 — only intervals that evenly divide RTH; min-60 is unsupported), that uploads must align to the interval grid, and that half-days are excluded (flagged incomplete).
 
 - [ ] **Step 3: Commit**
 
@@ -1871,7 +1905,10 @@ git commit -m "docs(backend): document market-data and backtest endpoints"
 - Doc-per-day Firestore layout + compact keys (spec §2) → Tasks 5, 8, 9.
 - CSV OHLC-only parsing (spec §2) → Task 6.
 - Idempotent per-day merge-upsert + `replace` + unchanged-skip (spec §2) → Task 9.
-- Coverage/gap util, DST-safe algorithm (spec §2) → Task 7; stored at ingest (Task 9); enforced at backtest (Task 15).
+- Coverage/gap util, DST-safe algorithm + interval-divisibility guard (spec §2) → Task 7; stored at ingest (Task 9); enforced at backtest (Task 15).
+- Supported-interval set restricted to those dividing RTH; min-60 excluded (spec §2) → Task 5.
+- Ingest-time interval-grid alignment validation (spec §2) → Task 9.
+- Contract-timezone anchoring, no `tz` request override (spec §3) → Task 15.
 - Multipart upload + read endpoints (spec §2) → Task 10; e2e Task 11.
 - Pure engine + orders port, heavy unit tests (spec §3, §Testing) → Tasks 12–13.
 - ExecutionEngine + BacktestService + coverage gate (spec §3) → Tasks 14–15.

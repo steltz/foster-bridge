@@ -127,8 +127,11 @@ under the 1 MiB limit for every interval down to 1-minute (~1,440 candles ≈
   imported by `execution/`. `time` is Unix epoch **seconds**.
 - Storage row `{ t, o, h, l, c }` is a compact projection; `MarketDataService`
   owns the mapping both ways.
-- `Interval` — a validated string set (`min-1`, `min-5`, `min-15`, `min-60`);
-  `intervalToSeconds()` lives in the coverage util.
+- `Interval` — a validated string set (`min-1`, `min-5`, `min-15`). Every
+  supported interval must evenly divide the RTH window (390 min), so completeness
+  is a whole number of bars. `min-60` is deliberately **excluded**: 09:30–16:00 is
+  6.5 hours, not a whole number of hourly bars, so it can never be "complete"
+  against RTH. `intervalToSeconds()` lives in `candle.ts`.
 
 ### CSV parsing — `csv-parser.ts` (pure)
 
@@ -147,7 +150,13 @@ Behavior-exact port of `src/parse-csv.js`:
 
 1. Validate `symbol` (via `ContractsService`, `404` if unknown) and `interval`
    (`400` if not allowed).
-2. Parse CSV → candles; group by ET calendar day (`dateForTimestamp`).
+2. Parse CSV → candles. **Validate interval alignment:** every candle's `time`
+   must be a multiple of `intervalToSeconds(interval)` (`400` otherwise). This
+   rejects mislabeled uploads — e.g. 1-minute data pushed to the `min-5`
+   subcollection — before they silently enter the store and render every day
+   "incomplete". (A merely-truncated or gappy day still aligns to the grid and is
+   accepted; incompleteness is the coverage util's job, not ingest's.) Then group
+   by ET calendar day (`dateForTimestamp`).
 3. For each day, in a **Firestore transaction** on the day-doc:
    - `replace=false` (default): **merge** the day's candles into the existing
      doc keyed by `t` (a same-`t` CSV candle overwrites the stored one), re-sort.
@@ -164,7 +173,6 @@ Behavior-exact port of `src/parse-csv.js`:
   `listDocuments()` / a projected `get()`, cheap, no candle payloads where
   avoidable.
 - `getDay(symbol, interval, date) → Candle[] | null`.
-- `getRange(symbol, interval, start, end) → Candle[]` — multi-day support.
 
 ### Coverage / gap utility — `coverage.ts` (pure)
 
@@ -186,7 +194,10 @@ minute == close − interval (e.g. 15:55 → 955), (3) every consecutive pair di
 by exactly `intervalSec`. `complete` = all three. Reading local minutes off real
 timestamps is robust to DST because DST transitions never fall inside RTH.
 Detects both truncated sessions and interior dropped bars. Candles outside the
-RTH window are ignored for the RTH judgement.
+RTH window are ignored for the RTH judgement. Precondition: `(closeMin − openMin)`
+must be divisible by the interval minutes (guaranteed by the supported-interval
+set above); `analyzeCoverage` asserts this defensively so a future incoherent
+interval fails loudly rather than reporting perpetual incompleteness.
 
 ### Controller — `MarketDataController`
 
@@ -236,9 +247,14 @@ injected/mocked.
 Injects `MarketDataService`, `ContractsService`, `ExecutionEngine`.
 
 `run({ symbol, interval, date, session: 'rth'|'full', orders, entryCutoff?,
-openBuffer?, tz?, allowIncomplete? }) → BacktestResult`:
+openBuffer?, allowIncomplete? }) → BacktestResult`:
 
-1. Resolve `ContractSpec` (pointValue, tz, rth) — `404` on unknown symbol.
+The session timezone is always the **contract's** `spec.timezone` — there is no
+`tz` request override. The RTH window (`spec.rth`) is only meaningful in the
+contract's zone, so evaluating it in any other zone would silently corrupt both
+the coverage grid and session filtering.
+
+1. Resolve `ContractSpec` (pointValue, timezone, rth) — `404` on unknown symbol.
 2. `normalizeOrders(orders)` — `400` on invalid orders.
 3. `getDay` candles — `404` if the day has no stored data.
 4. **Coverage gate:** recompute `analyzeCoverage` from the fetched candles for the
