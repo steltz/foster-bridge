@@ -83,7 +83,7 @@ than a stack trace — expected in local user-ADC environments.
 
 ```bash
 pnpm test        # unit tests (SDK mocked, no network)
-pnpm test:e2e    # e2e: GET /health
+pnpm test:e2e    # e2e: health, market-data ingest/read, backtest (in-memory Firestore fake)
 ```
 
 Live GCP connectivity is verified manually via `/health/ready`, not in CI.
@@ -137,3 +137,107 @@ curl -X POST localhost:3000/ai/message -H 'content-type: application/json' \
 
 Without a key, `/ai/message` and the batch routes return `401` (from
 `ANTHROPIC_API_KEY is not configured`); `/ai/ready` still returns 200.
+
+## Market data & backtest
+
+Endpoints for ingesting OHLC candle data and running a simple long/short
+backtest against it.
+
+### Supported symbols & intervals
+
+| Symbol | Point value |
+| --- | --- |
+| MES | 5 |
+| ES | 50 |
+| NQ | 20 |
+| MNQ | 2 |
+
+Intervals: `min-1`, `min-5`, `min-15` — only intervals that evenly divide the
+390-minute RTH window (09:30–16:00 ET), so completeness is always a whole
+number of bars. `min-60` is intentionally unsupported (6.5 hours doesn't
+divide evenly into hourly bars). Uploaded candle timestamps must align to the
+interval grid.
+
+### Ingest candles
+
+```bash
+curl -X POST "localhost:3000/markets/MES/min-5/candles" \
+  -F file=@mes-2026-07.csv
+```
+
+Multipart `file` field, CSV with header `time,open,high,low,close` (`time` is
+Unix epoch seconds). Add `?replace=true` to overwrite existing rows for a day
+instead of merging. The response is an ingest summary, one entry per calendar
+day found in the file:
+
+```json
+{
+  "totalRows": 78,
+  "days": [
+    { "date": "2026-07-14", "added": 78, "updated": 0, "unchanged": 0, "totalAfter": 78, "complete": true }
+  ]
+}
+```
+
+Ingestion is idempotent per day: re-uploading the same file merges by
+timestamp (dedup on `time`), so repeated uploads of overlapping data don't
+duplicate candles.
+
+### Read back candles
+
+```bash
+# Stored days for a symbol/interval, with bar count and RTH completeness
+curl localhost:3000/markets/MES/min-5/days
+# -> [{ "date": "2026-07-14", "count": 78, "complete": true }, ...]
+
+# A single day's candles
+curl "localhost:3000/markets/MES/min-5/candles?date=2026-07-14"
+```
+
+### Backtest
+
+```bash
+curl -X POST localhost:3000/backtest \
+  -H 'content-type: application/json' \
+  -d '{
+    "symbol": "MES",
+    "interval": "min-5",
+    "date": "2026-07-14",
+    "session": "rth",
+    "orders": [{ "side": "long", "entry": 100, "stopLoss": 95, "takeProfit": 110 }]
+  }'
+```
+
+Request body:
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `symbol` | string | — | one of MES/ES/NQ/MNQ |
+| `interval` | string | — | one of `min-1`/`min-5`/`min-15` |
+| `date` | string | — | `YYYY-MM-DD`, ET calendar day |
+| `session` | `'rth' \| 'full'` | `'rth'` | which candles to simulate over |
+| `orders` | array | — | one or more `{ side, entry, stopLoss, takeProfit }` |
+| `entryCutoff` | `'HH:MM' \| 'off'` | `'14:00'` | stop looking for a fill after this ET time; `'off'` disables the cutoff |
+| `openBuffer` | number (minutes) | `30` | delay order activation this many minutes past RTH open |
+| `allowIncomplete` | boolean | `false` | bypass the incomplete-session gate below |
+
+Response: `{ symbol, date, session, results, summary, coverage }` — per-order
+fill/exit `results`, an aggregate `summary` (e.g. `orders` count), and a
+`coverage` report (`complete`, `hasOpen`, `hasClose`, `gaps`).
+
+If `session` is `'rth'` and the stored day doesn't have full RTH coverage
+(missing open/close bar or gaps), the request is refused with **422**:
+
+```json
+{ "error": "incomplete-session", "message": "...", "hasOpen": true, "hasClose": false, "gaps": [...] }
+```
+
+Pass `allowIncomplete: true` to run the backtest anyway.
+
+### Known limitation: half-days
+
+Early-close (half) trading days never satisfy the full RTH bar count, so
+today they're always flagged `complete: false` and are excluded from
+backtesting under the default `'rth'` session gate (use `allowIncomplete:
+true` or `session: 'full'` to work around it). There is no half-day calendar
+yet to special-case these dates.
