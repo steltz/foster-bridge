@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { MarketDataService } from './market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { FIRESTORE } from '../firebase/firebase.constants';
@@ -45,6 +46,27 @@ describe('MarketDataService reads', () => {
   it('rejects an invalid interval', async () => {
     const service = await build(makeFirestore(null));
     await expect(service.getDay('MES', 'min-3' as any, '2026-07-14')).rejects.toThrow('interval');
+  });
+
+  it('listStoredDays returns sorted day metadata', async () => {
+    const firestore: any = {
+      collection: jest.fn(() => ({
+        get: jest.fn(() => Promise.resolve({ docs: [
+          { id: '2026-07-15', data: () => ({ count: 78, coverage: { rthComplete: true } }) },
+          { id: '2026-07-14', data: () => ({ count: 40, coverage: { rthComplete: false } }) },
+        ] })),
+      })),
+    };
+    const moduleRef = await Test.createTestingModule({
+      providers: [MarketDataService, ContractsService, { provide: FIRESTORE, useValue: firestore }],
+    }).compile();
+    const service = moduleRef.get(MarketDataService);
+    const days = await service.listStoredDays('MES', 'min-5');
+    expect(days).toEqual([
+      { date: '2026-07-14', count: 40, complete: false },
+      { date: '2026-07-15', count: 78, complete: true },
+    ]);
+    expect(firestore.collection).toHaveBeenCalledWith('markets/MES/min-5');
   });
 });
 
@@ -113,5 +135,20 @@ describe('MarketDataService.ingestCsv', () => {
     await expect(
       service.ingestCsv('MES', 'min-5', csv([[OPEN, 1, 2, 0, 1], [OPEN + 60, 2, 3, 1, 2]]), {}),
     ).rejects.toThrow(/align|interval/i);
+  });
+
+  it('replace mode dedups duplicate timestamps in the CSV', async () => {
+    const { firestore, store } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    await service.ingestCsv('MES', 'min-5', csv([[OPEN, 1, 2, 0, 1], [OPEN, 9, 9, 9, 9]]), { replace: true });
+    expect(store.written.candles).toEqual([{ t: OPEN, o: 9, h: 9, l: 9, c: 9 }]); // last wins, length 1
+    expect(store.written.count).toBe(1);
+  });
+
+  it('rejects a malformed CSV as a bad request', async () => {
+    const { firestore } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    await expect(service.ingestCsv('MES', 'min-5', 'time,open,high,low\n1,2,3,4', {}))
+      .rejects.toThrow(BadRequestException);
   });
 });

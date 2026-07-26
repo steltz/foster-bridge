@@ -74,7 +74,12 @@ export class MarketDataService {
   async ingestCsv(symbol: string, interval: Interval, csvText: string, opts: IngestOptions): Promise<IngestSummary> {
     this.validate(symbol, interval);
     const spec = this.contracts.get(symbol);
-    const candles = parseCsv(csvText);
+    let candles: Candle[];
+    try {
+      candles = parseCsv(csvText);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
 
     // Reject mislabeled uploads: every candle must sit on the interval grid.
     // A truncated/gappy day still aligns (gaps are whole multiples of the
@@ -124,15 +129,20 @@ export class MarketDataService {
       const snap = await tx.get(ref);
       const existing: StoredCandle[] = snap.exists ? ((snap.data()?.candles ?? []) as StoredCandle[]) : [];
 
+      // Dedup the incoming batch by timestamp (last write wins) before doing
+      // anything else, so a CSV with a repeated `t` can't inflate `count` or
+      // the added/updated tallies, in either the replace or merge branch.
+      const incomingDeduped = [...new Map(incoming.map((c) => [c.t, c])).values()];
+
       const existingByT = new Map(existing.map((c) => [c.t, c]));
       let added = 0;
       let updated = 0;
       let merged: StoredCandle[];
       if (replace) {
-        merged = [...incoming].sort((a, b) => a.t - b.t);
+        merged = [...incomingDeduped].sort((a, b) => a.t - b.t);
       } else {
         const map = new Map(existingByT);
-        for (const c of incoming) {
+        for (const c of incomingDeduped) {
           const prev = map.get(c.t);
           if (prev === undefined) added += 1;
           else if (prev.o !== c.o || prev.h !== c.h || prev.l !== c.l || prev.c !== c.c) updated += 1;
