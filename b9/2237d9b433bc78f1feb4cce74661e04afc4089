@@ -1,0 +1,22 @@
+backend/src/market-data/market-data.service.ts
+  s_4aa6f7a9791a45::t_7048d57a715cd4 21-25
+  s_4aa6f7a9791a45::t_609cad7fbd4ab5 1-20,26-51
+backend/src/market-data/market-data.service.spec.ts
+  s_4aa6f7a9791a45::t_d75b7594ca9504 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b92237d9b433bc78f1feb4cce74661e04afc4089",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
