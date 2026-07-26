@@ -167,6 +167,15 @@ Behavior-exact port of `src/parse-csv.js`:
 4. Return `IngestSummary`: `totalRows`, and per-day
    `{ date, added, updated, unchanged: boolean, totalAfter, complete }`.
 
+**Ingest retains the full 24h session, not just RTH.** Every candle in the CSV
+is stored — overnight/pre-market/post-market Globex bars included (a complete
+MES weekday is ~276 five-minute bars ≈ 23h, not the 78 RTH bars). RTH is only a
+*lens*: it drives the completeness flag (below) and the backtest's run-time
+window. Because every raw candle is retained, the day-bucketing choice is
+**non-lossy and fully reversible** — the data can be re-keyed by any session
+definition later without re-ingesting. See the trade-date follow-up under *Known
+Limitations*.
+
 ### Read APIs
 
 - `listStoredDays(symbol, interval) → { date, count, complete }[]` — via
@@ -320,6 +329,22 @@ registers the controller, imports `MarketDataModule` + `ContractsModule`.
 - **Full-session completeness** is not rigorously defined (no per-contract Globex
   session window here). The enforced completeness guarantee is RTH; `session:
   'full'` runs without a hard grid gate unless a session window is later defined.
+- **Day-docs are keyed by ET calendar day, not by CME trade-date.** All 24h
+  Globex data *is* stored (see the ingest note above — nothing is dropped), but a
+  futures session for trade-date D runs from ~18:00 ET on D-1 to ~17:00 ET on D,
+  so the overnight leading into D's RTH open is currently **split across two
+  day-docs** (the prior evening lands in D-1's doc, the early morning in D's). A
+  concrete example from the first MES ingest: Monday's pre-market spans the
+  Sunday-evening doc (18:00–24:00, ~72 bars, flagged incomplete) plus Monday's
+  00:00–09:30 portion. This is not a data-retention issue — every candle is kept
+  and re-bucketing is a pure re-derivation from stored candles (no re-ingest).
+  **Anticipated use case:** showing the model/trader the prior night's
+  pre-market before a decision on day D. When that lands, address it by either
+  (a) a session-aware read (`getSession`/`getWithPriorNight`) that stitches D-1's
+  evening with D, or (b) re-keying storage to CME trade-date so a session +
+  its overnight is one doc (also requires defining the per-contract Globex
+  window, which resolves the full-session-completeness item above). Deferred as
+  a follow-up — nothing is lost by waiting.
 - **Contract registry is static config.** Runtime editing would require moving it
   to Firestore later.
 - **CLI/backend share no code yet** — the engine is ported (duplicated) into the
