@@ -1,0 +1,23 @@
+backend/src/contracts/contracts.constants.ts
+  s_4aa6f7a9791a45::t_d3a2745f9cc6ca 11-12,19-21,28-30,37-39,46-48
+backend/src/contracts/contracts.service.spec.ts
+  s_4aa6f7a9791a45::t_7a81af1770b94c 17-21
+backend/src/contracts/contracts.service.ts
+  s_4aa6f7a9791a45::t_ee16361e982ad8 7-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "82ba848bed4550dcb81eb1565522f43945e0f8ce",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
