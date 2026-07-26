@@ -1,0 +1,24 @@
+backend/src/execution/backtest.controller.ts
+  s_4aa6f7a9791a45::t_db6eda976bc4e3 1-12
+backend/src/execution/execution.module.ts
+  s_4aa6f7a9791a45::t_3b963a38dbe190 1-11
+backend/src/app.module.ts
+  s_4aa6f7a9791a45::t_f0be322c2f1bfa 25,33
+  s_4aa6f7a9791a45::t_37fe1310537e65 9,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "6d91381433e88c9d8fa92e33334bfbd88c3335f9",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
