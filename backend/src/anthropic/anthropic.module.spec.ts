@@ -25,7 +25,11 @@ describe('AnthropicModule client factory', () => {
   async function buildFactory(): Promise<AnthropicClientFactory> {
     const moduleRef = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+        // ignoreEnvFile keeps this test hermetic: it drives configuration
+        // purely from the process.env it controls in beforeEach, rather than
+        // dotenv re-loading a developer's real .env (whose ANTHROPIC_API_KEY
+        // would otherwise mask the "no key set" case).
+        ConfigModule.forRoot({ isGlobal: true, load: [configuration], ignoreEnvFile: true }),
         AnthropicModule,
       ],
     }).compile();
