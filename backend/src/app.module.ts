@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { FirebaseModule } from './firebase/firebase.module';
 import { AnthropicModule } from './anthropic/anthropic.module';
+import { ContractsModule } from './contracts/contracts.module';
 import { GoogleErrorFilter } from './common/google-error.filter';
 import { HealthController } from './health/health.controller';
 import { FirestoreDemoController } from './demo/firestore-demo.controller';
@@ -15,6 +16,7 @@ import { AnthropicDemoController } from './demo/anthropic-demo.controller';
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     FirebaseModule,
     AnthropicModule,
+    ContractsModule,
   ],
   controllers: [
     HealthController,
