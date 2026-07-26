@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ContractsService } from '../contracts/contracts.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ExecutionEngine } from './execution-engine';
@@ -50,8 +50,24 @@ export class BacktestService {
     // The RTH window is defined relative to the contract's own timezone; there
     // is no request-level override, which would desync the grid from spec.rth.
     const tz = spec.timezone;
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(req.date)) {
+      throw new BadRequestException('date must be YYYY-MM-DD');
+    }
     const session = req.session ?? 'rth';
-    const orders = normalizeOrders(req.orders);
+    if (session !== 'rth' && session !== 'full') {
+      throw new BadRequestException('session must be "rth" or "full"');
+    }
+    if (req.openBuffer !== undefined && (!Number.isInteger(req.openBuffer) || req.openBuffer < 0)) {
+      throw new BadRequestException('openBuffer must be a non-negative integer');
+    }
+
+    let orders;
+    try {
+      orders = normalizeOrders(req.orders);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
 
     const dayCandles = await this.marketData.getDay(req.symbol, req.interval, req.date);
     if (dayCandles === null || dayCandles.length === 0) {
@@ -75,7 +91,12 @@ export class BacktestService {
     const sessionCandles = session === 'rth' ? filterTimeWindow(dayCandles, tz, rthOpen, rthClose) : dayCandles;
 
     const openMinutes = rthOpen + (req.openBuffer ?? 30);
-    const cutoffMinutes = parseEntryCutoff(req.entryCutoff ?? '14:00');
+    let cutoffMinutes: number | null;
+    try {
+      cutoffMinutes = parseEntryCutoff(req.entryCutoff ?? '14:00');
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
 
     const { results, summary } = this.engine.simulate(sessionCandles, orders, spec.pointValue, {
       openMinutes, cutoffMinutes, tz,
