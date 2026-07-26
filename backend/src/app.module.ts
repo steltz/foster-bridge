@@ -5,11 +5,13 @@ import configuration from './config/configuration';
 import { FirebaseModule } from './firebase/firebase.module';
 import { AnthropicModule } from './anthropic/anthropic.module';
 import { ContractsModule } from './contracts/contracts.module';
+import { MarketDataModule } from './market-data/market-data.module';
 import { GoogleErrorFilter } from './common/google-error.filter';
 import { HealthController } from './health/health.controller';
 import { FirestoreDemoController } from './demo/firestore-demo.controller';
 import { StorageDemoController } from './demo/storage-demo.controller';
 import { AnthropicDemoController } from './demo/anthropic-demo.controller';
+import { MarketDataController } from './market-data/market-data.controller';
 
 @Module({
   imports: [
@@ -17,12 +19,14 @@ import { AnthropicDemoController } from './demo/anthropic-demo.controller';
     FirebaseModule,
     AnthropicModule,
     ContractsModule,
+    MarketDataModule,
   ],
   controllers: [
     HealthController,
     FirestoreDemoController,
     StorageDemoController,
     AnthropicDemoController,
+    MarketDataController,
   ],
   providers: [{ provide: APP_FILTER, useClass: GoogleErrorFilter }],
 })
