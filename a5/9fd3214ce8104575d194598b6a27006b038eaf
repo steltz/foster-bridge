@@ -1,0 +1,23 @@
+backend/test/benchmark.e2e-spec.ts
+  s_e4554598cea289::t_391ea6fe406e0c 159
+  s_e4554598cea289::t_6afe403a4351f8 62
+  s_e4554598cea289::t_16a253538f24f9 205-216,219-220
+  s_e4554598cea289::t_35b05586ebb9d4 147-158,165-170
+  s_e4554598cea289::t_61a6de462f3115 99-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "a59fd3214ce8104575d194598b6a27006b038eaf",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
