@@ -1,0 +1,20 @@
+backend/src/anthropic/anthropic.module.spec.ts
+  s_3d0b66e48071be::t_86881fc3e83a56 9
+  s_3d0b66e48071be::t_0009aadf43b2d8 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "5ef3a3e1cb23ce12357fdcc1da07a30bd242f8fc",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
