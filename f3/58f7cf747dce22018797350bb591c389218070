@@ -1,0 +1,21 @@
+backend/src/benchmark/day-artifacts.service.spec.ts
+  s_e4554598cea289::t_25a0abde2dfc80 1-100
+backend/src/benchmark/day-artifacts.service.ts
+  s_e4554598cea289::t_0eec5f9769d456 1-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "f358f7cf747dce22018797350bb591c389218070",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
