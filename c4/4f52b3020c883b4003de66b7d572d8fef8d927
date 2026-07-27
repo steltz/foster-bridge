@@ -1,0 +1,38 @@
+backend/src/config/configuration.ts
+  s_e4554598cea289::t_127c33c535bff4 20
+  s_e4554598cea289::t_6def7154d92435 55-59
+backend/src/benchmark/batch-reconciler.ts
+  s_e4554598cea289::t_26a3707beaee4f 17,24-27,31-32,34,38-39,41-45
+  s_e4554598cea289::t_8cd383c40457da 2
+backend/src/benchmark/cache-warmer.ts
+  s_e4554598cea289::t_7d8b6c3444960e 18,27-29,31-32,34-38
+backend/src/benchmark/batch-reconciler.spec.ts
+  s_e4554598cea289::t_97d1b1586c6067 213,215,223,229-256
+  s_e4554598cea289::t_f77c7b29439e2c 49-50,58
+  s_e4554598cea289::t_80a3977b2a4a82 3
+  s_e4554598cea289::t_d3b5bd6f9f7681 257
+backend/src/benchmark/cache-warmer.spec.ts
+  s_e4554598cea289::t_a165e7c97ee0bd 101-122
+  s_e4554598cea289::t_49b4f06f73a953 38
+  s_e4554598cea289::t_96b795046823d6 37,39-43
+backend/src/config/configuration.spec.ts
+  s_e4554598cea289::t_07e8af82b46bc3 44
+  s_e4554598cea289::t_8dca11cb375711 76-77,81-110
+  s_e4554598cea289::t_52ea1abf144c96 111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "c44f52b3020c883b4003de66b7d572d8fef8d927",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
