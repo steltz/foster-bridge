@@ -80,4 +80,15 @@ describe('CacheWarmer.warm', () => {
     await warmer.warm();
     expect(deps.anthropic.warmCache).not.toHaveBeenCalled();
   });
+
+  it('isolates a failed warm so the other distinct (trader,variant) pair still warms', async () => {
+    const deps = makeDeps();
+    deps.anthropic.warmCache
+      .mockRejectedValueOnce(new Error('transient API error'))
+      .mockResolvedValueOnce({ cached: true });
+    const warmer = await build(deps);
+    await expect(warmer.warm()).resolves.toBeUndefined();
+    // Both distinct pairs were attempted — the first failure didn't skip the second.
+    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(2);
+  });
 });

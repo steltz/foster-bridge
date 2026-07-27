@@ -58,17 +58,25 @@ export class CacheWarmer {
           if (seen.has(dedup)) continue;
           seen.add(dedup);
           const [traderName, variant] = key.split('::');
-          const trader = traders.get(traderName);
-          if (!trader) continue;
-          const feature = variant === 'base' ? undefined : features.get(variant);
-          // Re-warm the FULL envelope so persona + feature tiers stay hot for
-          // long-running batches — not just the shared day-bundle tier.
-          const envelope = this.envelopes.fullEnvelope(general, bundle, trader.content, {
-            variant,
-            featureBlock: feature?.block,
-            methodsDoc: feature?.staticDocContent ?? undefined,
-          });
-          await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort });
+          try {
+            const trader = traders.get(traderName);
+            if (!trader) continue;
+            const feature = variant === 'base' ? undefined : features.get(variant);
+            // Re-warm the FULL envelope so persona + feature tiers stay hot for
+            // long-running batches — not just the shared day-bundle tier.
+            const envelope = this.envelopes.fullEnvelope(general, bundle, trader.content, {
+              variant,
+              featureBlock: feature?.block,
+              methodsDoc: feature?.staticDocContent ?? undefined,
+            });
+            await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort });
+          } catch (err) {
+            // Isolate one flaky warm (e.g. transient API error) so it doesn't
+            // drop the other distinct (trader,variant) pairs of this batch.
+            this.logger.warn(
+              `Re-warm for ${traderName}/${variant} (day ${batch.day}) failed: ${(err as Error).message}`,
+            );
+          }
         }
       } catch (err) {
         this.logger.error(`Re-warm for day ${batch.day} failed: ${(err as Error).message}`);
