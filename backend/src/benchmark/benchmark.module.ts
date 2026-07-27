@@ -6,6 +6,7 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
+import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { BenchmarkService } from './benchmark.service';
 import { BatchReconciler } from './batch-reconciler';
 import { CacheWarmer } from './cache-warmer';
@@ -23,6 +24,7 @@ import { ScoreboardService } from './scoreboard.service';
     RepoInputsService,
     DayArtifactsService,
     EnvelopeBuilder,
+    SevenKeysService,
     BenchmarkService,
     BatchReconciler,
     CacheWarmer,
