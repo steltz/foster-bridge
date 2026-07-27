@@ -111,10 +111,19 @@ export class SevenKeysService {
   }
 
   /**
-   * Idempotent: reuse the stored KEYS when present (a benchmarked day always has
-   * one -> frozen, never regenerated); otherwise generate + verify + persist.
-   * Returns the persisted doc, or null (logged) when the verifier/generation fails
-   * so the caller skips the scorecard variant for the day.
+   * Idempotent KEYS resolution with a two-level freeze:
+   * - Immutable once the day's KEYS are pinned by a scorecard cell — either
+   *   persisted (`hasScorecardCells`) or in-flight (`opts.pinned`, a
+   *   submitted-but-unreconciled batch). The stored artifact is reused
+   *   unconditionally, even under `opts.force`, so a recorded `artifactSha256`
+   *   never dangles; a missing artifact in this state is refused (null), not
+   *   silently regenerated.
+   * - Refreshable until then: reuse a stored artifact only while it is verified
+   *   and its `inputsHash` is unchanged; a corrected trade plan (inputsHash drift),
+   *   an unverified leftover, or `opts.force` triggers regeneration.
+   * Otherwise generates + verifies + persists. Returns the persisted doc, or null
+   * (logged) when generation/verification fails so the caller skips the scorecard
+   * variant for the day.
    */
   async ensureKeys(day: DayInput, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
     const existing = await this.repo.getDayArtifact(day.day, 'keys');
