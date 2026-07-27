@@ -8,6 +8,7 @@ import { AnthropicModule } from './anthropic/anthropic.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { ExecutionModule } from './execution/execution.module';
+import { BenchmarkModule } from './benchmark/benchmark.module';
 import { GoogleErrorFilter } from './common/google-error.filter';
 import { HealthController } from './health/health.controller';
 import { FirestoreDemoController } from './demo/firestore-demo.controller';
@@ -15,6 +16,7 @@ import { StorageDemoController } from './demo/storage-demo.controller';
 import { AnthropicDemoController } from './demo/anthropic-demo.controller';
 import { MarketDataController } from './market-data/market-data.controller';
 import { BacktestController } from './execution/backtest.controller';
+import { BenchmarkController } from './benchmark/benchmark.controller';
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { BacktestController } from './execution/backtest.controller';
     ContractsModule,
     MarketDataModule,
     ExecutionModule,
+    BenchmarkModule,
   ],
   controllers: [
     HealthController,
@@ -33,6 +36,7 @@ import { BacktestController } from './execution/backtest.controller';
     AnthropicDemoController,
     MarketDataController,
     BacktestController,
+    BenchmarkController,
   ],
   providers: [{ provide: APP_FILTER, useClass: GoogleErrorFilter }],
 })
