@@ -220,7 +220,29 @@ describe('BenchmarkService.run', () => {
     const deps = makeDeps();
     const svc = await build(deps);
     await svc.run({ runCount: 1, variants: ['seven-keys-scorecard'], regenerateKeys: true });
-    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), { force: true });
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), { force: true, pinned: false });
+  });
+
+  it('pins the day (pinned:true) when an in-flight scorecard cell exists, even under regenerateKeys + raised runCount', async () => {
+    const deps = makeDeps();
+    // An in-flight (submitted-but-unreconciled) scorecard batch pinned run1 for the
+    // day; a second run with regenerateKeys + a higher runCount makes run2 missing.
+    deps.repo.nonTerminalBatches.mockResolvedValue([
+      {
+        batchId: 'inflight',
+        customIdToCell: {
+          'context-trader__fable__07012026__seven-keys-scorecard__run1': { date: '2026-07-01', personaSha256: 'p', generalSha256: 'g', artifactSha256: 'ksha' },
+        },
+      },
+    ]);
+    const svc = await build(deps);
+    await svc.run({ runCount: 2, variants: ['seven-keys-scorecard'], regenerateKeys: true });
+    // The day has in-flight scorecard cells -> must be frozen as pinned so force
+    // cannot overwrite the KEYS hash those cells already recorded.
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(
+      expect.objectContaining({ day: '07012026' }),
+      expect.objectContaining({ force: true, pinned: true }),
+    );
   });
 
   it('skips all assembly/upload/warm/batch for a fully-complete day (FIX 1)', async () => {

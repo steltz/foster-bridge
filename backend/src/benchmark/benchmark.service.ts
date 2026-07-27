@@ -154,9 +154,17 @@ export class BenchmarkService {
           // `regenerateKeys` is the escape hatch for a corrected trade plan on a
           // not-yet-benchmarked day; ensureKeys still refuses to regenerate a day
           // that already has scorecard cells (immutable once benchmarked).
+          // Freeze the day fully immutable if it already has IN-FLIGHT scorecard
+          // cells (a submitted-but-unreconciled batch whose customIdToCell pinned this
+          // KEYS content's artifactSha256). Otherwise a force-regenerate with a raised
+          // runCount could overwrite the stored KEYS, orphaning those cells' provenance
+          // once their batch reconciles.
+          const scorecardInFlight = traders.some(
+            (t) => (queued.get(`${t.name}|${model.alias}|${day.day}|${SCORECARD_VARIANT}`)?.size ?? 0) > 0,
+          );
           let keysDoc: DayArtifactDoc | null = null;
           try {
-            keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true });
+            keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true, pinned: scorecardInFlight });
           } catch (err) {
             // A scorecard/KEYS infra failure must not abort this day's base/method cells —
             // treat a throw the same as a null (skip only the scorecard variant, retry next run).

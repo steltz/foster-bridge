@@ -318,4 +318,31 @@ describe('SevenKeysService.ensureKeys', () => {
     expect(out).toBeNull();
     expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
   });
+
+  it('is immutable when pinned by in-flight cells: reuses stored KEYS, never regenerates, even under force and inputsHash drift', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false); // NOT yet persisted-benchmarked
+    // Existing verified doc whose inputsHash no longer matches (would normally force
+    // regeneration on the not-benchmarked path) — pinned must still freeze it.
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash: 'OLD' } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    const svc = await build(deps);
+    const genSpy = jest.spyOn(svc, 'generate');
+    expect(await svc.ensureKeys(DAY as any, { pinned: true })).toBe(existing);
+    expect(await svc.ensureKeys(DAY as any, { force: true, pinned: true })).toBe(existing);
+    expect(genSpy).not.toHaveBeenCalled(); // in-flight cells pinned this hash — never regenerate
+    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+  });
+
+  it('pinned anomaly: refuses to regenerate (returns null) when pinned but the KEYS artifact is missing', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false); // no persisted cells
+    deps.repo.getDayArtifact.mockImplementation(async () => null); // but the KEYS doc is gone
+    const svc = await build(deps);
+    const genSpy = jest.spyOn(svc, 'generate');
+    const out = await svc.ensureKeys(DAY as any, { pinned: true });
+    expect(out).toBeNull();
+    expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would break in-flight artifactSha256
+    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+  });
 });

@@ -116,16 +116,19 @@ export class SevenKeysService {
    * Returns the persisted doc, or null (logged) when the verifier/generation fails
    * so the caller skips the scorecard variant for the day.
    */
-  async ensureKeys(day: DayInput, opts?: { force?: boolean }): Promise<DayArtifactDoc | null> {
+  async ensureKeys(day: DayInput, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
     const existing = await this.repo.getDayArtifact(day.day, 'keys');
     const benchmarked = await this.repo.hasScorecardCells(day.day);
-    // (1) Immutable once benchmarked: a persisted seven-keys-scorecard cell recorded
-    // this KEYS content's hash (artifactSha256), so the artifact must never change
-    // for reproducibility — reuse unconditionally, even when force is set.
-    if (benchmarked) {
+    // (1) Immutable when benchmarked OR pinned: a scorecard cell recorded this KEYS
+    // content's hash (artifactSha256), so the artifact must never change for
+    // reproducibility — reuse unconditionally, even when force is set. `pinned`
+    // covers in-flight (submitted-but-unreconciled) scorecard cells that have already
+    // pinned this KEYS hash but whose batch has not yet persisted its cells, so
+    // hasScorecardCells does not yet see them.
+    if (benchmarked || opts?.pinned === true) {
       if (existing) return existing;
-      // Anomaly: benchmarked but the KEYS artifact is missing. Regenerating would
-      // break the artifactSha256 already pinned on existing scorecard cells, so refuse
+      // Anomaly: immutable but the KEYS artifact is missing. Regenerating would
+      // break the artifactSha256 already pinned on those scorecard cells, so refuse
       // rather than silently overwrite.
       this.logger.error(
         `Seven-keys for ${day.day}: scorecard cells exist but the KEYS artifact is missing; refusing to regenerate (would break cell provenance).`,
