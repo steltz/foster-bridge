@@ -10,6 +10,7 @@ interface RunBody {
   days?: string[];
   runCount?: number;
   variants?: Variant[];
+  regenerateKeys?: boolean;
 }
 
 @Controller('benchmark')
@@ -29,6 +30,7 @@ export class BenchmarkController {
       days: body.days,
       runCount: body.runCount,
       variants: body.variants,
+      regenerateKeys: body.regenerateKeys,
     });
   }
 

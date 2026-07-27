@@ -10,6 +10,7 @@ import { EnvelopeBuilder } from './envelope.builder';
 import { AnthropicService } from '../anthropic/anthropic.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
+import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { analyzeCoverage } from '../market-data/coverage';
 
 jest.mock('node:fs', () => ({ ...jest.requireActual('node:fs'), readFileSync: jest.fn() }));
@@ -26,7 +27,8 @@ function makeDeps() {
   const inputs = {
     collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null, file: 'context-trader.md', content: 'P', sha256: 'psha' }]),
     collectFeatures: jest.fn().mockReturnValue([
-      { id: 'seven-keys-method', name: 'm', file: 'seven-keys-method.md', block: 'Read ${DOC}.', sha256: 'fsha', staticDoc: 'knowledge-base/methods/seven-keys.md', staticDocContent: 'METHODS', staticDocSha256: 'dsha' },
+      { id: 'seven-keys-method', name: 'm', file: 'seven-keys-method.md', block: 'Read ${DOC}.', sha256: 'fsha', staticDoc: 'knowledge-base/methods/seven-keys.md', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: null },
+      { id: 'seven-keys-scorecard', name: 's', file: 'seven-keys-scorecard.md', block: 'Read ${DOC} then ${ARTIFACT}.', sha256: 'scsha', staticDoc: 'knowledge-base/methods/seven-keys.md', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: '_ES_KEYS.md' },
     ]),
     collectGeneralDocs: jest.fn().mockReturnValue({ files: [], concatenated: 'GEN', sha256: 'gsha' }),
     collectDays: jest.fn().mockReturnValue([
@@ -47,7 +49,10 @@ function makeDeps() {
     getDay: jest.fn(async (_s: string, _i: string, date: string) => (date === '2026-07-01' ? [{ time: 1 }] : null)),
   };
   const contracts = { get: jest.fn(() => ({ rth: { open: '09:30', close: '16:00' }, timezone: 'America/New_York', pointValue: 5 })) };
-  return { repo, inputs, dayArtifacts, anthropic, marketData, contracts };
+  const sevenKeys = {
+    ensureKeys: jest.fn().mockResolvedValue({ content: 'KEYS BODY', contentHash: 'ksha' }),
+  };
+  return { repo, inputs, dayArtifacts, anthropic, marketData, contracts, sevenKeys };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -61,6 +66,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: AnthropicService, useValue: deps.anthropic },
       { provide: MarketDataService, useValue: deps.marketData },
       { provide: ContractsService, useValue: deps.contracts },
+      { provide: SevenKeysService, useValue: deps.sevenKeys },
       { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 32000, 'benchmark.effort': 'high' }[k]) } },
     ],
   }).compile();
@@ -148,23 +154,73 @@ describe('BenchmarkService.run', () => {
     expect(summary.daysSkipped).toContainEqual({ day: '07032026', reason: 'missing docs: *_ES_RECAP.md' });
   });
 
-  it('restricts variants to the core set and warms both day-bundle and per-envelope', async () => {
+  it('runs base + method + scorecard for a candle-backed day and generates KEYS once', async () => {
     const deps = makeDeps();
     const svc = await build(deps);
     await svc.run({ runCount: 1, variants: ['base', 'seven-keys-method', 'seven-keys-scorecard'] });
-    // per (trader,variant): base + seven-keys-method = 2 full-envelope warms + 1 day-bundle warm.
-    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(3);
-    // Day-bundle is warmed FIRST (its cached prefix must exist before the
-    // per-envelope warms extend it). The day-bundle context is the 2-tier
-    // general+day prefix; full envelopes carry 3+ tiers.
-    expect(deps.anthropic.warmCache.mock.calls[0][0].userTiers).toHaveLength(2);
+    // KEYS generated once for the only candle-backed day (07012026).
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledTimes(1);
+    expect(deps.sevenKeys.ensureKeys.mock.calls[0][0].day).toBe('07012026');
+    // 3 variants -> 3 full-envelope warms + 1 day-bundle warm.
+    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(4);
     const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
     expect(custIds).toEqual(
       expect.arrayContaining([
         'context-trader__fable__07012026__base__run1',
         'context-trader__fable__07012026__seven-keys-method__run1',
+        'context-trader__fable__07012026__seven-keys-scorecard__run1',
       ]),
     );
+  });
+
+  it('generates KEYS oldest-first and threads artifactSha256 onto the scorecard cell', async () => {
+    const deps = makeDeps();
+    // Both days have candles + complete coverage so both do scorecard work.
+    deps.marketData.getDay = jest.fn().mockResolvedValue([{ time: 1 }]);
+    const svc = await build(deps);
+    await svc.run({ runCount: 1, variants: ['seven-keys-scorecard'] });
+    // collectDays is chronological asc, so ensureKeys is called 07012026 before 07022026.
+    expect(deps.sevenKeys.ensureKeys.mock.calls.map((c) => c[0].day)).toEqual(['07012026', '07022026']);
+    const saved = deps.repo.saveBatch.mock.calls[0][0];
+    const meta = saved.customIdToCell['context-trader__fable__07012026__seven-keys-scorecard__run1'];
+    expect(meta.artifactSha256).toBe('ksha');
+    expect(meta.featureSha256).toBe('scsha');
+  });
+
+  it('skips ONLY the scorecard variant for a day when KEYS generation fails; base still runs', async () => {
+    const deps = makeDeps();
+    deps.sevenKeys.ensureKeys.mockResolvedValue(null); // verifier/generation failure
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, variants: ['base', 'seven-keys-scorecard'] });
+    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    expect(custIds).toContain('context-trader__fable__07012026__base__run1');
+    expect(custIds).not.toContain('context-trader__fable__07012026__seven-keys-scorecard__run1');
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'keys generation failed' });
+  });
+
+  it('skips ONLY the scorecard variant when ensureKeys throws (infra error); base still runs', async () => {
+    const deps = makeDeps();
+    deps.sevenKeys.ensureKeys.mockRejectedValue(new Error('firestore blip')); // infra throw, not a null return
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, variants: ['base', 'seven-keys-scorecard'] });
+    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    expect(custIds).toContain('context-trader__fable__07012026__base__run1');
+    expect(custIds).not.toContain('context-trader__fable__07012026__seven-keys-scorecard__run1');
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'keys generation failed' });
+  });
+
+  it('does NOT call ensureKeys when the scorecard variant is not requested', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await svc.run({ runCount: 1, variants: ['base'] });
+    expect(deps.sevenKeys.ensureKeys).not.toHaveBeenCalled();
+  });
+
+  it('forwards regenerateKeys as { force: true } to ensureKeys', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await svc.run({ runCount: 1, variants: ['seven-keys-scorecard'], regenerateKeys: true });
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), { force: true });
   });
 
   it('skips all assembly/upload/warm/batch for a fully-complete day (FIX 1)', async () => {

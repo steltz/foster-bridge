@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
-import { BenchmarkRepository, CellMeta } from './benchmark.repository';
+import { BenchmarkRepository, CellMeta, DayArtifactDoc } from './benchmark.repository';
 import { RepoInputsService, DayInput, TraderInput, FeatureInput } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
@@ -11,7 +11,8 @@ import { ContractsService } from '../contracts/contracts.service';
 import { analyzeCoverage } from '../market-data/coverage';
 import { intervalToSeconds } from '../market-data/candle';
 import { hhmmToMinutes } from '../common/session-time';
-import { CORE_VARIANTS, resolveModel, cellKey, parseCellKey, SETUP_SCHEMA, Variant } from './benchmark.types';
+import { ALL_VARIANTS, SCORECARD_VARIANT, resolveModel, cellKey, parseCellKey, SETUP_SCHEMA, Variant } from './benchmark.types';
+import { SevenKeysService } from './seven-keys/seven-keys.service';
 
 // Symbol/interval the benchmark backtests against (see design §7).
 const SYMBOL = 'MES';
@@ -22,6 +23,9 @@ export interface RunOptions {
   days?: string[]; // MMDDYYYY filter
   runCount?: number;
   variants?: Variant[];
+  // Force seven-keys regeneration for not-yet-benchmarked scorecard days (a
+  // corrected trade plan). Never overrides immutability once a day is benchmarked.
+  regenerateKeys?: boolean;
 }
 
 export interface RunSummary {
@@ -44,6 +48,7 @@ export class BenchmarkService {
     private readonly marketData: MarketDataService,
     // ContractsModule is @Global, so ContractsService injects without an import.
     private readonly contracts: ContractsService,
+    private readonly sevenKeys: SevenKeysService,
     private readonly config: ConfigService,
   ) {}
 
@@ -52,7 +57,7 @@ export class BenchmarkService {
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
     const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 32000;
     const effort = this.config.get<string>('benchmark.effort') ?? 'high';
-    const variants = (opts.variants ?? CORE_VARIANTS).filter((v) => CORE_VARIANTS.includes(v));
+    const variants = (opts.variants ?? ALL_VARIANTS).filter((v) => ALL_VARIANTS.includes(v));
 
     const traders = this.inputs.collectTraders();
     const features = this.inputs.collectFeatures();
@@ -106,6 +111,9 @@ export class BenchmarkService {
       for (const trader of traders) {
         for (const variant of variants) {
           const feature = variant === 'base' ? undefined : featureById.get(variant);
+          // A non-base variant with no matching feature file cannot build an
+          // envelope — skip it rather than throwing later.
+          if (variant !== 'base' && !feature) continue;
           const existing = await this.repo.existingRunIndices(trader.name, model.alias, day.day, variant);
           const already = queued.get(`${trader.name}|${model.alias}|${day.day}|${variant}`) ?? new Set<number>();
           const missing = Array.from({ length: runCount }, (_, i) => i + 1).filter(
@@ -136,6 +144,38 @@ export class BenchmarkService {
         // Only now (real work confirmed) do the disk reads + PDF upload.
         const bundle = await this.assembleDay(day);
 
+        // Seven-keys generation for the scorecard variant. assembleDay recorded the
+        // PDF artifact, so ensureKeys can resolve a live file_id. Days are already
+        // walked oldest-first (collectDays sorts asc), so a day's prior-KEYS
+        // lookback dependency is generated before it is needed.
+        let keysContent: string | undefined;
+        let keysSha: string | undefined;
+        if (dayCells.some((c) => c.variant === SCORECARD_VARIANT)) {
+          // `regenerateKeys` is the escape hatch for a corrected trade plan on a
+          // not-yet-benchmarked day; ensureKeys still refuses to regenerate a day
+          // that already has scorecard cells (immutable once benchmarked).
+          let keysDoc: DayArtifactDoc | null = null;
+          try {
+            keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true });
+          } catch (err) {
+            // A scorecard/KEYS infra failure must not abort this day's base/method cells —
+            // treat a throw the same as a null (skip only the scorecard variant, retry next run).
+            this.logger.error(`Seven-keys ensureKeys threw for ${day.day}: ${(err as Error).message}`);
+            keysDoc = null;
+          }
+          if (!keysDoc) {
+            summary.daysSkipped.push({ day: day.day, reason: 'keys generation failed' });
+            // Drop ONLY the scorecard cells; base/method still run for this day.
+            for (let i = dayCells.length - 1; i >= 0; i--) {
+              if (dayCells[i].variant === SCORECARD_VARIANT) dayCells.splice(i, 1);
+            }
+            if (!dayCells.length) continue; // scorecard was the only work
+          } else {
+            keysContent = keysDoc.content;
+            keysSha = keysDoc.contentHash;
+          }
+        }
+
         const requests: BatchRequestInput[] = [];
         const customIdToCell: Record<string, CellMeta> = {};
         const enveloped = new Map<string, ReturnType<EnvelopeBuilder['fullEnvelope']>>();
@@ -146,6 +186,7 @@ export class BenchmarkService {
             variant,
             featureBlock: feature?.block,
             methodsDoc: feature?.staticDocContent ?? undefined,
+            artifact: variant === SCORECARD_VARIANT ? keysContent : undefined,
           });
           enveloped.set(envKey, envelope);
           // Provenance threaded to the batch so the reconciler persists real
@@ -156,6 +197,7 @@ export class BenchmarkService {
             generalSha256: general.sha256,
             ...(feature ? { featureSha256: feature.sha256 } : {}),
             ...(feature?.staticDocSha256 ? { staticDocSha256: feature.staticDocSha256 } : {}),
+            ...(variant === SCORECARD_VARIANT && keysSha ? { artifactSha256: keysSha } : {}),
           };
           for (const runIndex of missing) {
             const key = cellKey({ trader: trader.name, modelAlias: model.alias, day: day.day, variant, runIndex });
