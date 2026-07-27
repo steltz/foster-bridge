@@ -31,6 +31,11 @@ unrelated to API cost.)
 - **Capture wiring:** choke-point in `AnthropicService` + `BatchReconciler`,
   decoupled via **Nest EventEmitter** (`@nestjs/event-emitter`). Fallback if the
   dep is unwanted: an injected `UsageRecorder` token.
+- **Attribution is required** on every emitting method (`message`,
+  `messageStructured`, `warmCache`) — a missing attribution is a **compile
+  error**, never a silent `message` bucket. Every internal caller (benchmark
+  warms, the periodic cache-warmer, seven-keys generation, demo endpoints) passes
+  its own `operation`.
 - **Report surface:** `GET /costs/report` returns a self-contained HTML document
   (data embedded); `curl localhost:3000/costs/report -o costs.html` and open it.
   Regenerate to refresh. (A `node dist/cost-report.js` CLI was the alternative;
@@ -126,6 +131,15 @@ total = base × (tier === 'batch' ? 0.5 : tier === 'priority' ? P_priority : 1)
   capture layer explicitly rather than relying on this fallback.
 - **Unknown model id:** record saved with `cost: null` and a `note`; surfaced as
   "unpriced" in the report. `priceUsage` never throws into the request path.
+- **Net cache economics:** `priceUsage` also returns `uncachedInputEquiv` — the
+  counterfactual cost of pricing *all* input-side tokens
+  (`input + cacheRead + cacheCreate5m + cacheCreate1h`) as plain uncached input at
+  the model's input rate × tier. This lets the dashboard report the **net** cache
+  benefit — `uncachedInputEquiv − (input + cacheRead + cacheCreate)` paid — which
+  can go **negative** when 1h write premiums (×2.0) outweigh the read discount on
+  a low-reuse prefix. The old "cache savings" number (gross read discount only)
+  ignored write cost and could not show a net loss; net is the honest metric, and
+  the gross read discount is kept alongside it for context.
 - `priceUsage` is a **pure function** — the primary unit-test surface.
 
 ## Capture points & attribution
@@ -142,16 +156,20 @@ total = base × (tier === 'batch' ? 0.5 : tier === 'priority' ? P_priority : 1)
   have none → no record (matches the reconciler already skipping them).
 - Attribution supplied by callers:
   - `benchmark.service` warms → `{ operation: 'warm', benchmark: {day, trader, variant} }`
+  - **`cache-warmer.service` periodic re-warms → `{ operation: 'warm', benchmark: {day, trader, variant} }`** (previously missed — would have mislabeled as `message`)
   - batch setups → `{ operation: 'setup', benchmark: {…from customId} }` (at reconcile)
   - `seven-keys.service` → `{ operation: 'keys-generation', benchmark: {day} }`
   - demo endpoints → `{ operation: 'demo' }`
-  - anything else → defaults to `message` / `other`
+  - Attribution is **required** — there is no silent default; a caller that emits
+    without it fails to compile.
 
 ## Aggregation API
 
-- `GET /costs/summary?groupBy=tier|operation|model|day|trader|variant&from&to&model`
-  → totals + per-group `{records, tokens, usd}`, plus a **cache-savings** figure
-  (what `cacheRead` tokens would cost at full input rate vs the 0.1× actually paid).
+- `GET /costs/summary?groupBy=tier|operation|model|day|trader|variant|date&from&to&model`
+  → totals + per-group `{records, tokens, usd}`, plus **`netCacheBenefitUsd`** and
+  **`grossCacheReadDiscountUsd`**. `date` groups by the request's **calendar day**
+  (`timestamp` UTC date) — the "over time" dimension — distinct from `day`, which
+  is the benchmark **trading** day (MMDDYYYY).
 - `GET /costs/records?...filters` (paginated) — raw records for drill-down.
 - `GET /costs/report` — the self-contained HTML report.
 
@@ -162,9 +180,10 @@ embedded as JSON (a snapshot at generation time), theme-aware (light/dark).
 Contents:
 
 - KPI tiles: total spend, total requests, total tokens, **standard vs batch
-  split**, **cache savings realized**.
-- Charts: spend over time (by day), spend by operation, spend by model.
-- A filterable / sortable breakdown table with benchmark drill-down.
+  split**, **net cache benefit** (can be negative), and gross cache read discount.
+- A **spend-over-time** chart bucketed by the request calendar date (always
+  rendered), plus a breakdown table whose grouping dimension (including `date`)
+  is user-selectable, with benchmark drill-down.
 
 The `dataviz` skill is loaded at build time for the chart/palette work.
 

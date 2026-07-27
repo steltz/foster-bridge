@@ -169,6 +169,10 @@ export interface CostBreakdown {
   cacheCreate: number;
   output: number;
   total: number; // USD
+  // Counterfactual: what all input-side tokens (input + cacheRead + both cache
+  // creation tiers) would cost as plain uncached input at this model's rate x tier.
+  // Net cache benefit = uncachedInputEquiv - (input + cacheRead + cacheCreate).
+  uncachedInputEquiv: number;
 }
 
 // Persisted, immutable, one per request.
@@ -289,6 +293,24 @@ describe('priceUsage', () => {
   it('returns null for an unknown model id (never throws)', () => {
     expect(priceUsage({ ...zero, input: 100 }, 'claude-unknown-9', 'standard', TS)).toBeNull();
   });
+
+  it('computes uncachedInputEquiv: all input-side tokens at plain input rate x tier', () => {
+    // 20 input + 3227 cacheRead + 16434 1h-create = 19681 input-side tokens.
+    const t = { input: 20, cacheRead: 3227, cacheCreate5m: 0, cacheCreate1h: 16434, output: 2157 };
+    const std = priceUsage(t, 'claude-fable-5', 'standard', TS)!;
+    expect(std.cost.uncachedInputEquiv).toBeCloseTo(19681 * 10 / 1_000_000, 8); // $10/MTok
+    const batch = priceUsage(t, 'claude-fable-5', 'batch', TS)!;
+    expect(batch.cost.uncachedInputEquiv).toBeCloseTo(19681 * 10 / 1_000_000 * 0.5, 8); // x0.5 batch
+  });
+
+  it('net cache benefit can be negative when 1h write premium outweighs the read discount', () => {
+    // Pure 1h cache write, no reads: paid 2x input, uncached equiv is 1x -> net loss.
+    const t = { input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 1_000_000, output: 0 };
+    const r = priceUsage(t, 'claude-fable-5', 'standard', TS)!;
+    const net = r.cost.uncachedInputEquiv - (r.cost.input + r.cost.cacheRead + r.cost.cacheCreate);
+    expect(net).toBeCloseTo(10 - 20, 6); // uncached $10 vs paid $20 write -> -$10
+    expect(net).toBeLessThan(0);
+  });
 });
 ```
 
@@ -358,6 +380,9 @@ export function priceUsage(
   const cacheRead = tokens.cacheRead * inRate * CACHE_READ;
   const cacheCreate = tokens.cacheCreate5m * inRate * CACHE_WRITE_5M + tokens.cacheCreate1h * inRate * CACHE_WRITE_1H;
   const output = tokens.output * outRate;
+  // Counterfactual: every input-side token as plain uncached input.
+  const inputSideTokens = tokens.input + tokens.cacheRead + tokens.cacheCreate5m + tokens.cacheCreate1h;
+  const uncachedInputEquiv = inputSideTokens * inRate;
 
   return {
     cost: {
@@ -366,6 +391,7 @@ export function priceUsage(
       cacheCreate: round(cacheCreate),
       output: round(output),
       total: round(input + cacheRead + cacheCreate + output),
+      uncachedInputEquiv: round(uncachedInputEquiv),
     },
     version: entry.version,
   };
@@ -430,7 +456,7 @@ const rec = (id: string): CostRecord => ({
   serviceTier: 'standard',
   operation: 'warm',
   tokens: { input: 20, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 100, output: 5 },
-  cost: { input: 0, cacheRead: 0, cacheCreate: 0, output: 0, total: 0.001 },
+  cost: { input: 0, cacheRead: 0, cacheCreate: 0, output: 0, total: 0.001, uncachedInputEquiv: 0.0012 },
   pricingVersion: 'fable-2026-07',
   source: 'sync',
 });
@@ -605,7 +631,26 @@ describe('CostService.onUsage', () => {
     const tiers = summary.groups.map((g) => g.key).sort();
     expect(tiers).toEqual(['batch', 'standard']);
     expect(summary.totalUsd).toBeCloseTo(summary.groups.reduce((s, g) => s + g.usd, 0), 6);
-    expect(summary.cacheSavingsUsd).toBeGreaterThan(0); // event 'a' had cacheRead tokens
+  });
+
+  it('reports gross read discount and net cache benefit', async () => {
+    const repo = new FakeRepo();
+    const svc = new CostService(repo as any);
+    // Event 'a' has cacheRead tokens (a read discount) AND 1h cacheCreate (write premium).
+    await svc.onUsage(event({ id: 'a' }));
+    const s = await svc.summarize({ groupBy: 'tier' });
+    expect(s.grossCacheReadDiscountUsd).toBeGreaterThan(0); // read tokens exist
+    // Net = uncachedInputEquiv - (input+cacheRead+cacheCreate) paid; heavy 1h writes can push it negative.
+    expect(typeof s.netCacheBenefitUsd).toBe('number');
+  });
+
+  it('groups by calendar date (request timestamp), distinct from benchmark day', async () => {
+    const repo = new FakeRepo();
+    const svc = new CostService(repo as any);
+    await svc.onUsage(event({ id: 'a', timestamp: '2026-07-22T10:00:00.000Z' }));
+    await svc.onUsage(event({ id: 'b', timestamp: '2026-07-23T10:00:00.000Z' }));
+    const s = await svc.summarize({ groupBy: 'date' });
+    expect(s.groups.map((g) => g.key).sort()).toEqual(['2026-07-22', '2026-07-23']);
   });
 });
 ```
@@ -626,7 +671,7 @@ import { CostRepository, ListFilters } from './cost.repository';
 import { priceUsage } from './pricing';
 import { CostRecord, UsageEvent } from './cost.types';
 
-export type GroupBy = 'tier' | 'operation' | 'model' | 'day' | 'trader' | 'variant';
+export type GroupBy = 'tier' | 'operation' | 'model' | 'day' | 'trader' | 'variant' | 'date';
 
 export interface SummaryQuery extends ListFilters {
   groupBy: GroupBy;
@@ -646,7 +691,12 @@ export interface Summary {
   groupBy: GroupBy;
   totalUsd: number;
   totalRecords: number;
-  cacheSavingsUsd: number; // full-rate cost of cacheRead tokens minus the 0.1x actually paid
+  // Gross read discount: the 0.9x-of-full saved on cacheRead tokens (paid 0.1x).
+  grossCacheReadDiscountUsd: number;
+  // Net cache benefit: uncached-input-equivalent minus what was actually paid on
+  // the input side (input + cacheRead + cacheCreate). NEGATIVE when 1h write
+  // premiums outweigh read savings on low-reuse prefixes.
+  netCacheBenefitUsd: number;
   groups: SummaryGroup[];
 }
 
@@ -700,17 +750,24 @@ export class CostService {
           return r.benchmark?.trader ?? '(none)';
         case 'variant':
           return r.benchmark?.variant ?? '(none)';
+        case 'date':
+          return r.timestamp.slice(0, 10); // request calendar date (UTC)
       }
     };
 
     const byKey = new Map<string, SummaryGroup>();
     let totalUsd = 0;
-    let cacheSavingsUsd = 0;
+    let grossCacheReadDiscountUsd = 0;
+    let netCacheBenefitUsd = 0;
     for (const r of records) {
       const usd = r.cost?.total ?? 0;
       totalUsd += usd;
-      // cache savings = 9x the paid cacheRead cost (paid 0.1x, full would be 1x -> saved 0.9x)
-      cacheSavingsUsd += (r.cost?.cacheRead ?? 0) * 9;
+      // Gross read discount = 9x the paid cacheRead cost (paid 0.1x, full would be 1x -> saved 0.9x).
+      grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * 9;
+      // Net = uncached-input-equivalent - actual input-side cost paid (input+read+create).
+      if (r.cost) {
+        netCacheBenefitUsd += r.cost.uncachedInputEquiv - (r.cost.input + r.cost.cacheRead + r.cost.cacheCreate);
+      }
       const key = keyOf(r);
       const g =
         byKey.get(key) ??
@@ -724,12 +781,15 @@ export class CostService {
       byKey.set(key, g);
     }
     const round = (n: number) => Math.round(n * 1e8) / 1e8;
-    const groups = [...byKey.values()].map((g) => ({ ...g, usd: round(g.usd) })).sort((a, b) => b.usd - a.usd);
+    // For 'date' keep chronological order; otherwise sort by spend descending.
+    const groups = [...byKey.values()].map((g) => ({ ...g, usd: round(g.usd) }));
+    groups.sort((a, b) => (groupBy === 'date' ? a.key.localeCompare(b.key) : b.usd - a.usd));
     return {
       groupBy,
       totalUsd: round(totalUsd),
       totalRecords: records.length,
-      cacheSavingsUsd: round(cacheSavingsUsd),
+      grossCacheReadDiscountUsd: round(grossCacheReadDiscountUsd),
+      netCacheBenefitUsd: round(netCacheBenefitUsd),
       groups,
     };
   }
@@ -776,7 +836,7 @@ const rec = (over: Partial<CostRecord> = {}): CostRecord => ({
   operation: 'setup',
   benchmark: { modelAlias: 'fable', day: '07222026', trader: 'context-trader', variant: 'base', runIndex: 1 },
   tokens: { input: 20, cacheRead: 3227, cacheCreate5m: 0, cacheCreate1h: 16434, output: 2157 },
-  cost: { input: 0.0001, cacheRead: 0.0032, cacheCreate: 0.164, output: 0.108, total: 0.2753 },
+  cost: { input: 0.0001, cacheRead: 0.0032, cacheCreate: 0.164, output: 0.108, total: 0.2753, uncachedInputEquiv: 0.19681 },
   pricingVersion: 'fable-2026-07',
   source: 'batch',
   batchId: 'msgbatch_x',
@@ -797,10 +857,23 @@ describe('buildReport', () => {
     expect(html).toContain('context-trader');
   });
 
-  it('renders the total spend KPI', () => {
+  it('renders the total spend and net-cache KPIs', () => {
     const html = buildReport([rec()]);
     expect(html).toContain('0.2753'); // total USD appears in the embedded data
     expect(html).toMatch(/Total spend/i);
+    expect(html).toMatch(/Net cache benefit/i);
+    expect(html).toMatch(/Cache read discount/i);
+  });
+
+  it('embeds a spend-over-time series keyed by the request calendar date', () => {
+    const html = buildReport([
+      rec({ id: 'a', timestamp: '2026-07-22T10:00:00.000Z' }),
+      rec({ id: 'b', timestamp: '2026-07-23T10:00:00.000Z' }),
+    ]);
+    expect(html).toContain('"overTime"');
+    expect(html).toContain('2026-07-22');
+    expect(html).toContain('2026-07-23');
+    expect(html).toMatch(/Spend over time/i);
   });
 
   it('handles an empty record set without throwing', () => {
@@ -828,7 +901,9 @@ interface Payload {
   totalTokens: number;
   standardUsd: number;
   batchUsd: number;
-  cacheSavingsUsd: number;
+  netCacheBenefitUsd: number;
+  grossCacheReadDiscountUsd: number;
+  overTime: { date: string; usd: number }[]; // request calendar date, chronological
   records: CostRecord[];
 }
 
@@ -837,23 +912,33 @@ function summarizePayload(records: CostRecord[]): Payload {
   let totalTokens = 0;
   let standardUsd = 0;
   let batchUsd = 0;
-  let cacheSavingsUsd = 0;
+  let netCacheBenefitUsd = 0;
+  let grossCacheReadDiscountUsd = 0;
+  const byDate = new Map<string, number>();
   for (const r of records) {
     const usd = r.cost?.total ?? 0;
     totalUsd += usd;
     totalTokens += r.tokens.input + r.tokens.cacheRead + r.tokens.cacheCreate5m + r.tokens.cacheCreate1h + r.tokens.output;
     if (r.serviceTier === 'batch') batchUsd += usd;
     else standardUsd += usd;
-    cacheSavingsUsd += (r.cost?.cacheRead ?? 0) * 9;
+    grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * 9;
+    if (r.cost) netCacheBenefitUsd += r.cost.uncachedInputEquiv - (r.cost.input + r.cost.cacheRead + r.cost.cacheCreate);
+    const d = r.timestamp.slice(0, 10);
+    byDate.set(d, (byDate.get(d) ?? 0) + usd);
   }
   const round = (n: number) => Math.round(n * 1e6) / 1e6;
+  const overTime = [...byDate.entries()]
+    .map(([date, usd]) => ({ date, usd: round(usd) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
   return {
     totalRecords: records.length,
     totalUsd: round(totalUsd),
     totalTokens,
     standardUsd: round(standardUsd),
     batchUsd: round(batchUsd),
-    cacheSavingsUsd: round(cacheSavingsUsd),
+    netCacheBenefitUsd: round(netCacheBenefitUsd),
+    grossCacheReadDiscountUsd: round(grossCacheReadDiscountUsd),
+    overTime,
     records,
   };
 }
@@ -897,13 +982,16 @@ export function buildReport(records: CostRecord[]): string {
   <h1>Anthropic API Cost Report</h1>
   <p class="sub" id="sub"></p>
   <section class="kpis" id="kpis"></section>
-  <div>
+  <h2 style="font-size:14px;color:var(--muted);margin:8px 0">Spend over time</h2>
+  <div class="wrap"><table id="ot"><tbody></tbody></table></div>
+  <div style="margin-top:20px">
     <label for="groupBy">Group by</label>
     <select id="groupBy">
       <option value="operation">Operation</option>
       <option value="serviceTier">Service tier</option>
       <option value="model">Model</option>
-      <option value="day">Day</option>
+      <option value="date">Calendar date</option>
+      <option value="day">Benchmark day</option>
       <option value="trader">Trader</option>
       <option value="variant">Variant</option>
     </select>
@@ -918,6 +1006,7 @@ ${json}
   const usd = n => '$' + (n || 0).toFixed(4);
   const keyOf = (r, dim) => {
     if (dim === 'model') return r.model.alias;
+    if (dim === 'date') return r.timestamp.slice(0, 10);
     if (dim === 'day') return (r.benchmark && r.benchmark.day) || '(none)';
     if (dim === 'trader') return (r.benchmark && r.benchmark.trader) || '(none)';
     if (dim === 'variant') return (r.benchmark && r.benchmark.variant) || '(none)';
@@ -929,12 +1018,22 @@ ${json}
     ['Total spend', usd(DATA.totalUsd)],
     ['Standard tier', usd(DATA.standardUsd)],
     ['Batch tier', usd(DATA.batchUsd)],
-    ['Cache savings', usd(DATA.cacheSavingsUsd)],
+    ['Net cache benefit', usd(DATA.netCacheBenefitUsd)],
+    ['Cache read discount', usd(DATA.grossCacheReadDiscountUsd)],
     ['Requests', String(DATA.totalRecords)],
   ];
   document.getElementById('kpis').innerHTML = kpis
     .map(([l, v]) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>')
     .join('');
+
+  // Spend-over-time: one row per request calendar date, inline proportional bar.
+  const otMax = Math.max(1, ...DATA.overTime.map(d => d.usd));
+  document.querySelector('#ot tbody').innerHTML = DATA.overTime
+    .map(d =>
+      '<tr><td>' + d.date + '</td><td class="num">' + usd(d.usd) +
+      '</td><td style="width:60%"><div class="bar"><span style="width:' +
+      (100 * d.usd / otMax).toFixed(1) + '%"></span></div></td></tr>')
+    .join('') || '<tr><td>(no data)</td></tr>';
 
   let sortKey = 'usd', sortDir = -1;
   function groups(dim) {
@@ -1010,7 +1109,7 @@ import { CostController } from './cost.controller';
 
 describe('CostController', () => {
   const service = {
-    summarize: jest.fn().mockResolvedValue({ groupBy: 'tier', totalUsd: 1, totalRecords: 2, cacheSavingsUsd: 0, groups: [] }),
+    summarize: jest.fn().mockResolvedValue({ groupBy: 'tier', totalUsd: 1, totalRecords: 2, grossCacheReadDiscountUsd: 0, netCacheBenefitUsd: 0, groups: [] }),
     list: jest.fn().mockResolvedValue([{ id: 'a' }, { id: 'b' }, { id: 'c' }]),
   };
   const builder = jest.fn().mockReturnValue('<!doctype html>...');
@@ -1071,7 +1170,7 @@ import { CostService, GroupBy, Summary } from './cost.service';
 import { ReportBuilder } from './report-builder.provider';
 import { CostRecord } from './cost.types';
 
-const GROUP_BYS: GroupBy[] = ['tier', 'operation', 'model', 'day', 'trader', 'variant'];
+const GROUP_BYS: GroupBy[] = ['tier', 'operation', 'model', 'day', 'trader', 'variant', 'date'];
 
 @Controller('costs')
 export class CostController {
@@ -1208,7 +1307,7 @@ describe('AnthropicService usage emission', () => {
     return { svc, emit, create };
   }
 
-  it('message() emits an anthropic.usage event with attribution', async () => {
+  it('message() emits an anthropic.usage event with the caller-supplied attribution', async () => {
     const { svc, emit } = build();
     await svc.message({ prompt: 'x', attribution: { operation: 'demo' } });
     expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
@@ -1220,12 +1319,15 @@ describe('AnthropicService usage emission', () => {
     }));
   });
 
-  it('message() defaults attribution to operation "message" when none given', async () => {
+  it('emits the attribution verbatim — there is no silent default', async () => {
     const { svc, emit } = build();
-    await svc.message({ prompt: 'x' });
+    await svc.message({ prompt: 'x', attribution: { operation: 'message' } });
     expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({ attribution: { operation: 'message' } }));
   });
 });
+```
+
+Note: `attribution` is now a **required** field on the emitting methods (Steps 3d–3g). A `message` / `messageStructured` / `warmCache` call without it will not compile — that is the intended safety net.
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1270,7 +1372,8 @@ to:
 
 ```typescript
   // Emit a fire-and-forget usage event for a synchronous (standard-tier) call.
-  private emitUsage(usage: unknown, modelId: string, attribution?: Attribution): void {
+  // `attribution` is required by every caller — there is no default operation.
+  private emitUsage(usage: unknown, modelId: string, attribution: Attribution): void {
     try {
       const tier: ServiceTier = serviceTierFromUsage(usage, 'standard');
       this.events.emit('anthropic.usage', {
@@ -1278,7 +1381,7 @@ to:
         timestamp: new Date().toISOString(),
         modelId,
         serviceTier: tier,
-        attribution: attribution ?? { operation: 'message' },
+        attribution,
         tokens: tokensFromUsage(usage),
         source: 'sync',
       });
@@ -1288,7 +1391,7 @@ to:
   }
 ```
 
-3d. Add `attribution?: Attribution` to `MessageInput`:
+3d. Add a **required** `attribution: Attribution` to `MessageInput`:
 
 ```typescript
 export interface MessageInput {
@@ -1296,7 +1399,7 @@ export interface MessageInput {
   system?: string;
   model?: string;
   maxTokens?: number;
-  attribution?: Attribution;
+  attribution: Attribution;
 }
 ```
 
@@ -1308,23 +1411,52 @@ export interface MessageInput {
 
 Insert it just before the `return {` in the try block.
 
-3f. Add `attribution?: Attribution` to the `messageStructured` opts type and emit after `resp` is obtained (before parsing). In the `opts?:` type add `attribution?: Attribution;`, then right after the `resp` is assigned and the refusal check, add:
+3f. In `messageStructured`, add a **required positional** `attribution: Attribution` **between** `input` and the existing optional `opts` (a required param cannot follow an optional one, so it goes before `opts`). The internal `opts?.` accessors are unchanged. Signature:
 
 ```typescript
-      this.emitUsage((resp as any).usage, (resp as any).model ?? model, opts?.attribution);
+  async messageStructured<T = unknown>(
+    input: { prompt: string; system?: string },
+    attribution: Attribution,
+    opts?: {
+      model?: string;
+      outputSchema?: unknown;
+      context?: CachedContext;
+      files?: boolean;
+      effort?: string;
+      maxTokens?: number;
+    },
+  ): Promise<T> {
 ```
 
-3g. In `warmCache`, add `attribution?: Attribution` to the opts type. After `const first = await call();` add:
+Then, right after `resp` is assigned and the refusal check, add:
 
 ```typescript
-      this.emitUsage((first as any).usage, model, opts?.attribution);
+      this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
 ```
 
-And inside the `if (opts?.strict)` block, after `const probe = await call();`, add:
+3g. In `warmCache`, add a **required positional** `attribution: Attribution` **between** `context` and the existing optional `opts`. The internal `opts?.` accessors are unchanged. Signature:
 
 ```typescript
-        this.emitUsage((probe as any).usage, model, opts?.attribution);
+  async warmCache(
+    context: CachedContext,
+    attribution: Attribution,
+    opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string; outputSchema?: unknown; maxTokens?: number },
+  ): Promise<CacheVerification> {
 ```
+
+After `const first = await call();` add:
+
+```typescript
+      this.emitUsage((first as any).usage, model, attribution);
+```
+
+And inside the existing `if (opts?.strict)` block, after `const probe = await call();`, add:
+
+```typescript
+        this.emitUsage((probe as any).usage, model, attribution);
+```
+
+Because `attribution` is a required positional parameter, every existing caller of `warmCache` / `messageStructured` that omits it now fails to compile — that is the intended safety net. Steps 4 (this task's spec) and Task 10 update those call sites.
 
 3h. Extend `createBatch`'s opts and `BatchResultItem` to carry usage for the reconciler. Add to `BatchResultItem`:
 
@@ -1348,10 +1480,19 @@ In `getBatchResults`, where a `succeeded` item is built, attach the message usag
           }
 ```
 
+3i. **Update the existing spec call sites** in `backend/src/anthropic/anthropic.service.spec.ts` for the now-required `attribution`. These tests exercise transport/caching, not cost, so use the neutral `{ operation: 'other' }` bucket:
+
+- Every existing `service.message({ ... })` call → add `attribution: { operation: 'other' }` to the input object (e.g. `service.message({ prompt: 'hello', attribution: { operation: 'other' } })`).
+- Every existing `service.messageStructured(input, opts)` call → insert the attribution as the new middle argument: `service.messageStructured(input, { operation: 'other' }, opts)`.
+- Every existing `service.warmCache(context)` or `service.warmCache(context, opts)` call → insert attribution: `service.warmCache(context, { operation: 'other' })` or `service.warmCache(context, { operation: 'other' }, opts)`.
+- In every `Test.createTestingModule({ providers: [...] })` block (and any direct `new AnthropicService(...)`) that constructs the service, add the mock emitter: `{ provide: EventEmitter2, useValue: { emit: jest.fn() } }` (and for direct `new`, pass `{ emit: jest.fn() } as any` as the 3rd arg).
+
+The compiler flags each missing one — work through them until `pnpm build` is clean.
+
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `npx jest src/anthropic/anthropic.service.spec.ts`
-Expected: the whole anthropic spec PASSES (existing tests + the 2 new emission tests). If an existing `providers` array constructing `AnthropicService` now errors for a missing `EventEmitter2`, add the mock provider from Step 1 to that block.
+Run: `pnpm build && npx jest src/anthropic/anthropic.service.spec.ts`
+Expected: build clean; the whole anthropic spec PASSES (existing tests, updated call sites, and the 2 new emission tests).
 
 - [ ] **Step 5: Commit**
 
@@ -1505,25 +1646,30 @@ git commit -m "feat(cost): emit per-item batch usage events from BatchReconciler
 
 ---
 
-### Task 10: Thread attribution from benchmark warms, seven-keys, and demo callers
+### Task 10: Thread attribution from benchmark warms, the cache-warmer, seven-keys, and demo callers
 
 **Files:**
 - Modify: `backend/src/benchmark/benchmark.service.ts`
 - Modify: `backend/src/benchmark/benchmark.service.spec.ts`
+- Modify: `backend/src/benchmark/cache-warmer.ts`
+- Modify: `backend/src/benchmark/cache-warmer.spec.ts`
 - Modify: `backend/src/benchmark/seven-keys/seven-keys.service.ts`
 - Modify: `backend/src/demo/anthropic-demo.controller.ts`
 
 - [ ] **Step 1: Write the failing test (benchmark warms carry attribution)**
 
-In `backend/src/benchmark/benchmark.service.spec.ts`, find the test that asserts the first `warmCache` call args (currently `expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA })`). Change that assertion to also require the attribution:
+In `backend/src/benchmark/benchmark.service.spec.ts`, find the test that asserts the first `warmCache` call args (currently `expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA })`). `warmCache` is now called as `warmCache(context, attribution, opts)`, so `calls[0][1]` is the **attribution** and `calls[0][2]` is the opts. Replace that single assertion with two:
 
 ```typescript
     expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({
+      operation: 'warm',
+      benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String) }),
+    });
+    expect(deps.anthropic.warmCache.mock.calls[0][2]).toEqual({
       model: 'claude-fable-5',
       files: true,
       effort: 'high',
       outputSchema: SETUP_SCHEMA,
-      attribution: { operation: 'warm', benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String) }) },
     });
 ```
 
@@ -1548,26 +1694,22 @@ In `backend/src/benchmark/benchmark.service.ts`, the two `warmCache` calls (the 
         }
 ```
 
-Change them to pass attribution. The day-bundle warm is shared across traders, so it carries only the day; the per-envelope warm loop must know its trader/variant. Replace with:
+Change them to pass attribution as the new middle positional argument (`warmCache(context, attribution, opts)`). The day-bundle warm is shared across traders, so it carries only the day; the per-envelope warm loop must know its trader/variant. Replace with:
 
 ```typescript
-        await this.anthropic.warmCache(this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle), {
-          model: model.id,
-          files: true,
-          effort,
-          outputSchema: SETUP_SCHEMA,
-          attribution: { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day } },
-        });
+        await this.anthropic.warmCache(
+          this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle),
+          { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day } },
+          { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+        );
         for (const { trader, variant } of dayCells) {
           const envelope = enveloped.get(`${trader.name}::${variant}`);
           if (!envelope) continue;
-          await this.anthropic.warmCache(envelope, {
-            model: model.id,
-            files: true,
-            effort,
-            outputSchema: SETUP_SCHEMA,
-            attribution: { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day, trader: trader.name, variant } },
-          });
+          await this.anthropic.warmCache(
+            envelope,
+            { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day, trader: trader.name, variant } },
+            { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+          );
         }
 ```
 
@@ -1585,12 +1727,49 @@ git add src/benchmark/benchmark.service.ts src/benchmark/benchmark.service.spec.
 git commit -m "feat(cost): attribute benchmark warm calls (operation=warm, day/trader/variant)"
 ```
 
-- [ ] **Step 6: Attribute seven-keys generation calls**
+- [ ] **Step 5b: Fix the cache-warmer attribution (the missed call site)**
 
-In `backend/src/benchmark/seven-keys/seven-keys.service.ts`, the `generate(day)` method makes **four** `this.anthropic.messageStructured(...)` calls — current-day, lookback, synthesize, verify — each hard-pinned to Fable (`CURRENT_DAY_MODEL` / `SEVEN_KEYS_MODEL` are both `'claude-fable-5'`). To the 2nd argument (the `opts` object) of **all four** calls, add this exact line (the model is hard-pinned to Fable, and `day.day` is the MMDDYYYY key in scope):
+`backend/src/benchmark/cache-warmer.ts` re-warms envelopes for in-flight batches. Without attribution these emit as `message` — wrong. It already destructures `[traderName, variant]` from the distinct key and has `batch.model` + `batch.day` in scope. Change the `warmCache` call (currently `await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA });`) to pass attribution as the middle positional argument:
 
 ```typescript
-        attribution: { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+            await this.anthropic.warmCache(
+              envelope,
+              { operation: 'warm', benchmark: { modelAlias: batch.model.alias, day: batch.day, trader: traderName, variant } },
+              { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+            );
+```
+
+- [ ] **Step 5c: Update the cache-warmer spec assertion**
+
+In `backend/src/benchmark/cache-warmer.spec.ts` the loop destructures the mock call args (currently `for (const [ctx, opts] of deps.anthropic.warmCache.mock.calls) { expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA }); ... }`). `warmCache` now receives `(ctx, attribution, opts)`, so destructure all three and assert the attribution:
+
+```typescript
+    for (const [ctx, attribution, opts] of deps.anthropic.warmCache.mock.calls) {
+      expect(attribution).toEqual({
+        operation: 'warm',
+        benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String), variant: expect.any(String) }),
+      });
+      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA });
+```
+
+Keep the rest of the loop body (the `ctx.userTiers` assertions) unchanged.
+
+- [ ] **Step 5d: Run the cache-warmer spec + commit**
+
+Run: `npx jest src/benchmark/cache-warmer.spec.ts`
+Expected: PASS.
+
+```bash
+git add src/benchmark/cache-warmer.ts src/benchmark/cache-warmer.spec.ts
+git commit -m "fix(cost): attribute cache-warmer re-warms as operation=warm (not message)"
+```
+
+- [ ] **Step 6: Attribute seven-keys generation calls**
+
+In `backend/src/benchmark/seven-keys/seven-keys.service.ts`, the `generate(day)` method makes **four** `this.anthropic.messageStructured(...)` calls — current-day, lookback, synthesize, verify — each hard-pinned to Fable (`CURRENT_DAY_MODEL` / `SEVEN_KEYS_MODEL` are both `'claude-fable-5'`). `messageStructured` now takes attribution as its **2nd positional argument** (`messageStructured(input, attribution, opts)`). Insert this exact attribution arg into **all four** calls (the model is hard-pinned to Fable, and `day.day` is the MMDDYYYY key in scope):
+
+```typescript
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
 ```
 
 For example, the current-day call becomes:
@@ -1598,12 +1777,12 @@ For example, the current-day call becomes:
 ```typescript
       this.anthropic.messageStructured<Record<string, unknown>>(
         { prompt: currentDayPrompt({ date: day.date, generalDocs: general.concatenated, methodsDoc, tpTranscript, recapTranscript }) },
-        { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId),
-          attribution: { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } } },
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+        { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
       );
 ```
 
-Apply the same `attribution:` addition to the lookback, synthesize, and verify calls. No test change is required — the seven-keys spec mocks `messageStructured` and does not assert its `opts`; the attribution flows through to the emitter at runtime.
+Apply the same insertion to the lookback, synthesize, and verify calls (each keeps its own existing `opts` object as the 3rd argument). If the seven-keys spec mocks `messageStructured` and asserts on its argument positions, shift those assertions to account for the inserted middle argument; otherwise no test change is needed.
 
 - [ ] **Step 7: Attribute the demo endpoints**
 
@@ -1751,6 +1930,8 @@ git commit -m "chore(cost): finalize cost dashboard" || echo "nothing to finaliz
 
 ## Self-review notes (author)
 
-- **Spec coverage:** local pricing table (Task 3), all-call capture (Tasks 8–10), four breakdown dimensions (Task 5 `summarize` + Task 6 report), one record per request with idempotent batch keys (Tasks 4–5), API endpoints (Task 7), self-contained HTML report (Task 6). Out-of-scope items (backfill, Cost-API reconcile, priority tier, auth) intentionally not implemented.
-- **Type consistency:** `UsageEvent`, `Attribution`, `UsageTokens`, `CostRecord`, `ServiceTier`, `Operation` defined once in Task 2 and used verbatim in Tasks 3–11. `priceUsage(tokens, modelId, tier, timestamp)` signature is stable across Tasks 3, 5. `tokensFromUsage`/`serviceTierFromUsage` from Task 2 used in Tasks 8–9.
-- **Cache-savings definition:** paid cacheRead = 0.1× full input rate, so savings = paid × 9 (used identically in `cost.service` and `report.builder`).
+- **Spec coverage:** local pricing table (Task 3), all-call capture including the cache-warmer (Tasks 8–10, incl. Step 5b), the four breakdown dimensions plus a calendar-date "over time" view (Task 5 `summarize` `groupBy=date` + Task 6 over-time series), net & gross cache economics (Tasks 3/5/6), one record per request with idempotent batch keys (Tasks 4–5), API endpoints (Task 7), self-contained HTML report (Task 6). Out-of-scope items (backfill, Cost-API reconcile, priority tier, auth) intentionally not implemented.
+- **Type consistency:** `UsageEvent`, `Attribution`, `UsageTokens`, `CostRecord`, `ServiceTier`, `Operation`, and `CostBreakdown` (incl. `uncachedInputEquiv`) defined once in Task 2 and used verbatim in Tasks 3–11. `priceUsage(tokens, modelId, tier, timestamp)` signature is stable across Tasks 3, 5. `tokensFromUsage`/`serviceTierFromUsage` from Task 2 used in Tasks 8–9.
+- **Attribution is required (compile-time):** `message` takes it as a required `MessageInput` field; `messageStructured`/`warmCache` take it as a required 2nd positional argument. A missing attribution fails to build — no silent `message` bucket.
+- **Cache metrics:** gross read discount = paid cacheRead × 9 (paid 0.1×, full 1×). Net cache benefit = `uncachedInputEquiv − (input + cacheRead + cacheCreate)` — can be negative when 1h write premiums outweigh reads. Both computed identically in `cost.service.summarize` and `report.builder`.
+- **`date` vs `day`:** `groupBy=date` buckets by the request's UTC calendar date (`timestamp.slice(0,10)`); `day` remains the benchmark trading day (MMDDYYYY). Distinct and both available.
