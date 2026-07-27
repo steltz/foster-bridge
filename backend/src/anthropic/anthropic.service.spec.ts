@@ -618,4 +618,107 @@ describe('AnthropicService', () => {
       expect(results[0]).toMatchObject({ customId: 'k', type: 'refusal', stopReason: 'refusal' });
     });
   });
+
+  describe('messageStructured', () => {
+    const FILES_BETA = ['files-api-2025-04-14'];
+
+    it('non-files: sends output_config.format and parses the JSON text', async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{"pass":true,"mismatches":[]}' }],
+        usage: {},
+      });
+      const schema = { type: 'object', required: ['pass'] } as any;
+      const out = await service.messageStructured<{ pass: boolean; mismatches: string[] }>(
+        { prompt: 'verify' },
+        { model: 'claude-fable-5', outputSchema: schema, effort: 'high' },
+      );
+      expect(betaCreate).not.toHaveBeenCalled();
+      const arg = create.mock.calls[0][0];
+      expect(arg.model).toBe('claude-fable-5');
+      expect(arg.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
+      expect(arg.messages).toEqual([{ role: 'user', content: 'verify' }]);
+      expect(out).toEqual({ pass: true, mismatches: [] });
+    });
+
+    it('files:true routes to the beta client with the files beta header and a cached document tier', async () => {
+      betaCreate.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{"bias":"b"}' }],
+        usage: {},
+      });
+      await service.messageStructured(
+        { prompt: 'analyze' },
+        {
+          model: 'claude-fable-5',
+          outputSchema: { type: 'object' } as any,
+          files: true,
+          context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        },
+      );
+      expect(create).not.toHaveBeenCalled();
+      const arg = betaCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      // The document tier is cached (last-block breakpoint) and the prompt is appended uncached.
+      expect(arg.messages[0].content[0]).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_1' } });
+      expect(arg.messages[0].content[arg.messages[0].content.length - 1]).toEqual({ type: 'text', text: 'analyze' });
+    });
+
+    it('throws when the model refuses (stop_reason refusal)', async () => {
+      create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: {} });
+      await expect(
+        service.messageStructured({ prompt: 'x' }, { outputSchema: { type: 'object' } as any }),
+      ).rejects.toBeInstanceOf(HttpException);
+    });
+
+    it('throws a 502 when the structured output is not valid JSON', async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: 'not json' }],
+        usage: {},
+      });
+      let caught: unknown;
+      try {
+        await service.messageStructured({ prompt: 'x' }, { outputSchema: { type: 'object' } as any });
+      } catch (e) {
+        caught = e;
+      }
+      expect((caught as HttpException).getStatus()).toBe(502);
+    });
+
+    it('sends input.system when the context carries no system of its own', async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{}' }],
+        usage: {},
+      });
+      await service.messageStructured(
+        { prompt: 'go', system: 'be terse' },
+        { context: { prefix: 'shared ctx' } },
+      );
+      const arg = create.mock.calls[0][0];
+      expect(arg.system).toBe('be terse');
+    });
+
+    it('prefers the cached context system over input.system when both are set', async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{}' }],
+        usage: {},
+      });
+      await service.messageStructured(
+        { prompt: 'go', system: 'be terse' },
+        { context: { system: 'context system' } },
+      );
+      const arg = create.mock.calls[0][0];
+      expect(arg.system).toEqual([
+        { type: 'text', text: 'context system', cache_control: { type: 'ephemeral', ttl: '1h' } },
+      ]);
+    });
+  });
 }); // describe('AnthropicService')

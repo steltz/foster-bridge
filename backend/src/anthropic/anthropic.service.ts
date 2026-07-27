@@ -135,6 +135,69 @@ export class AnthropicService {
     }
   }
 
+  /**
+   * One synchronous structured-output message (NOT a batch). Applies
+   * output_config.format when an outputSchema is given, routes through the
+   * beta/files client when `files` is set, reuses the cached-prefix builder for
+   * an optional CachedContext, and returns the parsed JSON. A refusal throws.
+   */
+  async messageStructured<T = unknown>(
+    input: { prompt: string; system?: string },
+    opts?: {
+      model?: string;
+      outputSchema?: unknown;
+      context?: CachedContext;
+      files?: boolean;
+      effort?: string;
+      maxTokens?: number;
+    },
+  ): Promise<T> {
+    const client = this.clientFactory.get();
+    const model = opts?.model ?? this.defaultModel;
+    const maxTokens = opts?.maxTokens ?? this.defaultMaxTokens;
+    const files = opts?.files === true;
+    const outputConfig = {
+      ...(opts?.outputSchema ? { format: { type: 'json_schema', schema: opts.outputSchema } } : {}),
+      ...(opts?.effort ? { effort: opts.effort } : {}),
+    };
+    const built = opts?.context
+      ? this.buildCachedRequest(opts.context, input.prompt)
+      : { messages: [{ role: 'user' as const, content: input.prompt }] };
+    const params: Record<string, unknown> = {
+      model,
+      max_tokens: maxTokens,
+      // System only when not already carried by the cached context.
+      ...(input.system && !opts?.context?.system ? { system: input.system } : {}),
+      ...built,
+      ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
+    };
+    try {
+      const resp = files
+        ? await client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
+        : await client.messages.create(params as any);
+      if (resp.stop_reason === 'refusal') {
+        throw new HttpException(
+          { statusCode: 422, error: 'Structured message refused' },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+      let text = '';
+      for (const block of resp.content) {
+        if (block.type === 'text') text += block.text;
+      }
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        throw new HttpException(
+          { statusCode: 502, error: 'Structured output was not valid JSON' },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
   /** Uploads bytes to the Anthropic Files API and returns the file_id. */
   async uploadFile(bytes: Buffer, filename: string, mediaType: string): Promise<string> {
     const client = this.clientFactory.get();
