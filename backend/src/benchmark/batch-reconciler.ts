@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
 import { AnthropicService, BatchResultItem } from '../anthropic/anthropic.service';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkCell, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
+import { tokensFromUsage } from '../cost/cost.types';
 
 const SYMBOL = 'MES';
 const INTERVAL = 'min-5' as const;
@@ -22,6 +24,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
     private readonly backtest: BacktestService,
     private readonly scoreboard: ScoreboardService,
     config: ConfigService,
+    private readonly events: EventEmitter2,
   ) {
     this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
   }
@@ -106,6 +109,32 @@ export class BatchReconciler implements OnApplicationBootstrap {
             `Batch ${batch.batchId}: skipping retryable ${item.type} item ${item.customId}${item.error ? ` (${item.error})` : ''}`,
           );
           continue;
+        }
+        // Cost capture: emit per-item usage attributed from the cellKey. Never
+        // let a cost emit failure interfere with cell reconciliation.
+        try {
+          const p = parseCellKey(item.customId);
+          this.events.emit('anthropic.usage', {
+            id: `${batch.batchId}:${item.customId}`,
+            timestamp: new Date().toISOString(),
+            modelId: batch.model.id,
+            serviceTier: 'batch',
+            attribution: {
+              operation: 'setup',
+              benchmark: {
+                modelAlias: batch.model.alias,
+                day: batch.day,
+                trader: p.trader,
+                variant: p.variant,
+                runIndex: p.runIndex,
+              },
+            },
+            tokens: tokensFromUsage(item.usage),
+            source: 'batch',
+            batchId: batch.batchId,
+          });
+        } catch (e) {
+          this.logger.warn(`Cost emit failed for ${item.customId}: ${(e as Error).message}`);
         }
         // customId IS the cellKey; the CellMeta supplies date + content hashes.
         const meta = batch.customIdToCell[item.customId];

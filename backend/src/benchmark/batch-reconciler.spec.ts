@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BatchReconciler } from './batch-reconciler';
 import { BenchmarkRepository } from './benchmark.repository';
 import { AnthropicService } from '../anthropic/anthropic.service';
@@ -56,6 +57,7 @@ async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true)
       { provide: BacktestService, useValue: deps.backtest },
       { provide: ScoreboardService, useValue: deps.scoreboard },
       { provide: ConfigService, useValue: config },
+      { provide: EventEmitter2, useValue: { emit: jest.fn() } as any },
     ],
   }).compile();
   return moduleRef.get(BatchReconciler);
@@ -248,6 +250,51 @@ describe('BatchReconciler.reconcile', () => {
     await rec.reconcile();
     const cell = deps.created.find((c) => c.runIndex === 1);
     expect(cell.artifactSha256).toBeUndefined();
+  });
+
+  it('emits a batch UsageEvent per succeeded item, attributed from the customId', async () => {
+    const emitted: any[] = [];
+    const emitter = { emit: (name: string, ev: any) => emitted.push({ name, ev }) };
+    const batch = {
+      batchId: 'msgbatch_1',
+      day: '07222026',
+      date: '2026-07-22',
+      model: { alias: 'fable', id: 'claude-fable-5' },
+      status: 'submitted',
+      customIdToCell: {
+        'context-trader__fable__07222026__base__run1': { date: '2026-07-22', personaSha256: 'p', generalSha256: 'g' },
+      },
+    };
+    const anthropic = {
+      getBatch: async () => ({ processingStatus: 'ended' }),
+      getBatchResults: async () => [
+        { customId: 'context-trader__fable__07222026__base__run1', type: 'succeeded',
+          text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }),
+          usage: { input_tokens: 20, output_tokens: 2157, cache_read_input_tokens: 3227, cache_creation_input_tokens: 16434, service_tier: 'batch' } },
+      ],
+    };
+    const repo = {
+      nonTerminalBatches: async () => [batch],
+      createCell: async () => {},
+      updateBatch: async () => {},
+    };
+    const backtest = { run: async () => ({ results: [{ status: 'NOT_FILLED', points: null, dollars: null, fillTime: null, exitTime: null, maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null, closestApproach: 49.75 }] }) };
+    const scoreboard = { generate: async () => {} };
+    const config = { get: () => false };
+    const reconciler = new BatchReconciler(repo as any, anthropic as any, backtest as any, scoreboard as any, config as any, emitter as any);
+    await reconciler.reconcile();
+
+    const usage = emitted.find((e) => e.name === 'anthropic.usage');
+    expect(usage).toBeDefined();
+    expect(usage.ev).toEqual(expect.objectContaining({
+      id: 'msgbatch_1:context-trader__fable__07222026__base__run1',
+      source: 'batch',
+      serviceTier: 'batch',
+      batchId: 'msgbatch_1',
+      modelId: 'claude-fable-5',
+      attribution: { operation: 'setup', benchmark: { modelAlias: 'fable', day: '07222026', trader: 'context-trader', variant: 'base', runIndex: 1 } },
+      tokens: expect.objectContaining({ input: 20, cacheRead: 3227, cacheCreate1h: 16434, output: 2157 }),
+    }));
   });
 });
 
