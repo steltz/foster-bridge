@@ -114,4 +114,34 @@ describe('BenchmarkRepository', () => {
     await repo.saveScoreboard('fable', { json: { groups: [] }, markdown: '# x', generatedAt: 't' });
     expect((await repo.getScoreboard('fable'))?.markdown).toBe('# x');
   });
+
+  it('round-trips a keys DayArtifactDoc with inline content + provenance', async () => {
+    const { repo } = await build();
+    await repo.saveDayArtifact('07012026', 'keys', {
+      contentHash: 'kh',
+      gcsPath: 'benchmark/es/07012026/07012026_ES_KEYS.md',
+      content: '---\nverified: true\n---\n\n# Seven Keys',
+      uploadedAt: 't',
+      generatedBy: 'claude-fable-5',
+      generatedAt: 't',
+      lookbackSources: ['06302026_ES_KEYS.md'],
+      verified: true,
+    });
+    const got = await repo.getDayArtifact('07012026', 'keys');
+    expect(got?.content).toContain('# Seven Keys');
+    expect(got?.generatedBy).toBe('claude-fable-5');
+    expect(got?.lookbackSources).toEqual(['06302026_ES_KEYS.md']);
+    expect(got?.verified).toBe(true);
+  });
+
+  it('hasScorecardCells is true only once a scorecard cell exists for the day', async () => {
+    const { repo } = await build();
+    expect(await repo.hasScorecardCells('07012026')).toBe(false);
+    await repo.createCell({
+      trader: 'context-trader', modelAlias: 'fable', day: '07012026',
+      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'SL' },
+    } as any);
+    expect(await repo.hasScorecardCells('07012026')).toBe(true);
+    expect(await repo.hasScorecardCells('07022026')).toBe(false); // scoped to the day
+  });
 });

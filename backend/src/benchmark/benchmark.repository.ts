@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.constants';
-import { BenchmarkCell, cellKey } from './benchmark.types';
+import { BenchmarkCell, cellKey, SCORECARD_VARIANT } from './benchmark.types';
 
 export type BatchStatus =
   | 'submitted'
@@ -25,6 +25,7 @@ export interface CellMeta {
   generalSha256: string;
   featureSha256?: string; // omitted for base
   staticDocSha256?: string; // omitted when the variant has no staticDoc
+  artifactSha256?: string; // sha256 of the KEYS content (scorecard cells only)
 }
 
 export interface BatchDoc {
@@ -47,6 +48,20 @@ export interface DayArtifactDoc {
   anthropicFileId?: string; // pdfFile only
   content?: string; // transcripts / keys inline copy
   uploadedAt: string;
+  // Seven-keys ('keys') provenance (Plan 2). The KEYS markdown in `content` also
+  // carries a YAML-frontmatter copy of these (that is the injectable artifact); the
+  // top-level fields make provenance queryable without parsing the markdown.
+  generatedBy?: string;
+  generatedAt?: string;
+  lookbackSources?: string[];
+  verified?: boolean;
+  // sha256 of the exact generation inputs (PDF bytes + both transcripts + methods
+  // doc). ensureKeys reuses a not-yet-benchmarked artifact only while this matches,
+  // so a corrected trade plan regenerates instead of serving stale KEYS.
+  inputsHash?: string;
+  // The recent prior complete day(s) that had no KEYS when this was generated —
+  // a reduced-lookback signal (empty in the common case).
+  lookbackMissing?: string[];
 }
 
 export interface ScoreboardDoc {
@@ -90,6 +105,18 @@ export class BenchmarkRepository {
       .where('variant', '==', variant)
       .get();
     return snap.docs.map((d) => (d.data() as BenchmarkCell).runIndex);
+  }
+
+  // True once the day has at least one persisted seven-keys-scorecard cell. Such a
+  // cell pinned this day's KEYS via artifactSha256, so ensureKeys must treat the
+  // stored artifact as immutable from then on.
+  async hasScorecardCells(day: string): Promise<boolean> {
+    const snap = await this.db
+      .collection(RUNS)
+      .where('day', '==', day)
+      .where('variant', '==', SCORECARD_VARIANT)
+      .get();
+    return snap.docs.length > 0;
   }
 
   async listCells(modelAlias: string): Promise<BenchmarkCell[]> {

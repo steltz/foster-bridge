@@ -43,8 +43,12 @@ export const SETUP_SCHEMA = {
 // missing candles, incomplete session — not the setup's fault).
 export type CellStatus = 'TP' | 'SL' | 'EOD' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP' | 'CLI_ERROR';
 
-export type Variant = string; // 'base' | 'seven-keys-method' in this plan
+export type Variant = string; // 'base' | 'seven-keys-method' | 'seven-keys-scorecard'
 export const CORE_VARIANTS: readonly Variant[] = Object.freeze(['base', 'seven-keys-method']);
+// Plan 2: the generated-artifact variant. Kept OUT of CORE_VARIANTS (base/method-only
+// callers must not pick it up); ALL_VARIANTS is the full set the run accepts.
+export const SCORECARD_VARIANT: Variant = 'seven-keys-scorecard';
+export const ALL_VARIANTS: readonly Variant[] = Object.freeze([...CORE_VARIANTS, SCORECARD_VARIANT]);
 
 export interface CellResult {
   status: CellStatus;
@@ -72,6 +76,7 @@ export interface BenchmarkCell {
   generalSha256: string;
   featureSha256?: string; // omitted for base
   staticDocSha256?: string; // omitted when the variant has no staticDoc
+  artifactSha256?: string; // sha256 of the injected KEYS content (scorecard cells only)
   setup?: Setup;
   result: CellResult;
   note?: string;

@@ -1,4 +1,4 @@
-import { cellKey, parseCellKey, SETUP_SCHEMA, CORE_VARIANTS, resolveModel } from './benchmark.types';
+import { cellKey, parseCellKey, SETUP_SCHEMA, CORE_VARIANTS, ALL_VARIANTS, SCORECARD_VARIANT, resolveModel } from './benchmark.types';
 
 describe('cellKey', () => {
   it('round-trips a cell key', () => {
@@ -62,5 +62,12 @@ describe('SETUP_SCHEMA / CORE_VARIANTS', () => {
   });
   it('scopes core variants to base + seven-keys-method', () => {
     expect(CORE_VARIANTS).toEqual(['base', 'seven-keys-method']);
+  });
+  it('keeps CORE_VARIANTS intact and adds scorecard only to ALL_VARIANTS', () => {
+    expect(CORE_VARIANTS).toEqual(['base', 'seven-keys-method']);
+    expect(SCORECARD_VARIANT).toBe('seven-keys-scorecard');
+    expect(ALL_VARIANTS).toEqual(['base', 'seven-keys-method', 'seven-keys-scorecard']);
+    // CORE_VARIANTS must NOT contain the scorecard variant (base/method-only callers rely on this).
+    expect(CORE_VARIANTS).not.toContain('seven-keys-scorecard');
   });
 });
