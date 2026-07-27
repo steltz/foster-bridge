@@ -14,6 +14,7 @@ export interface VariantSpec {
   variant: Variant;
   featureBlock?: string; // the feature's prompt body (base: undefined)
   methodsDoc?: string; // seven-keys-method's staticDoc content
+  artifact?: string; // seven-keys-scorecard's KEYS content (substituted into ${ARTIFACT})
 }
 
 // Constant task/schema framing. M4: this + the general docs form Tier 1, which
@@ -85,7 +86,33 @@ export class EnvelopeBuilder {
       this.dayTier(bundle),
       { blocks: [{ type: 'text', text: `Adopt this trading persona fully:\n${persona}` }] },
     ];
-    if (spec.variant !== 'base') {
+    if (spec.variant === 'seven-keys-scorecard') {
+      // Scorecard: substitute BOTH placeholders into the feature block.
+      if (spec.artifact == null || spec.artifact === '') {
+        throw new Error(
+          `Variant "${spec.variant}" requires a KEYS artifact to substitute into \${ARTIFACT}`,
+        );
+      }
+      if (spec.methodsDoc == null || spec.methodsDoc === '') {
+        throw new Error(
+          `Variant "${spec.variant}" requires a methods doc to substitute into \${DOC}`,
+        );
+      }
+      // Single-pass substitution with a function replacer: this avoids the
+      // two-pass split/join clobbering a literal "${ARTIFACT}" that happens
+      // to appear inside methodsDoc once it's been substituted in for ${DOC},
+      // and function replacements (unlike string replacements) never
+      // interpret $-sequences (e.g. $&, $1, $$) in the returned value.
+      const featureText = (spec.featureBlock ?? '')
+        .replace(/\$\{DOC\}|\$\{ARTIFACT\}/g, (token) =>
+          token === '${DOC}' ? spec.methodsDoc! : spec.artifact!,
+        )
+        .trim();
+      if (!featureText) {
+        throw new Error(`Variant "${spec.variant}" produced an empty feature tier`);
+      }
+      tiers.push({ blocks: [{ type: 'text', text: featureText }] });
+    } else if (spec.variant !== 'base') {
       const featureText = [spec.featureBlock ?? '', spec.methodsDoc ? `\n\n${spec.methodsDoc}` : '']
         .join('')
         .trim();

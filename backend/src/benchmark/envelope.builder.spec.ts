@@ -68,4 +68,73 @@ describe('EnvelopeBuilder', () => {
       builder.fullEnvelope('GENERAL', bundle, 'PERSONA', { variant: 'seven-keys-method' }),
     ).toThrow(/seven-keys-method.*feature block or methods doc/i);
   });
+
+  it('scorecard envelope substitutes ${DOC} + ${ARTIFACT} into the feature tier (still 4 tiers)', () => {
+    const env = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+      variant: 'seven-keys-scorecard',
+      featureBlock: 'Read ${DOC} then adopt ${ARTIFACT}.',
+      methodsDoc: 'METHODS BODY',
+      artifact: 'KEYS BODY',
+    });
+    expect(env.userTiers).toHaveLength(4);
+    const feat = (env.userTiers![3].blocks[0] as any).text;
+    expect(feat).toContain('METHODS BODY');
+    expect(feat).toContain('KEYS BODY');
+    expect(feat).not.toContain('${DOC}');
+    expect(feat).not.toContain('${ARTIFACT}');
+  });
+
+  it('scorecard leading tiers stay byte-identical to dayBundleContext (prefix identity)', () => {
+    const dayBundle = builder.dayBundleContext('GENERAL', bundle);
+    const full = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+      variant: 'seven-keys-scorecard',
+      featureBlock: 'Read ${DOC} then ${ARTIFACT}.',
+      methodsDoc: 'M',
+      artifact: 'K',
+    });
+    expect(full.userTiers!.slice(0, 2)).toEqual(dayBundle.userTiers);
+  });
+
+  it('throws when the scorecard variant has no artifact (empty feature-tier guard)', () => {
+    expect(() =>
+      builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+        variant: 'seven-keys-scorecard',
+        featureBlock: 'Read ${DOC} then ${ARTIFACT}.',
+        methodsDoc: 'M',
+      }),
+    ).toThrow(/seven-keys-scorecard.*artifact/i);
+  });
+
+  it('does not clobber a literal ${ARTIFACT} token inside methodsDoc (one-pass substitution)', () => {
+    const env = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+      variant: 'seven-keys-scorecard',
+      featureBlock: 'Read ${DOC} then adopt ${ARTIFACT}.',
+      methodsDoc: 'METHODS with a literal ${ARTIFACT} token',
+      artifact: 'KEYS BODY',
+    });
+    const feat = (env.userTiers![3].blocks[0] as any).text;
+    expect(feat).toContain('literal ${ARTIFACT} token');
+    expect(feat.endsWith('adopt KEYS BODY.')).toBe(true);
+  });
+
+  it('passes $-content through literally (function-replacer $-safety)', () => {
+    const env = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+      variant: 'seven-keys-scorecard',
+      featureBlock: 'Read ${DOC} then adopt ${ARTIFACT}.',
+      methodsDoc: 'M',
+      artifact: 'entry at $4,500 (use $& and $1 literally)',
+    });
+    const feat = (env.userTiers![3].blocks[0] as any).text;
+    expect(feat).toContain('entry at $4,500 (use $& and $1 literally)');
+  });
+
+  it('throws when the scorecard variant has no methods doc (symmetric guard)', () => {
+    expect(() =>
+      builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+        variant: 'seven-keys-scorecard',
+        featureBlock: 'Read ${DOC} then ${ARTIFACT}.',
+        artifact: 'KEYS BODY',
+      }),
+    ).toThrow(/seven-keys-scorecard.*(methods|DOC)/i);
+  });
 });
