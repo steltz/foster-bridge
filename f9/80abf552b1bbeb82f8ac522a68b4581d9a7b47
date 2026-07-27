@@ -1,0 +1,21 @@
+backend/src/benchmark/batch-reconciler.ts
+  s_d590fbd24c631b::t_75a7e0bdd2f288 145
+backend/src/benchmark/batch-reconciler.spec.ts
+  s_d590fbd24c631b::t_cb0e88b6c74116 228-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "f980abf552b1bbeb82f8ac522a68b4581d9a7b47",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
