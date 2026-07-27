@@ -1,0 +1,23 @@
+backend/src/benchmark/seven-keys/schemas.ts
+  s_d590fbd24c631b::t_c369e0480d898d 1-67
+backend/src/benchmark/seven-keys/seven-keys.spec.ts
+  s_d590fbd24c631b::t_ad3f8a77eb0a40 1-69
+backend/src/benchmark/seven-keys/prompts.ts
+  s_d590fbd24c631b::t_29dd28f319c9ba 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "be3425a7526c21e0636fdb9b61a9b0fb1fa2b176",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
