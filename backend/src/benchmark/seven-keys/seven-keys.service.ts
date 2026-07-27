@@ -79,6 +79,7 @@ export class SevenKeysService {
     const currentPromise = this.withRetry('current-day', () =>
       this.anthropic.messageStructured<Record<string, unknown>>(
         { prompt: currentDayPrompt({ date: day.date, generalDocs: general.concatenated, methodsDoc, tpTranscript, recapTranscript }) },
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
       ),
     );
@@ -86,6 +87,7 @@ export class SevenKeysService {
       ? this.withRetry('lookback', () =>
           this.anthropic.messageStructured<Record<string, unknown>>(
             { prompt: lookbackPrompt(day.date, lookbackSet) },
+            { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
             { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort },
           ),
         )
@@ -96,6 +98,7 @@ export class SevenKeysService {
     const synth = await this.withRetry('synthesize', () =>
       this.anthropic.messageStructured<{ artifact: string }>(
         { prompt: synthesizePrompt(day.date, current, lookback, sources) },
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort },
       ),
     );
@@ -103,6 +106,7 @@ export class SevenKeysService {
     const verdict = await this.withRetry('verify', () =>
       this.anthropic.messageStructured<{ pass: boolean; mismatches: string[] }>(
         { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
       ),
     );

@@ -53,7 +53,7 @@ describe('AnthropicDemoController', () => {
   it('message delegates to the service', async () => {
     anthropic.message.mockResolvedValue({ text: 'hi' });
     await controller.message({ prompt: 'yo' });
-    expect(anthropic.message).toHaveBeenCalledWith({ prompt: 'yo' });
+    expect(anthropic.message).toHaveBeenCalledWith({ prompt: 'yo', attribution: { operation: 'demo' } });
   });
 
   it('createBatch delegates the requests array (defaulting to [])', async () => {

@@ -26,8 +26,8 @@ export class AnthropicDemoController {
   }
 
   @Post('message')
-  message(@Body() body: MessageInput) {
-    return this.anthropic.message(body);
+  message(@Body() body: Omit<MessageInput, 'attribution'>) {
+    return this.anthropic.message({ ...body, attribution: { operation: 'demo' } });
   }
 
   @Post('batch')
