@@ -110,6 +110,98 @@ export class SevenKeysService {
     return { verified: verdict.pass, mismatches: verdict.mismatches, artifact: synth.artifact, lookbackSources, lookbackMissing };
   }
 
+  /**
+   * Idempotent: reuse the stored KEYS when present (a benchmarked day always has
+   * one -> frozen, never regenerated); otherwise generate + verify + persist.
+   * Returns the persisted doc, or null (logged) when the verifier/generation fails
+   * so the caller skips the scorecard variant for the day.
+   */
+  async ensureKeys(day: DayInput, opts?: { force?: boolean }): Promise<DayArtifactDoc | null> {
+    const existing = await this.repo.getDayArtifact(day.day, 'keys');
+    const benchmarked = await this.repo.hasScorecardCells(day.day);
+    // (1) Immutable once benchmarked: a persisted seven-keys-scorecard cell recorded
+    // this KEYS content's hash (artifactSha256), so the artifact must never change
+    // for reproducibility — reuse unconditionally, even when force is set.
+    if (benchmarked) {
+      if (existing) return existing;
+      // Anomaly: benchmarked but the KEYS artifact is missing. Regenerating would
+      // break the artifactSha256 already pinned on existing scorecard cells, so refuse
+      // rather than silently overwrite.
+      this.logger.error(
+        `Seven-keys for ${day.day}: scorecard cells exist but the KEYS artifact is missing; refusing to regenerate (would break cell provenance).`,
+      );
+      return null;
+    }
+    // (2) Refreshable until benchmarked: reuse only a VERIFIED artifact whose
+    // generation inputs are unchanged. A corrected trade plan (inputsHash drift), an
+    // unverified leftover, or an explicit force all fall through to (re)generation.
+    const inputsHash = this.computeInputsHash(day);
+    if (!opts?.force && existing?.verified && existing.inputsHash === inputsHash) return existing;
+
+    let result: KeysArtifact;
+    try {
+      result = await this.generate(day);
+    } catch (err) {
+      this.logger.error(`Seven-keys generation failed for ${day.day}: ${(err as Error).message}`);
+      return null;
+    }
+    if (!result.verified) {
+      this.logger.warn(`Seven-keys verifier failed for ${day.day}: ${result.mismatches.join('; ')}`);
+      return null;
+    }
+    if (result.lookbackMissing.length) {
+      // Surface silent calibration degradation: an oldest-first run that failed on
+      // an earlier day leaves the later days with a reduced lookback set.
+      this.logger.warn(
+        `Seven-keys for ${day.day} generated with a reduced lookback — recent prior day(s) without KEYS: ${result.lookbackMissing.join(', ')}`,
+      );
+    }
+    const generatedAt = new Date().toISOString();
+    const content = this.composeKeysMarkdown(result.artifact, generatedAt, result.lookbackSources);
+    const doc: DayArtifactDoc = {
+      contentHash: createHash('sha256').update(content).digest('hex'),
+      gcsPath: `benchmark/es/${day.day}/${day.prefix}_ES_KEYS.md`, // inline-stored; path is a stable marker
+      content,
+      uploadedAt: generatedAt,
+      generatedBy: CURRENT_DAY_MODEL,
+      generatedAt,
+      lookbackSources: result.lookbackSources,
+      lookbackMissing: result.lookbackMissing,
+      verified: true,
+      inputsHash,
+    };
+    await this.repo.saveDayArtifact(day.day, 'keys', doc);
+    return doc;
+  }
+
+  // sha256 over the exact generation inputs (PDF bytes + both transcripts + the
+  // methodology doc). ensureKeys reuses a not-yet-benchmarked artifact only while
+  // this is unchanged, so a corrected trade plan regenerates instead of serving
+  // stale KEYS. (Only read on the non-immutable path — a benchmarked day returns
+  // before this is called.)
+  private computeInputsHash(day: DayInput): string {
+    const pdf = readFileSync(day.pdfPath);
+    const tp = readFileSync(day.planPath, 'utf8');
+    const recap = readFileSync(day.recapPath, 'utf8');
+    const methods = this.inputs.readMethodsDoc() ?? '';
+    return createHash('sha256').update(pdf).update('\x00').update(tp).update('\x00').update(recap).update('\x00').update(methods).digest('hex');
+  }
+
+  // Faithful port of the skill's committed KEYS file: YAML frontmatter + body.
+  private composeKeysMarkdown(artifactBody: string, generatedAt: string, lookbackSources: string[]): string {
+    return [
+      '---',
+      `generatedBy: ${CURRENT_DAY_MODEL}`,
+      `generatedAt: ${generatedAt}`,
+      `lookbackSources: [${lookbackSources.join(', ')}]`,
+      'verified: true',
+      '---',
+      '',
+      artifactBody.trim(),
+      '',
+    ].join('\n');
+  }
+
   // Bounded retry for the generation chain. Retries only transient upstream
   // failures (HTTP 429 / 5xx, or a raw non-HttpException error) so one flaky call
   // doesn't discard the prior Fable calls; a 422 refusal — a deterministic content

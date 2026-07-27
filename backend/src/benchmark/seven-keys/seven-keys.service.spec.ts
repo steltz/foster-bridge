@@ -197,3 +197,125 @@ describe('SevenKeysService.generate', () => {
     expect(out.lookbackSources).toEqual(['07012026_ES_KEYS.md', '07032026_ES_KEYS.md']);
   });
 });
+
+describe('SevenKeysService.ensureKeys', () => {
+  // computeInputsHash reads the day's files; give readFileSync a stable impl here
+  // too (the generate describe's beforeEach doesn't apply to this block).
+  beforeEach(() => {
+    (readFileSync as jest.Mock).mockImplementation((p: string) => (String(p).includes('RECAP') ? 'RECAP' : 'TP'));
+  });
+
+  it('is immutable once benchmarked: reuses stored KEYS, never regenerates, even on force', async () => {
+    const deps = makeDeps();
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.hasScorecardCells.mockResolvedValue(true); // a scorecard cell pinned this artifact
+    const svc = await build(deps);
+    const genSpy = jest.spyOn(svc, 'generate');
+    expect(await svc.ensureKeys(DAY as any)).toBe(existing);
+    expect(await svc.ensureKeys(DAY as any, { force: true })).toBe(existing); // force cannot override immutability
+    expect(genSpy).not.toHaveBeenCalled();
+  });
+
+  it('benchmarked anomaly: refuses to regenerate (returns null) when cells exist but the KEYS artifact is missing', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(true); // day is benchmarked
+    deps.repo.getDayArtifact.mockImplementation(async () => null); // but the KEYS doc is gone
+    const svc = await build(deps);
+    const genSpy = jest.spyOn(svc, 'generate');
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).toBeNull();
+    expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would break pinned artifactSha256
+    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+  });
+
+  it('reuses a verified artifact when the generation inputs are unchanged (not yet benchmarked)', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const svc = await build(deps);
+    const inputsHash = (svc as any).computeInputsHash(DAY); // same inputs the impl will hash
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    const genSpy = jest.spyOn(svc, 'generate');
+    expect(await svc.ensureKeys(DAY as any)).toBe(existing);
+    expect(genSpy).not.toHaveBeenCalled();
+  });
+
+  it('regenerates when the trade plan changed (inputsHash drift) on a not-yet-benchmarked day', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stale', uploadedAt: 't', verified: true, inputsHash: 'OLD' } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# fresh', mismatches: [], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any);
+    expect(deps.repo.saveDayArtifact).toHaveBeenCalled();
+    expect(out!.content).toContain('# fresh');
+  });
+
+  it('regenerates a not-yet-benchmarked day when force is set even if inputs are unchanged', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const svc = await build(deps);
+    const inputsHash = (svc as any).computeInputsHash(DAY);
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# forced', mismatches: [], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any, { force: true });
+    expect(out!.content).toContain('# forced');
+  });
+
+  it('generates + persists a verified artifact with frontmatter provenance + inputsHash', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({
+      verified: true,
+      artifact: '# Seven Keys — ES 2026-07-08\n\n| row |',
+      mismatches: [],
+      lookbackSources: ['07012026_ES_KEYS.md'],
+      lookbackMissing: [],
+    });
+    const out = await svc.ensureKeys(DAY as any);
+    expect(deps.repo.saveDayArtifact).toHaveBeenCalledWith('07082026', 'keys', expect.objectContaining({
+      generatedBy: 'claude-fable-5',
+      verified: true,
+      lookbackSources: ['07012026_ES_KEYS.md'],
+    }));
+    const doc = deps.repo.saveDayArtifact.mock.calls[0][2];
+    expect(doc.content).toContain('generatedBy: claude-fable-5');
+    expect(doc.content).toContain('lookbackSources: [07012026_ES_KEYS.md]');
+    expect(doc.content).toContain('# Seven Keys — ES 2026-07-08');
+    expect(doc.contentHash).toHaveLength(64);
+    expect(doc.inputsHash).toHaveLength(64);
+    expect(out).toBe(doc);
+  });
+
+  it('surfaces a reduced lookback (logs) but still persists when lookbackMissing is non-empty', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# k', mismatches: [], lookbackSources: [], lookbackMissing: ['07022026'] });
+    const warn = jest.spyOn((svc as any).logger, 'warn');
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).not.toBeNull();
+    expect(out!.lookbackMissing).toEqual(['07022026']);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('07022026'));
+  });
+
+  it('returns null and does NOT persist when the verifier fails', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: false, artifact: 'x', mismatches: ['bad'], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).toBeNull();
+    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+  });
+
+  it('returns null and does NOT persist when generation throws (e.g. Fable refusal)', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockRejectedValue(new Error('refused'));
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).toBeNull();
+    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+  });
+});
