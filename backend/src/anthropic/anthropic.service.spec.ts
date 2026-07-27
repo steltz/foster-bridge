@@ -19,6 +19,7 @@ jest.mock('@anthropic-ai/sdk', () => ({
 
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HttpException } from '@nestjs/common';
 import { AnthropicService } from './anthropic.service';
 import { ANTHROPIC_CLIENT } from './anthropic.constants';
@@ -72,6 +73,7 @@ describe('AnthropicService', () => {
       providers: [
         AnthropicService,
         { provide: ANTHROPIC_CLIENT, useValue: { get: () => fakeClient } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         {
           provide: ConfigService,
           useValue: {
@@ -99,7 +101,7 @@ describe('AnthropicService', () => {
       ],
       usage: { input_tokens: 3, output_tokens: 2 },
     });
-    const result = await service.message({ prompt: 'hi' });
+    const result = await service.message({ prompt: 'hi', attribution: { operation: 'other' } });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'claude-sonnet-5',
@@ -127,6 +129,7 @@ describe('AnthropicService', () => {
       system: 'be terse',
       model: 'claude-opus-5',
       maxTokens: 100,
+      attribution: { operation: 'other' },
     });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -144,7 +147,7 @@ describe('AnthropicService', () => {
       content: [],
       usage: {},
     });
-    const result = await service.message({ prompt: 'x' });
+    const result = await service.message({ prompt: 'x', attribution: { operation: 'other' } });
     expect(result.text).toBeNull();
     expect(result.stopReason).toBe('refusal');
   });
@@ -154,7 +157,7 @@ describe('AnthropicService', () => {
     create.mockRejectedValue(new Anthropic.APIError(429, 'rate limited'));
     let caught: unknown;
     try {
-      await service.message({ prompt: 'x' });
+      await service.message({ prompt: 'x', attribution: { operation: 'other' } });
     } catch (e) {
       caught = e;
     }
@@ -172,7 +175,7 @@ describe('AnthropicService', () => {
     create.mockRejectedValue(new Anthropic.APIError(undefined, 'connection'));
     let caught: unknown;
     try {
-      await service.message({ prompt: 'x' });
+      await service.message({ prompt: 'x', attribution: { operation: 'other' } });
     } catch (e) {
       caught = e;
     }
@@ -288,7 +291,7 @@ describe('AnthropicService', () => {
       model: 'claude-sonnet-5',
       usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
     });
-    const result = await service.warmCache({ system: 'big shared prompt' });
+    const result = await service.warmCache({ system: 'big shared prompt' }, { operation: 'other' });
     expect(create).toHaveBeenCalledWith({
       model: 'claude-sonnet-5',
       max_tokens: 0,
@@ -308,7 +311,7 @@ describe('AnthropicService', () => {
       model: 'claude-sonnet-5',
       usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 4096 },
     });
-    const result = await service.warmCache({ prefix: 'shared context' });
+    const result = await service.warmCache({ prefix: 'shared context' }, { operation: 'other' });
     expect(create).toHaveBeenCalledWith({
       model: 'claude-sonnet-5',
       max_tokens: 0,
@@ -329,7 +332,7 @@ describe('AnthropicService', () => {
 
   it('warmCache reports cached=false when nothing was written or read', async () => {
     create.mockResolvedValue({ model: 'claude-sonnet-5', usage: {} });
-    const result = await service.warmCache({ system: 'too short' });
+    const result = await service.warmCache({ system: 'too short' }, { operation: 'other' });
     expect(result).toEqual({
       model: 'claude-sonnet-5',
       cacheCreationInputTokens: 0,
@@ -340,7 +343,7 @@ describe('AnthropicService', () => {
 
   it('warmCache honours a model override', async () => {
     create.mockResolvedValue({ model: 'claude-opus-5', usage: {} });
-    await service.warmCache({ system: 's' }, { model: 'claude-opus-5' });
+    await service.warmCache({ system: 's' }, { operation: 'other' }, { model: 'claude-opus-5' });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ model: 'claude-opus-5', max_tokens: 0 }),
     );
@@ -358,6 +361,7 @@ describe('AnthropicService', () => {
       });
     const result = await service.warmCache(
       { system: 'big shared prompt' },
+      { operation: 'other' },
       { strict: true },
     );
     expect(create).toHaveBeenCalledTimes(2);
@@ -376,7 +380,7 @@ describe('AnthropicService', () => {
     });
     let caught: unknown;
     try {
-      await service.warmCache({ system: 'too short' }, { strict: true });
+      await service.warmCache({ system: 'too short' }, { operation: 'other' }, { strict: true });
     } catch (e) {
       caught = e;
     }
@@ -391,7 +395,7 @@ describe('AnthropicService', () => {
   it('warmCache throws 400 when the context has nothing to cache', async () => {
     let caught: unknown;
     try {
-      await service.warmCache({});
+      await service.warmCache({}, { operation: 'other' });
     } catch (e) {
       caught = e;
     }
@@ -465,7 +469,13 @@ describe('AnthropicService', () => {
     batchesResults.mockResolvedValue(gen());
     const results = await service.getBatchResults('batch_1');
     expect(results).toEqual([
-      { customId: 'a', type: 'succeeded', text: 'ok', cacheReadInputTokens: 2048 },
+      {
+        customId: 'a',
+        type: 'succeeded',
+        text: 'ok',
+        cacheReadInputTokens: 2048,
+        usage: { cache_read_input_tokens: 2048 },
+      },
     ]);
   });
   it('createBatch honours a model override so it can match the warmed cache', async () => {
@@ -506,6 +516,7 @@ describe('AnthropicService', () => {
             { blocks: [{ type: 'text', text: 'persona' }] },
           ],
         },
+        { operation: 'other' },
         { model: 'claude-fable-5' },
       );
       expect(create).toHaveBeenCalledWith({
@@ -532,6 +543,7 @@ describe('AnthropicService', () => {
       betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
       await service.warmCache(
         { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        { operation: 'other' },
         { model: 'claude-fable-5', files: true, effort: 'high' },
       );
       expect(create).not.toHaveBeenCalled();
@@ -548,6 +560,7 @@ describe('AnthropicService', () => {
       const schema = { type: 'object', properties: { side: { type: 'string' } } };
       await service.warmCache(
         { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        { operation: 'other' },
         { model: 'claude-fable-5', files: true, effort: 'high', outputSchema: schema },
       );
       const arg = betaCreate.mock.calls[0][0];
@@ -563,6 +576,7 @@ describe('AnthropicService', () => {
       create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
       await service.warmCache(
         { userTiers: [{ blocks: [{ type: 'text', text: 'big' }] }] },
+        { operation: 'other' },
         { model: 'claude-fable-5', outputSchema: { type: 'object' }, maxTokens: 32 },
       );
       expect(create.mock.calls[0][0].max_tokens).toBe(32);
@@ -579,7 +593,7 @@ describe('AnthropicService', () => {
             { blocks: [{ type: 'text', text: '4' }] },
             { blocks: [{ type: 'text', text: '5' }] },
           ],
-        });
+        }, { operation: 'other' });
       } catch (e) {
         caught = e;
       }
@@ -657,6 +671,7 @@ describe('AnthropicService', () => {
       const schema = { type: 'object', required: ['pass'] } as any;
       const out = await service.messageStructured<{ pass: boolean; mismatches: string[] }>(
         { prompt: 'verify' },
+        { operation: 'other' },
         { model: 'claude-fable-5', outputSchema: schema, effort: 'high' },
       );
       expect(betaCreate).not.toHaveBeenCalled();
@@ -676,6 +691,7 @@ describe('AnthropicService', () => {
       });
       await service.messageStructured(
         { prompt: 'analyze' },
+        { operation: 'other' },
         {
           model: 'claude-fable-5',
           outputSchema: { type: 'object' } as any,
@@ -694,7 +710,7 @@ describe('AnthropicService', () => {
     it('throws when the model refuses (stop_reason refusal)', async () => {
       create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: {} });
       await expect(
-        service.messageStructured({ prompt: 'x' }, { outputSchema: { type: 'object' } as any }),
+        service.messageStructured({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any }),
       ).rejects.toBeInstanceOf(HttpException);
     });
 
@@ -707,7 +723,7 @@ describe('AnthropicService', () => {
       });
       let caught: unknown;
       try {
-        await service.messageStructured({ prompt: 'x' }, { outputSchema: { type: 'object' } as any });
+        await service.messageStructured({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any });
       } catch (e) {
         caught = e;
       }
@@ -723,6 +739,7 @@ describe('AnthropicService', () => {
       });
       await service.messageStructured(
         { prompt: 'go', system: 'be terse' },
+        { operation: 'other' },
         { context: { prefix: 'shared ctx' } },
       );
       const arg = create.mock.calls[0][0];
@@ -738,6 +755,7 @@ describe('AnthropicService', () => {
       });
       await service.messageStructured(
         { prompt: 'go', system: 'be terse' },
+        { operation: 'other' },
         { context: { system: 'context system' } },
       );
       const arg = create.mock.calls[0][0];
@@ -747,3 +765,37 @@ describe('AnthropicService', () => {
     });
   });
 }); // describe('AnthropicService')
+
+describe('AnthropicService usage emission', () => {
+  function build() {
+    const emit = jest.fn();
+    const create = jest.fn().mockResolvedValue({
+      model: 'claude-fable-5',
+      stop_reason: 'end_turn',
+      content: [{ type: 'text', text: 'hi' }],
+      usage: { input_tokens: 10, output_tokens: 3, cache_read_input_tokens: 0, service_tier: 'standard' },
+    });
+    const config = { get: (k: string) => (k === 'anthropic.model' ? 'claude-fable-5' : 4096) };
+    const clientFactory = { get: () => ({ messages: { create }, beta: { messages: { create } } }) };
+    const svc = new (require('./anthropic.service').AnthropicService)(clientFactory, config, { emit });
+    return { svc, emit, create };
+  }
+
+  it('message() emits an anthropic.usage event with the caller-supplied attribution', async () => {
+    const { svc, emit } = build();
+    await svc.message({ prompt: 'x', attribution: { operation: 'demo' } });
+    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
+      modelId: 'claude-fable-5',
+      serviceTier: 'standard',
+      source: 'sync',
+      attribution: { operation: 'demo' },
+      tokens: expect.objectContaining({ input: 10, output: 3 }),
+    }));
+  });
+
+  it('emits the attribution verbatim — there is no silent default', async () => {
+    const { svc, emit } = build();
+    await svc.message({ prompt: 'x', attribution: { operation: 'message' } });
+    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({ attribution: { operation: 'message' } }));
+  });
+});

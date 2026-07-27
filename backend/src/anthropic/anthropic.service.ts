@@ -6,12 +6,15 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { randomUUID } from 'node:crypto';
 import Anthropic, { toFile } from '@anthropic-ai/sdk';
 import {
   ANTHROPIC_CLIENT,
   AnthropicClientFactory,
   ONE_HOUR_CACHE_CONTROL,
 } from './anthropic.constants';
+import { Attribution, ServiceTier, serviceTierFromUsage, tokensFromUsage } from '../cost/cost.types';
 
 const FILES_BETA = ['files-api-2025-04-14'];
 
@@ -25,6 +28,7 @@ export interface MessageInput {
   system?: string;
   model?: string;
   maxTokens?: number;
+  attribution: Attribution;
 }
 
 export interface MessageResult {
@@ -89,6 +93,8 @@ export interface BatchResultItem {
   cacheReadInputTokens?: number;
   /** Present so a `refusal` stop_reason is detectable by the reconciler. */
   stopReason?: string;
+  /** Raw usage object for succeeded/refusal items; consumed by the cost capture. */
+  usage?: unknown;
 }
 
 @Injectable()
@@ -99,6 +105,7 @@ export class AnthropicService {
     @Inject(ANTHROPIC_CLIENT)
     private readonly clientFactory: AnthropicClientFactory,
     private readonly config: ConfigService,
+    private readonly events: EventEmitter2,
   ) {}
 
   private get defaultModel(): string {
@@ -129,6 +136,8 @@ export class AnthropicService {
         text = null;
       }
 
+      this.emitUsage(response.usage, response.model, input.attribution);
+
       return {
         model: response.model,
         text,
@@ -148,6 +157,7 @@ export class AnthropicService {
    */
   async messageStructured<T = unknown>(
     input: { prompt: string; system?: string },
+    attribution: Attribution,
     opts?: {
       model?: string;
       outputSchema?: unknown;
@@ -186,6 +196,7 @@ export class AnthropicService {
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
+      this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
       let text = '';
       for (const block of resp.content) {
         if (block.type === 'text') text += block.text;
@@ -308,6 +319,7 @@ export class AnthropicService {
    */
   async warmCache(
     context: CachedContext,
+    attribution: Attribution,
     opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string; outputSchema?: unknown; maxTokens?: number },
   ): Promise<CacheVerification> {
     if (!context.system && !context.prefix && !(context.userTiers && context.userTiers.length)) {
@@ -342,9 +354,11 @@ export class AnthropicService {
         : client.messages.create(params as any);
     try {
       const first = await call();
+      this.emitUsage((first as any).usage, model, attribution);
       let verification = this.toVerification(first);
       if (opts?.strict) {
         const probe = await call();
+        this.emitUsage((probe as any).usage, model, attribution);
         // Return the probe's stats: it reads the entry the first call wrote, so
         // cacheReadInputTokens > 0 confirms the cache. (cacheCreationInputTokens
         // reads 0 here — the write happened on the first call.)
@@ -433,7 +447,7 @@ export class AnthropicService {
         if (result.type === 'succeeded') {
           const msg = result.message;
           if (msg.stop_reason === 'refusal') {
-            items.push({ customId, type: 'refusal', stopReason: 'refusal' });
+            items.push({ customId, type: 'refusal', stopReason: 'refusal', usage: msg.usage });
             continue;
           }
           let text = '';
@@ -442,7 +456,7 @@ export class AnthropicService {
               text += block.text;
             }
           }
-          const item: BatchResultItem = { customId, type: 'succeeded', text };
+          const item: BatchResultItem = { customId, type: 'succeeded', text, usage: msg.usage };
           const read = msg.usage?.cache_read_input_tokens;
           // Only attach when present so existing (usage-less) results are unchanged.
           if (typeof read === 'number') {
@@ -462,6 +476,25 @@ export class AnthropicService {
       return items;
     } catch (err) {
       this.rethrow(err);
+    }
+  }
+
+  // Emit a fire-and-forget usage event for a synchronous (standard-tier) call.
+  // `attribution` is required by every caller — there is no default operation.
+  private emitUsage(usage: unknown, modelId: string, attribution: Attribution): void {
+    try {
+      const tier: ServiceTier = serviceTierFromUsage(usage, 'standard');
+      this.events.emit('anthropic.usage', {
+        id: randomUUID(),
+        timestamp: new Date().toISOString(),
+        modelId,
+        serviceTier: tier,
+        attribution,
+        tokens: tokensFromUsage(usage),
+        source: 'sync',
+      });
+    } catch {
+      // Capture must never affect the request; swallow emit failures.
     }
   }
 
