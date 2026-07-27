@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { FirebaseModule } from './firebase/firebase.module';
 import { AnthropicModule } from './anthropic/anthropic.module';
@@ -18,6 +19,7 @@ import { BacktestController } from './execution/backtest.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ScheduleModule.forRoot(),
     FirebaseModule,
     AnthropicModule,
     ContractsModule,
