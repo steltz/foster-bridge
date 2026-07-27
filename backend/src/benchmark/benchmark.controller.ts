@@ -1,8 +1,9 @@
 import { Body, Controller, Get, NotFoundException, Post, Query } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BenchmarkService, RunSummary } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkRepository, ScoreboardDoc } from './benchmark.repository';
-import { Variant } from './benchmark.types';
+import { Variant, resolveModel } from './benchmark.types';
 
 interface RunBody {
   model?: string;
@@ -15,8 +16,10 @@ interface RunBody {
 export class BenchmarkController {
   constructor(
     private readonly benchmark: BenchmarkService,
+    // injected for a future ?refresh=true live-recompute endpoint; the read path serves the materialized scoreboard from the repository
     private readonly scoreboardService: ScoreboardService,
     private readonly repo: BenchmarkRepository,
+    private readonly config: ConfigService,
   ) {}
 
   @Post('run')
@@ -43,9 +46,11 @@ export class BenchmarkController {
   }
 
   @Get('scoreboard')
-  async scoreboard(@Query('model') model: string): Promise<ScoreboardDoc> {
-    const saved = await this.repo.getScoreboard(model);
+  async scoreboard(@Query('model') model: string | undefined): Promise<ScoreboardDoc> {
+    const raw = model ?? this.config.get<string>('benchmark.model');
+    const alias = resolveModel(raw as string).alias;
+    const saved = await this.repo.getScoreboard(alias);
     if (saved) return saved;
-    throw new NotFoundException(`No scoreboard for model ${model}; run the benchmark first`);
+    throw new NotFoundException(`No scoreboard for model ${alias}; run the benchmark first`);
   }
 }

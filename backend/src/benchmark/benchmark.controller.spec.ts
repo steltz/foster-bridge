@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BenchmarkController } from './benchmark.controller';
 import { BenchmarkService } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
@@ -12,15 +13,17 @@ async function build() {
     nonTerminalBatches: jest.fn().mockResolvedValue([{ batchId: 'b1', day: '07012026', status: 'submitted', customIdToCell: { a: { date: '2026-07-01', personaSha256: 'p', generalSha256: 'g' }, b: { date: '2026-07-01', personaSha256: 'p', generalSha256: 'g' } } }]),
     getScoreboard: jest.fn().mockResolvedValue({ markdown: '# saved', json: {}, generatedAt: 't' }),
   };
+  const config = { get: jest.fn().mockReturnValue('claude-fable-5') };
   const moduleRef = await Test.createTestingModule({
     controllers: [BenchmarkController],
     providers: [
       { provide: BenchmarkService, useValue: service },
       { provide: ScoreboardService, useValue: scoreboard },
       { provide: BenchmarkRepository, useValue: repo },
+      { provide: ConfigService, useValue: config },
     ],
   }).compile();
-  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo };
+  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config };
 }
 
 describe('BenchmarkController', () => {
@@ -47,5 +50,19 @@ describe('BenchmarkController', () => {
     const { ctrl, repo } = await build();
     repo.getScoreboard.mockResolvedValue(null);
     await expect(ctrl.scoreboard('nope')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('GET /benchmark/scoreboard with no model param defaults to the configured benchmark model', async () => {
+    const { ctrl, repo, config } = await build();
+    config.get.mockReturnValue('claude-fable-5');
+    await ctrl.scoreboard(undefined);
+    expect(config.get).toHaveBeenCalledWith('benchmark.model');
+    expect(repo.getScoreboard).toHaveBeenCalledWith('fable');
+  });
+
+  it('GET /benchmark/scoreboard normalizes a full model id to its alias', async () => {
+    const { ctrl, repo } = await build();
+    await ctrl.scoreboard('claude-fable-5');
+    expect(repo.getScoreboard).toHaveBeenCalledWith('fable');
   });
 });
