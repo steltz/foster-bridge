@@ -4,7 +4,7 @@
 
 **Goal:** Port the four-agent seven-keys generation workflow into the NestJS backend as a sequential Anthropic-API chain on Fable, store the verified KEYS scorecard in Firestore, and wire the `seven-keys-scorecard` benchmark variant to consume it so the bench can measure `Δ(scorecard) − Δ(method)`.
 
-**Architecture:** A new `SevenKeysService` (added to the existing `BenchmarkModule`) runs `current-day ∥ lookback → synthesize → verify` as four single structured-output calls on Fable via a new `AnthropicService.messageStructured`, persists the verified KEYS markdown to `dayArtifacts/{day}__keys`, and exposes an idempotent `ensureKeys(day)` that freezes a day's KEYS once stored. `BenchmarkService.run` walks days oldest-first, calls `ensureKeys` after the candle/coverage skip and before batching, substitutes `${DOC}` (methods) + `${ARTIFACT}` (KEYS) into the scorecard feature tier via `EnvelopeBuilder`, and threads `artifactSha256` through `CellMeta` into each persisted scorecard cell. The vendored `computeFeatureImpact` surfaces the scorecard delta automatically once cells exist.
+**Architecture:** A new `SevenKeysService` (added to the existing `BenchmarkModule`) runs `current-day ∥ lookback → synthesize → verify` as four single structured-output calls on Fable via a new `AnthropicService.messageStructured`, persists the verified KEYS markdown to `dayArtifacts/{day}__keys`, and exposes an idempotent `ensureKeys(day, { force? })` that is immutable once a day is benchmarked (a scorecard cell exists) and otherwise refreshes on trade-plan (`inputsHash`) drift or `force`. `BenchmarkService.run` walks days oldest-first, calls `ensureKeys` after the candle/coverage skip and before batching, substitutes `${DOC}` (methods) + `${ARTIFACT}` (KEYS) into the scorecard feature tier via `EnvelopeBuilder`, and threads `artifactSha256` through `CellMeta` into each persisted scorecard cell. The vendored `computeFeatureImpact` surfaces the scorecard delta automatically once cells exist.
 
 **Tech Stack:** NestJS 10, TypeScript, @anthropic-ai/sdk 0.115.0, Firebase Admin (Firestore + Storage), @nestjs/schedule, Jest.
 
@@ -16,7 +16,7 @@
 |---|---|---|
 | `backend/src/benchmark/benchmark.types.ts` | Modify — `SCORECARD_VARIANT`, `ALL_VARIANTS`, `BenchmarkCell.artifactSha256?` | 1 |
 | `backend/src/benchmark/benchmark.types.spec.ts` | Modify — new variant-const + cell field tests | 1 |
-| `backend/src/benchmark/benchmark.repository.ts` | Modify — `CellMeta.artifactSha256?`, `DayArtifactDoc` provenance fields | 1 |
+| `backend/src/benchmark/benchmark.repository.ts` | Modify — `CellMeta.artifactSha256?`, `DayArtifactDoc` provenance (+`inputsHash`/`lookbackMissing`), `hasScorecardCells` | 1 |
 | `backend/src/benchmark/benchmark.repository.spec.ts` | Modify — provenance round-trip test | 1 |
 | `backend/src/anthropic/anthropic.service.ts` | Modify — add `messageStructured` | 2 |
 | `backend/src/anthropic/anthropic.service.spec.ts` | Modify — `messageStructured` describe block | 2 |
@@ -29,8 +29,9 @@
 | `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts` | Create | 5, 6 |
 | `backend/src/benchmark/envelope.builder.ts` | Modify — `${DOC}`/`${ARTIFACT}` scorecard substitution | 7 |
 | `backend/src/benchmark/envelope.builder.spec.ts` | Modify — scorecard envelope tests | 7 |
-| `backend/src/benchmark/benchmark.service.ts` | Modify — allow scorecard, call `ensureKeys`, thread `artifactSha256` | 8 |
+| `backend/src/benchmark/benchmark.service.ts` | Modify — allow scorecard, call `ensureKeys`, thread `artifactSha256`, `regenerateKeys` | 8 |
 | `backend/src/benchmark/benchmark.service.spec.ts` | Modify — SevenKeysService mock + scorecard tests | 8 |
+| `backend/src/benchmark/benchmark.controller.ts` | Modify — `regenerateKeys` pass-through on `POST /benchmark/run` | 8 |
 | `backend/src/benchmark/batch-reconciler.ts` | Modify — persist `artifactSha256` in `buildCell` | 9 |
 | `backend/src/benchmark/batch-reconciler.spec.ts` | Modify — artifactSha256 persistence test | 9 |
 | `backend/src/benchmark/benchmark.module.ts` | Modify — provide `SevenKeysService` | 10 |
@@ -45,7 +46,9 @@
 - KEYS `content` = YAML frontmatter (`generatedBy`/`generatedAt`/`lookbackSources`/`verified`) + blank line + the synthesizer's artifact body — a faithful port of the skill's committed file, and exactly what `${ARTIFACT}` injects. Provenance is ALSO stored as optional top-level `DayArtifactDoc` fields.
 - `artifactSha256` on a scorecard cell == the stored KEYS `contentHash` (sha256 of the injected content).
 - `DayArtifactDoc.gcsPath` stays required; the `keys` doc sets a synthetic `benchmark/es/{day}/{prefix}_ES_KEYS.md` path (KEYS are stored inline via `content`, not byte-mirrored to GCS) so no `day-artifacts.service.ts` ripple.
-- Freeze guard: a `seven-keys-scorecard` cell can only exist if the day's KEYS were already stored, so `ensureKeys`' "reuse when `dayArtifacts/{day}__keys` exists" IS the freeze — no separate cell-scan is needed.
+- Freeze guard (two-level, matches design §3 "Immutability"): (1) **Immutable once benchmarked** — if a `seven-keys-scorecard` cell exists for the day (`repo.hasScorecardCells(day)`), reuse the stored KEYS unconditionally, even on `force`, because each such cell recorded `artifactSha256` == this content's hash and must keep matching for reproducibility. (2) **Refreshable until benchmarked** — a not-yet-benchmarked day reuses a stored artifact only while it is `verified` AND its `inputsHash` (sha256 of PDF bytes + both transcripts + methods doc) is unchanged; a corrected trade plan, an unverified leftover, or an explicit `force` regenerates. This closes the "KEYS generated but batch never persisted → stale KEYS frozen forever, no regen path" gap that a bare existence check left open.
+- Escape hatch: `POST /benchmark/run { regenerateKeys: true }` threads `force` to `ensureKeys` (still bounded by immutability-once-benchmarked). No standalone regen endpoint (deferred by design).
+- Generation resilience: each of the four Fable calls is wrapped in a bounded retry (HTTP 429 / 5xx / raw network error → up to 3 attempts) so one flaky call does not discard the prior calls; a `422` refusal is NOT retried (deterministic content decision) and surfaces as a day skip. When an oldest-first run failed on an earlier day, the later days' `lookbackMissing` (recent prior complete day(s) without KEYS) is logged and persisted so silent calibration degradation is observable.
 - All four agents run on `claude-fable-5`; current-day is a distinct hard-pinned const.
 
 ---
@@ -98,9 +101,20 @@ In `backend/src/benchmark/benchmark.repository.spec.ts`, add a test asserting a 
     expect(got?.lookbackSources).toEqual(['06302026_ES_KEYS.md']);
     expect(got?.verified).toBe(true);
   });
+
+  it('hasScorecardCells is true only once a scorecard cell exists for the day', async () => {
+    const repo = await build();
+    expect(await repo.hasScorecardCells('07012026')).toBe(false);
+    await repo.createCell({
+      trader: 'context-trader', modelAlias: 'fable', day: '07012026',
+      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'SL' },
+    } as any);
+    expect(await repo.hasScorecardCells('07012026')).toBe(true);
+    expect(await repo.hasScorecardCells('07022026')).toBe(false); // scoped to the day
+  });
 ```
 
-> If `benchmark.repository.spec.ts` has no shared `build()` helper, mirror whatever construction the existing tests use (they already wire `BenchmarkRepository` to `fakeFirestore()`); the assertion body is unchanged.
+> If `benchmark.repository.spec.ts` has no shared `build()` helper, mirror whatever construction the existing tests use (they already wire `BenchmarkRepository` to `fakeFirestore()`); the assertion body is unchanged. The `hasScorecardCells` query uses `.where('day',...).where('variant',...)` — a subset of the wheres `existingRunIndices` already exercises, so the fake Firestore supports it.
 
 - [ ] **Step: Run the tests — expect FAIL.**
 
@@ -159,7 +173,36 @@ export interface DayArtifactDoc {
   generatedAt?: string;
   lookbackSources?: string[];
   verified?: boolean;
+  // sha256 of the exact generation inputs (PDF bytes + both transcripts + methods
+  // doc). ensureKeys reuses a not-yet-benchmarked artifact only while this matches,
+  // so a corrected trade plan regenerates instead of serving stale KEYS.
+  inputsHash?: string;
+  // The recent prior complete day(s) that had no KEYS when this was generated —
+  // a reduced-lookback signal (empty in the common case).
+  lookbackMissing?: string[];
 }
+```
+
+Also add a `hasScorecardCells(day)` query to `BenchmarkRepository` (the benchmarked-immutability half of the freeze guard). Update the import at the top of `benchmark.repository.ts`:
+
+```ts
+import { BenchmarkCell, cellKey, SCORECARD_VARIANT } from './benchmark.types';
+```
+
+and add the method (after `existingRunIndices`):
+
+```ts
+  // True once the day has at least one persisted seven-keys-scorecard cell. Such a
+  // cell pinned this day's KEYS via artifactSha256, so ensureKeys must treat the
+  // stored artifact as immutable from then on.
+  async hasScorecardCells(day: string): Promise<boolean> {
+    const snap = await this.db
+      .collection(RUNS)
+      .where('day', '==', day)
+      .where('variant', '==', SCORECARD_VARIANT)
+      .get();
+    return snap.docs.length > 0;
+  }
 ```
 
 - [ ] **Step: Run the tests — expect PASS.**
@@ -822,6 +865,7 @@ Create `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts`:
 jest.mock('node:fs', () => ({ ...jest.requireActual('node:fs'), readFileSync: jest.fn() }));
 
 import { Test } from '@nestjs/testing';
+import { HttpException } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 import { ConfigService } from '@nestjs/config';
 import { SevenKeysService } from './seven-keys.service';
@@ -853,7 +897,11 @@ function structuredFor(schema: any) {
 
 function makeDeps() {
   const anthropic = { messageStructured: jest.fn(async (_i: any, opts: any) => structuredFor(opts.outputSchema)) };
-  const repo = { getDayArtifact: jest.fn().mockResolvedValue(null), saveDayArtifact: jest.fn().mockResolvedValue(undefined) };
+  const repo = {
+    getDayArtifact: jest.fn().mockResolvedValue(null),
+    saveDayArtifact: jest.fn().mockResolvedValue(undefined),
+    hasScorecardCells: jest.fn().mockResolvedValue(false),
+  };
   const inputs = {
     collectGeneralDocs: jest.fn().mockReturnValue({ concatenated: 'GEN', sha256: 'g' }),
     readMethodsDoc: jest.fn().mockReturnValue('METHODS'),
@@ -896,7 +944,7 @@ describe('SevenKeysService.generate', () => {
     const currentCall = deps.anthropic.messageStructured.mock.calls.find((c) => c[1].outputSchema === CURRENT_SCHEMA)!;
     expect(currentCall[1].model).toBe('claude-fable-5');
     expect(currentCall[1].files).toBe(true);
-    expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [] });
+    expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [], lookbackMissing: [] });
   });
 
   it('runs the lookback agent oldest-first when prior KEYS exist, and reports sources oldest-first', async () => {
@@ -948,6 +996,55 @@ describe('SevenKeysService.generate', () => {
     expect(synthIdx).toBeLessThan(verifyIdx);
     expect(calls[verifyIdx][0].prompt).toContain('# Seven Keys — ES 2026-07-08');
   });
+
+  it('retries a transient upstream failure (503) on the verify step, then succeeds', async () => {
+    const deps = makeDeps();
+    let verifyCalls = 0;
+    deps.anthropic.messageStructured.mockImplementation(async (_i: any, opts: any) => {
+      if (opts.outputSchema === VERIFY_SCHEMA) {
+        verifyCalls++;
+        if (verifyCalls === 1) throw new HttpException({ statusCode: 503, error: 'upstream' }, 503);
+        return { pass: true, mismatches: [] };
+      }
+      return structuredFor(opts.outputSchema);
+    });
+    const svc = await build(deps);
+    const out = await svc.generate(DAY as any);
+    expect(verifyCalls).toBe(2); // one transient failure + one success
+    expect(out.verified).toBe(true);
+  });
+
+  it('does NOT retry a 422 refusal — it propagates so ensureKeys can skip the day', async () => {
+    const deps = makeDeps();
+    let currentCalls = 0;
+    deps.anthropic.messageStructured.mockImplementation(async (_i: any, opts: any) => {
+      if (opts.outputSchema === CURRENT_SCHEMA) {
+        currentCalls++;
+        throw new HttpException({ statusCode: 422, error: 'refused' }, 422);
+      }
+      return structuredFor(opts.outputSchema);
+    });
+    const svc = await build(deps);
+    await expect(svc.generate(DAY as any)).rejects.toBeInstanceOf(HttpException);
+    expect(currentCalls).toBe(1); // refusal is deterministic — no retry
+  });
+
+  it('reports lookbackMissing for a recent prior complete day that has no KEYS', async () => {
+    const deps = makeDeps();
+    deps.inputs.priorCompleteDays.mockReturnValue([
+      { day: '07012026', date: '2026-07-01' },
+      { day: '07022026', date: '2026-07-02' },
+      { day: '07032026', date: '2026-07-03' },
+    ]);
+    // 0702's generation failed earlier in the run, so it has no KEYS.
+    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) =>
+      kind === 'keys' && d !== '07022026' ? { content: `K-${d}` } : null,
+    );
+    const svc = await build(deps);
+    const out = await svc.generate(DAY as any);
+    expect(out.lookbackMissing).toEqual(['07022026']);
+    expect(out.lookbackSources).toEqual(['07012026_ES_KEYS.md', '07032026_ES_KEYS.md']);
+  });
 });
 ```
 
@@ -963,7 +1060,7 @@ Expected: FAIL (`SevenKeysService` does not exist).
 Create `backend/src/benchmark/seven-keys/seven-keys.service.ts`:
 
 ```ts
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -984,6 +1081,7 @@ export interface KeysArtifact {
   artifact: string; // synthesizer markdown body (no frontmatter)
   mismatches: string[];
   lookbackSources: string[]; // '<day>_ES_KEYS.md', oldest-first (or [])
+  lookbackMissing: string[]; // recent prior complete day(s) with no KEYS (reduced-lookback signal; [] normally)
 }
 
 @Injectable()
@@ -1016,12 +1114,17 @@ export class SevenKeysService {
     const fileId = await this.dayArtifacts.ensureFileId(day.day);
 
     // Lookback set: up-to-3 most recent prior complete days that already have KEYS,
-    // oldest-first. Oldest-first generation upstream guarantees they exist.
+    // oldest-first. Oldest-first generation upstream guarantees they exist. Any of
+    // the 3 most recent complete days WITHOUT a KEYS artifact is recorded in
+    // lookbackMissing so a mid-run failure's silent calibration degradation on the
+    // later days is observable.
     const prior = this.inputs.priorCompleteDays(day.day);
+    const haveKeys = new Set<string>();
     const withKeys: LookbackEntry[] = [];
     for (const p of prior) {
       const doc = await this.repo.getDayArtifact(p.day, 'keys');
       if (!doc?.content) continue;
+      haveKeys.add(p.day);
       const recapPath = this.inputs.outcomeRecapPathForDay(p.day);
       withKeys.push({
         day: p.day,
@@ -1031,31 +1134,71 @@ export class SevenKeysService {
     }
     const lookbackSet = withKeys.slice(-3); // 3 most recent, still oldest-first
     const lookbackSources = lookbackSet.map((l) => `${l.day}_ES_KEYS.md`);
+    const lookbackMissing = prior.slice(-3).filter((p) => !haveKeys.has(p.day)).map((p) => p.day);
 
-    const currentPromise = this.anthropic.messageStructured<Record<string, unknown>>(
-      { prompt: currentDayPrompt({ date: day.date, generalDocs: general.concatenated, methodsDoc, tpTranscript, recapTranscript }) },
-      { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+    // Each call is retried on a transient upstream failure so one flaky step does
+    // not throw away the prior Fable calls (a 422 refusal is NOT retried).
+    const currentPromise = this.withRetry('current-day', () =>
+      this.anthropic.messageStructured<Record<string, unknown>>(
+        { prompt: currentDayPrompt({ date: day.date, generalDocs: general.concatenated, methodsDoc, tpTranscript, recapTranscript }) },
+        { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+      ),
     );
     const lookbackPromise: Promise<Record<string, unknown> | null> = lookbackSet.length
-      ? this.anthropic.messageStructured<Record<string, unknown>>(
-          { prompt: lookbackPrompt(day.date, lookbackSet) },
-          { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort },
+      ? this.withRetry('lookback', () =>
+          this.anthropic.messageStructured<Record<string, unknown>>(
+            { prompt: lookbackPrompt(day.date, lookbackSet) },
+            { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort },
+          ),
         )
       : Promise.resolve(null);
     const [current, lookback] = await Promise.all([currentPromise, lookbackPromise]);
 
     const sources = lookbackSet.length ? lookbackSources.join(' · ') : 'none — bootstrap';
-    const synth = await this.anthropic.messageStructured<{ artifact: string }>(
-      { prompt: synthesizePrompt(day.date, current, lookback, sources) },
-      { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort },
+    const synth = await this.withRetry('synthesize', () =>
+      this.anthropic.messageStructured<{ artifact: string }>(
+        { prompt: synthesizePrompt(day.date, current, lookback, sources) },
+        { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort },
+      ),
     );
 
-    const verdict = await this.anthropic.messageStructured<{ pass: boolean; mismatches: string[] }>(
-      { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
-      { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+    const verdict = await this.withRetry('verify', () =>
+      this.anthropic.messageStructured<{ pass: boolean; mismatches: string[] }>(
+        { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
+        { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+      ),
     );
 
-    return { verified: verdict.pass, mismatches: verdict.mismatches, artifact: synth.artifact, lookbackSources };
+    return { verified: verdict.pass, mismatches: verdict.mismatches, artifact: synth.artifact, lookbackSources, lookbackMissing };
+  }
+
+  // Bounded retry for the generation chain. Retries only transient upstream
+  // failures (HTTP 429 / 5xx, or a raw non-HttpException error) so one flaky call
+  // doesn't discard the prior Fable calls; a 422 refusal — a deterministic content
+  // decision — is NOT retried and propagates to ensureKeys as a day skip.
+  private async withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    const MAX_ATTEMPTS = 3;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastErr = err;
+        if (attempt === MAX_ATTEMPTS || !this.isTransient(err)) throw err;
+        this.logger.warn(
+          `Seven-keys ${label} attempt ${attempt} failed transiently: ${(err as Error).message}; retrying`,
+        );
+      }
+    }
+    throw lastErr;
+  }
+
+  private isTransient(err: unknown): boolean {
+    if (err instanceof HttpException) {
+      const status = err.getStatus();
+      return status === HttpStatus.TOO_MANY_REQUESTS || status >= 500;
+    }
+    return true; // socket hang-up / DNS / other non-HTTP error — worth another try
   }
 }
 ```
@@ -1089,18 +1232,61 @@ Append to `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts`:
 
 ```ts
 describe('SevenKeysService.ensureKeys', () => {
-  it('reuses the stored KEYS when present and never regenerates (freeze)', async () => {
+  // computeInputsHash reads the day's files; give readFileSync a stable impl here
+  // too (the generate describe's beforeEach doesn't apply to this block).
+  beforeEach(() => {
+    (readFileSync as jest.Mock).mockImplementation((p: string) => (String(p).includes('RECAP') ? 'RECAP' : 'TP'));
+  });
+
+  it('is immutable once benchmarked: reuses stored KEYS, never regenerates, even on force', async () => {
     const deps = makeDeps();
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true } as any;
     deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.hasScorecardCells.mockResolvedValue(true); // a scorecard cell pinned this artifact
     const svc = await build(deps);
     const genSpy = jest.spyOn(svc, 'generate');
-    const out = await svc.ensureKeys(DAY as any);
-    expect(out).toBe(existing);
-    expect(genSpy).not.toHaveBeenCalled(); // frozen: a benchmarked day always has stored KEYS
+    expect(await svc.ensureKeys(DAY as any)).toBe(existing);
+    expect(await svc.ensureKeys(DAY as any, { force: true })).toBe(existing); // force cannot override immutability
+    expect(genSpy).not.toHaveBeenCalled();
   });
 
-  it('generates + persists a verified artifact with frontmatter provenance', async () => {
+  it('reuses a verified artifact when the generation inputs are unchanged (not yet benchmarked)', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const svc = await build(deps);
+    const inputsHash = (svc as any).computeInputsHash(DAY); // same inputs the impl will hash
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    const genSpy = jest.spyOn(svc, 'generate');
+    expect(await svc.ensureKeys(DAY as any)).toBe(existing);
+    expect(genSpy).not.toHaveBeenCalled();
+  });
+
+  it('regenerates when the trade plan changed (inputsHash drift) on a not-yet-benchmarked day', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stale', uploadedAt: 't', verified: true, inputsHash: 'OLD' } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# fresh', mismatches: [], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any);
+    expect(deps.repo.saveDayArtifact).toHaveBeenCalled();
+    expect(out!.content).toContain('# fresh');
+  });
+
+  it('regenerates a not-yet-benchmarked day when force is set even if inputs are unchanged', async () => {
+    const deps = makeDeps();
+    deps.repo.hasScorecardCells.mockResolvedValue(false);
+    const svc = await build(deps);
+    const inputsHash = (svc as any).computeInputsHash(DAY);
+    const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
+    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# forced', mismatches: [], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any, { force: true });
+    expect(out!.content).toContain('# forced');
+  });
+
+  it('generates + persists a verified artifact with frontmatter provenance + inputsHash', async () => {
     const deps = makeDeps();
     const svc = await build(deps);
     jest.spyOn(svc, 'generate').mockResolvedValue({
@@ -1108,6 +1294,7 @@ describe('SevenKeysService.ensureKeys', () => {
       artifact: '# Seven Keys — ES 2026-07-08\n\n| row |',
       mismatches: [],
       lookbackSources: ['07012026_ES_KEYS.md'],
+      lookbackMissing: [],
     });
     const out = await svc.ensureKeys(DAY as any);
     expect(deps.repo.saveDayArtifact).toHaveBeenCalledWith('07082026', 'keys', expect.objectContaining({
@@ -1120,13 +1307,25 @@ describe('SevenKeysService.ensureKeys', () => {
     expect(doc.content).toContain('lookbackSources: [07012026_ES_KEYS.md]');
     expect(doc.content).toContain('# Seven Keys — ES 2026-07-08');
     expect(doc.contentHash).toHaveLength(64);
+    expect(doc.inputsHash).toHaveLength(64);
     expect(out).toBe(doc);
+  });
+
+  it('surfaces a reduced lookback (logs) but still persists when lookbackMissing is non-empty', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# k', mismatches: [], lookbackSources: [], lookbackMissing: ['07022026'] });
+    const warn = jest.spyOn((svc as any).logger, 'warn');
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).not.toBeNull();
+    expect(out!.lookbackMissing).toEqual(['07022026']);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('07022026'));
   });
 
   it('returns null and does NOT persist when the verifier fails', async () => {
     const deps = makeDeps();
     const svc = await build(deps);
-    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: false, artifact: 'x', mismatches: ['bad'], lookbackSources: [] });
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: false, artifact: 'x', mismatches: ['bad'], lookbackSources: [], lookbackMissing: [] });
     const out = await svc.ensureKeys(DAY as any);
     expect(out).toBeNull();
     expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
@@ -1161,9 +1360,17 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
    * Returns the persisted doc, or null (logged) when the verifier/generation fails
    * so the caller skips the scorecard variant for the day.
    */
-  async ensureKeys(day: DayInput): Promise<DayArtifactDoc | null> {
+  async ensureKeys(day: DayInput, opts?: { force?: boolean }): Promise<DayArtifactDoc | null> {
     const existing = await this.repo.getDayArtifact(day.day, 'keys');
-    if (existing) return existing; // reuse == freeze (scorecard cells imply stored KEYS)
+    // (1) Immutable once benchmarked: a persisted seven-keys-scorecard cell recorded
+    // this KEYS content's hash (artifactSha256), so the artifact must never change
+    // for reproducibility — reuse unconditionally, even when force is set.
+    if (existing && (await this.repo.hasScorecardCells(day.day))) return existing;
+    // (2) Refreshable until benchmarked: reuse only a VERIFIED artifact whose
+    // generation inputs are unchanged. A corrected trade plan (inputsHash drift), an
+    // unverified leftover, or an explicit force all fall through to (re)generation.
+    const inputsHash = this.computeInputsHash(day);
+    if (!opts?.force && existing?.verified && existing.inputsHash === inputsHash) return existing;
 
     let result: KeysArtifact;
     try {
@@ -1176,6 +1383,13 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
       this.logger.warn(`Seven-keys verifier failed for ${day.day}: ${result.mismatches.join('; ')}`);
       return null;
     }
+    if (result.lookbackMissing.length) {
+      // Surface silent calibration degradation: an oldest-first run that failed on
+      // an earlier day leaves the later days with a reduced lookback set.
+      this.logger.warn(
+        `Seven-keys for ${day.day} generated with a reduced lookback — recent prior day(s) without KEYS: ${result.lookbackMissing.join(', ')}`,
+      );
+    }
     const generatedAt = new Date().toISOString();
     const content = this.composeKeysMarkdown(result.artifact, generatedAt, result.lookbackSources);
     const doc: DayArtifactDoc = {
@@ -1186,10 +1400,25 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
       generatedBy: CURRENT_DAY_MODEL,
       generatedAt,
       lookbackSources: result.lookbackSources,
+      lookbackMissing: result.lookbackMissing,
       verified: true,
+      inputsHash,
     };
     await this.repo.saveDayArtifact(day.day, 'keys', doc);
     return doc;
+  }
+
+  // sha256 over the exact generation inputs (PDF bytes + both transcripts + the
+  // methodology doc). ensureKeys reuses a not-yet-benchmarked artifact only while
+  // this is unchanged, so a corrected trade plan regenerates instead of serving
+  // stale KEYS. (Only read on the non-immutable path — a benchmarked day returns
+  // before this is called.)
+  private computeInputsHash(day: DayInput): string {
+    const pdf = readFileSync(day.pdfPath);
+    const tp = readFileSync(day.planPath, 'utf8');
+    const recap = readFileSync(day.recapPath, 'utf8');
+    const methods = this.inputs.readMethodsDoc() ?? '';
+    return createHash('sha256').update(pdf).update(tp).update(recap).update(methods).digest('hex');
   }
 
   // Faithful port of the skill's committed KEYS file: YAML frontmatter + body.
@@ -1438,6 +1667,13 @@ Add `sevenKeys` to the returned object: `return { repo, inputs, dayArtifacts, an
     await svc.run({ runCount: 1, variants: ['base'] });
     expect(deps.sevenKeys.ensureKeys).not.toHaveBeenCalled();
   });
+
+  it('forwards regenerateKeys as { force: true } to ensureKeys', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await svc.run({ runCount: 1, variants: ['seven-keys-scorecard'], regenerateKeys: true });
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), { force: true });
+  });
 ```
 
 - [ ] **Step: Run — expect FAIL.**
@@ -1474,6 +1710,20 @@ import { SevenKeysService } from './seven-keys/seven-keys.service';
     const variants = (opts.variants ?? ALL_VARIANTS).filter((v) => ALL_VARIANTS.includes(v));
 ```
 
+Also add the regen flag to `RunOptions` (used by the `ensureKeys` call in step 5):
+
+```ts
+export interface RunOptions {
+  model?: string;
+  days?: string[]; // MMDDYYYY filter
+  runCount?: number;
+  variants?: Variant[];
+  // Force seven-keys regeneration for not-yet-benchmarked scorecard days (a
+  // corrected trade plan). Never overrides immutability once a day is benchmarked.
+  regenerateKeys?: boolean;
+}
+```
+
 4. In the `dayCells` discovery loop, skip a non-base variant whose feature is missing (protects scorecard when no feature file exists). Replace the inner variant loop body's feature line + missing check:
 
 ```ts
@@ -1502,7 +1752,10 @@ import { SevenKeysService } from './seven-keys/seven-keys.service';
         let keysContent: string | undefined;
         let keysSha: string | undefined;
         if (dayCells.some((c) => c.variant === SCORECARD_VARIANT)) {
-          const keysDoc = await this.sevenKeys.ensureKeys(day);
+          // `regenerateKeys` is the escape hatch for a corrected trade plan on a
+          // not-yet-benchmarked day; ensureKeys still refuses to regenerate a day
+          // that already has scorecard cells (immutable once benchmarked).
+          const keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true });
           if (!keysDoc) {
             summary.daysSkipped.push({ day: day.day, reason: 'keys generation failed' });
             // Drop ONLY the scorecard cells; base/method still run for this day.
@@ -1535,6 +1788,31 @@ import { SevenKeysService } from './seven-keys/seven-keys.service';
             ...(feature?.staticDocSha256 ? { staticDocSha256: feature.staticDocSha256 } : {}),
             ...(variant === SCORECARD_VARIANT && keysSha ? { artifactSha256: keysSha } : {}),
           };
+```
+
+7. Thread the flag through the controller. In `backend/src/benchmark/benchmark.controller.ts`, add `regenerateKeys?: boolean` to the `RunBody` interface and forward it (`RunBody` is a plain interface — no class-validator DTO — so this is a one-field additive change):
+
+```ts
+interface RunBody {
+  model?: string;
+  days?: string[];
+  runCount?: number;
+  variants?: Variant[];
+  regenerateKeys?: boolean;
+}
+```
+
+```ts
+  @Post('run')
+  async run(@Body() body: RunBody): Promise<RunSummary> {
+    return this.benchmark.run({
+      model: body.model,
+      days: body.days,
+      runCount: body.runCount,
+      variants: body.variants,
+      regenerateKeys: body.regenerateKeys,
+    });
+  }
 ```
 
 - [ ] **Step: Run — expect PASS.**
@@ -1677,7 +1955,7 @@ git add -A && git commit -m "feat(benchmark): wire SevenKeysService into Benchma
 
 - [ ] **Step: Write the failing e2e.**
 
-Create `backend/test/benchmark-scorecard.e2e-spec.ts`. The SDK is mocked so the four seven-keys agents (single `messages.create` calls carrying `output_config`) return canned JSON keyed on the schema's required fields, while the trade-decision batch returns a setup via `batches.results` (same as the core e2e). Assertions FAIL if KEYS are not stored or the scorecard cell is not persisted.
+Create `backend/test/benchmark-scorecard.e2e-spec.ts`. The SDK is mocked so the four seven-keys agents (single `messages.create` calls carrying `output_config`) return canned JSON keyed on the schema's required fields, while the trade-decision batch returns a setup via `batches.results` (same as the core e2e). The run requests BOTH `base` and `seven-keys-scorecard` so the scoreboard has a base to compute `Δ(scorecard)` against. Assertions FAIL if KEYS are not stored, the scorecard cell is not persisted, or the base-vs-scorecard feature-impact delta is not surfaced.
 
 ```ts
 // The SDK mock must be declared before importing AppModule.
@@ -1719,10 +1997,13 @@ jest.mock('@anthropic-ai/sdk', () => {
   const batchesRetrieve = jest.fn(async () => ({ id: 'batch_sc', processing_status: batchState.status, request_counts: {} }));
   const batchesResults = jest.fn(async () => {
     async function* gen() {
-      yield {
-        custom_id: 'context-trader__fable__07012026__seven-keys-scorecard__run1',
-        result: { type: 'succeeded', message: { stop_reason: 'end_turn', usage: { cache_read_input_tokens: 10 }, content: [{ type: 'text', text: setup('long') }] } },
-      };
+      // base + scorecard both run so the scoreboard has a base to compute Δ against.
+      for (const variant of ['base', 'seven-keys-scorecard']) {
+        yield {
+          custom_id: `context-trader__fable__07012026__${variant}__run1`,
+          result: { type: 'succeeded', message: { stop_reason: 'end_turn', usage: { cache_read_input_tokens: 10 }, content: [{ type: 'text', text: setup('long') }] } },
+        };
+      }
     }
     return gen();
   });
@@ -1819,10 +2100,10 @@ describe('Benchmark scorecard (e2e)', () => {
 
     const runRes = await request(app.getHttpServer())
       .post('/benchmark/run')
-      .send({ model: 'fable', runCount: 1, variants: ['seven-keys-scorecard'] })
+      .send({ model: 'fable', runCount: 1, variants: ['base', 'seven-keys-scorecard'] })
       .expect(201);
     expect(runRes.body.batchesSubmitted).toBe(1);
-    expect(runRes.body.cellsQueued).toBe(1);
+    expect(runRes.body.cellsQueued).toBe(2); // base + scorecard
 
     const repo = moduleRef.get(BenchmarkRepository);
 
@@ -1835,21 +2116,28 @@ describe('Benchmark scorecard (e2e)', () => {
 
     await moduleRef.get(BatchReconciler).reconcile();
 
-    // The scorecard cell persisted with a real backtest status + the KEYS hash.
+    // The scorecard cell persisted with a real backtest status + the KEYS hash;
+    // the base cell carries no artifactSha256.
     const cells = await repo.listCells('fable');
-    expect(cells).toHaveLength(1);
-    const cell = cells[0];
-    expect(cell.variant).toBe('seven-keys-scorecard');
+    expect(cells).toHaveLength(2);
+    const cell = cells.find((c) => c.variant === 'seven-keys-scorecard')!;
     expect(cell.result.status).toBe('SL'); // long entry 100 / SL 95 / TP 110 on flat 90-120 bars
     expect(cell.artifactSha256).toBe(keys!.contentHash);
     expect(cell.artifactSha256.length).toBeGreaterThan(0);
+    const baseCell = cells.find((c) => c.variant === 'base')!;
+    expect(baseCell.artifactSha256).toBeUndefined();
 
-    // The scoreboard shows a scorecard group.
+    // The scoreboard shows both groups AND the base-vs-scorecard feature-impact
+    // delta — the metric the whole variant exists to produce (Δ(scorecard)).
     await moduleRef.get(ScoreboardService).generate('fable');
     const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
     expect(sb.body.markdown).toContain('## context-trader @ fable [seven-keys-scorecard]');
-    expect((sb.body.json as any).groups).toHaveLength(1);
-    expect((sb.body.json as any).groups[0].variant).toBe('seven-keys-scorecard');
+    expect(sb.body.markdown).toContain('## Feature Impact');
+    // Impact heading uses the feature's display name (from the feature frontmatter).
+    expect(sb.body.markdown).toContain('### Seven-Keys precomputed scorecard');
+    expect(sb.body.markdown).toMatch(/Overall Δ for Seven-Keys precomputed scorecard/);
+    const variants = ((sb.body.json as any).groups as any[]).map((g) => g.variant).sort();
+    expect(variants).toEqual(['base', 'seven-keys-scorecard']);
   });
 });
 ```
@@ -1877,5 +2165,6 @@ git add -A && git commit -m "test(benchmark): e2e seven-keys-scorecard run"
 ## Self-review checklist (author-verified)
 
 - Every §6 test target maps to a task: SevenKeysService chain/fail/reuse/freeze/oldest-first (Tasks 5–6); RepoInputs artifactSuffix + lookback/recap (Task 3); EnvelopeBuilder `${DOC}`+`${ARTIFACT}`/≤4 tiers/missing-artifact guard (Task 7); BenchmarkService oldest-first/skip-on-failure/artifactSha256 (Task 8); BatchReconciler artifactSha256 (Task 9); e2e (Task 11).
-- Type/method-name consistency verified against merged code: `messageStructured` (new), `ensureKeys(day: DayInput)`/`generate(day: DayInput)`, `priorCompleteDays`/`outcomeRecapPathForDay`, `fullEnvelope(..., { variant, featureBlock?, methodsDoc?, artifact? })`, `CellMeta.artifactSha256?`, `BenchmarkCell.artifactSha256?`, `DayArtifactDoc` provenance fields, `SCORECARD_VARIANT`/`ALL_VARIANTS` (CORE_VARIANTS unchanged), `dayArtifacts/{day}__keys` via `getDayArtifact`/`saveDayArtifact`, `DayArtifactsService.ensureFileId`.
+- Review v2 hardening folded in: (1) two-level freeze — immutable-once-benchmarked via `repo.hasScorecardCells(day)` (Task 1) + refresh-until-benchmarked via `inputsHash` drift/`force` (Task 6), matching design §3 "Immutability", plus a `POST /benchmark/run { regenerateKeys }` escape hatch (Task 8 controller); (2) e2e now asserts the base-vs-scorecard `Δ(scorecard)` feature-impact — the metric the variant exists for (Task 11); (3) bounded transient retry on the four generation calls (422 refusal not retried) + `lookbackMissing` reduced-lookback signal, logged + persisted (Tasks 5–6).
+- Type/method-name consistency verified against merged code: `messageStructured` (new), `ensureKeys(day: DayInput, opts?: { force? })`/`generate(day: DayInput)`, `priorCompleteDays`/`outcomeRecapPathForDay`, `fullEnvelope(..., { variant, featureBlock?, methodsDoc?, artifact? })`, `CellMeta.artifactSha256?`, `BenchmarkCell.artifactSha256?`, `DayArtifactDoc` provenance fields (+`inputsHash`/`lookbackMissing`), `BenchmarkRepository.hasScorecardCells` (uses `SCORECARD_VARIANT`), `SCORECARD_VARIANT`/`ALL_VARIANTS` (CORE_VARIANTS unchanged), `RunOptions.regenerateKeys`, `dayArtifacts/{day}__keys` via `getDayArtifact`/`saveDayArtifact`, `DayArtifactsService.ensureFileId`.
 - No placeholders/TBD; all code blocks are complete (tests + impl); every task ends with a plain semantic commit, no attribution.
