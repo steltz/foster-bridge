@@ -46,4 +46,26 @@ describe('EnvelopeBuilder', () => {
   it('exposes the constant trailing prompt', () => {
     expect(TRAILING_PROMPT).toMatch(/single setup/i);
   });
+
+  it('fullEnvelope leading tiers are byte-identical to dayBundleContext (base)', () => {
+    const dayBundle = builder.dayBundleContext('GENERAL', bundle);
+    const full = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', { variant: 'base' });
+    expect(full.userTiers!.slice(0, 2)).toEqual(dayBundle.userTiers);
+  });
+
+  it('fullEnvelope leading tiers are byte-identical to dayBundleContext (non-base)', () => {
+    const dayBundle = builder.dayBundleContext('GENERAL', bundle);
+    const full = builder.fullEnvelope('GENERAL', bundle, 'PERSONA', {
+      variant: 'seven-keys-method',
+      featureBlock: 'Read the methodology.',
+      methodsDoc: 'METHODS BODY',
+    });
+    expect(full.userTiers!.slice(0, 2)).toEqual(dayBundle.userTiers);
+  });
+
+  it('throws when a non-base variant has no feature block and no methods doc', () => {
+    expect(() =>
+      builder.fullEnvelope('GENERAL', bundle, 'PERSONA', { variant: 'seven-keys-method' }),
+    ).toThrow(/seven-keys-method.*feature block or methods doc/i);
+  });
 });

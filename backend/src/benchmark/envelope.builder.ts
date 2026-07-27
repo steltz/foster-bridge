@@ -89,6 +89,15 @@ export class EnvelopeBuilder {
       const featureText = [spec.featureBlock ?? '', spec.methodsDoc ? `\n\n${spec.methodsDoc}` : '']
         .join('')
         .trim();
+      if (!featureText) {
+        // Task 6's buildCachedRequest stamps one cache breakpoint per tier
+        // regardless of content, so an empty feature tier would waste a
+        // breakpoint (or risk an API rejection on an empty block) for no
+        // benefit — fail loudly instead.
+        throw new Error(
+          `Non-base variant "${spec.variant}" requires a feature block or methods doc`,
+        );
+      }
       tiers.push({ blocks: [{ type: 'text', text: featureText }] });
     }
     return { userTiers: tiers };
