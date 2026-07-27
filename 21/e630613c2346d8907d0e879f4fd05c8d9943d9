@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-26-trader-bench-backend-port-design.md
+  s_e4554598cea289::t_97597cd2e8a00e 273-314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "21e630613c2346d8907d0e879f4fd05c8d9943d9",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
