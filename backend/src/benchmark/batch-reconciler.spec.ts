@@ -156,4 +156,70 @@ describe('BatchReconciler.reconcile', () => {
     expect(deps.anthropic.getBatchResults).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'expired' });
   });
+
+  it('isolates a malformed customId and still reconciles the rest of the batch (FIX 1)', async () => {
+    const deps = makeDeps();
+    deps.anthropic.getBatchResults.mockResolvedValue([
+      { customId: 'not-a-valid-key', type: 'succeeded', text: '{}' },
+      { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
+    ]);
+    const rec = await build(deps);
+    await expect(rec.reconcile()).resolves.toBeUndefined();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('TP'); // the good item still processed
+    // The batch is still marked reconciled despite the bad item.
+    expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', expect.objectContaining({ status: 'reconciled' }));
+  });
+
+  it('does NOT write a cell for a retryable errored item — stays MISSING for re-submit (FIX 3)', async () => {
+    const deps = makeDeps();
+    deps.anthropic.getBatchResults.mockResolvedValue([
+      { customId: KEY, type: 'errored', error: 'overloaded' },
+    ]);
+    const rec = await build(deps);
+    await rec.reconcile();
+    expect(deps.repo.createCell).not.toHaveBeenCalled();
+    // Batch still moves to reconciled; the missing run-index is re-submitted on the next top-up.
+    expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', expect.objectContaining({ status: 'reconciled' }));
+  });
+
+  it('DOES write a NO_SETUP cell for a refusal item (FIX 3)', async () => {
+    const deps = makeDeps();
+    deps.anthropic.getBatchResults.mockResolvedValue([
+      { customId: KEY, type: 'refusal', stopReason: 'refusal' },
+    ]);
+    const rec = await build(deps);
+    await rec.reconcile();
+    expect(deps.repo.createCell).toHaveBeenCalled();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('NO_SETUP');
+    expect(cell.setup).toBeUndefined();
+  });
+
+  it('regenerates the scoreboard once, after the batch loop, and tolerates its failure (FIX 2)', async () => {
+    const deps = makeDeps();
+    deps.scoreboard.generate.mockRejectedValue(new Error('scoreboard boom'));
+    const rec = await build(deps);
+    await expect(rec.reconcile()).resolves.toBeUndefined();
+    // Batch reconciliation is unaffected by a scoreboard failure.
+    expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', expect.objectContaining({ status: 'reconciled' }));
+    expect(deps.scoreboard.generate).toHaveBeenCalledWith('fable');
+    expect(deps.scoreboard.generate).toHaveBeenCalledTimes(1);
+  });
+
+  it('onApplicationBootstrap triggers reconcile (fire-and-forget) (FIX 4)', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps);
+    const spy = jest.spyOn(rec, 'reconcile').mockResolvedValue(undefined);
+    rec.onApplicationBootstrap();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('onApplicationBootstrap swallows a reconcile failure without throwing (FIX 4)', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps);
+    jest.spyOn(rec, 'reconcile').mockRejectedValue(new Error('boot boom'));
+    expect(() => rec.onApplicationBootstrap()).not.toThrow();
+    await new Promise((r) => setImmediate(r)); // let the rejected promise settle
+  });
 });

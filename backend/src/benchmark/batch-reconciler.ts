@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  OnApplicationBootstrap,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
 import { AnthropicService, BatchResultItem } from '../anthropic/anthropic.service';
@@ -29,50 +22,88 @@ export class BatchReconciler implements OnApplicationBootstrap {
   ) {}
 
   // Startup reconciliation: drains batches that finished while the server was off.
-  async onApplicationBootstrap(): Promise<void> {
-    await this.reconcile();
+  // Fire-and-forget: a boot-time Firestore error or a slow drain must not fail
+  // process startup or block HTTP readiness.
+  onApplicationBootstrap(): void {
+    void this.reconcile().catch((e) => this.logger.error(`startup reconcile failed: ${e}`));
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async reconcile(): Promise<void> {
+    // Guards a single instance only; across replicas this is idempotent-but-
+    // wasteful (createCell is write-once, so duplicate passes are harmless).
     if (this.running) return; // never overlap a slow reconcile with the next tick
     this.running = true;
     try {
       const batches = await this.repo.nonTerminalBatches();
+      const reconciledAliases = new Set<string>();
       for (const batch of batches) {
-        await this.reconcileBatch(batch).catch((err) =>
-          this.logger.error(`Reconcile ${batch.batchId} failed: ${(err as Error).message}`),
-        );
+        try {
+          const alias = await this.reconcileBatch(batch);
+          if (alias) reconciledAliases.add(alias);
+        } catch (err) {
+          this.logger.error(`Reconcile ${batch.batchId} failed: ${(err as Error).message}`);
+        }
+      }
+      // Decoupled scoreboard regen: once per distinct alias, AFTER the batch
+      // loop, each isolated so a scoreboard failure never affects batch
+      // reconciliation (batches are already terminal) or another alias.
+      for (const alias of reconciledAliases) {
+        try {
+          await this.scoreboard.generate(alias);
+        } catch (err) {
+          this.logger.error(`Scoreboard regen for ${alias} failed: ${(err as Error).message}`);
+        }
       }
     } finally {
       this.running = false;
     }
   }
 
-  private async reconcileBatch(batch: BatchDoc): Promise<void> {
+  /** Returns the model alias if the batch reached `ended` and was reconciled, else null. */
+  private async reconcileBatch(batch: BatchDoc): Promise<string | null> {
     // Bench batches were created on the beta/files path, so read them there too.
     const summary = await this.anthropic.getBatch(batch.batchId, { files: true });
     const status = summary.processingStatus;
 
     if (status === 'in_progress') {
       await this.repo.updateBatch(batch.batchId, { status: 'in_progress' });
-      return;
+      return null;
     }
     if (status === 'canceled' || status === 'expired' || status === 'errored') {
       await this.repo.updateBatch(batch.batchId, { status: status as BatchStatus });
-      return;
+      return null;
     }
-    if (status !== 'ended') return; // 'submitted' / unknown: wait for the next tick
+    if (status !== 'ended') return null; // 'submitted' / unknown: wait for the next tick
 
     const results = await this.anthropic.getBatchResults(batch.batchId, { files: true });
+    const expected = Object.keys(batch.customIdToCell).length;
+    if (results.length !== expected) {
+      this.logger.warn(`Batch ${batch.batchId}: ${results.length} results for ${expected} expected cells`);
+    }
     for (const item of results) {
-      // customId IS the cellKey; the CellMeta supplies date + content hashes.
-      const meta = batch.customIdToCell[item.customId];
-      await this.repo.createCell(await this.buildCell(batch, item.customId, meta, item));
+      try {
+        // errored/canceled/expired items are transient infra failures, NOT
+        // results: skip them (write no cell) so the run-index stays MISSING and
+        // the next top-up re-submits it — never bake a transient error into the
+        // benchmark as a fake no-trade. (refusal is a real Fable result below.)
+        if (item.type !== 'succeeded' && item.type !== 'refusal') {
+          this.logger.warn(
+            `Batch ${batch.batchId}: skipping retryable ${item.type} item ${item.customId}${item.error ? ` (${item.error})` : ''}`,
+          );
+          continue;
+        }
+        // customId IS the cellKey; the CellMeta supplies date + content hashes.
+        const meta = batch.customIdToCell[item.customId];
+        await this.repo.createCell(await this.buildCell(batch, item.customId, meta, item));
+      } catch (err) {
+        // Per-item isolation: one bad customId (e.g. malformed key) must not
+        // throw out of the loop and wedge the whole batch from ever reconciling.
+        this.logger.warn(`Batch ${batch.batchId}: skipping item ${item.customId}: ${(err as Error).message}`);
+      }
     }
     await this.repo.updateBatch(batch.batchId, { status: 'reconciled', endedAt: new Date().toISOString() });
-    // Refresh the materialized scoreboard for this model now that cells landed.
-    await this.scoreboard.generate(batch.model.alias);
+    return batch.model.alias;
   }
 
   private async buildCell(
@@ -103,8 +134,9 @@ export class BatchReconciler implements OnApplicationBootstrap {
     const withMetaNote = (cell: BenchmarkCell): BenchmarkCell =>
       metaNote && !cell.note ? { ...cell, note: metaNote } : cell;
 
-    // Refusal / errored / canceled / expired -> NO_SETUP (no model fallback:
-    // a Fable refusal is a legitimate Fable result).
+    // Only refusals reach here as non-succeeded (transient infra errors are
+    // skipped upstream). A Fable refusal is a legitimate no-trade result ->
+    // NO_SETUP (no model fallback).
     if (item.type !== 'succeeded') {
       const status: CellStatus = 'NO_SETUP';
       return withMetaNote({ ...base, result: { status }, note: item.error });
@@ -147,12 +179,9 @@ export class BatchReconciler implements OnApplicationBootstrap {
     } catch (err) {
       // Preserve the judge's verdict: bad order geometry / "must be a number"
       // (BadRequest 400 from normalizeOrders) is the SETUP's fault -> INVALID;
-      // missing candles (404) or an incomplete session (422), and any other
-      // failure, are environmental -> CLI_ERROR.
-      let status: CellStatus;
-      if (err instanceof BadRequestException) status = 'INVALID';
-      else if (err instanceof NotFoundException || err instanceof UnprocessableEntityException) status = 'CLI_ERROR';
-      else status = 'CLI_ERROR';
+      // missing candles (404), an incomplete session (422), and any other
+      // failure are environmental -> CLI_ERROR.
+      const status: CellStatus = err instanceof BadRequestException ? 'INVALID' : 'CLI_ERROR';
       return withMetaNote({ ...base, setup, result: { status }, note: (err as Error).message });
     }
   }
