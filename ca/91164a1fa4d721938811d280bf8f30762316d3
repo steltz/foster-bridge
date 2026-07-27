@@ -1,0 +1,31 @@
+backend/src/benchmark/benchmark.types.ts
+  s_d590fbd24c631b::t_a8d9ffa13acbc3 79
+  s_d590fbd24c631b::t_a9e24feb1934ac 46,48-51
+backend/src/benchmark/benchmark.repository.ts
+  s_d590fbd24c631b::t_7621492a1b36b3 110-119
+  s_d590fbd24c631b::t_c230cb975fc765 51-64
+  s_d590fbd24c631b::t_ebfd8b34661851 120-121
+  s_d590fbd24c631b::t_29da9d0259df65 4
+  s_d590fbd24c631b::t_02e762d19374a7 28
+backend/src/benchmark/benchmark.types.spec.ts
+  s_d590fbd24c631b::t_cceb958b5681cb 1
+  s_d590fbd24c631b::t_cbb36c09ec0659 66-72
+backend/src/benchmark/benchmark.repository.spec.ts
+  s_d590fbd24c631b::t_5888504cc9e314 117-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ca91164a1fa4d721938811d280bf8f30762316d3",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
