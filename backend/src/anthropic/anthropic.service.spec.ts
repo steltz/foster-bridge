@@ -9,6 +9,12 @@ class FakeAPIError extends Error {
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
   default: Object.assign(function () {}, { APIError: FakeAPIError }),
+  toFile: jest.fn(async (bytes: Buffer, filename: string, opts?: { type?: string }) => ({
+    __uploadable: true,
+    filename,
+    bytes,
+    type: opts?.type,
+  })),
 }));
 
 import { Test } from '@nestjs/testing';
@@ -24,6 +30,11 @@ describe('AnthropicService', () => {
   let batchesCreate: jest.Mock;
   let batchesRetrieve: jest.Mock;
   let batchesResults: jest.Mock;
+  let betaCreate: jest.Mock;
+  let betaBatchesCreate: jest.Mock;
+  let betaBatchesRetrieve: jest.Mock;
+  let betaBatchesResults: jest.Mock;
+  let filesUpload: jest.Mock;
   let service: AnthropicService;
 
   beforeEach(async () => {
@@ -31,6 +42,11 @@ describe('AnthropicService', () => {
     batchesCreate = jest.fn();
     batchesRetrieve = jest.fn();
     batchesResults = jest.fn();
+    betaCreate = jest.fn();
+    betaBatchesCreate = jest.fn();
+    betaBatchesRetrieve = jest.fn();
+    betaBatchesResults = jest.fn();
+    filesUpload = jest.fn();
     const fakeClient = {
       messages: {
         create,
@@ -39,6 +55,17 @@ describe('AnthropicService', () => {
           retrieve: batchesRetrieve,
           results: batchesResults,
         },
+      },
+      beta: {
+        messages: {
+          create: betaCreate,
+          batches: {
+            create: betaBatchesCreate,
+            retrieve: betaBatchesRetrieve,
+            results: betaBatchesResults,
+          },
+        },
+        files: { upload: filesUpload },
       },
     };
     const moduleRef = await Test.createTestingModule({
@@ -464,4 +491,130 @@ describe('AnthropicService', () => {
     });
   });
   }); // describe('caching')
+
+  describe('tiers + files + structured output', () => {
+    const CC = { type: 'ephemeral', ttl: '1h' };
+    const FILES_BETA = ['files-api-2025-04-14'];
+
+    it('warmCache renders userTiers with NO system breakpoint and stamps each tier last block', async () => {
+      create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 10, cache_read_input_tokens: 0 } });
+      await service.warmCache(
+        {
+          userTiers: [
+            { blocks: [{ type: 'text', text: 'general' }] },
+            { blocks: [{ type: 'text', text: 'day-a' }, { type: 'text', text: 'day-b' }] },
+            { blocks: [{ type: 'text', text: 'persona' }] },
+          ],
+        },
+        { model: 'claude-fable-5' },
+      );
+      expect(create).toHaveBeenCalledWith({
+        model: 'claude-fable-5',
+        max_tokens: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'general', cache_control: CC },
+              { type: 'text', text: 'day-a' },
+              { type: 'text', text: 'day-b', cache_control: CC },
+              { type: 'text', text: 'persona', cache_control: CC },
+              { type: 'text', text: 'warmup' },
+            ],
+          },
+        ],
+      });
+      // The whole cached prefix lives in messages (M4): no system breakpoint.
+      expect(create.mock.calls[0][0].system).toBeUndefined();
+    });
+
+    it('warmCache with files:true routes to the beta client with the files beta header and shares effort', async () => {
+      betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
+      await service.warmCache(
+        { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        { model: 'claude-fable-5', files: true, effort: 'high' },
+      );
+      expect(create).not.toHaveBeenCalled();
+      const arg = betaCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      expect(arg.max_tokens).toBe(0);
+      // effort IS allowed with max_tokens:0 (format is NOT), so warm carries effort.
+      expect(arg.output_config).toEqual({ effort: 'high' });
+    });
+
+    it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
+      let caught: unknown;
+      try {
+        await service.warmCache({
+          userTiers: [
+            { blocks: [{ type: 'text', text: '1' }] },
+            { blocks: [{ type: 'text', text: '2' }] },
+            { blocks: [{ type: 'text', text: '3' }] },
+            { blocks: [{ type: 'text', text: '4' }] },
+            { blocks: [{ type: 'text', text: '5' }] },
+          ],
+        });
+      } catch (e) {
+        caught = e;
+      }
+      expect((caught as HttpException).getStatus()).toBe(400);
+      expect(create).not.toHaveBeenCalled();
+      expect(betaCreate).not.toHaveBeenCalled();
+    });
+
+    it('createBatch with files routes to beta batches with betas, output_config (format+effort) and maxTokens', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      const schema = { type: 'object' } as any;
+      await service.createBatch(
+        [{ customId: 'k1', prompt: 'go', context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'f' } }] }] } }],
+        undefined,
+        { model: 'claude-fable-5', outputSchema: schema, maxTokens: 32000, effort: 'high', files: true },
+      );
+      expect(batchesCreate).not.toHaveBeenCalled();
+      const arg = betaBatchesCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      expect(arg.requests[0].params.max_tokens).toBe(32000);
+      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
+    });
+
+    it('createBatch non-files keeps the non-beta path and honours per-request context', async () => {
+      batchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      await service.createBatch(
+        [
+          { customId: 'k1', prompt: 'go', context: { prefix: 'S1' } },
+          { customId: 'k2', prompt: 'go', context: { prefix: 'S2' } },
+        ],
+        undefined,
+        { model: 'claude-fable-5' },
+      );
+      expect(betaBatchesCreate).not.toHaveBeenCalled();
+      const arg = batchesCreate.mock.calls[0][0];
+      expect(arg.requests[0].params.messages[0].content[0].text).toBe('S1');
+      expect(arg.requests[1].params.messages[0].content[0].text).toBe('S2');
+    });
+
+    it('uploadFile posts to the beta Files API in a single-arg call and returns the id', async () => {
+      filesUpload.mockResolvedValue({ id: 'file_123' });
+      const id = await service.uploadFile(Buffer.from('PDF'), 'x.pdf', 'application/pdf');
+      expect(id).toBe('file_123');
+      expect(filesUpload).toHaveBeenCalledWith({
+        file: expect.objectContaining({ __uploadable: true, filename: 'x.pdf', type: 'application/pdf' }),
+        betas: FILES_BETA,
+      });
+    });
+
+    it('getBatch/getBatchResults with files:true read the beta batch endpoints; refusal detected', async () => {
+      betaBatchesRetrieve.mockResolvedValue({ id: 'b', processing_status: 'ended', request_counts: {} });
+      async function* gen() {
+        yield { custom_id: 'k', result: { type: 'succeeded', message: { stop_reason: 'refusal', content: [], usage: {} } } };
+      }
+      betaBatchesResults.mockResolvedValue(gen());
+      const summary = await service.getBatch('b', { files: true });
+      expect(betaBatchesRetrieve).toHaveBeenCalledWith('b', { betas: FILES_BETA });
+      expect(summary.processingStatus).toBe('ended');
+      const results = await service.getBatchResults('b', { files: true });
+      expect(betaBatchesResults).toHaveBeenCalledWith('b', { betas: FILES_BETA });
+      expect(results[0]).toMatchObject({ customId: 'k', type: 'refusal', stopReason: 'refusal' });
+    });
+  });
 }); // describe('AnthropicService')

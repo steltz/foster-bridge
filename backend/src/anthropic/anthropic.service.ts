@@ -6,12 +6,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { toFile } from '@anthropic-ai/sdk';
 import {
   ANTHROPIC_CLIENT,
   AnthropicClientFactory,
   ONE_HOUR_CACHE_CONTROL,
 } from './anthropic.constants';
+
+const FILES_BETA = ['files-api-2025-04-14'];
 
 export interface MessageInput {
   prompt: string;
@@ -34,6 +36,17 @@ export interface CachedContext {
   system?: string;
   /** Cached (1h TTL) leading user-message block shared across requests. */
   prefix?: string;
+  /**
+   * Ordered cache tiers rendered into one user message. Each tier's LAST block
+   * gets a 1h breakpoint; the trailing prompt is appended uncached. Total
+   * breakpoints (system + tiers) must be <= 4.
+   *
+   * Typed against the BETA content-block param: an uploaded-file document
+   * (`{ type: 'document', source: { type: 'file', file_id } }`) is only valid on
+   * the beta path — SDK 0.115.0's non-beta `DocumentBlockParam.source` has no
+   * `file` variant, so `Anthropic.ContentBlockParam` cannot hold a file document.
+   */
+  userTiers?: Array<{ blocks: Anthropic.Beta.BetaContentBlockParam[] }>;
 }
 
 export interface CacheVerification {
@@ -47,6 +60,8 @@ export interface CacheVerification {
 export interface BatchRequestInput {
   customId?: string;
   prompt: string;
+  /** Per-request cached envelope; overrides the batch-level context when set. */
+  context?: CachedContext;
 }
 
 export interface BatchSummary {
@@ -62,6 +77,8 @@ export interface BatchResultItem {
   error?: string;
   /** Cache-read tokens for a succeeded item; lets callers confirm cache hits. */
   cacheReadInputTokens?: number;
+  /** Present so a `refusal` stop_reason is detectable by the reconciler. */
+  stopReason?: string;
 }
 
 @Injectable()
@@ -113,47 +130,84 @@ export class AnthropicService {
     }
   }
 
+  /** Uploads bytes to the Anthropic Files API and returns the file_id. */
+  async uploadFile(bytes: Buffer, filename: string, mediaType: string): Promise<string> {
+    const client = this.clientFactory.get();
+    try {
+      const file = await toFile(bytes, filename, { type: mediaType });
+      const uploaded = await client.beta.files.upload({ file, betas: FILES_BETA } as any);
+      return uploaded.id;
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
   /**
-   * The one place a cache breakpoint is placed. The warm-up and batch items all
-   * call this so they emit a byte-identical cached prefix at the same breakpoint.
+   * The one place cache breakpoints are placed. The warm-up and batch items all
+   * call this so they emit a byte-identical cached prefix at the same breakpoints.
    */
   private buildCachedRequest(
     context: CachedContext,
     prompt: string,
   ): {
     system?: Anthropic.TextBlockParam[];
-    messages: Anthropic.MessageParam[];
+    // Widened to the beta message param so a userTiers file document can be
+    // rendered; callers cast to the concrete (beta / non-beta) create shape.
+    messages: Anthropic.Beta.BetaMessageParam[];
   } {
     const system = context.system
-      ? [
-          {
-            type: 'text' as const,
-            text: context.system,
-            cache_control: ONE_HOUR_CACHE_CONTROL,
-          },
-        ]
+      ? [{ type: 'text' as const, text: context.system, cache_control: ONE_HOUR_CACHE_CONTROL }]
       : undefined;
 
-    const messages: Anthropic.MessageParam[] = context.prefix
-      ? [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: context.prefix,
-                cache_control: ONE_HOUR_CACHE_CONTROL,
-              },
-              { type: 'text', text: prompt },
-            ],
-          },
-        ]
-      : [{ role: 'user', content: prompt }];
+    let messages: Anthropic.Beta.BetaMessageParam[];
+    if (context.userTiers && context.userTiers.length) {
+      const breakpoints = (system ? 1 : 0) + context.userTiers.length;
+      if (breakpoints > 4) {
+        throw new HttpException(
+          { statusCode: 400, error: `Too many cache breakpoints: ${breakpoints} (max 4)` },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const content: Anthropic.Beta.BetaContentBlockParam[] = [];
+      for (const tier of context.userTiers) {
+        const blocks = tier.blocks.map((b) => ({ ...b }));
+        if (blocks.length) {
+          // Cast: cache_control is valid on the cacheable block params (text,
+          // document, image, ...) but the BetaContentBlockParam union also
+          // includes variants (thinking) that forbid it, so the literal needs a
+          // cast to assign back into the union-typed array.
+          blocks[blocks.length - 1] = {
+            ...blocks[blocks.length - 1],
+            cache_control: ONE_HOUR_CACHE_CONTROL,
+          } as Anthropic.Beta.BetaContentBlockParam;
+        }
+        content.push(...blocks);
+      }
+      content.push({ type: 'text', text: prompt });
+      messages = [{ role: 'user', content }];
+    } else if (context.prefix) {
+      messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: context.prefix, cache_control: ONE_HOUR_CACHE_CONTROL },
+            { type: 'text', text: prompt },
+          ],
+        },
+      ];
+    } else {
+      messages = [{ role: 'user', content: prompt }];
+    }
 
     return system ? { system, messages } : { messages };
   }
 
-  private toVerification(resp: Anthropic.Message): CacheVerification {
+  // Accepts either message shape: the file-bearing warm routes through the beta
+  // client (BetaMessage), the plain warm through the non-beta client (Message).
+  // Only `model` and `usage.cache_*` are read, which both shapes share.
+  private toVerification(
+    resp: Anthropic.Message | Anthropic.Beta.BetaMessage,
+  ): CacheVerification {
     const creation = resp.usage?.cache_creation_input_tokens ?? 0;
     const read = resp.usage?.cache_read_input_tokens ?? 0;
     return {
@@ -173,30 +227,33 @@ export class AnthropicService {
    */
   async warmCache(
     context: CachedContext,
-    opts?: { model?: string; strict?: boolean },
+    opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string },
   ): Promise<CacheVerification> {
-    if (!context.system && !context.prefix) {
+    if (!context.system && !context.prefix && !(context.userTiers && context.userTiers.length)) {
       throw new HttpException(
-        { statusCode: 400, error: 'CachedContext requires system or prefix' },
+        { statusCode: 400, error: 'CachedContext requires system, prefix or userTiers' },
         HttpStatus.BAD_REQUEST,
       );
     }
     const client = this.clientFactory.get();
     const model = opts?.model ?? this.defaultModel;
+    const files = opts?.files === true;
     const built = this.buildCachedRequest(context, 'warmup');
+    const params: Record<string, unknown> = {
+      model,
+      max_tokens: 0,
+      ...built,
+      ...(opts?.effort ? { output_config: { effort: opts.effort } } : {}),
+    };
+    const call = () =>
+      files
+        ? client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
+        : client.messages.create(params as any);
     try {
-      const first = await client.messages.create({
-        model,
-        max_tokens: 0,
-        ...built,
-      });
+      const first = await call();
       let verification = this.toVerification(first);
       if (opts?.strict) {
-        const probe = await client.messages.create({
-          model,
-          max_tokens: 0,
-          ...built,
-        });
+        const probe = await call();
         // Return the probe's stats: it reads the entry the first call wrote, so
         // cacheReadInputTokens > 0 confirms the cache. (cacheCreationInputTokens
         // reads 0 here — the write happened on the first call.)
@@ -217,18 +274,24 @@ export class AnthropicService {
   async createBatch(
     requests: BatchRequestInput[],
     context?: CachedContext,
-    opts?: { model?: string },
+    opts?: { model?: string; outputSchema?: unknown; maxTokens?: number; effort?: string; files?: boolean },
   ): Promise<BatchSummary> {
     const client = this.clientFactory.get();
     // Caches are model-scoped: to read a warmed entry, pass the SAME model here
     // that was given to warmCache.
     const model = opts?.model ?? this.defaultModel;
-    const maxTokens = this.defaultMaxTokens;
+    const maxTokens = opts?.maxTokens ?? this.defaultMaxTokens;
+    const files = opts?.files === true;
+    const outputConfig = {
+      ...(opts?.outputSchema ? { format: { type: 'json_schema', schema: opts.outputSchema } } : {}),
+      ...(opts?.effort ? { effort: opts.effort } : {}),
+    };
     try {
-      const batch = await client.messages.batches.create({
+      const body = {
         requests: requests.map((r, i) => {
-          const built = context
-            ? this.buildCachedRequest(context, r.prompt)
+          const ctx = r.context ?? context;
+          const built = ctx
+            ? this.buildCachedRequest(ctx, r.prompt)
             : { messages: [{ role: 'user' as const, content: r.prompt }] };
           return {
             custom_id: r.customId ?? `request-${i}`,
@@ -236,20 +299,26 @@ export class AnthropicService {
               model,
               max_tokens: maxTokens,
               ...built,
+              ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
             },
           };
         }),
-      });
+      };
+      const batch = files
+        ? await client.beta.messages.batches.create({ ...body, betas: FILES_BETA } as any)
+        : await client.messages.batches.create(body as any);
       return { batchId: batch.id, processingStatus: batch.processing_status };
     } catch (err) {
       this.rethrow(err);
     }
   }
 
-  async getBatch(id: string): Promise<BatchSummary> {
+  async getBatch(id: string, opts?: { files?: boolean }): Promise<BatchSummary> {
     const client = this.clientFactory.get();
     try {
-      const batch = await client.messages.batches.retrieve(id);
+      const batch = opts?.files
+        ? await client.beta.messages.batches.retrieve(id, { betas: FILES_BETA } as any)
+        : await client.messages.batches.retrieve(id);
       return {
         batchId: batch.id,
         processingStatus: batch.processing_status,
@@ -260,22 +329,30 @@ export class AnthropicService {
     }
   }
 
-  async getBatchResults(id: string): Promise<BatchResultItem[]> {
+  async getBatchResults(id: string, opts?: { files?: boolean }): Promise<BatchResultItem[]> {
     const client = this.clientFactory.get();
     try {
       const items: BatchResultItem[] = [];
-      for await (const entry of await client.messages.batches.results(id)) {
+      const stream = opts?.files
+        ? await client.beta.messages.batches.results(id, { betas: FILES_BETA } as any)
+        : await client.messages.batches.results(id);
+      for await (const entry of stream) {
         const customId = entry.custom_id;
         const result = entry.result;
         if (result.type === 'succeeded') {
+          const msg = result.message;
+          if (msg.stop_reason === 'refusal') {
+            items.push({ customId, type: 'refusal', stopReason: 'refusal' });
+            continue;
+          }
           let text = '';
-          for (const block of result.message.content) {
+          for (const block of msg.content) {
             if (block.type === 'text') {
               text += block.text;
             }
           }
           const item: BatchResultItem = { customId, type: 'succeeded', text };
-          const read = result.message.usage?.cache_read_input_tokens;
+          const read = msg.usage?.cache_read_input_tokens;
           // Only attach when present so existing (usage-less) results are unchanged.
           if (typeof read === 'number') {
             item.cacheReadInputTokens = read;
