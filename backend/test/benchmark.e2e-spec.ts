@@ -59,6 +59,7 @@ import { FIRESTORE, STORAGE_BUCKET } from '../src/firebase/firebase.constants';
 import { fakeFirestore } from './fake-firestore';
 import { BatchReconciler } from '../src/benchmark/batch-reconciler';
 import { ScoreboardService } from '../src/benchmark/scoreboard.service';
+import { BenchmarkRepository } from '../src/benchmark/benchmark.repository';
 
 function fakeBucket() {
   const saved: Record<string, Buffer> = {};
@@ -95,6 +96,9 @@ describe('Benchmark (e2e)', () => {
   const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 78 }, (_, i) => `${OPEN + i * 300},100,120,90,110`)].join('\n');
 
   async function boot(preSeed?: (db: any) => Promise<void>) {
+    // Null it first so an early throw here never leaves afterEach double-closing
+    // the PREVIOUS test's app (which was already closed by its own afterEach).
+    app = undefined as any;
     const db = fakeFirestore();
     if (preSeed) await preSeed(db);
     process.env.BENCHMARK_REPO_ROOT = repoRoot;
@@ -140,12 +144,30 @@ describe('Benchmark (e2e)', () => {
     // when NODE_ENV==='test'), so the cron never fires — call reconcile() itself.
     await moduleRef.get(BatchReconciler).reconcile();
 
+    // Assert the cells actually persisted (this is the capstone guarantee — a
+    // no-op createCell must fail here). run1 (long, entry 100 / SL 95 / TP 110)
+    // fills and stops out -> SL; run2 (short with inverted SL<entry<TP geometry)
+    // is rejected by order normalization -> INVALID.
+    const cells = await moduleRef.get(BenchmarkRepository).listCells('fable');
+    expect(cells).toHaveLength(2);
+    expect(cells.map((c) => c.result.status).sort()).toEqual(['INVALID', 'SL']);
+    // Threaded CellMeta provenance is persisted end-to-end (discovery -> batch
+    // -> reconciler -> cell). The base variant carries persona + general hashes.
+    expect(typeof cells[0].personaSha256).toBe('string');
+    expect(cells[0].personaSha256.length).toBeGreaterThan(0);
+    expect(cells[0].generalSha256.length).toBeGreaterThan(0);
+
     // reconcile() already regenerates the scoreboard for each reconciled alias;
     // calling generate() again is idempotent and keeps the assertion explicit.
     await moduleRef.get(ScoreboardService).generate('fable');
     const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
     expect(sb.body.markdown).toContain('# Trader Scoreboard');
-    expect(sb.body.markdown).toContain('context-trader');
+    // Per-group heading only rendered when groups.length > 0 (cells exist); the
+    // Lineage section's bare 'context-trader' would pass with zero cells.
+    expect(sb.body.markdown).toContain('## context-trader @ fable [base]');
+    // And the JSON groups reflect the two persisted cells.
+    expect((sb.body.json as any).groups).toHaveLength(1);
+    expect((sb.body.json as any).groups[0].cellCount).toBe(2);
 
     // Status now shows the batch reconciled (terminal -> not listed).
     const status = await request(app.getHttpServer()).get('/benchmark/status').expect(200);
@@ -180,9 +202,21 @@ describe('Benchmark (e2e)', () => {
     // The pre-seeded batch should now be terminal (reconciled) -> not listed.
     const status = await request(app.getHttpServer()).get('/benchmark/status').expect(200);
     expect(status.body.batches).toHaveLength(0);
-    // Confirm cells landed by generating + serving the scoreboard.
+
+    // The recovered batch's two cells must have been written (a no-op createCell
+    // must fail here). Same setups/candles as test 1 -> SL + INVALID.
+    const cells = await moduleRef.get(BenchmarkRepository).listCells('fable');
+    expect(cells).toHaveLength(2);
+    expect(cells.map((c) => c.result.status).sort()).toEqual(['INVALID', 'SL']);
+    // Provenance threaded from the pre-seeded CellMeta onto every cell.
+    expect(cells[0].personaSha256).toBe('psha');
+    expect(cells[0].generalSha256).toBe('gsha');
+
+    // Confirm cells landed by generating + serving the scoreboard — the
+    // per-group heading only renders when groups (cells) exist.
     await moduleRef.get(ScoreboardService).generate('fable');
     const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
-    expect(sb.body.markdown).toContain('context-trader');
+    expect(sb.body.markdown).toContain('## context-trader @ fable [base]');
+    expect((sb.body.json as any).groups[0].cellCount).toBe(2);
   });
 });
