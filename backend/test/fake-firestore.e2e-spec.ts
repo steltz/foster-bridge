@@ -32,6 +32,25 @@ describe('fakeFirestore extensions', () => {
     expect(snap.docs.map((d: any) => d.data().runIndex).sort()).toEqual([1, 2]);
   });
 
+  it('update() merges fields on an existing doc without clobbering untouched fields', async () => {
+    const db = fakeFirestore();
+    const ref = db.collection('benchmarkBatches').doc('batch_1');
+    await ref.set({ status: 'submitted', batchId: 'batch_1', day: '07012026' });
+    await ref.update({ status: 'reconciled', endedAt: '2026-07-26T01:00:00.000Z' });
+    expect((await ref.get()).data()).toEqual({
+      status: 'reconciled',
+      batchId: 'batch_1',
+      day: '07012026',
+      endedAt: '2026-07-26T01:00:00.000Z',
+    });
+  });
+
+  it('update() on a missing doc rejects with code 5 (NOT_FOUND)', async () => {
+    const db = fakeFirestore();
+    const ref = db.collection('benchmarkBatches').doc('does-not-exist');
+    await expect(ref.update({ status: 'reconciled' })).rejects.toMatchObject({ code: 5 });
+  });
+
   it('where() supports the in operator', async () => {
     const db = fakeFirestore();
     await db.collection('benchmarkBatches').doc('b1').set({ status: 'submitted' });

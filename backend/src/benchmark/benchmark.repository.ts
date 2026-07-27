@@ -107,9 +107,7 @@ export class BenchmarkRepository {
   }
 
   async updateBatch(batchId: string, patch: Partial<BatchDoc>): Promise<void> {
-    const ref = this.db.collection(BATCHES).doc(batchId);
-    const snap = await ref.get();
-    await ref.set({ ...(snap.data() ?? {}), ...patch } as any);
+    await this.db.collection(BATCHES).doc(batchId).update(patch as any);
   }
 
   async getDayArtifact(day: string, kind: DayArtifactKind): Promise<DayArtifactDoc | null> {

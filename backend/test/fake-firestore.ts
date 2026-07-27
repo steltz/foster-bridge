@@ -1,5 +1,5 @@
 // In-memory Firestore fake. Supports the access patterns the app uses:
-//   collection(path).doc(id).get() / .create(data) / .set(data)
+//   collection(path).doc(id).get() / .create(data) / .set(data) / .update(data)
 //   collection(path).get()
 //   collection(path).select(...).get()
 //   collection(path).where(field, op, value)[.where(...)].get()  (op '==' | 'in')
@@ -20,6 +20,12 @@ export function fakeFirestore() {
           ? Promise.reject(Object.assign(new Error(`ALREADY_EXISTS: ${path}`), { code: 6 }))
           : Promise.resolve(void docs.set(path, data)),
       set: (data: any) => Promise.resolve(void docs.set(path, data)),
+      // Real Firestore's update() is an atomic server-side field merge that
+      // rejects with NOT_FOUND (gRPC code 5) when the doc doesn't exist.
+      update: (data: any) =>
+        docs.has(path)
+          ? Promise.resolve(void docs.set(path, { ...docs.get(path), ...data }))
+          : Promise.reject(Object.assign(new Error(`NOT_FOUND: ${path}`), { code: 5 })),
     };
   }
 

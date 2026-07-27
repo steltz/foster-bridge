@@ -79,6 +79,31 @@ describe('BenchmarkRepository', () => {
     expect(await repo.nonTerminalBatches()).toHaveLength(0);
   });
 
+  it('updateBatch rejects when the batch does not exist', async () => {
+    const { repo } = await build();
+    await expect(repo.updateBatch('does-not-exist', { status: 'reconciled' })).rejects.toMatchObject({ code: 5 });
+  });
+
+  it('createCell re-throws errors that are not ALREADY_EXISTS (code 6)', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BenchmarkRepository,
+        {
+          provide: FIRESTORE,
+          useValue: {
+            collection: () => ({
+              doc: () => ({
+                create: () => Promise.reject(Object.assign(new Error('boom'), { code: 5 })),
+              }),
+            }),
+          },
+        },
+      ],
+    }).compile();
+    const repo = moduleRef.get(BenchmarkRepository);
+    await expect(repo.createCell(cell())).rejects.toMatchObject({ code: 5 });
+  });
+
   it('day artifacts and scoreboard round-trip', async () => {
     const { repo } = await build();
     expect(await repo.getDayArtifact('07012026', 'pdfFile')).toBeNull();
