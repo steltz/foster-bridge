@@ -270,3 +270,45 @@ still catches results; late requests just cache-miss — correct but costlier).
 - A UI for triggering/monitoring benchmarks (HTTP endpoints only for now).
 - Multi-model concurrent benchmarking within a single `POST /benchmark/run` (one model
   per call; caches are model-scoped).
+
+---
+
+## 12. Post-implementation notes & first-run checklist
+
+The core pipeline is implemented and merged on `feat/trader-bench-backend-port`
+(Tasks 1–15). Whole-implementation review found no Critical/Important issues; unit
+235 / e2e 18 pass, `tsc` clean, `nest build` succeeds. A few notes for whoever operates it:
+
+**Intentional divergences from this spec (improvements):**
+- **Cache-warmer re-warms the full envelope, not just the day-bundle (§5.6).** The 55-min
+  `CacheWarmer` re-warms each distinct `(trader, variant)` full envelope for in-flight
+  batches, keeping the persona/feature tiers hot (and, via cumulative breakpoints, the
+  day-bundle too) — costs one `max_tokens:0` write per distinct pair per cycle, which is
+  small since batches usually finish within the 1h TTL.
+- **Scheduler gating.** `BatchReconciler` (cron + bootstrap) and `CacheWarmer` (interval)
+  are gated behind `benchmark.schedulerEnabled` (`BENCHMARK_SCHEDULER`), which defaults
+  **off under `NODE_ENV==='test'`** and on otherwise — so tests never touch real
+  Firestore at boot, and in production only a dedicated worker instance need run the
+  schedulers (set `BENCHMARK_SCHEDULER=false` on API-only instances).
+- **`errored`/`canceled`/`expired` batch items are skipped (no cell written)** so the
+  run-index stays MISSING and re-submits on the next top-up — a transient API failure is
+  never baked into the benchmark. Only `refusal` writes a `NO_SETUP` cell (legitimate
+  Fable result, no model fallback).
+
+**First live run — required before a full matrix (everything above was validated against
+mocks only):**
+1. Ingest OHLC (MES/min-5) for the target day(s) via `POST markets/MES/min-5/candles`.
+2. Do a **1-day, 1-trader, `runCount:1`, `variants:['base']`** run first
+   (`POST /benchmark/run`). This is the only way to confirm two live-API behaviors the
+   mocks can't: (a) a `max_tokens:0` cache warm is accepted on Fable (thinking always-on),
+   and (b) the batch requests actually read the warmed cache.
+3. Verify caching landed: check `cacheReadInputTokens > 0` on the reconciled batch results
+   (the field is surfaced for exactly this). Warms are **non-strict**, so a caching
+   regression degrades to correct-but-costlier silently — this manual check is the guard.
+4. Confirm the cell(s) and `GET /benchmark/scoreboard?model=fable` look right, then scale
+   to the full matrix.
+
+**Deferred to Plan 2:** seven-keys artifact generation + the `seven-keys-scorecard`
+variant + feature combos (§6 of this spec). Also deferred: an idempotency key to close
+the (loudly-logged) createBatch→saveBatch orphan window, and a `?refresh=true` live
+scoreboard-recompute endpoint (the injection point exists in the controller).
