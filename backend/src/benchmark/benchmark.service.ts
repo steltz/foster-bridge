@@ -219,14 +219,19 @@ export class BenchmarkService {
         // identically to the batch requests — without the schema the batch reads
         // 0 cache and re-writes its own. The day-bundle prefix is warmed FIRST;
         // the per-envelope warms extend it.
-        await this.anthropic.warmCache(this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle), {
-          model: model.id,
-          files: true,
-          effort,
-          outputSchema: SETUP_SCHEMA,
-        });
-        for (const envelope of enveloped.values()) {
-          await this.anthropic.warmCache(envelope, { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA });
+        await this.anthropic.warmCache(
+          this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle),
+          { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day } },
+          { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+        );
+        for (const { trader, variant } of dayCells) {
+          const envelope = enveloped.get(`${trader.name}::${variant}`);
+          if (!envelope) continue;
+          await this.anthropic.warmCache(
+            envelope,
+            { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day, trader: trader.name, variant } },
+            { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+          );
         }
 
         const batch = await this.anthropic.createBatch(requests, undefined, {

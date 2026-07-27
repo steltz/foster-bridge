@@ -97,6 +97,10 @@ describe('BenchmarkService.run', () => {
     // Warms run on the beta/files path with matching effort AND the batch's
     // output schema, so the warmed prefix hashes identically to the batch requests.
     expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({
+      operation: 'warm',
+      benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String) }),
+    });
+    expect(deps.anthropic.warmCache.mock.calls[0][2]).toEqual({
       model: 'claude-fable-5',
       files: true,
       effort: 'high',
