@@ -1,0 +1,21 @@
+backend/src/benchmark/cache-warmer.ts
+  s_3d0b66e48071be::t_e4b81742bd1e47 85-89
+backend/src/benchmark/cache-warmer.spec.ts
+  s_3d0b66e48071be::t_e37db65b1c1e07 72-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d39e9f1caa86f027f8a90412334bbd64f7b30fed",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
