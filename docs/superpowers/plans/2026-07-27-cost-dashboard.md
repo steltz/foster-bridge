@@ -1176,7 +1176,7 @@ const GROUP_BYS: GroupBy[] = ['tier', 'operation', 'model', 'day', 'trader', 'va
 export class CostController {
   constructor(
     private readonly cost: CostService,
-    private readonly report: ReportBuilder,
+    private readonly reportBuilder: ReportBuilder,
   ) {}
 
   @Get('summary')
@@ -1215,7 +1215,7 @@ export class CostController {
     @Query('to') to: string | undefined,
   ): Promise<string> {
     const records = await this.cost.list({ model, from, to });
-    return this.report.build(records);
+    return this.reportBuilder.build(records);
   }
 }
 ```
