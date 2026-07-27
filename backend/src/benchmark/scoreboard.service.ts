@@ -13,7 +13,7 @@ export class ScoreboardService {
   async generate(modelAlias: string): Promise<ScoreboardDoc> {
     const cells = await this.repo.listCells(modelAlias);
     // BenchmarkCell already carries every field the pure functions read.
-    const scoreCells = cells as unknown as ScoreCell[];
+    const scoreCells = cells as ScoreCell[];
     const sb = computeScoreboard(scoreCells);
     const traders = this.inputs.collectTraders().map((t) => ({ name: t.name, origin: t.origin, mutation: t.mutation }));
     const features = this.inputs.collectFeatures().map((f) => ({ id: f.id, name: f.name }));

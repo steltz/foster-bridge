@@ -39,4 +39,12 @@ describe('ScoreboardService.generate', () => {
     expect(out.markdown).toContain('# Trader Scoreboard');
     expect(repo.saveScoreboard).toHaveBeenCalledWith('fable', expect.objectContaining({ markdown: expect.any(String), json: expect.any(Object) }));
   });
+
+  it('handles an empty cell set without throwing', async () => {
+    const { svc, repo } = await build([]);
+    const out = await svc.generate('fable');
+    expect(out.markdown).toContain('# Trader Scoreboard');
+    expect((out.json as { groups: unknown[] }).groups).toEqual([]);
+    expect(repo.saveScoreboard).toHaveBeenCalledWith('fable', expect.objectContaining({ markdown: expect.any(String), json: expect.any(Object) }));
+  });
 });
