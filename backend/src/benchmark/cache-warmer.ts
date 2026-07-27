@@ -82,7 +82,11 @@ export class CacheWarmer {
             // Carry SETUP_SCHEMA so the re-warm hashes identically to the batch's
             // structured requests (see warmCache) — a schema-less re-warm the batch
             // can't read is wasted work.
-            await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA });
+            await this.anthropic.warmCache(
+              envelope,
+              { operation: 'warm', benchmark: { modelAlias: batch.model.alias, day: batch.day, trader: traderName, variant } },
+              { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+            );
           } catch (err) {
             // Isolate one flaky warm (e.g. transient API error) so it doesn't
             // drop the other distinct (trader,variant) pairs of this batch.

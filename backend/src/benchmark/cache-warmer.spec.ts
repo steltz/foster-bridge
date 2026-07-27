@@ -69,7 +69,11 @@ describe('CacheWarmer.warm', () => {
     expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(2);
     // Uses a LIVE file_id (re-derivable from GCS) for the day-bundle tier.
     expect(deps.dayArtifacts.ensureFileId).toHaveBeenCalledWith('07012026');
-    for (const [ctx, opts] of deps.anthropic.warmCache.mock.calls) {
+    for (const [ctx, attribution, opts] of deps.anthropic.warmCache.mock.calls) {
+      expect(attribution).toEqual({
+        operation: 'warm',
+        benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String), variant: expect.any(String) }),
+      });
       expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA });
       // Tier 0 general, Tier 1 day-bundle document referencing the live file_id.
       expect(ctx.userTiers[1].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_live' } });
