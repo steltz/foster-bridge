@@ -1,0 +1,24 @@
+backend/src/benchmark/repo-inputs.service.spec.ts
+  s_e4554598cea289::t_12d409a862ebb0 106-111,115-122
+  s_e4554598cea289::t_20ad9a4cc56452 39-44
+backend/src/benchmark/repo-inputs.service.ts
+  s_e4554598cea289::t_85e0e13b9dcf11 207-222
+  s_e4554598cea289::t_37fd9e9bceedee 227
+  s_e4554598cea289::t_ca00e58f4c6fe8 127-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "33b72e43ab2bf9ed96275fced4290b1f6484ec06",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
