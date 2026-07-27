@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-07-27-cost-dashboard-design.md
+  s_3d0b66e48071be::t_65f80fbd267d7a 1-122,127-200
+  s_3d0b66e48071be::t_da2876a8a97226 123-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "682ea5c201db14aba8bba142787a4d389488f5a7",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
