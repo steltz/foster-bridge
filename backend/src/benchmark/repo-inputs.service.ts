@@ -124,6 +124,8 @@ export class RepoInputsService {
         let staticDocContent: string | null = null;
         let staticDocSha256: string | null = null;
         if (staticDoc) {
+          // A missing staticDoc throws a raw ENOENT here; full staticDoc-existence
+          // validation (as in the original features.js) is deferred to Plan 2.
           staticDocContent = readFileSync(join(this.root, staticDoc), 'utf8');
           staticDocSha256 = this.sha256(staticDocContent);
         }
@@ -202,11 +204,27 @@ export class RepoInputsService {
       if (!entry.isDirectory()) continue;
       const files = readdirSync(join(dir, entry.name));
       const missing = required.filter((r) => !files.some((f) => f.endsWith(r.suffix))).map((r) => r.label);
-      if (missing.length) issues.push({ day: entry.name, missing });
+      if (missing.length) {
+        issues.push({ day: entry.name, missing });
+        continue;
+      }
+      // All three required suffixes are present, but collectDays additionally
+      // requires the TP.pdf/TP.md date prefixes to be 8 digits and match; surface
+      // that here too so such a folder doesn't silently vanish from both.
+      const pdf = files.find((f) => f.endsWith('_ES_TP.pdf'))!;
+      const plan = files.find((f) => f.endsWith('_ES_TP.md'))!;
+      const prefix = pdf.slice(0, 8);
+      if (!/^\d{8}$/.test(prefix) || plan.slice(0, 8) !== prefix) {
+        issues.push({
+          day: entry.name,
+          missing: ['prefix mismatch: *_ES_TP.pdf and *_ES_TP.md date prefixes differ or are not 8 digits'],
+        });
+      }
     }
     return issues.sort((a, b) => a.day.localeCompare(b.day));
   }
 
+  // Single-method by design for the core pipeline: only seven-keys.md is read.
   readMethodsDoc(): string | null {
     const path = join(this.root, 'knowledge-base', 'methods', 'seven-keys.md');
     return existsSync(path) ? readFileSync(path, 'utf8') : null;

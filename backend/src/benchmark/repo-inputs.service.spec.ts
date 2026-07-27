@@ -36,6 +36,12 @@ function seedFixture(): string {
   mkdirSync(bad, { recursive: true });
   writeFileSync(join(bad, '07022026_ES_TP.pdf'), 'x');
   writeFileSync(join(bad, '07022026_ES_TP.md'), 'x');
+  // All three docs present, but the TP.pdf and TP.md date prefixes disagree.
+  const mismatch = join(dir, 'knowledge-base', 'es', '07032026');
+  mkdirSync(mismatch, { recursive: true });
+  writeFileSync(join(mismatch, '07032026_ES_TP.pdf'), 'x');
+  writeFileSync(join(mismatch, '07042026_ES_TP.md'), 'x');
+  writeFileSync(join(mismatch, '07032026_ES_RECAP.md'), 'x');
   return dir;
 }
 
@@ -97,11 +103,23 @@ describe('RepoInputsService', () => {
     expect(days[0].pdfPath.endsWith('07012026_ES_TP.pdf')).toBe(true);
   });
 
+  it('collectDays excludes a folder with all three docs when the TP.pdf/TP.md prefixes disagree', async () => {
+    const svc = await build(root);
+    const days = svc.collectDays();
+    expect(days.some((d) => d.day === '07032026' || d.day === '07042026')).toBe(false);
+  });
+
   it('collectDayIssues reports incomplete folders with the missing suffix(es)', async () => {
     const svc = await build(root);
     const issues = svc.collectDayIssues();
-    // 07022026 is missing the recap doc.
-    expect(issues).toEqual([{ day: '07022026', missing: ['*_ES_RECAP.md'] }]);
+    // 07022026 is missing the recap doc; 07032026 has all three but mismatched prefixes.
+    expect(issues).toEqual([
+      { day: '07022026', missing: ['*_ES_RECAP.md'] },
+      {
+        day: '07032026',
+        missing: ['prefix mismatch: *_ES_TP.pdf and *_ES_TP.md date prefixes differ or are not 8 digits'],
+      },
+    ]);
   });
 
   it('readMethodsDoc returns the methods content', async () => {
