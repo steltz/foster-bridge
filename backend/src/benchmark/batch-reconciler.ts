@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
 import { AnthropicService, BatchResultItem } from '../anthropic/anthropic.service';
@@ -13,22 +14,35 @@ const INTERVAL = 'min-5' as const;
 export class BatchReconciler implements OnApplicationBootstrap {
   private readonly logger = new Logger(BatchReconciler.name);
   private running = false;
+  private readonly schedulerEnabled: boolean;
 
   constructor(
     private readonly repo: BenchmarkRepository,
     private readonly anthropic: AnthropicService,
     private readonly backtest: BacktestService,
     private readonly scoreboard: ScoreboardService,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
+  }
 
   // Startup reconciliation: drains batches that finished while the server was off.
   // Fire-and-forget: a boot-time Firestore error or a slow drain must not fail
-  // process startup or block HTTP readiness.
+  // process startup or block HTTP readiness. Gated so tests / non-worker
+  // instances never touch Firestore at boot.
   onApplicationBootstrap(): void {
+    if (!this.schedulerEnabled) return;
     void this.reconcile().catch((e) => this.logger.error(`startup reconcile failed: ${e}`));
   }
 
+  // Thin scheduled trigger — gated by config so only a dedicated worker runs the
+  // cron. The core reconcile() below stays public/ungated for tests + manual runs.
   @Cron(CronExpression.EVERY_MINUTE)
+  scheduledReconcile(): void {
+    if (!this.schedulerEnabled) return;
+    void this.reconcile().catch((e) => this.logger.error(`scheduled reconcile failed: ${e}`));
+  }
+
   async reconcile(): Promise<void> {
     // Guards a single instance only; across replicas this is idempotent-but-
     // wasteful (createCell is write-once, so duplicate passes are harmless).

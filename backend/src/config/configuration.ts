@@ -17,6 +17,7 @@ export interface AppConfig {
     defaultRunCount: number;
     maxTokens: number;
     effort: string;
+    schedulerEnabled: boolean;
   };
 }
 
@@ -51,5 +52,10 @@ export default (): AppConfig => ({
     // BENCHMARK_MAX_TOKENS if high/max effort ever truncates a setup (stop_reason max_tokens).
     maxTokens: parseInt(process.env.BENCHMARK_MAX_TOKENS ?? '32000', 10),
     effort: process.env.BENCHMARK_EFFORT ?? 'high',
+    // Gates the batch reconciler + cache-warmer schedulers (cron/interval and the
+    // boot-time reconcile). ON by default; OFF under jest (NODE_ENV==='test') so
+    // unrelated specs never hit real Firestore at boot, and per-instance in prod
+    // (BENCHMARK_SCHEDULER='false') so only a dedicated worker runs the crons.
+    schedulerEnabled: process.env.BENCHMARK_SCHEDULER !== 'false' && process.env.NODE_ENV !== 'test',
   },
 });

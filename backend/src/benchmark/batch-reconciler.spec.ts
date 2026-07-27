@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BatchReconciler } from './batch-reconciler';
 import { BenchmarkRepository } from './benchmark.repository';
 import { AnthropicService } from '../anthropic/anthropic.service';
@@ -45,7 +46,8 @@ function makeDeps() {
   return { repo, anthropic, backtest, scoreboard, created };
 }
 
-async function build(deps: ReturnType<typeof makeDeps>) {
+async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true) {
+  const config = { get: (k: string) => (k === 'benchmark.schedulerEnabled' ? schedulerEnabled : undefined) };
   const moduleRef = await Test.createTestingModule({
     providers: [
       BatchReconciler,
@@ -53,6 +55,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: AnthropicService, useValue: deps.anthropic },
       { provide: BacktestService, useValue: deps.backtest },
       { provide: ScoreboardService, useValue: deps.scoreboard },
+      { provide: ConfigService, useValue: config },
     ],
   }).compile();
   return moduleRef.get(BatchReconciler);
@@ -207,9 +210,9 @@ describe('BatchReconciler.reconcile', () => {
     expect(deps.scoreboard.generate).toHaveBeenCalledTimes(1);
   });
 
-  it('onApplicationBootstrap triggers reconcile (fire-and-forget) (FIX 4)', async () => {
+  it('onApplicationBootstrap triggers reconcile (fire-and-forget) when scheduler enabled (FIX 4)', async () => {
     const deps = makeDeps();
-    const rec = await build(deps);
+    const rec = await build(deps, true);
     const spy = jest.spyOn(rec, 'reconcile').mockResolvedValue(undefined);
     rec.onApplicationBootstrap();
     expect(spy).toHaveBeenCalled();
@@ -217,9 +220,38 @@ describe('BatchReconciler.reconcile', () => {
 
   it('onApplicationBootstrap swallows a reconcile failure without throwing (FIX 4)', async () => {
     const deps = makeDeps();
-    const rec = await build(deps);
+    const rec = await build(deps, true);
     jest.spyOn(rec, 'reconcile').mockRejectedValue(new Error('boot boom'));
     expect(() => rec.onApplicationBootstrap()).not.toThrow();
     await new Promise((r) => setImmediate(r)); // let the rejected promise settle
+  });
+});
+
+describe('BatchReconciler scheduler gating', () => {
+  it('onApplicationBootstrap does NOT reconcile when the scheduler is disabled (no Firestore access)', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps, false);
+    rec.onApplicationBootstrap();
+    await new Promise((r) => setImmediate(r));
+    expect(deps.repo.nonTerminalBatches).not.toHaveBeenCalled();
+  });
+
+  it('scheduledReconcile no-ops when the scheduler is disabled', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps, false);
+    const spy = jest.spyOn(rec, 'reconcile');
+    rec.scheduledReconcile();
+    await new Promise((r) => setImmediate(r));
+    expect(spy).not.toHaveBeenCalled();
+    expect(deps.repo.nonTerminalBatches).not.toHaveBeenCalled();
+  });
+
+  it('scheduledReconcile invokes reconcile when the scheduler is enabled', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps, true);
+    const spy = jest.spyOn(rec, 'reconcile').mockResolvedValue(undefined);
+    rec.scheduledReconcile();
+    await new Promise((r) => setImmediate(r));
+    expect(spy).toHaveBeenCalled();
   });
 });

@@ -34,7 +34,13 @@ function makeDeps() {
   };
   const dayArtifacts = { ensureFileId: jest.fn().mockResolvedValue('file_live') };
   const anthropic = { warmCache: jest.fn().mockResolvedValue({ cached: true }) };
-  const config = { get: (k: string) => (k === 'benchmark.effort' ? 'high' : undefined) };
+  const config = {
+    get: (k: string): any => {
+      if (k === 'benchmark.effort') return 'high';
+      if (k === 'benchmark.schedulerEnabled') return true;
+      return undefined;
+    },
+  };
   return { repo, inputs, dayArtifacts, anthropic, config };
 }
 
@@ -90,5 +96,27 @@ describe('CacheWarmer.warm', () => {
     await expect(warmer.warm()).resolves.toBeUndefined();
     // Both distinct pairs were attempted — the first failure didn't skip the second.
     expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('CacheWarmer.scheduledWarm gating', () => {
+  it('no-ops when the scheduler is disabled', async () => {
+    const deps = makeDeps();
+    deps.config.get = (k: string) => (k === 'benchmark.effort' ? 'high' : false);
+    const warmer = await build(deps);
+    const spy = jest.spyOn(warmer, 'warm');
+    warmer.scheduledWarm();
+    await new Promise((r) => setImmediate(r));
+    expect(spy).not.toHaveBeenCalled();
+    expect(deps.repo.nonTerminalBatches).not.toHaveBeenCalled();
+  });
+
+  it('invokes warm when the scheduler is enabled', async () => {
+    const deps = makeDeps();
+    const warmer = await build(deps);
+    const spy = jest.spyOn(warmer, 'warm').mockResolvedValue(undefined);
+    warmer.scheduledWarm();
+    await new Promise((r) => setImmediate(r));
+    expect(spy).toHaveBeenCalled();
   });
 });

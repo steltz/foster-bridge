@@ -15,6 +15,7 @@ const WARM_INTERVAL_MS = 55 * 60 * 1000;
 @Injectable()
 export class CacheWarmer {
   private readonly logger = new Logger(CacheWarmer.name);
+  private readonly schedulerEnabled: boolean;
 
   constructor(
     private readonly repo: BenchmarkRepository,
@@ -23,9 +24,18 @@ export class CacheWarmer {
     private readonly envelopes: EnvelopeBuilder,
     private readonly anthropic: AnthropicService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
+  }
 
+  // Thin scheduled trigger — gated so only a dedicated worker runs the interval.
+  // The core warm() below stays public/ungated for tests + manual runs.
   @Interval('bench-cache-warm', WARM_INTERVAL_MS)
+  scheduledWarm(): void {
+    if (!this.schedulerEnabled) return;
+    void this.warm().catch((e) => this.logger.error(`scheduled cache warm failed: ${e}`));
+  }
+
   async warm(): Promise<void> {
     const batches = await this.repo.nonTerminalBatches();
     if (!batches.length) return;

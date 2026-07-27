@@ -41,6 +41,7 @@ describe('configuration benchmark defaults', () => {
     delete process.env.BENCHMARK_RUN_COUNT;
     delete process.env.BENCHMARK_MAX_TOKENS;
     delete process.env.BENCHMARK_EFFORT;
+    delete process.env.BENCHMARK_SCHEDULER;
   });
   afterAll(() => {
     process.env = OLD_ENV;
@@ -72,6 +73,39 @@ describe('configuration benchmark defaults', () => {
       defaultRunCount: 3,
       maxTokens: 8000,
       effort: 'medium',
+      // jest sets NODE_ENV='test' -> scheduler defaults OFF.
+      schedulerEnabled: false,
     });
+  });
+});
+
+describe('configuration benchmark schedulerEnabled', () => {
+  const OLD_ENV = process.env;
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    delete process.env.BENCHMARK_SCHEDULER;
+  });
+  afterAll(() => {
+    process.env = OLD_ENV;
+  });
+
+  it('exposes schedulerEnabled as a boolean by default', () => {
+    expect(typeof configuration().benchmark.schedulerEnabled).toBe('boolean');
+  });
+
+  it('is false when BENCHMARK_SCHEDULER is "false"', () => {
+    process.env.BENCHMARK_SCHEDULER = 'false';
+    expect(configuration().benchmark.schedulerEnabled).toBe(false);
+  });
+
+  it('is true in production when BENCHMARK_SCHEDULER is unset', () => {
+    const oldNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    delete process.env.BENCHMARK_SCHEDULER;
+    try {
+      expect(configuration().benchmark.schedulerEnabled).toBe(true);
+    } finally {
+      process.env.NODE_ENV = oldNodeEnv;
+    }
   });
 });
