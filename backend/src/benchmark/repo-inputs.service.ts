@@ -24,6 +24,7 @@ export interface FeatureInput {
   staticDoc: string | null; // repo-relative path
   staticDocContent: string | null;
   staticDocSha256: string | null;
+  artifactSuffix: string | null; // e.g. '_ES_KEYS.md' (scorecard); null when no artifact
 }
 
 export interface GeneralDocs {
@@ -121,6 +122,7 @@ export class RepoInputsService {
         const fm = this.parseFrontmatter(content);
         const id = fm.id || file.slice(0, -3);
         const staticDoc = fm.staticDoc || null;
+        const artifactSuffix = fm.artifactSuffix || null;
         let staticDocContent: string | null = null;
         let staticDocSha256: string | null = null;
         if (staticDoc) {
@@ -138,6 +140,7 @@ export class RepoInputsService {
           staticDoc,
           staticDocContent,
           staticDocSha256,
+          artifactSuffix,
         };
       });
   }
@@ -228,5 +231,30 @@ export class RepoInputsService {
   readMethodsDoc(): string | null {
     const path = join(this.root, 'knowledge-base', 'methods', 'seven-keys.md');
     return existsSync(path) ? readFileSync(path, 'utf8') : null;
+  }
+
+  // Complete days strictly BEFORE the target, chronological (oldest first). Reuses
+  // collectDays (already complete-only + sorted asc by derived date).
+  priorCompleteDays(targetDay: string): DayInput[] {
+    const days = this.collectDays();
+    const target = days.find((d) => d.day === targetDay);
+    const targetDate =
+      target?.date ?? `${targetDay.slice(4, 8)}-${targetDay.slice(0, 2)}-${targetDay.slice(2, 4)}`;
+    return days.filter((d) => d.date < targetDate);
+  }
+
+  // A day's OUTCOME recap is `<day>_ES_RECAP.md` — named for the session it
+  // describes and physically located in the FOLLOWING day's folder. Scan every
+  // es/* folder for that filename; null when no later day recorded it yet.
+  outcomeRecapPathForDay(day: string): string | null {
+    const dir = join(this.root, 'knowledge-base', 'es');
+    if (!existsSync(dir)) return null;
+    const target = `${day}_ES_RECAP.md`;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const folder = join(dir, entry.name);
+      if (readdirSync(folder).includes(target)) return join(folder, target);
+    }
+    return null;
   }
 }

@@ -42,6 +42,24 @@ function seedFixture(): string {
   writeFileSync(join(mismatch, '07032026_ES_TP.pdf'), 'x');
   writeFileSync(join(mismatch, '07042026_ES_TP.md'), 'x');
   writeFileSync(join(mismatch, '07032026_ES_RECAP.md'), 'x');
+
+  // Scorecard feature (carries an artifactSuffix the method feature lacks).
+  writeFileSync(
+    join(dir, 'features', 'seven-keys-scorecard.md'),
+    '---\nid: seven-keys-scorecard\nname: Seven-Keys precomputed scorecard\nstaticDoc: knowledge-base/methods/seven-keys.md\nartifactSuffix: _ES_KEYS.md\n---\nRead ${DOC} then ${ARTIFACT}.',
+  );
+  // Two more complete days so priorCompleteDays has a chain. Recaps are named for
+  // the PRIOR session and sit in the FOLLOWING day's folder.
+  const d2 = join(dir, 'knowledge-base', 'es', '07082026');
+  mkdirSync(d2, { recursive: true });
+  writeFileSync(join(d2, '07082026_ES_TP.pdf'), 'x');
+  writeFileSync(join(d2, '07082026_ES_TP.md'), 'x');
+  writeFileSync(join(d2, '07012026_ES_RECAP.md'), 'OUTCOME-0701'); // outcome recap for 07012026
+  const d3 = join(dir, 'knowledge-base', 'es', '07092026');
+  mkdirSync(d3, { recursive: true });
+  writeFileSync(join(d3, '07092026_ES_TP.pdf'), 'x');
+  writeFileSync(join(d3, '07092026_ES_TP.md'), 'x');
+  writeFileSync(join(d3, '07082026_ES_RECAP.md'), 'OUTCOME-0708'); // outcome recap for 07082026
   return dir;
 }
 
@@ -98,7 +116,7 @@ describe('RepoInputsService', () => {
   it('collectDays returns only complete folders with a derived YYYY-MM-DD date', async () => {
     const svc = await build(root);
     const days = svc.collectDays();
-    expect(days).toHaveLength(1);
+    expect(days.map((d) => d.day)).toEqual(['07012026', '07082026', '07092026']);
     expect(days[0]).toMatchObject({ day: '07012026', date: '2026-07-01', prefix: '07012026' });
     expect(days[0].pdfPath.endsWith('07012026_ES_TP.pdf')).toBe(true);
   });
@@ -125,5 +143,26 @@ describe('RepoInputsService', () => {
   it('readMethodsDoc returns the methods content', async () => {
     const svc = await build(root);
     expect(svc.readMethodsDoc()).toBe('METHODS DOC');
+  });
+
+  it('collectFeatures reads artifactSuffix (scorecard) and null for a method feature', async () => {
+    const svc = await build(root);
+    const byId = new Map(svc.collectFeatures().map((f) => [f.id, f]));
+    expect(byId.get('seven-keys-scorecard')!.artifactSuffix).toBe('_ES_KEYS.md');
+    expect(byId.get('seven-keys-method')!.artifactSuffix).toBeNull();
+  });
+
+  it('priorCompleteDays returns complete days strictly before the target, chronological', async () => {
+    const svc = await build(root);
+    expect(svc.priorCompleteDays('07092026').map((d) => d.day)).toEqual(['07012026', '07082026']);
+    expect(svc.priorCompleteDays('07082026').map((d) => d.day)).toEqual(['07012026']);
+    expect(svc.priorCompleteDays('07012026')).toEqual([]); // bootstrap
+  });
+
+  it('outcomeRecapPathForDay resolves the recap in the NEXT day folder, null when absent', async () => {
+    const svc = await build(root);
+    expect(svc.outcomeRecapPathForDay('07012026')!.endsWith('07082026/07012026_ES_RECAP.md')).toBe(true);
+    expect(svc.outcomeRecapPathForDay('07082026')!.endsWith('07092026/07082026_ES_RECAP.md')).toBe(true);
+    expect(svc.outcomeRecapPathForDay('07092026')).toBeNull(); // no 07102026 folder
   });
 });
