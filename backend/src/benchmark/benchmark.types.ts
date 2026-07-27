@@ -44,7 +44,7 @@ export const SETUP_SCHEMA = {
 export type CellStatus = 'TP' | 'SL' | 'EOD' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP' | 'CLI_ERROR';
 
 export type Variant = string; // 'base' | 'seven-keys-method' in this plan
-export const CORE_VARIANTS: Variant[] = ['base', 'seven-keys-method'];
+export const CORE_VARIANTS: readonly Variant[] = Object.freeze(['base', 'seven-keys-method']);
 
 export interface CellResult {
   status: CellStatus;
@@ -98,7 +98,11 @@ export function parseCellKey(id: string): CellKeyParts {
     throw new Error(`Malformed cell key: ${id}`);
   }
   const [trader, modelAlias, day, variant, runField] = parts;
-  return { trader, modelAlias, day, variant, runIndex: parseInt(runField.slice(3), 10) };
+  const runIndex = parseInt(runField.slice(3), 10);
+  if (!Number.isInteger(runIndex) || runIndex < 1) {
+    throw new Error(`Malformed cell key: ${id}`);
+  }
+  return { trader, modelAlias, day, variant, runIndex };
 }
 
 export const MODEL_ALIASES: Record<string, string> = {

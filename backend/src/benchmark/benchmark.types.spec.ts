@@ -20,6 +20,20 @@ describe('cellKey', () => {
       expect(parseCellKey(cellKey(parts))).toEqual(parts);
     }
   });
+
+  it('throws on the wrong segment count', () => {
+    expect(() => parseCellKey('a__b__c')).toThrow('Malformed cell key: a__b__c');
+  });
+
+  it('throws on a non-numeric run suffix', () => {
+    const key = 'a__fable__07012026__base__runX';
+    expect(() => parseCellKey(key)).toThrow(`Malformed cell key: ${key}`);
+  });
+
+  it('throws on a missing run number', () => {
+    const key = 'a__fable__07012026__base__run';
+    expect(() => parseCellKey(key)).toThrow(`Malformed cell key: ${key}`);
+  });
 });
 
 describe('resolveModel', () => {
