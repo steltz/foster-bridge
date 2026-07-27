@@ -87,13 +87,13 @@ describe('configuration benchmark defaults', () => {
     expect(configuration().benchmark.model).toBe('claude-fable-5');
   });
 
-  it('defaults defaultRunCount to 5, repoRoot absolute, maxTokens 16000, effort low', () => {
+  it('defaults defaultRunCount to 5, repoRoot absolute, maxTokens 32000, effort high', () => {
     const cfg = configuration();
     expect(cfg.benchmark.defaultRunCount).toBe(5);
     expect(cfg.benchmark.repoRoot.length).toBeGreaterThan(0);
     expect(cfg.benchmark.repoRoot.startsWith('/')).toBe(true);
-    expect(cfg.benchmark.maxTokens).toBe(16000);
-    expect(cfg.benchmark.effort).toBe('low');
+    expect(cfg.benchmark.maxTokens).toBe(32000);
+    expect(cfg.benchmark.effort).toBe('high');
   });
 
   it('honours env overrides', () => {
@@ -168,9 +168,14 @@ export default (): AppConfig => ({
     // '../../..' lands on the repo root (parent of backend/) in both layouts.
     repoRoot: process.env.BENCHMARK_REPO_ROOT ?? resolve(__dirname, '..', '..', '..'),
     defaultRunCount: parseInt(process.env.BENCHMARK_RUN_COUNT ?? '5', 10),
-    // Fable benefits from a large token budget; effort defaults to 'low' for cost.
-    maxTokens: parseInt(process.env.BENCHMARK_MAX_TOKENS ?? '16000', 10),
-    effort: process.env.BENCHMARK_EFFORT ?? 'low',
+    // effort is the QUALITY dial (default 'high'; set BENCHMARK_EFFORT='max' for the
+    // hardest runs) — NOT a cost lever. Cost is controlled by prompt caching + the
+    // Batch API + a deliberate minimal structured-JSON output. maxTokens is a generous
+    // truncation-safety ceiling for Fable's always-on thinking (batch bills only tokens
+    // actually generated, so a high ceiling costs nothing when unused); raise
+    // BENCHMARK_MAX_TOKENS if high/max effort ever truncates a setup (stop_reason max_tokens).
+    maxTokens: parseInt(process.env.BENCHMARK_MAX_TOKENS ?? '32000', 10),
+    effort: process.env.BENCHMARK_EFFORT ?? 'high',
   },
 });
 ```
@@ -1302,14 +1307,14 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
       betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
       await service.warmCache(
         { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
-        { model: 'claude-fable-5', files: true, effort: 'low' },
+        { model: 'claude-fable-5', files: true, effort: 'high' },
       );
       expect(create).not.toHaveBeenCalled();
       const arg = betaCreate.mock.calls[0][0];
       expect(arg.betas).toEqual(FILES_BETA);
       expect(arg.max_tokens).toBe(0);
       // effort IS allowed with max_tokens:0 (format is NOT), so warm carries effort.
-      expect(arg.output_config).toEqual({ effort: 'low' });
+      expect(arg.output_config).toEqual({ effort: 'high' });
     });
 
     it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
@@ -1338,13 +1343,13 @@ Append a new describe block at the end of `describe('AnthropicService', ...)` in
       await service.createBatch(
         [{ customId: 'k1', prompt: 'go', context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'f' } }] }] } }],
         undefined,
-        { model: 'claude-fable-5', outputSchema: schema, maxTokens: 16000, effort: 'low', files: true },
+        { model: 'claude-fable-5', outputSchema: schema, maxTokens: 32000, effort: 'high', files: true },
       );
       expect(batchesCreate).not.toHaveBeenCalled();
       const arg = betaBatchesCreate.mock.calls[0][0];
       expect(arg.betas).toEqual(FILES_BETA);
-      expect(arg.requests[0].params.max_tokens).toBe(16000);
-      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'low' });
+      expect(arg.requests[0].params.max_tokens).toBe(32000);
+      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
     });
 
     it('createBatch non-files keeps the non-beta path and honours per-request context', async () => {
@@ -2175,7 +2180,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: AnthropicService, useValue: deps.anthropic },
       { provide: MarketDataService, useValue: deps.marketData },
       { provide: ContractsService, useValue: deps.contracts },
-      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 16000, 'benchmark.effort': 'low' }[k]) } },
+      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 32000, 'benchmark.effort': 'high' }[k]) } },
     ],
   }).compile();
   return moduleRef.get(BenchmarkService);
@@ -2198,11 +2203,11 @@ describe('BenchmarkService.run', () => {
     expect(call[2].outputSchema).toBeDefined();
     expect(call[2].model).toBe('claude-fable-5');
     // Fable batch contract: budget, effort, and beta (files) path.
-    expect(call[2].maxTokens).toBe(16000);
-    expect(call[2].effort).toBe('low');
+    expect(call[2].maxTokens).toBe(32000);
+    expect(call[2].effort).toBe('high');
     expect(call[2].files).toBe(true);
     // Warms run on the beta/files path with matching effort.
-    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'low' });
+    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'high' });
     expect(summary.batchesSubmitted).toBe(1);
     expect(summary.cellsQueued).toBe(2);
     expect(summary.daysSkipped).toEqual([{ day: '07022026', reason: 'no candles' }]);
@@ -2338,8 +2343,8 @@ export class BenchmarkService {
   async run(opts: RunOptions = {}): Promise<RunSummary> {
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
-    const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 16000;
-    const effort = this.config.get<string>('benchmark.effort') ?? 'low';
+    const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 32000;
+    const effort = this.config.get<string>('benchmark.effort') ?? 'high';
     const variants = (opts.variants ?? CORE_VARIANTS).filter((v) => CORE_VARIANTS.includes(v));
 
     const traders = this.inputs.collectTraders();
@@ -2915,7 +2920,7 @@ function makeDeps() {
   };
   const dayArtifacts = { ensureFileId: jest.fn().mockResolvedValue('file_live') };
   const anthropic = { warmCache: jest.fn().mockResolvedValue({ cached: true }) };
-  const config = { get: (k: string) => (k === 'benchmark.effort' ? 'low' : undefined) };
+  const config = { get: (k: string) => (k === 'benchmark.effort' ? 'high' : undefined) };
   return { repo, inputs, dayArtifacts, anthropic, config };
 }
 
@@ -2944,7 +2949,7 @@ describe('CacheWarmer.warm', () => {
     // Uses a LIVE file_id (re-derivable from GCS) for the day-bundle tier.
     expect(deps.dayArtifacts.ensureFileId).toHaveBeenCalledWith('07012026');
     for (const [ctx, opts] of deps.anthropic.warmCache.mock.calls) {
-      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'low' });
+      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high' });
       // Tier 0 general, Tier 1 day-bundle document referencing the live file_id.
       expect(ctx.userTiers[1].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_live' } });
       expect((ctx.userTiers[2].blocks[0] as any).text).toContain('PERSONA');
@@ -3007,7 +3012,7 @@ export class CacheWarmer {
     const general = this.inputs.collectGeneralDocs().concatenated;
     const traders = new Map(this.inputs.collectTraders().map((t) => [t.name, t]));
     const features = new Map(this.inputs.collectFeatures().map((f) => [f.id, f]));
-    const effort = this.config.get<string>('benchmark.effort') ?? 'low';
+    const effort = this.config.get<string>('benchmark.effort') ?? 'high';
     // Avoid re-warming the same (model, day, trader, variant) twice this pass.
     const seen = new Set<string>();
 
