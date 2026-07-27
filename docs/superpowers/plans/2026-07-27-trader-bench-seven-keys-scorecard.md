@@ -733,7 +733,7 @@ export interface CurrentDayPromptInput {
 
 export function currentDayPrompt(i: CurrentDayPromptInput): string {
   const generalBlock = i.generalDocs
-    ? `First read ALL of these general trading-strategy documents — session-agnostic context for how zones are built and traded:\n\n${i.generalDocs}\n\n`
+    ? `First Read ALL of these general trading-strategy documents — session-agnostic context for how zones are built and traded:\n\n${i.generalDocs}\n\n`
     : '';
   return `You are the current-day Seven-Keys zone analyst for the ${i.date} ES (E-mini S&P 500) session.
 
@@ -755,7 +755,7 @@ Keys 1-2 (expectancy; no price confirmation) are trader behaviors and are NOT yo
 - key6: alignment with the larger-timeframe bias
 - key7: confluence — how many keys stack here
 
-Copy each zone's prices EXACTLY as the trade plan states them (e.g. "7495.25-7502.75") — never round, invent, or merge zones. Grade each zone automatic-fade | strong | moderate | weak, where automatic-fade means several keys stack so strongly that intraday price action gets no weight. The grade is a same-day filter, not an abstract quality ranking: factor in whether the zone can realistically be tested this session — a zone with excellent larger-timeframe pedigree that sits beyond any plausible single-session move grades moderate at best, with the pedigree recorded in its key4/key5 cells rather than the grade. Grades must discriminate at the top: strong and automatic-fade together should mark only the few zones a trader should prioritize today — no more than about a third of the sheet — and moderate is a deliberate middle call, not a default bucket; it is fine for many distant zones to collapse into weak. Also state the day's larger-timeframe bias and any environment/volatility notes.`;
+Copy each zone's prices EXACTLY as the trade plan states them (e.g. "7495.25-7502.75") — never round, invent, or merge zones. Grade each zone automatic-fade | strong | moderate | weak, where automatic-fade means several keys stack so strongly that intraday price action gets no weight. The grade is a same-day filter, not an abstract quality ranking: factor in whether the zone can realistically be tested this session — a zone with excellent larger-timeframe pedigree that sits beyond any plausible single-session move grades moderate at best, with the pedigree recorded in its key4/key5 cells rather than the grade. Grades must discriminate at the top: strong and automatic-fade together should mark only the few zones a trader should prioritize today — no more than about a third of the sheet — and moderate is a deliberate middle call, not a default bucket; it is fine for many distant zones to collapse into weak. Also state the day's larger-timeframe bias and any environment/volatility notes (scheduled reports, range vs directional).`;
 }
 
 export interface LookbackEntry {
@@ -805,9 +805,9 @@ Return the artifact as markdown in exactly this shape (no frontmatter — it is 
 **Larger-timeframe bias:** <one or two sentences>
 **Environment notes:** <one or two sentences>
 
-Keys 1-2 (expectancy; no price confirmation) are trader-behavior keys and remain the responsibility of each persona. Zones below are scored on Keys 3-7.
+Keys 1–2 (expectancy; no price confirmation) are trader-behavior keys and remain the responsibility of each persona. Zones below are scored on Keys 3–7.
 
-## Zone scorecard (Keys 3-7)
+## Zone scorecard (Keys 3–7)
 
 | Zone (prices) | Side | Key 3 approach | Key 4 timeframe | Key 5 prior launch | Key 6 bias align | Key 7 confluence | Grade |
 |---|---|---|---|---|---|---|---|
@@ -885,7 +885,7 @@ const DAY = {
 };
 
 // messageStructured stub: canned output keyed on the schema's required fields.
-function structuredFor(schema: any) {
+function structuredFor(schema: any): any {
   const req: string[] = schema.required;
   if (req.includes('zones'))
     return { bias: 'b', environment: 'e', zones: [{ prices: '7500-7510', side: 'support', key3: 'a', key4: 'b', key5: 'c', key6: 'd', key7: 'e', grade: 'strong' }] };
@@ -1186,7 +1186,7 @@ export class SevenKeysService {
         lastErr = err;
         if (attempt === MAX_ATTEMPTS || !this.isTransient(err)) throw err;
         this.logger.warn(
-          `Seven-keys ${label} attempt ${attempt} failed transiently: ${(err as Error).message}; retrying`,
+          `Seven-keys ${label} attempt ${attempt} failed transiently (${(err as Error).name}): ${(err as Error).message}; retrying`,
         );
       }
     }
@@ -1204,6 +1204,8 @@ export class SevenKeysService {
 ```
 
 > `DayArtifactDoc` and `createHash` are imported now because Task 6 uses them; keep the imports.
+
+> The shipped spec also adds a retry-exhaustion test (`gives up after MAX_ATTEMPTS transient failures and rethrows the last error`), asserting `withRetry` is bounded rather than unbounded.
 
 - [ ] **Step: Run — expect PASS.**
 
@@ -1360,12 +1362,25 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
    * Returns the persisted doc, or null (logged) when the verifier/generation fails
    * so the caller skips the scorecard variant for the day.
    */
-  async ensureKeys(day: DayInput, opts?: { force?: boolean }): Promise<DayArtifactDoc | null> {
+  async ensureKeys(day: DayInput, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
     const existing = await this.repo.getDayArtifact(day.day, 'keys');
-    // (1) Immutable once benchmarked: a persisted seven-keys-scorecard cell recorded
-    // this KEYS content's hash (artifactSha256), so the artifact must never change
-    // for reproducibility — reuse unconditionally, even when force is set.
-    if (existing && (await this.repo.hasScorecardCells(day.day))) return existing;
+    const benchmarked = await this.repo.hasScorecardCells(day.day);
+    // (1) Immutable when benchmarked OR pinned: a scorecard cell recorded this KEYS
+    // content's hash (artifactSha256), so the artifact must never change for
+    // reproducibility — reuse unconditionally, even when force is set. `pinned`
+    // covers in-flight (submitted-but-unreconciled) scorecard cells that have already
+    // pinned this KEYS hash but whose batch has not yet persisted its cells, so
+    // hasScorecardCells does not yet see them.
+    if (benchmarked || opts?.pinned === true) {
+      if (existing) return existing;
+      // Anomaly: immutable but the KEYS artifact is missing. Regenerating would
+      // break the artifactSha256 already pinned on those scorecard cells, so refuse
+      // rather than silently overwrite.
+      this.logger.error(
+        `Seven-keys for ${day.day}: scorecard cells exist but the KEYS artifact is missing; refusing to regenerate (would break cell provenance).`,
+      );
+      return null;
+    }
     // (2) Refreshable until benchmarked: reuse only a VERIFIED artifact whose
     // generation inputs are unchanged. A corrected trade plan (inputsHash drift), an
     // unverified leftover, or an explicit force all fall through to (re)generation.
@@ -1418,7 +1433,7 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
     const tp = readFileSync(day.planPath, 'utf8');
     const recap = readFileSync(day.recapPath, 'utf8');
     const methods = this.inputs.readMethodsDoc() ?? '';
-    return createHash('sha256').update(pdf).update(tp).update(recap).update(methods).digest('hex');
+    return createHash('sha256').update(pdf).update('\x00').update(tp).update('\x00').update(recap).update('\x00').update(methods).digest('hex');
   }
 
   // Faithful port of the skill's committed KEYS file: YAML frontmatter + body.
@@ -1436,6 +1451,8 @@ Add these methods to `SevenKeysService` in `backend/src/benchmark/seven-keys/sev
     ].join('\n');
   }
 ```
+
+> The shipped spec also adds a benchmarked-anomaly test (cells exist but the KEYS artifact is missing -> refuse, return null) and a pinned-anomaly/immutability pair covering the same cases for `opts.pinned`. `pinned` (in-flight immutability) itself was not part of this task's original code — it was added by a post-review hardening fix; see "Post-implementation hardening" at the end of this plan.
 
 - [ ] **Step: Run — expect PASS.**
 
@@ -1524,18 +1541,26 @@ Replace the `if (spec.variant !== 'base') { ... }` block inside `fullEnvelope` w
 
 ```ts
     if (spec.variant === 'seven-keys-scorecard') {
-      // Scorecard: substitute BOTH placeholders into the feature block. Use
-      // split/join (not replace) to avoid regex `$` semantics on the content.
+      // Scorecard: substitute BOTH placeholders into the feature block.
       if (spec.artifact == null || spec.artifact === '') {
         throw new Error(
           `Variant "${spec.variant}" requires a KEYS artifact to substitute into \${ARTIFACT}`,
         );
       }
+      if (spec.methodsDoc == null || spec.methodsDoc === '') {
+        throw new Error(
+          `Variant "${spec.variant}" requires a methods doc to substitute into \${DOC}`,
+        );
+      }
+      // Single-pass substitution with a function replacer: this avoids the
+      // two-pass split/join clobbering a literal "${ARTIFACT}" that happens
+      // to appear inside methodsDoc once it's been substituted in for ${DOC},
+      // and function replacements (unlike string replacements) never
+      // interpret $-sequences (e.g. $&, $1, $$) in the returned value.
       const featureText = (spec.featureBlock ?? '')
-        .split('${DOC}')
-        .join(spec.methodsDoc ?? '')
-        .split('${ARTIFACT}')
-        .join(spec.artifact)
+        .replace(/\$\{DOC\}|\$\{ARTIFACT\}/g, (token) =>
+          token === '${DOC}' ? spec.methodsDoc! : spec.artifact!,
+        )
         .trim();
       if (!featureText) {
         throw new Error(`Variant "${spec.variant}" produced an empty feature tier`);
@@ -1553,6 +1578,8 @@ Replace the `if (spec.variant !== 'base') { ... }` block inside `fullEnvelope` w
       tiers.push({ blocks: [{ type: 'text', text: featureText }] });
     }
 ```
+
+> The shipped spec also adds cross-placeholder tests (a literal `${ARTIFACT}` inside `methodsDoc` is not double-substituted), `$`-safety tests (an artifact/methodsDoc containing `$&`/`$1`/`$$` passes through literally), and a missing-`methodsDoc` guard test symmetric with the missing-artifact guard.
 
 - [ ] **Step: Run — expect PASS (existing base/method tests unchanged).**
 
@@ -1755,7 +1782,23 @@ export interface RunOptions {
           // `regenerateKeys` is the escape hatch for a corrected trade plan on a
           // not-yet-benchmarked day; ensureKeys still refuses to regenerate a day
           // that already has scorecard cells (immutable once benchmarked).
-          const keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true });
+          // Freeze the day fully immutable if it already has IN-FLIGHT scorecard
+          // cells (a submitted-but-unreconciled batch whose customIdToCell pinned this
+          // KEYS content's artifactSha256). Otherwise a force-regenerate with a raised
+          // runCount could overwrite the stored KEYS, orphaning those cells' provenance
+          // once their batch reconciles.
+          const scorecardInFlight = traders.some(
+            (t) => (queued.get(`${t.name}|${model.alias}|${day.day}|${SCORECARD_VARIANT}`)?.size ?? 0) > 0,
+          );
+          let keysDoc: DayArtifactDoc | null = null;
+          try {
+            keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true, pinned: scorecardInFlight });
+          } catch (err) {
+            // A scorecard/KEYS infra failure must not abort this day's base/method cells —
+            // treat a throw the same as a null (skip only the scorecard variant, retry next run).
+            this.logger.error(`Seven-keys ensureKeys threw for ${day.day}: ${(err as Error).message}`);
+            keysDoc = null;
+          }
           if (!keysDoc) {
             summary.daysSkipped.push({ day: day.day, reason: 'keys generation failed' });
             // Drop ONLY the scorecard cells; base/method still run for this day.
@@ -1814,6 +1857,8 @@ interface RunBody {
     });
   }
 ```
+
+> The shipped spec also adds an infra-throw isolation test (`ensureKeys` throwing is treated as a null result — only the scorecard variant is skipped, base/method still run) and an in-flight-pinning test (a day with an already-queued, unreconciled scorecard batch passes `pinned: true` to `ensureKeys` so a `regenerateKeys` run can't overwrite the KEYS those in-flight cells already pinned).
 
 - [ ] **Step: Run — expect PASS.**
 
@@ -2123,7 +2168,7 @@ describe('Benchmark scorecard (e2e)', () => {
     const cell = cells.find((c) => c.variant === 'seven-keys-scorecard')!;
     expect(cell.result.status).toBe('SL'); // long entry 100 / SL 95 / TP 110 on flat 90-120 bars
     expect(cell.artifactSha256).toBe(keys!.contentHash);
-    expect(cell.artifactSha256.length).toBeGreaterThan(0);
+    expect(cell.artifactSha256!.length).toBeGreaterThan(0);
     const baseCell = cells.find((c) => c.variant === 'base')!;
     expect(baseCell.artifactSha256).toBeUndefined();
 
@@ -2168,3 +2213,12 @@ git add -A && git commit -m "test(benchmark): e2e seven-keys-scorecard run"
 - Review v2 hardening folded in: (1) two-level freeze — immutable-once-benchmarked via `repo.hasScorecardCells(day)` (Task 1) + refresh-until-benchmarked via `inputsHash` drift/`force` (Task 6), matching design §3 "Immutability", plus a `POST /benchmark/run { regenerateKeys }` escape hatch (Task 8 controller); (2) e2e now asserts the base-vs-scorecard `Δ(scorecard)` feature-impact — the metric the variant exists for (Task 11); (3) bounded transient retry on the four generation calls (422 refusal not retried) + `lookbackMissing` reduced-lookback signal, logged + persisted (Tasks 5–6).
 - Type/method-name consistency verified against merged code: `messageStructured` (new), `ensureKeys(day: DayInput, opts?: { force? })`/`generate(day: DayInput)`, `priorCompleteDays`/`outcomeRecapPathForDay`, `fullEnvelope(..., { variant, featureBlock?, methodsDoc?, artifact? })`, `CellMeta.artifactSha256?`, `BenchmarkCell.artifactSha256?`, `DayArtifactDoc` provenance fields (+`inputsHash`/`lookbackMissing`), `BenchmarkRepository.hasScorecardCells` (uses `SCORECARD_VARIANT`), `SCORECARD_VARIANT`/`ALL_VARIANTS` (CORE_VARIANTS unchanged), `RunOptions.regenerateKeys`, `dayArtifacts/{day}__keys` via `getDayArtifact`/`saveDayArtifact`, `DayArtifactsService.ensureFileId`.
 - No placeholders/TBD; all code blocks are complete (tests + impl); every task ends with a plain semantic commit, no attribution.
+
+---
+
+## Post-implementation hardening (from final review)
+
+- **In-flight freeze guard.** `ensureKeys` gained a `pinned` hint (`opts?: { force?; pinned? }`), and `BenchmarkService.run` computes `scorecardInFlight` from the `queued` map (itself built from `this.repo.nonTerminalBatches()`) for `SCORECARD_VARIANT` before calling `ensureKeys`. This closes a gap where `regenerateKeys` could overwrite the KEYS artifact a day's already-submitted-but-unreconciled scorecard cells had pinned via `artifactSha256`, before those cells' batch ever persisted (`hasScorecardCells` would not yet see them) — commit `fix(benchmark): freeze in-flight scorecard days against force-regeneration`.
+- **Task 2 `input.system` guard fix.** `messageStructured`'s system-passthrough guard changed from `!opts?.context` to `!opts?.context?.system`, so a cached `CachedContext` that carries no `system` field of its own no longer silently drops a caller-supplied `input.system`.
+- **Task 4 skill-fidelity corrections.** `currentDayPrompt`'s general-docs lead-in was corrected from "First read ALL" to "First Read ALL", and its closing sentence regained the "(scheduled reports, range vs directional)" environment/volatility clause; `synthesizePrompt`'s "Keys 1-2"/"Keys 3-7" artifact headings were switched to en-dashes ("Keys 1–2"/"Keys 3–7", including the "## Zone scorecard (Keys 3–7)" heading) to match the skill's committed style — both ported verbatim from `.claude/skills/seven-keys/SKILL.md` rather than reproduced from memory.
+- **Task 7 one-pass substitution.** `EnvelopeBuilder`'s scorecard branch replaced the two-pass `split/join` with a single regex function-replacer (`.replace(/\$\{DOC\}|\$\{ARTIFACT\}/g, ...)`) plus a `methodsDoc` guard symmetric with the existing `artifact` guard — avoiding a literal `${ARTIFACT}` inside `methodsDoc` being double-substituted once `${DOC}` is replaced, and avoiding `$`-sequence (e.g. `$&`, `$1`, `$$`) reinterpretation that a string-based `replace` would apply to the substituted content.
