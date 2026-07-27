@@ -6,6 +6,7 @@ jest.mock('@anthropic-ai/sdk', () => ({
 
 import { Test } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { UnauthorizedException } from '@nestjs/common';
 import { AnthropicModule } from './anthropic.module';
 import { ANTHROPIC_CLIENT, AnthropicClientFactory } from './anthropic.constants';
@@ -30,6 +31,7 @@ describe('AnthropicModule client factory', () => {
         // dotenv re-loading a developer's real .env (whose ANTHROPIC_API_KEY
         // would otherwise mask the "no key set" case).
         ConfigModule.forRoot({ isGlobal: true, load: [configuration], ignoreEnvFile: true }),
+        EventEmitterModule.forRoot(),
         AnthropicModule,
       ],
     }).compile();
