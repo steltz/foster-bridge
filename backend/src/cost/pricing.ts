@@ -11,7 +11,12 @@ interface RateEntry {
 
 const CACHE_WRITE_5M = 1.25;
 const CACHE_WRITE_1H = 2.0;
-const CACHE_READ = 0.1;
+export const CACHE_READ = 0.1;
+
+// Gross read discount per paid cache-read dollar: full input (1x) minus what was
+// paid (CACHE_READ x), divided by what was paid. At 0.1 this is 9. Derived from
+// the rate so retuning CACHE_READ keeps both summary and report in sync.
+export const CACHE_READ_DISCOUNT_FACTOR = (1 - CACHE_READ) / CACHE_READ;
 
 // Batch = 50% of standard. Priority is stubbed at 1 (the app does not use it).
 const TIER_MULTIPLIER: Record<ServiceTier, number> = { standard: 1, batch: 0.5, priority: 1 };

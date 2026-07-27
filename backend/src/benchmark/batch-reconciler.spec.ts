@@ -261,6 +261,7 @@ describe('BatchReconciler.reconcile', () => {
       date: '2026-07-22',
       model: { alias: 'fable', id: 'claude-fable-5' },
       status: 'submitted',
+      submittedAt: '2026-07-22T14:00:00.000Z',
       customIdToCell: {
         'context-trader__fable__07222026__base__run1': { date: '2026-07-22', personaSha256: 'p', generalSha256: 'g' },
       },
@@ -288,6 +289,7 @@ describe('BatchReconciler.reconcile', () => {
     expect(usage).toBeDefined();
     expect(usage.ev).toEqual(expect.objectContaining({
       id: 'msgbatch_1:context-trader__fable__07222026__base__run1',
+      timestamp: '2026-07-22T14:00:00.000Z', // batch submission time, not the reconcile tick
       source: 'batch',
       serviceTier: 'batch',
       batchId: 'msgbatch_1',

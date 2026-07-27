@@ -798,4 +798,14 @@ describe('AnthropicService usage emission', () => {
     await svc.message({ prompt: 'x', attribution: { operation: 'message' } });
     expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({ attribution: { operation: 'message' } }));
   });
+
+  it('messageStructured emits usage even on a refusal (refusals are still billed)', async () => {
+    const { svc, emit, create } = build();
+    create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: { input_tokens: 50, output_tokens: 2 } });
+    await expect(svc.messageStructured({ prompt: 'x' }, { operation: 'keys-generation' }, {})).rejects.toBeDefined();
+    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
+      attribution: { operation: 'keys-generation' },
+      tokens: expect.objectContaining({ input: 50, output: 2 }),
+    }));
+  });
 });

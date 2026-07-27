@@ -190,13 +190,15 @@ export class AnthropicService {
       const resp = files
         ? await client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
         : await client.messages.create(params as any);
+      // Capture usage BEFORE the refusal throw — a refusal is still billed, and
+      // the sibling message()/batch paths both record refusal tokens.
+      this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
       if (resp.stop_reason === 'refusal') {
         throw new HttpException(
           { statusCode: 422, error: 'Structured message refused' },
           HttpStatus.UNPROCESSABLE_ENTITY,
         );
       }
-      this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
       let text = '';
       for (const block of resp.content) {
         if (block.type === 'text') text += block.text;

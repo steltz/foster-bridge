@@ -1,4 +1,5 @@
 import { CostRecord } from './cost.types';
+import { CACHE_READ_DISCOUNT_FACTOR } from './pricing';
 
 interface Payload {
   totalRecords: number;
@@ -26,7 +27,7 @@ function summarizePayload(records: CostRecord[]): Payload {
     totalTokens += r.tokens.input + r.tokens.cacheRead + r.tokens.cacheCreate5m + r.tokens.cacheCreate1h + r.tokens.output;
     if (r.serviceTier === 'batch') batchUsd += usd;
     else standardUsd += usd;
-    grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * 9;
+    grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * CACHE_READ_DISCOUNT_FACTOR;
     if (r.cost) netCacheBenefitUsd += r.cost.uncachedInputEquiv - (r.cost.input + r.cost.cacheRead + r.cost.cacheCreate);
     const d = r.timestamp.slice(0, 10);
     byDate.set(d, (byDate.get(d) ?? 0) + usd);

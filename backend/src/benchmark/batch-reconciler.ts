@@ -116,7 +116,10 @@ export class BatchReconciler implements OnApplicationBootstrap {
           const p = parseCellKey(item.customId);
           this.events.emit('anthropic.usage', {
             id: `${batch.batchId}:${item.customId}`,
-            timestamp: new Date().toISOString(),
+            // Date the cost to when the batch was SUBMITTED (the real request time),
+            // not this reconcile tick — otherwise date grouping and from/to filters
+            // attribute batch spend to whenever the cron happened to drain it.
+            timestamp: batch.submittedAt,
             modelId: batch.model.id,
             serviceTier: 'batch',
             attribution: {
