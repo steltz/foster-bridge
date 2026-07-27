@@ -225,6 +225,30 @@ describe('BatchReconciler.reconcile', () => {
     expect(() => rec.onApplicationBootstrap()).not.toThrow();
     await new Promise((r) => setImmediate(r)); // let the rejected promise settle
   });
+
+  it('persists artifactSha256 from CellMeta onto a scorecard cell', async () => {
+    const deps = makeDeps();
+    const SC_KEY = cellKey({ trader: 'context-trader', modelAlias: 'fable', day: '07012026', variant: 'seven-keys-scorecard', runIndex: 1 });
+    deps.repo.nonTerminalBatches.mockResolvedValue([
+      baseBatch({ customIdToCell: { [SC_KEY]: { ...META, featureSha256: 'scsha', staticDocSha256: 'dsha', artifactSha256: 'ksha' } } }),
+    ]);
+    deps.anthropic.getBatchResults.mockResolvedValue([
+      { customId: SC_KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
+    ]);
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.variant === 'seven-keys-scorecard');
+    expect(cell.artifactSha256).toBe('ksha');
+    expect(cell.featureSha256).toBe('scsha');
+  });
+
+  it('omits artifactSha256 on a base cell (no meta field)', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.artifactSha256).toBeUndefined();
+  });
 });
 
 describe('BatchReconciler scheduler gating', () => {

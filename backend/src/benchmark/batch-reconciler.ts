@@ -142,6 +142,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
       generalSha256: meta?.generalSha256 ?? '',
       ...(meta?.featureSha256 ? { featureSha256: meta.featureSha256 } : {}),
       ...(meta?.staticDocSha256 ? { staticDocSha256: meta.staticDocSha256 } : {}),
+      ...(meta?.artifactSha256 ? { artifactSha256: meta.artifactSha256 } : {}),
       createdAt: new Date().toISOString(),
     };
     // Merge the meta-missing note without clobbering a status note.
