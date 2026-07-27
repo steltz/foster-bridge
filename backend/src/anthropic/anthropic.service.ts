@@ -41,6 +41,11 @@ export interface CachedContext {
    * gets a 1h breakpoint; the trailing prompt is appended uncached. Total
    * breakpoints (system + tiers) must be <= 4.
    *
+   * Each tier contributes exactly ONE cache breakpoint (stamped automatically on
+   * the tier's last block). Callers must NOT pre-stamp `cache_control` on tier
+   * blocks, and must not pass empty tiers — the <=4-breakpoint guard counts one
+   * per tier.
+   *
    * Typed against the BETA content-block param: an uploaded-file document
    * (`{ type: 'document', source: { type: 'file', file_id } }`) is only valid on
    * the beta path — SDK 0.115.0's non-beta `DocumentBlockParam.source` has no
@@ -170,6 +175,9 @@ export class AnthropicService {
       }
       const content: Anthropic.Beta.BetaContentBlockParam[] = [];
       for (const tier of context.userTiers) {
+        // One breakpoint per tier, stamped here on the tier's last block. Callers
+        // must not pre-stamp cache_control or pass empty tiers (the guard above
+        // counts one breakpoint per tier regardless of contents).
         const blocks = tier.blocks.map((b) => ({ ...b }));
         if (blocks.length) {
           // Cast: cache_control is valid on the cacheable block params (text,
@@ -239,11 +247,14 @@ export class AnthropicService {
     const model = opts?.model ?? this.defaultModel;
     const files = opts?.files === true;
     const built = this.buildCachedRequest(context, 'warmup');
+    // effort is a generation param; irrelevant to a 0-token warm and risks a
+    // max_tokens:0 rejection, so it's intentionally not sent — it isn't part of
+    // the cached prefix, so warm/batch still share the cache.
+    void opts?.effort;
     const params: Record<string, unknown> = {
       model,
       max_tokens: 0,
       ...built,
-      ...(opts?.effort ? { output_config: { effort: opts.effort } } : {}),
     };
     const call = () =>
       files

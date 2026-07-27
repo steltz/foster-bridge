@@ -538,8 +538,9 @@ describe('AnthropicService', () => {
       const arg = betaCreate.mock.calls[0][0];
       expect(arg.betas).toEqual(FILES_BETA);
       expect(arg.max_tokens).toBe(0);
-      // effort IS allowed with max_tokens:0 (format is NOT), so warm carries effort.
-      expect(arg.output_config).toEqual({ effort: 'high' });
+      // A 0-token warm generates nothing, so no output_config is sent — effort is
+      // irrelevant to a cache write and max_tokens:0 + output_config could 400.
+      expect(arg).not.toHaveProperty('output_config');
     });
 
     it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
