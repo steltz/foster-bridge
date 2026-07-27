@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { BenchmarkService } from './benchmark.service';
@@ -153,6 +154,10 @@ describe('BenchmarkService.run', () => {
     await svc.run({ runCount: 1, variants: ['base', 'seven-keys-method', 'seven-keys-scorecard'] });
     // per (trader,variant): base + seven-keys-method = 2 full-envelope warms + 1 day-bundle warm.
     expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(3);
+    // Day-bundle is warmed FIRST (its cached prefix must exist before the
+    // per-envelope warms extend it). The day-bundle context is the 2-tier
+    // general+day prefix; full envelopes carry 3+ tiers.
+    expect(deps.anthropic.warmCache.mock.calls[0][0].userTiers).toHaveLength(2);
     const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
     expect(custIds).toEqual(
       expect.arrayContaining([
@@ -160,5 +165,55 @@ describe('BenchmarkService.run', () => {
         'context-trader__fable__07012026__seven-keys-method__run1',
       ]),
     );
+  });
+
+  it('skips all assembly/upload/warm/batch for a fully-complete day (FIX 1)', async () => {
+    const deps = makeDeps();
+    deps.repo.existingRunIndices.mockResolvedValue([1, 2]);
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 2, variants: ['base'] });
+    // No missing cells on any day => no IO, no upload, no warm, no batch.
+    expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
+    expect(deps.anthropic.warmCache).not.toHaveBeenCalled();
+    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(summary.cellsQueued).toBe(0);
+  });
+
+  it('skips an incomplete-RTH day before assembleDay/ensurePdf (FIX 6 + FIX 1)', async () => {
+    const deps = makeDeps();
+    (analyzeCoverage as jest.Mock).mockReturnValue({ complete: false });
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 2, variants: ['base'] });
+    expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
+    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'incomplete session' });
+  });
+
+  it('isolates a per-day error and still processes later days (FIX 2)', async () => {
+    const deps = makeDeps();
+    // Both days have candles + complete coverage so both have work.
+    deps.marketData.getDay = jest.fn().mockResolvedValue([{ time: 1 }]);
+    deps.anthropic.createBatch
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({ batchId: 'batch_2', processingStatus: 'in_progress' });
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, variants: ['base'] });
+    // First day's createBatch throws; the second day is still processed.
+    expect(deps.anthropic.createBatch).toHaveBeenCalledTimes(2);
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'error: boom' });
+    expect(summary.batchesSubmitted).toBe(1);
+  });
+
+  it('logs an orphaned batch when saveBatch fails after createBatch (FIX 2)', async () => {
+    const deps = makeDeps();
+    deps.repo.saveBatch.mockRejectedValue(new Error('firestore down'));
+    const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, variants: ['base'] });
+    // The batch was created at Anthropic but not persisted — must be loud.
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Orphaned batch batch_1'));
+    expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'error: firestore down' });
+    expect(summary.batchesSubmitted).toBe(0);
+    errorSpy.mockRestore();
   });
 });
