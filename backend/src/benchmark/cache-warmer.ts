@@ -79,12 +79,22 @@ export class CacheWarmer {
               featureBlock: feature?.block,
               methodsDoc: feature?.staticDocContent ?? undefined,
             });
-            // Carry SETUP_SCHEMA so the re-warm hashes identically to the batch's
-            // structured requests (see warmCache) — a schema-less re-warm the batch
-            // can't read is wasted work.
-            await this.anthropic.warmCache(
+            // Fire-and-forget BATCH submission — NOT a sync warmCache() call.
+            // Cache entries are scoped per service tier: a standard-tier warm
+            // is never visible to a batch-tier request (confirmed empirically —
+            // a single-item batch reusing an identical, freshly-read
+            // standard-tier cache prefix still wrote its own fresh entry
+            // instead of reading it). Re-warming for BatchReconciler's batches
+            // therefore has to happen AS a tiny batch so the write lands in the
+            // same cache pool those batches read from. We don't poll or
+            // reconcile this throwaway request — its cost is untracked, same
+            // as any other fire-and-forget submission.
+            // Carries SETUP_SCHEMA + effort identically to the real batch's
+            // requests (see createBatch) — a mismatched output_config hashes
+            // to a different cache key, so the batch could never read it.
+            await this.anthropic.createBatch(
+              [{ prompt: 'Cache warm — ignore this request.' }],
               envelope,
-              { operation: 'warm', benchmark: { modelAlias: batch.model.alias, day: batch.day, trader: traderName, variant } },
               { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
             );
           } catch (err) {

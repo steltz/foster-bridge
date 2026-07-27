@@ -3,7 +3,6 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { BenchmarkService } from './benchmark.service';
-import { SETUP_SCHEMA } from './benchmark.types';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
@@ -42,8 +41,10 @@ function makeDeps() {
     ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', anthropicFileId: 'file_1', contentHash: 'h' }),
     ensureTranscript: jest.fn().mockResolvedValue(undefined),
   };
+  // No warmCache mock: the pre-batch sync-tier warm was removed (cross-tier
+  // cache sharing does not hold — a batch never reads a standard-tier cache
+  // entry, so warming before submitting the real batch was pure wasted spend).
   const anthropic = {
-    warmCache: jest.fn().mockResolvedValue({ cached: true }),
     createBatch: jest.fn().mockResolvedValue({ batchId: 'batch_1', processingStatus: 'in_progress' }),
   };
   const marketData = {
@@ -94,18 +95,6 @@ describe('BenchmarkService.run', () => {
     expect(call[2].maxTokens).toBe(32000);
     expect(call[2].effort).toBe('high');
     expect(call[2].files).toBe(true);
-    // Warms run on the beta/files path with matching effort AND the batch's
-    // output schema, so the warmed prefix hashes identically to the batch requests.
-    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({
-      operation: 'warm',
-      benchmark: expect.objectContaining({ modelAlias: 'fable', day: expect.any(String) }),
-    });
-    expect(deps.anthropic.warmCache.mock.calls[0][2]).toEqual({
-      model: 'claude-fable-5',
-      files: true,
-      effort: 'high',
-      outputSchema: SETUP_SCHEMA,
-    });
     expect(summary.batchesSubmitted).toBe(1);
     expect(summary.cellsQueued).toBe(2);
     expect(summary.daysSkipped).toEqual([{ day: '07022026', reason: 'no candles' }]);
@@ -172,8 +161,6 @@ describe('BenchmarkService.run', () => {
     // KEYS generated once for the only candle-backed day (07012026).
     expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledTimes(1);
     expect(deps.sevenKeys.ensureKeys.mock.calls[0][0].day).toBe('07012026');
-    // 3 variants -> 3 full-envelope warms + 1 day-bundle warm.
-    expect(deps.anthropic.warmCache).toHaveBeenCalledTimes(4);
     const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
     expect(custIds).toEqual(
       expect.arrayContaining([
@@ -256,14 +243,13 @@ describe('BenchmarkService.run', () => {
     );
   });
 
-  it('skips all assembly/upload/warm/batch for a fully-complete day (FIX 1)', async () => {
+  it('skips all assembly/upload/batch for a fully-complete day (FIX 1)', async () => {
     const deps = makeDeps();
     deps.repo.existingRunIndices.mockResolvedValue([1, 2]);
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
-    // No missing cells on any day => no IO, no upload, no warm, no batch.
+    // No missing cells on any day => no IO, no upload, no batch.
     expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
-    expect(deps.anthropic.warmCache).not.toHaveBeenCalled();
     expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
     expect(summary.cellsQueued).toBe(0);
   });

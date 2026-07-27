@@ -186,17 +186,14 @@ export class BenchmarkService {
 
         const requests: BatchRequestInput[] = [];
         const customIdToCell: Record<string, CellMeta> = {};
-        const enveloped = new Map<string, ReturnType<EnvelopeBuilder['fullEnvelope']>>();
 
         for (const { trader, variant, feature, missing } of dayCells) {
-          const envKey = `${trader.name}::${variant}`;
           const envelope = this.envelopes.fullEnvelope(general.concatenated, bundle.dayBundle, trader.content, {
             variant,
             featureBlock: feature?.block,
             methodsDoc: feature?.staticDocContent ?? undefined,
             artifact: variant === SCORECARD_VARIANT ? keysContent : undefined,
           });
-          enveloped.set(envKey, envelope);
           // Provenance threaded to the batch so the reconciler persists real
           // content hashes on every cell (design §4). base omits feature/doc hashes.
           const meta: CellMeta = {
@@ -214,26 +211,15 @@ export class BenchmarkService {
           }
         }
 
-        // Two-stage warm on the beta/files path with matching effort AND
-        // output_config (SETUP_SCHEMA) so the warm's cached prefix hashes
-        // identically to the batch requests — without the schema the batch reads
-        // 0 cache and re-writes its own. The day-bundle prefix is warmed FIRST;
-        // the per-envelope warms extend it.
-        await this.anthropic.warmCache(
-          this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle),
-          { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day } },
-          { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
-        );
-        for (const { trader, variant } of dayCells) {
-          const envelope = enveloped.get(`${trader.name}::${variant}`);
-          if (!envelope) continue;
-          await this.anthropic.warmCache(
-            envelope,
-            { operation: 'warm', benchmark: { modelAlias: model.alias, day: day.day, trader: trader.name, variant } },
-            { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
-          );
-        }
-
+        // No pre-batch warm here (previously a "two-stage warm" via
+        // anthropic.warmCache — day-bundle prefix, then per-envelope). Cross-tier
+        // cache sharing does not hold: a batch-tier request never reads a cache
+        // entry written by a prior standard-tier call, confirmed empirically
+        // (a single-item batch reusing an identical, freshly-read standard-tier
+        // prefix still wrote its own fresh entry). That pre-warm was pure wasted
+        // spend. The batch below still benefits from cache reuse WITHIN itself —
+        // requests sharing an envelope prefix are written once and read cheaply
+        // by the rest, which is confirmed to work.
         const batch = await this.anthropic.createBatch(requests, undefined, {
           model: model.id,
           outputSchema: SETUP_SCHEMA,
