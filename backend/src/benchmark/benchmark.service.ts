@@ -214,16 +214,19 @@ export class BenchmarkService {
           }
         }
 
-        // Two-stage warm on the beta/files path with matching effort so the
-        // warm's cached prefix aligns with the batch requests. The day-bundle
-        // prefix is warmed FIRST; the per-envelope warms extend it.
+        // Two-stage warm on the beta/files path with matching effort AND
+        // output_config (SETUP_SCHEMA) so the warm's cached prefix hashes
+        // identically to the batch requests — without the schema the batch reads
+        // 0 cache and re-writes its own. The day-bundle prefix is warmed FIRST;
+        // the per-envelope warms extend it.
         await this.anthropic.warmCache(this.envelopes.dayBundleContext(general.concatenated, bundle.dayBundle), {
           model: model.id,
           files: true,
           effort,
+          outputSchema: SETUP_SCHEMA,
         });
         for (const envelope of enveloped.values()) {
-          await this.anthropic.warmCache(envelope, { model: model.id, files: true, effort });
+          await this.anthropic.warmCache(envelope, { model: model.id, files: true, effort, outputSchema: SETUP_SCHEMA });
         }
 
         const batch = await this.anthropic.createBatch(requests, undefined, {

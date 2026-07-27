@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CacheWarmer } from './cache-warmer';
+import { SETUP_SCHEMA } from './benchmark.types';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
@@ -69,7 +70,7 @@ describe('CacheWarmer.warm', () => {
     // Uses a LIVE file_id (re-derivable from GCS) for the day-bundle tier.
     expect(deps.dayArtifacts.ensureFileId).toHaveBeenCalledWith('07012026');
     for (const [ctx, opts] of deps.anthropic.warmCache.mock.calls) {
-      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high' });
+      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA });
       // Tier 0 general, Tier 1 day-bundle document referencing the live file_id.
       expect(ctx.userTiers[1].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_live' } });
       expect((ctx.userTiers[2].blocks[0] as any).text).toContain('PERSONA');

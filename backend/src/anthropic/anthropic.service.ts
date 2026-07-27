@@ -15,6 +15,11 @@ import {
 
 const FILES_BETA = ['files-api-2025-04-14'];
 
+// A structured warm (one carrying output_config.format) cannot use max_tokens:0
+// — the API rejects `output_config.format` at max_tokens:0 — so it bills a tiny
+// non-zero budget. The generated text is discarded; only the cache write matters.
+const WARM_STRUCTURED_MAX_TOKENS = 16;
+
 export interface MessageInput {
   prompt: string;
   system?: string;
@@ -290,15 +295,20 @@ export class AnthropicService {
   }
 
   /**
-   * Pre-warms the 1h cache for a shared prefix with a max_tokens:0 request (which
-   * writes the cache but bills no output tokens). Standalone by necessity —
-   * max_tokens:0 is rejected inside a Batches request. Returns usage-derived
-   * verification; with { strict: true }, a second probe must read the cache or
-   * this throws.
+   * Pre-warms the 1h cache for a shared prefix. A plain warm uses a max_tokens:0
+   * request (writes the cache, bills no output). A STRUCTURED warm — pass
+   * `outputSchema` (and matching `effort`) — sends the SAME `output_config` the
+   * batch/messageStructured call will use; without this the format is part of the
+   * cache key, so the warmed entry and the real request hash differently and the
+   * real request never reads the warm (it re-writes its own cache instead).
+   * `output_config.format` is rejected at max_tokens:0, so a structured warm bills
+   * WARM_STRUCTURED_MAX_TOKENS (discarded). Standalone by necessity — max_tokens:0
+   * is rejected inside a Batches request. Returns usage-derived verification; with
+   * { strict: true }, a second probe must read the cache or this throws.
    */
   async warmCache(
     context: CachedContext,
-    opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string },
+    opts?: { model?: string; strict?: boolean; files?: boolean; effort?: string; outputSchema?: unknown; maxTokens?: number },
   ): Promise<CacheVerification> {
     if (!context.system && !context.prefix && !(context.userTiers && context.userTiers.length)) {
       throw new HttpException(
@@ -310,14 +320,21 @@ export class AnthropicService {
     const model = opts?.model ?? this.defaultModel;
     const files = opts?.files === true;
     const built = this.buildCachedRequest(context, 'warmup');
-    // effort is a generation param; irrelevant to a 0-token warm and risks a
-    // max_tokens:0 rejection, so it's intentionally not sent — it isn't part of
-    // the cached prefix, so warm/batch still share the cache.
-    void opts?.effort;
+    // Mirror createBatch's output_config EXACTLY when a schema is given, so the
+    // warmed prefix and the real request share a cache key. effort tags along only
+    // inside a structured warm; a schema-less warm ignores it (not cache-relevant)
+    // and stays a pure max_tokens:0 write.
+    const outputConfig = opts?.outputSchema
+      ? {
+          format: { type: 'json_schema' as const, schema: opts.outputSchema },
+          ...(opts?.effort ? { effort: opts.effort } : {}),
+        }
+      : undefined;
     const params: Record<string, unknown> = {
       model,
-      max_tokens: 0,
+      max_tokens: outputConfig ? (opts?.maxTokens ?? WARM_STRUCTURED_MAX_TOKENS) : 0,
       ...built,
+      ...(outputConfig ? { output_config: outputConfig } : {}),
     };
     const call = () =>
       files

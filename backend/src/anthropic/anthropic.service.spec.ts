@@ -543,6 +543,31 @@ describe('AnthropicService', () => {
       expect(arg).not.toHaveProperty('output_config');
     });
 
+    it('warmCache with outputSchema sends the batch output_config (format+effort) and a non-zero max_tokens', async () => {
+      betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
+      const schema = { type: 'object', properties: { side: { type: 'string' } } };
+      await service.warmCache(
+        { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+        { model: 'claude-fable-5', files: true, effort: 'high', outputSchema: schema },
+      );
+      const arg = betaCreate.mock.calls[0][0];
+      expect(arg.betas).toEqual(FILES_BETA);
+      // output_config.format is rejected at max_tokens:0, so a structured warm must
+      // bill a small non-zero budget — and it must mirror the batch's output_config
+      // exactly or the batch reads 0 cache.
+      expect(arg.max_tokens).toBe(16);
+      expect(arg.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
+    });
+
+    it('warmCache with outputSchema honours an explicit maxTokens override', async () => {
+      create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
+      await service.warmCache(
+        { userTiers: [{ blocks: [{ type: 'text', text: 'big' }] }] },
+        { model: 'claude-fable-5', outputSchema: { type: 'object' }, maxTokens: 32 },
+      );
+      expect(create.mock.calls[0][0].max_tokens).toBe(32);
+    });
+
     it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
       let caught: unknown;
       try {

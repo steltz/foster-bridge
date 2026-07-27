@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { BenchmarkService } from './benchmark.service';
+import { SETUP_SCHEMA } from './benchmark.types';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
@@ -93,8 +94,14 @@ describe('BenchmarkService.run', () => {
     expect(call[2].maxTokens).toBe(32000);
     expect(call[2].effort).toBe('high');
     expect(call[2].files).toBe(true);
-    // Warms run on the beta/files path with matching effort.
-    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({ model: 'claude-fable-5', files: true, effort: 'high' });
+    // Warms run on the beta/files path with matching effort AND the batch's
+    // output schema, so the warmed prefix hashes identically to the batch requests.
+    expect(deps.anthropic.warmCache.mock.calls[0][1]).toEqual({
+      model: 'claude-fable-5',
+      files: true,
+      effort: 'high',
+      outputSchema: SETUP_SCHEMA,
+    });
     expect(summary.batchesSubmitted).toBe(1);
     expect(summary.cellsQueued).toBe(2);
     expect(summary.daysSkipped).toEqual([{ day: '07022026', reason: 'no candles' }]);

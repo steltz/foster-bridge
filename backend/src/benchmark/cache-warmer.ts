@@ -6,7 +6,7 @@ import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { AnthropicService } from '../anthropic/anthropic.service';
-import { parseCellKey } from './benchmark.types';
+import { parseCellKey, SETUP_SCHEMA } from './benchmark.types';
 
 // 55 minutes < the 1h ephemeral TTL. @Interval fires every fixed span from
 // boot; a cron minute field cannot express "every 55 minutes" (see plan note).
@@ -79,7 +79,10 @@ export class CacheWarmer {
               featureBlock: feature?.block,
               methodsDoc: feature?.staticDocContent ?? undefined,
             });
-            await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort });
+            // Carry SETUP_SCHEMA so the re-warm hashes identically to the batch's
+            // structured requests (see warmCache) — a schema-less re-warm the batch
+            // can't read is wasted work.
+            await this.anthropic.warmCache(envelope, { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA });
           } catch (err) {
             // Isolate one flaky warm (e.g. transient API error) so it doesn't
             // drop the other distinct (trader,variant) pairs of this batch.
