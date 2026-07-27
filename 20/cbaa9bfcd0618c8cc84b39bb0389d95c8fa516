@@ -1,0 +1,21 @@
+docs/superpowers/plans/2026-07-27-cost-dashboard.md
+  s_3d0b66e48071be::t_73ac9e1a67ab87 1-1589,1591-1592,1594-1595,1607-1632,1634-1640,1645-1653,1663-1756
+  s_3d0b66e48071be::t_6a0952025fbc89 1590,1593,1596-1606
+  s_3d0b66e48071be::t_788311311e876b 1633,1641-1644,1654-1662
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "20cbaa9bfcd0618c8cc84b39bb0389d95c8fa516",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
