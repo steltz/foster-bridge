@@ -103,7 +103,14 @@ describe('SevenKeysService.generate', () => {
     // Current-day is explicitly pinned to Fable and carries the PDF via envelope.
     const currentCall = findCall(deps.fake, CURRENT_SCHEMA);
     expect(currentCall.req.model).toBe('claude-fable-5');
+    expect(currentCall.req.effort).toBe('high');
+    expect(currentCall.req.maxTokens).toBe(32000);
     expect(currentCall.req.envelope?.tiers).toContainEqual(
+      expect.objectContaining({ blocks: expect.arrayContaining([{ type: 'file', fileId: 'file_1' }]) }),
+    );
+    // Verify also carries the PDF via envelope (pdfContext), mirroring current-day.
+    const verifyCall = findCall(deps.fake, VERIFY_SCHEMA);
+    expect(verifyCall.req.envelope?.tiers).toContainEqual(
       expect.objectContaining({ blocks: expect.arrayContaining([{ type: 'file', fileId: 'file_1' }]) }),
     );
     expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [], lookbackMissing: [] });
