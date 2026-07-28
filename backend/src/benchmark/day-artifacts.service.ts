@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 import { BenchmarkRepository, DayArtifactKind } from './benchmark.repository';
 
 // The GCS-backed Bucket surface this service uses (kept minimal so a fake bucket
@@ -24,7 +24,7 @@ export interface PdfArtifact {
 export class DayArtifactsService {
   constructor(
     @Inject(STORAGE_BUCKET) private readonly bucket: StorageBucketLike,
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly repo: BenchmarkRepository,
   ) {}
 

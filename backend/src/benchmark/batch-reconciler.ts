@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
-import { AnthropicService, BatchResultItem } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider, BatchResultItem } from '../anthropic/anthropic.service';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkCell, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
@@ -20,7 +20,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
 
   constructor(
     private readonly repo: BenchmarkRepository,
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly backtest: BacktestService,
     private readonly scoreboard: ScoreboardService,
     config: ConfigService,
@@ -80,7 +80,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
   /** Returns the model alias if the batch reached `ended` and was reconciled, else null. */
   private async reconcileBatch(batch: BatchDoc): Promise<string | null> {
     // Bench batches were created on the beta/files path, so read them there too.
-    const summary = await this.anthropic.getBatch(batch.batchId, { files: true });
+    const summary = await this.anthropic.getBatchLegacy(batch.batchId, { files: true });
     const status = summary.processingStatus;
 
     if (status === 'in_progress') {
@@ -93,7 +93,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
     }
     if (status !== 'ended') return null; // 'submitted' / unknown: wait for the next tick
 
-    const results = await this.anthropic.getBatchResults(batch.batchId, { files: true });
+    const results = await this.anthropic.getBatchResultsLegacy(batch.batchId, { files: true });
     const expected = Object.keys(batch.customIdToCell).length;
     if (results.length !== expected) {
       this.logger.warn(`Batch ${batch.batchId}: ${results.length} results for ${expected} expected cells`);

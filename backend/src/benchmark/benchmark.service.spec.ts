@@ -7,7 +7,7 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
@@ -65,7 +65,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
-      { provide: AnthropicService, useValue: deps.anthropic },
+      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
       { provide: MarketDataService, useValue: deps.marketData },
       { provide: ContractsService, useValue: deps.contracts },
       { provide: SevenKeysService, useValue: deps.sevenKeys },

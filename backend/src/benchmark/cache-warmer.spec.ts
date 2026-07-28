@@ -6,7 +6,7 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 
 function makeDeps() {
   const repo = {
@@ -57,7 +57,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
-      { provide: AnthropicService, useValue: deps.anthropic },
+      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
       { provide: ConfigService, useValue: deps.config },
     ],
   }).compile();

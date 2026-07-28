@@ -5,7 +5,7 @@ import { BenchmarkRepository, CellMeta, DayArtifactDoc } from './benchmark.repos
 import { RepoInputsService, DayInput, TraderInput, FeatureInput } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
-import { AnthropicService, BatchRequestInput } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider, BatchRequestInput } from '../anthropic/anthropic.service';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { analyzeCoverage } from '../market-data/coverage';
@@ -44,7 +44,7 @@ export class BenchmarkService {
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly marketData: MarketDataService,
     // ContractsModule is @Global, so ContractsService injects without an import.
     private readonly contracts: ContractsService,

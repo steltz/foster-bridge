@@ -5,7 +5,7 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 import { parseCellKey, SETUP_SCHEMA } from './benchmark.types';
 
 // 55 minutes < the 1h ephemeral TTL. @Interval fires every fixed span from
@@ -22,7 +22,7 @@ export class CacheWarmer {
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly config: ConfigService,
   ) {
     this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;

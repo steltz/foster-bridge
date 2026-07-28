@@ -15,6 +15,17 @@ import {
   ONE_HOUR_CACHE_CONTROL,
 } from './anthropic.constants';
 import { Attribution, ServiceTier, serviceTierFromUsage, tokensFromUsage } from '../cost/cost.types';
+import { LlmProvider, LlmCapabilities } from '../llm/llm.provider';
+import {
+  PromptEnvelope,
+  LlmContentBlock,
+  StructuredRequest,
+  BatchItemRequest,
+  BatchSubmitOptions,
+  BatchHandle,
+  BatchItemResult,
+  BatchLifecycle,
+} from '../llm/llm.types';
 
 const FILES_BETA = ['files-api-2025-04-14'];
 
@@ -98,8 +109,14 @@ export interface BatchResultItem {
 }
 
 @Injectable()
-export class AnthropicService {
-  private readonly logger = new Logger(AnthropicService.name);
+export class AnthropicLlmProvider implements LlmProvider {
+  readonly capabilities: LlmCapabilities = {
+    batch: true,
+    fileUpload: true,
+    promptCaching: true,
+    structuredOutput: true,
+  };
+  private readonly logger = new Logger(AnthropicLlmProvider.name);
 
   constructor(
     @Inject(ANTHROPIC_CLIENT)
@@ -155,7 +172,7 @@ export class AnthropicService {
    * beta/files client when `files` is set, reuses the cached-prefix builder for
    * an optional CachedContext, and returns the parsed JSON. A refusal throws.
    */
-  async messageStructured<T = unknown>(
+  async messageStructuredLegacy<T = unknown>(
     input: { prompt: string; system?: string },
     attribution: Attribution,
     opts?: {
@@ -291,6 +308,179 @@ export class AnthropicService {
     return system ? { system, messages } : { messages };
   }
 
+  /** True when any tier block references an uploaded file (routes to the beta/files path). */
+  private envelopeHasFile(envelope?: PromptEnvelope): boolean {
+    return !!envelope?.tiers?.some((t) => t.blocks.some((b) => b.type === 'file'));
+  }
+
+  /** Map neutral blocks to Anthropic beta content-block params. */
+  private toBetaBlocks(blocks: LlmContentBlock[]): Anthropic.Beta.BetaContentBlockParam[] {
+    return blocks.map((b) =>
+      b.type === 'file'
+        ? ({ type: 'document', source: { type: 'file', file_id: b.fileId } } as Anthropic.Beta.BetaContentBlockParam)
+        : ({ type: 'text', text: b.text } as Anthropic.Beta.BetaContentBlockParam),
+    );
+  }
+
+  /** Neutral-envelope variant of buildCachedRequest — one 1h breakpoint per tier. */
+  private buildEnvelopeRequest(
+    envelope: PromptEnvelope,
+    prompt: string,
+  ): { system?: Anthropic.TextBlockParam[]; messages: Anthropic.Beta.BetaMessageParam[] } {
+    const system = envelope.system
+      ? [{ type: 'text' as const, text: envelope.system, cache_control: ONE_HOUR_CACHE_CONTROL }]
+      : undefined;
+
+    let messages: Anthropic.Beta.BetaMessageParam[];
+    const tiers = envelope.tiers ?? [];
+    if (tiers.length) {
+      const breakpoints = (system ? 1 : 0) + tiers.length;
+      if (breakpoints > 4) {
+        throw new HttpException(
+          { statusCode: 400, error: `Too many cache breakpoints: ${breakpoints} (max 4)` },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const content: Anthropic.Beta.BetaContentBlockParam[] = [];
+      for (const tier of tiers) {
+        const blocks = this.toBetaBlocks(tier.blocks);
+        if (blocks.length) {
+          blocks[blocks.length - 1] = {
+            ...blocks[blocks.length - 1],
+            cache_control: ONE_HOUR_CACHE_CONTROL,
+          } as Anthropic.Beta.BetaContentBlockParam;
+        }
+        content.push(...blocks);
+      }
+      content.push({ type: 'text', text: prompt });
+      messages = [{ role: 'user', content }];
+    } else {
+      messages = [{ role: 'user', content: prompt }];
+    }
+    return system ? { system, messages } : { messages };
+  }
+
+  private toLifecycle(status: string): BatchLifecycle {
+    switch (status) {
+      case 'in_progress':
+      case 'ended':
+      case 'canceled':
+      case 'expired':
+      case 'errored':
+        return status;
+      default:
+        return 'submitted';
+    }
+  }
+
+  async messageStructured<T = unknown>(req: StructuredRequest, attribution: Attribution): Promise<T> {
+    const client = this.clientFactory.get();
+    const model = req.model ?? this.defaultModel;
+    const maxTokens = req.maxTokens ?? this.defaultMaxTokens;
+    const useFiles = this.envelopeHasFile(req.envelope);
+    const outputConfig = {
+      ...(req.schema ? { format: { type: 'json_schema', schema: req.schema } } : {}),
+      ...(req.effort ? { effort: req.effort } : {}),
+    };
+    const built = req.envelope
+      ? this.buildEnvelopeRequest(req.envelope, req.prompt)
+      : { messages: [{ role: 'user' as const, content: req.prompt }] };
+    const params: Record<string, unknown> = {
+      model,
+      max_tokens: maxTokens,
+      ...(req.system && !req.envelope?.system ? { system: req.system } : {}),
+      ...built,
+      ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
+    };
+    try {
+      const resp = useFiles
+        ? await client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
+        : await client.messages.create(params as any);
+      this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
+      if (resp.stop_reason === 'refusal') {
+        throw new HttpException(
+          { statusCode: 422, error: 'Structured message refused' },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+      let text = '';
+      for (const block of resp.content) {
+        if (block.type === 'text') text += block.text;
+      }
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        throw new HttpException(
+          { statusCode: 502, error: 'Structured output was not valid JSON' },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async submitBatch(
+    requests: BatchItemRequest[],
+    envelope: PromptEnvelope | undefined,
+    opts: BatchSubmitOptions,
+  ): Promise<BatchHandle> {
+    const client = this.clientFactory.get();
+    const model = opts.model ?? this.defaultModel;
+    const maxTokens = opts.maxTokens ?? this.defaultMaxTokens;
+    const outputConfig = {
+      ...(opts.schema ? { format: { type: 'json_schema', schema: opts.schema } } : {}),
+      ...(opts.effort ? { effort: opts.effort } : {}),
+    };
+    // Batches ALWAYS use the beta/files path — submit and retrieve must agree on
+    // beta-ness, and getBatch/getBatchResults cannot see the request to infer it.
+    // The files-beta header is additive: harmless on a fileless batch.
+    try {
+      const body = {
+        requests: requests.map((r, i) => {
+          const env = r.envelope ?? envelope;
+          const built = env
+            ? this.buildEnvelopeRequest(env, r.prompt)
+            : { messages: [{ role: 'user' as const, content: r.prompt }] };
+          return {
+            custom_id: r.customId ?? `request-${i}`,
+            params: {
+              model,
+              max_tokens: maxTokens,
+              ...built,
+              ...(Object.keys(outputConfig).length ? { output_config: outputConfig } : {}),
+            },
+          };
+        }),
+      };
+      const batch = await client.beta.messages.batches.create({ ...body, betas: FILES_BETA } as any);
+      return { batchId: batch.id, status: this.toLifecycle(batch.processing_status) };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async getBatch(id: string): Promise<BatchHandle> {
+    const legacy = await this.getBatchLegacy(id, { files: true });
+    return {
+      batchId: legacy.batchId,
+      status: this.toLifecycle(legacy.processingStatus),
+      requestCounts: legacy.requestCounts,
+    };
+  }
+
+  async getBatchResults(id: string): Promise<BatchItemResult[]> {
+    const legacy = await this.getBatchResultsLegacy(id, { files: true });
+    return legacy.map((item) => {
+      const out: BatchItemResult = { customId: item.customId, type: item.type };
+      if (item.text !== undefined) out.text = item.text;
+      if (item.error !== undefined) out.error = item.error;
+      if (item.cacheReadInputTokens !== undefined) out.cacheReadTokens = item.cacheReadInputTokens;
+      if (item.usage !== undefined) out.usage = tokensFromUsage(item.usage);
+      return out;
+    });
+  }
+
   // Accepts either message shape: the file-bearing warm routes through the beta
   // client (BetaMessage), the plain warm through the non-beta client (Message).
   // Only `model` and `usage.cache_*` are read, which both shapes share.
@@ -420,7 +610,7 @@ export class AnthropicService {
     }
   }
 
-  async getBatch(id: string, opts?: { files?: boolean }): Promise<BatchSummary> {
+  async getBatchLegacy(id: string, opts?: { files?: boolean }): Promise<BatchSummary> {
     const client = this.clientFactory.get();
     try {
       const batch = opts?.files
@@ -436,7 +626,7 @@ export class AnthropicService {
     }
   }
 
-  async getBatchResults(id: string, opts?: { files?: boolean }): Promise<BatchResultItem[]> {
+  async getBatchResultsLegacy(id: string, opts?: { files?: boolean }): Promise<BatchResultItem[]> {
     const client = this.clientFactory.get();
     try {
       const items: BatchResultItem[] = [];

@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_CLIENT, AnthropicClientFactory } from './anthropic.constants';
-import { AnthropicService } from './anthropic.service';
+import { AnthropicLlmProvider } from './anthropic.service';
 
 // The SDK client-level `timeout` gates its own non-streaming max_tokens guard:
 // with no client timeout configured, a non-streaming call whose max_tokens could
@@ -44,7 +44,7 @@ const anthropicClientProvider: Provider = {
 
 @Global()
 @Module({
-  providers: [anthropicClientProvider, AnthropicService],
-  exports: [ANTHROPIC_CLIENT, AnthropicService],
+  providers: [anthropicClientProvider, AnthropicLlmProvider],
+  exports: [ANTHROPIC_CLIENT, AnthropicLlmProvider],
 })
 export class AnthropicModule {}

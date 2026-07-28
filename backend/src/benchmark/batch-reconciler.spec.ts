@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BatchReconciler } from './batch-reconciler';
 import { BenchmarkRepository } from './benchmark.repository';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { cellKey } from './benchmark.types';
@@ -32,8 +32,8 @@ function makeDeps() {
     }),
   };
   const anthropic = {
-    getBatch: jest.fn().mockResolvedValue({ batchId: 'batch_1', processingStatus: 'ended' }),
-    getBatchResults: jest.fn().mockResolvedValue([
+    getBatchLegacy: jest.fn().mockResolvedValue({ batchId: 'batch_1', processingStatus: 'ended' }),
+    getBatchResultsLegacy: jest.fn().mockResolvedValue([
       { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
       { customId: REFUSAL_KEY, type: 'refusal', stopReason: 'refusal' },
     ]),
@@ -53,7 +53,7 @@ async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true)
     providers: [
       BatchReconciler,
       { provide: BenchmarkRepository, useValue: deps.repo },
-      { provide: AnthropicService, useValue: deps.anthropic },
+      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
       { provide: BacktestService, useValue: deps.backtest },
       { provide: ScoreboardService, useValue: deps.scoreboard },
       { provide: ConfigService, useValue: config },
@@ -77,8 +77,8 @@ describe('BatchReconciler.reconcile', () => {
     expect(cell.generalSha256).toBe('gsha');
     expect(cell.date).toBe('2026-07-01');
     // Bench batches were created on the beta/files path, so reads use it too.
-    expect(deps.anthropic.getBatch).toHaveBeenCalledWith('batch_1', { files: true });
-    expect(deps.anthropic.getBatchResults).toHaveBeenCalledWith('batch_1', { files: true });
+    expect(deps.anthropic.getBatchLegacy).toHaveBeenCalledWith('batch_1', { files: true });
+    expect(deps.anthropic.getBatchResultsLegacy).toHaveBeenCalledWith('batch_1', { files: true });
     expect(deps.backtest.run).toHaveBeenCalledWith(expect.objectContaining({
       symbol: 'MES', interval: 'min-5', date: '2026-07-01', session: 'rth', allowIncomplete: false,
       orders: [{ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110 }],
@@ -124,7 +124,7 @@ describe('BatchReconciler.reconcile', () => {
 
   it('rejects an out-of-range confidence as INVALID (FIX 5 validation)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResults.mockResolvedValue([
+    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
       { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 9 }) },
     ]);
     const rec = await build(deps);
@@ -145,26 +145,26 @@ describe('BatchReconciler.reconcile', () => {
 
   it('does not reconcile a batch that is still in_progress', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatch.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'in_progress' });
+    deps.anthropic.getBatchLegacy.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'in_progress' });
     const rec = await build(deps);
     await rec.reconcile();
-    expect(deps.anthropic.getBatchResults).not.toHaveBeenCalled();
+    expect(deps.anthropic.getBatchResultsLegacy).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'in_progress' });
     expect(deps.scoreboard.generate).not.toHaveBeenCalled();
   });
 
   it('marks a canceled/expired/errored batch terminal without reconciling results', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatch.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'expired' });
+    deps.anthropic.getBatchLegacy.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'expired' });
     const rec = await build(deps);
     await rec.reconcile();
-    expect(deps.anthropic.getBatchResults).not.toHaveBeenCalled();
+    expect(deps.anthropic.getBatchResultsLegacy).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'expired' });
   });
 
   it('isolates a malformed customId and still reconciles the rest of the batch (FIX 1)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResults.mockResolvedValue([
+    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
       { customId: 'not-a-valid-key', type: 'succeeded', text: '{}' },
       { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
     ]);
@@ -178,7 +178,7 @@ describe('BatchReconciler.reconcile', () => {
 
   it('does NOT write a cell for a retryable errored item — stays MISSING for re-submit (FIX 3)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResults.mockResolvedValue([
+    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
       { customId: KEY, type: 'errored', error: 'overloaded' },
     ]);
     const rec = await build(deps);
@@ -190,7 +190,7 @@ describe('BatchReconciler.reconcile', () => {
 
   it('DOES write a NO_SETUP cell for a refusal item (FIX 3)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResults.mockResolvedValue([
+    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
       { customId: KEY, type: 'refusal', stopReason: 'refusal' },
     ]);
     const rec = await build(deps);
@@ -234,7 +234,7 @@ describe('BatchReconciler.reconcile', () => {
     deps.repo.nonTerminalBatches.mockResolvedValue([
       baseBatch({ customIdToCell: { [SC_KEY]: { ...META, featureSha256: 'scsha', staticDocSha256: 'dsha', artifactSha256: 'ksha' } } }),
     ]);
-    deps.anthropic.getBatchResults.mockResolvedValue([
+    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
       { customId: SC_KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
     ]);
     const rec = await build(deps);
@@ -267,8 +267,8 @@ describe('BatchReconciler.reconcile', () => {
       },
     };
     const anthropic = {
-      getBatch: async () => ({ processingStatus: 'ended' }),
-      getBatchResults: async () => [
+      getBatchLegacy: async () => ({ processingStatus: 'ended' }),
+      getBatchResultsLegacy: async () => [
         { customId: 'context-trader__fable__07222026__base__run1', type: 'succeeded',
           text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }),
           usage: { input_tokens: 20, output_tokens: 2157, cache_read_input_tokens: 3227, cache_creation_input_tokens: 16434, service_tier: 'batch' } },

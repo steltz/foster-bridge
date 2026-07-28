@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { DayArtifactsService } from './day-artifacts.service';
 import { BenchmarkRepository } from './benchmark.repository';
-import { AnthropicService } from '../anthropic/anthropic.service';
+import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { FIRESTORE } from '../firebase/firebase.constants';
 import { fakeFirestore } from '../../test/fake-firestore';
@@ -38,7 +38,7 @@ async function build() {
       BenchmarkRepository,
       { provide: FIRESTORE, useValue: fakeFirestore() },
       { provide: STORAGE_BUCKET, useValue: bucket },
-      { provide: AnthropicService, useValue: { uploadFile: upload } },
+      { provide: AnthropicLlmProvider, useValue: { uploadFile: upload } },
     ],
   }).compile();
   return { svc: moduleRef.get(DayArtifactsService), bucket, upload, repo: moduleRef.get(BenchmarkRepository) };

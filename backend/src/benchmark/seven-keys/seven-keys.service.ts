@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { AnthropicService, CachedContext } from '../../anthropic/anthropic.service';
+import { AnthropicLlmProvider, CachedContext } from '../../anthropic/anthropic.service';
 import { BenchmarkRepository, DayArtifactDoc } from '../benchmark.repository';
 import { RepoInputsService, DayInput } from '../repo-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
@@ -27,7 +27,7 @@ export class SevenKeysService {
   private readonly logger = new Logger(SevenKeysService.name);
 
   constructor(
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly repo: BenchmarkRepository,
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
@@ -100,7 +100,7 @@ export class SevenKeysService {
     // Each call is retried on a transient upstream failure so one flaky step does
     // not throw away the prior Fable calls (a 422 refusal is NOT retried).
     const currentPromise = this.withRetry('current-day', () =>
-      this.anthropic.messageStructured<Record<string, unknown>>(
+      this.anthropic.messageStructuredLegacy<Record<string, unknown>>(
         { prompt: currentDayPrompt({ date: day.date, tpTranscript, recapTranscript }) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         {
@@ -115,7 +115,7 @@ export class SevenKeysService {
     );
     const lookbackPromise: Promise<Record<string, unknown> | null> = lookbackSet.length
       ? this.withRetry('lookback', () =>
-          this.anthropic.messageStructured<Record<string, unknown>>(
+          this.anthropic.messageStructuredLegacy<Record<string, unknown>>(
             { prompt: lookbackPrompt(day.date, lookbackSet) },
             { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
             { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
@@ -126,7 +126,7 @@ export class SevenKeysService {
 
     const sources = lookbackSet.length ? lookbackSources.join(' · ') : 'none — bootstrap';
     const synth = await this.withRetry('synthesize', () =>
-      this.anthropic.messageStructured<{ artifact: string }>(
+      this.anthropic.messageStructuredLegacy<{ artifact: string }>(
         { prompt: synthesizePrompt(day.date, current, lookback, sources) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
@@ -134,7 +134,7 @@ export class SevenKeysService {
     );
 
     const verdict = await this.withRetry('verify', () =>
-      this.anthropic.messageStructured<{ pass: boolean; mismatches: string[] }>(
+      this.anthropic.messageStructuredLegacy<{ pass: boolean; mismatches: string[] }>(
         { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
         { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, maxTokens: this.maxTokens, context: this.pdfContext(fileId) },

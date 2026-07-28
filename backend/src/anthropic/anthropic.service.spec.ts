@@ -21,12 +21,12 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HttpException } from '@nestjs/common';
-import { AnthropicService } from './anthropic.service';
+import { AnthropicLlmProvider } from './anthropic.service';
 import { ANTHROPIC_CLIENT } from './anthropic.constants';
 
 // One shared outer describe so Task 4 can append a `batches` block that reuses
 // `service` and the batch mocks — the full client (with batches) is set up here.
-describe('AnthropicService', () => {
+describe('AnthropicLlmProvider', () => {
   let create: jest.Mock;
   let batchesCreate: jest.Mock;
   let batchesRetrieve: jest.Mock;
@@ -36,7 +36,7 @@ describe('AnthropicService', () => {
   let betaBatchesRetrieve: jest.Mock;
   let betaBatchesResults: jest.Mock;
   let filesUpload: jest.Mock;
-  let service: AnthropicService;
+  let service: AnthropicLlmProvider;
 
   beforeEach(async () => {
     create = jest.fn();
@@ -71,7 +71,7 @@ describe('AnthropicService', () => {
     };
     const moduleRef = await Test.createTestingModule({
       providers: [
-        AnthropicService,
+        AnthropicLlmProvider,
         { provide: ANTHROPIC_CLIENT, useValue: { get: () => fakeClient } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         {
@@ -87,7 +87,7 @@ describe('AnthropicService', () => {
         },
       ],
     }).compile();
-    service = moduleRef.get(AnthropicService);
+    service = moduleRef.get(AnthropicLlmProvider);
   });
 
   describe('message', () => {
@@ -230,7 +230,7 @@ describe('AnthropicService', () => {
       processing_status: 'ended',
       request_counts: { succeeded: 1, errored: 1 },
     });
-    const summary = await service.getBatch('batch_1');
+    const summary = await service.getBatchLegacy('batch_1');
     expect(batchesRetrieve).toHaveBeenCalledWith('batch_1');
     expect(summary).toEqual({
       batchId: 'batch_1',
@@ -257,7 +257,7 @@ describe('AnthropicService', () => {
       };
     }
     batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResults('batch_1');
+    const results = await service.getBatchResultsLegacy('batch_1');
     expect(batchesResults).toHaveBeenCalledWith('batch_1');
     expect(results).toEqual([
       { customId: 'a', type: 'succeeded', text: 'ok' },
@@ -275,7 +275,7 @@ describe('AnthropicService', () => {
       yield { custom_id: 'b', result: { type: 'expired' } };
     }
     batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResults('batch_1');
+    const results = await service.getBatchResultsLegacy('batch_1');
     expect(results).toEqual([
       { customId: 'a', type: 'canceled', error: 'canceled' },
       { customId: 'b', type: 'expired', error: 'expired' },
@@ -467,7 +467,7 @@ describe('AnthropicService', () => {
       };
     }
     batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResults('batch_1');
+    const results = await service.getBatchResultsLegacy('batch_1');
     expect(results).toEqual([
       {
         customId: 'a',
@@ -649,10 +649,10 @@ describe('AnthropicService', () => {
         yield { custom_id: 'k', result: { type: 'succeeded', message: { stop_reason: 'refusal', content: [], usage: {} } } };
       }
       betaBatchesResults.mockResolvedValue(gen());
-      const summary = await service.getBatch('b', { files: true });
+      const summary = await service.getBatchLegacy('b', { files: true });
       expect(betaBatchesRetrieve).toHaveBeenCalledWith('b', { betas: FILES_BETA });
       expect(summary.processingStatus).toBe('ended');
-      const results = await service.getBatchResults('b', { files: true });
+      const results = await service.getBatchResultsLegacy('b', { files: true });
       expect(betaBatchesResults).toHaveBeenCalledWith('b', { betas: FILES_BETA });
       expect(results[0]).toMatchObject({ customId: 'k', type: 'refusal', stopReason: 'refusal' });
     });
@@ -669,7 +669,7 @@ describe('AnthropicService', () => {
         usage: {},
       });
       const schema = { type: 'object', required: ['pass'] } as any;
-      const out = await service.messageStructured<{ pass: boolean; mismatches: string[] }>(
+      const out = await service.messageStructuredLegacy<{ pass: boolean; mismatches: string[] }>(
         { prompt: 'verify' },
         { operation: 'other' },
         { model: 'claude-fable-5', outputSchema: schema, effort: 'high' },
@@ -689,7 +689,7 @@ describe('AnthropicService', () => {
         content: [{ type: 'text', text: '{"bias":"b"}' }],
         usage: {},
       });
-      await service.messageStructured(
+      await service.messageStructuredLegacy(
         { prompt: 'analyze' },
         { operation: 'other' },
         {
@@ -710,7 +710,7 @@ describe('AnthropicService', () => {
     it('throws when the model refuses (stop_reason refusal)', async () => {
       create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: {} });
       await expect(
-        service.messageStructured({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any }),
+        service.messageStructuredLegacy({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any }),
       ).rejects.toBeInstanceOf(HttpException);
     });
 
@@ -723,7 +723,7 @@ describe('AnthropicService', () => {
       });
       let caught: unknown;
       try {
-        await service.messageStructured({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any });
+        await service.messageStructuredLegacy({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any });
       } catch (e) {
         caught = e;
       }
@@ -737,7 +737,7 @@ describe('AnthropicService', () => {
         content: [{ type: 'text', text: '{}' }],
         usage: {},
       });
-      await service.messageStructured(
+      await service.messageStructuredLegacy(
         { prompt: 'go', system: 'be terse' },
         { operation: 'other' },
         { context: { prefix: 'shared ctx' } },
@@ -753,7 +753,7 @@ describe('AnthropicService', () => {
         content: [{ type: 'text', text: '{}' }],
         usage: {},
       });
-      await service.messageStructured(
+      await service.messageStructuredLegacy(
         { prompt: 'go', system: 'be terse' },
         { operation: 'other' },
         { context: { system: 'context system' } },
@@ -764,9 +764,9 @@ describe('AnthropicService', () => {
       ]);
     });
   });
-}); // describe('AnthropicService')
+}); // describe('AnthropicLlmProvider')
 
-describe('AnthropicService usage emission', () => {
+describe('AnthropicLlmProvider usage emission', () => {
   function build() {
     const emit = jest.fn();
     const create = jest.fn().mockResolvedValue({
@@ -777,7 +777,7 @@ describe('AnthropicService usage emission', () => {
     });
     const config = { get: (k: string) => (k === 'anthropic.model' ? 'claude-fable-5' : 4096) };
     const clientFactory = { get: () => ({ messages: { create }, beta: { messages: { create } } }) };
-    const svc = new (require('./anthropic.service').AnthropicService)(clientFactory, config, { emit });
+    const svc = new (require('./anthropic.service').AnthropicLlmProvider)(clientFactory, config, { emit });
     return { svc, emit, create };
   }
 
@@ -802,10 +802,64 @@ describe('AnthropicService usage emission', () => {
   it('messageStructured emits usage even on a refusal (refusals are still billed)', async () => {
     const { svc, emit, create } = build();
     create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: { input_tokens: 50, output_tokens: 2 } });
-    await expect(svc.messageStructured({ prompt: 'x' }, { operation: 'keys-generation' }, {})).rejects.toBeDefined();
+    await expect(svc.messageStructuredLegacy({ prompt: 'x' }, { operation: 'keys-generation' }, {})).rejects.toBeDefined();
     expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
       attribution: { operation: 'keys-generation' },
       tokens: expect.objectContaining({ input: 50, output: 2 }),
     }));
+  });
+});
+
+describe('AnthropicLlmProvider port surface', () => {
+  // Build a provider with a stub SDK client. Only the methods a given test
+  // exercises are provided; `clientFactory.get()` returns this stub.
+  const build = (client: any) => {
+    const clientFactory = { get: () => client };
+    const config = { get: () => undefined };            // falls back to default model/maxTokens
+    const emit = jest.fn();
+    return new AnthropicLlmProvider(clientFactory as any, config as any, { emit } as any);
+  };
+
+  it('declares full capabilities', () => {
+    const svc = build({});
+    expect(svc.capabilities).toEqual({ batch: true, fileUpload: true, promptCaching: true, structuredOutput: true });
+  });
+
+  it('submitBatch renders a neutral file block as a beta document and always uses the beta path', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'batch_1', processing_status: 'in_progress' });
+    const svc = build({ beta: { messages: { batches: { create } } } });
+    const handle = await svc.submitBatch(
+      [{ customId: 'k1', prompt: 'go' }],
+      { tiers: [{ blocks: [{ type: 'file', fileId: 'file_9' }, { type: 'text', text: 'plan' }] }] },
+      { model: 'm', schema: { type: 'object' }, maxTokens: 10, effort: 'high' },
+    );
+    expect(handle).toEqual({ batchId: 'batch_1', status: 'in_progress' });
+    const body = create.mock.calls[0][0];
+    const content = body.requests[0].params.messages[0].content;
+    expect(content[0]).toMatchObject({ type: 'document', source: { type: 'file', file_id: 'file_9' } });
+    expect(body.betas).toContain('files-api-2025-04-14');
+  });
+
+  it('submitBatch uses the beta path even for a fileless batch (uniform beta)', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'batch_2', processing_status: 'in_progress' });
+    const svc = build({ beta: { messages: { batches: { create } } } });
+    await svc.submitBatch([{ customId: 'k1', prompt: 'go' }], undefined, { model: 'm' });
+    expect(create.mock.calls[0][0].betas).toContain('files-api-2025-04-14');
+  });
+
+  it('getBatch maps processing_status to a neutral lifecycle', async () => {
+    const retrieve = jest.fn().mockResolvedValue({ id: 'b', processing_status: 'ended', request_counts: {} });
+    const svc = build({ beta: { messages: { batches: { retrieve } } } });
+    await expect(svc.getBatch('b')).resolves.toEqual({ batchId: 'b', status: 'ended', requestCounts: {} });
+  });
+
+  it('getBatchResults returns neutral UsageTokens, not raw usage', async () => {
+    async function* results() {
+      yield { custom_id: 'k1', result: { type: 'succeeded', message: { stop_reason: 'end_turn', content: [{ type: 'text', text: '{}' }], usage: { input_tokens: 3, cache_read_input_tokens: 2, output_tokens: 1 } } } };
+    }
+    const svc = build({ beta: { messages: { batches: { results: jest.fn().mockResolvedValue(results()) } } } });
+    const [item] = await svc.getBatchResults('b');
+    expect(item.usage).toEqual({ input: 3, cacheRead: 2, cacheCreate5m: 0, cacheCreate1h: 0, output: 1 });
+    expect(item.cacheReadTokens).toBe(2);
   });
 });

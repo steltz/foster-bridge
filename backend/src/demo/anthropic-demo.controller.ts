@@ -8,15 +8,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  AnthropicService,
-  BatchRequestInput,
+  AnthropicLlmProvider,
   MessageInput,
 } from '../anthropic/anthropic.service';
+import { BatchItemRequest } from '../llm/llm.types';
 
 @Controller('ai')
 export class AnthropicDemoController {
   constructor(
-    private readonly anthropic: AnthropicService,
+    private readonly anthropic: AnthropicLlmProvider,
     private readonly config: ConfigService,
   ) {}
 
@@ -31,8 +31,12 @@ export class AnthropicDemoController {
   }
 
   @Post('batch')
-  createBatch(@Body() body: { requests: BatchRequestInput[] }) {
-    return this.anthropic.createBatch(body.requests ?? []);
+  createBatch(@Body() body: { requests: BatchItemRequest[] }) {
+    return this.anthropic.submitBatch(
+      (body.requests ?? []).map((r) => ({ customId: r.customId, prompt: r.prompt })),
+      undefined,
+      {},
+    );
   }
 
   @Get('batch/:id')
@@ -43,9 +47,9 @@ export class AnthropicDemoController {
   @Get('batch/:id/results')
   async getBatchResults(@Param('id') id: string) {
     const batch = await this.anthropic.getBatch(id);
-    if (batch.processingStatus !== 'ended') {
+    if (batch.status !== 'ended') {
       throw new ConflictException(
-        `Batch ${id} has not ended (status: ${batch.processingStatus})`,
+        `Batch ${id} has not ended (status: ${batch.status})`,
       );
     }
     return this.anthropic.getBatchResults(id);
