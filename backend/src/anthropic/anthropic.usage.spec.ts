@@ -1,4 +1,4 @@
-import { tokensFromUsage, serviceTierFromUsage } from './cost.types';
+import { tokensFromUsage, serviceTierFromUsage } from './anthropic.usage';
 
 describe('tokensFromUsage', () => {
   it('reads the detailed cache_creation TTL split when present', () => {

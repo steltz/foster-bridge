@@ -24,9 +24,13 @@ import { HttpException } from '@nestjs/common';
 import { AnthropicLlmProvider } from './anthropic.service';
 import { ANTHROPIC_CLIENT } from './anthropic.constants';
 
-// One shared outer describe so Task 4 can append a `batches` block that reuses
-// `service` and the batch mocks — the full client (with batches) is set up here.
+// One shared outer describe: the full client (with beta batches) is set up here.
+// Batches and structured calls run through the neutral port surface, which always
+// routes batches through the beta/files client.
 describe('AnthropicLlmProvider', () => {
+  const CC = { type: 'ephemeral', ttl: '1h' };
+  const FILES_BETA = ['files-api-2025-04-14'];
+
   let create: jest.Mock;
   let batchesCreate: jest.Mock;
   let batchesRetrieve: jest.Mock;
@@ -188,479 +192,182 @@ describe('AnthropicLlmProvider', () => {
   });
   }); // describe('message')
 
-  describe('batches', () => {
-  it('createBatch maps requests (default + custom ids) and returns a summary', async () => {
-    batchesCreate.mockResolvedValue({
-      id: 'batch_1',
-      processing_status: 'in_progress',
-    });
-    const summary = await service.createBatch([
-      { prompt: 'a' },
-      { customId: 'c2', prompt: 'b' },
-    ]);
-    expect(batchesCreate).toHaveBeenCalledWith({
-      requests: [
-        {
-          custom_id: 'request-0',
-          params: {
-            model: 'claude-sonnet-5',
-            max_tokens: 4096,
-            messages: [{ role: 'user', content: 'a' }],
-          },
-        },
-        {
-          custom_id: 'c2',
-          params: {
-            model: 'claude-sonnet-5',
-            max_tokens: 4096,
-            messages: [{ role: 'user', content: 'b' }],
-          },
-        },
-      ],
-    });
-    expect(summary).toEqual({
-      batchId: 'batch_1',
-      processingStatus: 'in_progress',
-    });
-  });
-
-  it('getBatch returns status and counts', async () => {
-    batchesRetrieve.mockResolvedValue({
-      id: 'batch_1',
-      processing_status: 'ended',
-      request_counts: { succeeded: 1, errored: 1 },
-    });
-    const summary = await service.getBatchLegacy('batch_1');
-    expect(batchesRetrieve).toHaveBeenCalledWith('batch_1');
-    expect(summary).toEqual({
-      batchId: 'batch_1',
-      processingStatus: 'ended',
-      requestCounts: { succeeded: 1, errored: 1 },
-    });
-  });
-
-  it('getBatchResults shapes succeeded and errored results keyed by custom_id', async () => {
-    async function* gen() {
-      yield {
-        custom_id: 'a',
-        result: {
-          type: 'succeeded',
-          message: { content: [{ type: 'text', text: 'ok' }] },
-        },
-      };
-      yield {
-        custom_id: 'b',
-        result: {
-          type: 'errored',
-          error: { type: 'invalid_request', message: 'bad' },
-        },
-      };
-    }
-    batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResultsLegacy('batch_1');
-    expect(batchesResults).toHaveBeenCalledWith('batch_1');
-    expect(results).toEqual([
-      { customId: 'a', type: 'succeeded', text: 'ok' },
-      {
-        customId: 'b',
-        type: 'errored',
-        error: JSON.stringify({ type: 'invalid_request', message: 'bad' }),
-      },
-    ]);
-  });
-
-  it('shapes canceled and expired results via the fallback branch', async () => {
-    async function* gen() {
-      yield { custom_id: 'a', result: { type: 'canceled' } };
-      yield { custom_id: 'b', result: { type: 'expired' } };
-    }
-    batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResultsLegacy('batch_1');
-    expect(results).toEqual([
-      { customId: 'a', type: 'canceled', error: 'canceled' },
-      { customId: 'b', type: 'expired', error: 'expired' },
-    ]);
-  });
-});
-
-  describe('caching', () => {
-  const CC = { type: 'ephemeral', ttl: '1h' };
-
-  it('warmCache caches a system prompt with a 1h breakpoint and max_tokens 0', async () => {
-    create.mockResolvedValue({
-      model: 'claude-sonnet-5',
-      usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
-    });
-    const result = await service.warmCache({ system: 'big shared prompt' }, { operation: 'other' });
-    expect(create).toHaveBeenCalledWith({
-      model: 'claude-sonnet-5',
-      max_tokens: 0,
-      system: [{ type: 'text', text: 'big shared prompt', cache_control: CC }],
-      messages: [{ role: 'user', content: 'warmup' }],
-    });
-    expect(result).toEqual({
-      model: 'claude-sonnet-5',
-      cacheCreationInputTokens: 2048,
-      cacheReadInputTokens: 0,
-      cached: true,
-    });
-  });
-
-  it('warmCache caches a leading message prefix (no system key)', async () => {
-    create.mockResolvedValue({
-      model: 'claude-sonnet-5',
-      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 4096 },
-    });
-    const result = await service.warmCache({ prefix: 'shared context' }, { operation: 'other' });
-    expect(create).toHaveBeenCalledWith({
-      model: 'claude-sonnet-5',
-      max_tokens: 0,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'shared context', cache_control: CC },
-            { type: 'text', text: 'warmup' },
-          ],
-        },
-      ],
-    });
-    // read > 0 also counts as cached; creation 0 means the entry pre-existed.
-    expect(result.cached).toBe(true);
-    expect(result.cacheReadInputTokens).toBe(4096);
-  });
-
-  it('warmCache reports cached=false when nothing was written or read', async () => {
-    create.mockResolvedValue({ model: 'claude-sonnet-5', usage: {} });
-    const result = await service.warmCache({ system: 'too short' }, { operation: 'other' });
-    expect(result).toEqual({
-      model: 'claude-sonnet-5',
-      cacheCreationInputTokens: 0,
-      cacheReadInputTokens: 0,
-      cached: false,
-    });
-  });
-
-  it('warmCache honours a model override', async () => {
-    create.mockResolvedValue({ model: 'claude-opus-5', usage: {} });
-    await service.warmCache({ system: 's' }, { operation: 'other' }, { model: 'claude-opus-5' });
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'claude-opus-5', max_tokens: 0 }),
-    );
-  });
-
-  it('warmCache strict fires a verify probe and returns its read stats', async () => {
-    create
-      .mockResolvedValueOnce({
-        model: 'claude-sonnet-5',
-        usage: { cache_creation_input_tokens: 2048, cache_read_input_tokens: 0 },
-      })
-      .mockResolvedValueOnce({
-        model: 'claude-sonnet-5',
-        usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 2048 },
-      });
-    const result = await service.warmCache(
-      { system: 'big shared prompt' },
-      { operation: 'other' },
-      { strict: true },
-    );
-    expect(create).toHaveBeenCalledTimes(2);
-    expect(result).toEqual({
-      model: 'claude-sonnet-5',
-      cacheCreationInputTokens: 0,
-      cacheReadInputTokens: 2048,
-      cached: true,
-    });
-  });
-
-  it('warmCache strict throws 502 when the probe never reads the cache', async () => {
-    create.mockResolvedValue({
-      model: 'claude-sonnet-5',
-      usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
-    });
-    let caught: unknown;
-    try {
-      await service.warmCache({ system: 'too short' }, { operation: 'other' }, { strict: true });
-    } catch (e) {
-      caught = e;
-    }
-    expect(caught).toBeInstanceOf(HttpException);
-    expect((caught as HttpException).getStatus()).toBe(502);
-    expect((caught as HttpException).getResponse()).toEqual({
-      statusCode: 502,
-      error: 'Prompt cache was not written',
-    });
-  });
-
-  it('warmCache throws 400 when the context has nothing to cache', async () => {
-    let caught: unknown;
-    try {
-      await service.warmCache({}, { operation: 'other' });
-    } catch (e) {
-      caught = e;
-    }
-    expect(caught).toBeInstanceOf(HttpException);
-    expect((caught as HttpException).getStatus()).toBe(400);
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it('createBatch stamps the cached prefix on every request when given a context', async () => {
-    batchesCreate.mockResolvedValue({
-      id: 'batch_9',
-      processing_status: 'in_progress',
-    });
-    await service.createBatch(
-      [{ prompt: 'a' }, { customId: 'c2', prompt: 'b' }],
-      { system: 'shared sys', prefix: 'shared ctx' },
-    );
-    expect(batchesCreate).toHaveBeenCalledWith({
-      requests: [
-        {
-          custom_id: 'request-0',
-          params: {
-            model: 'claude-sonnet-5',
-            max_tokens: 4096,
-            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: 'shared ctx', cache_control: CC },
-                  { type: 'text', text: 'a' },
-                ],
-              },
-            ],
-          },
-        },
-        {
-          custom_id: 'c2',
-          params: {
-            model: 'claude-sonnet-5',
-            max_tokens: 4096,
-            system: [{ type: 'text', text: 'shared sys', cache_control: CC }],
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: 'shared ctx', cache_control: CC },
-                  { type: 'text', text: 'b' },
-                ],
-              },
-            ],
-          },
-        },
-      ],
-    });
-  });
-
-  it('getBatchResults surfaces cacheReadInputTokens for succeeded items', async () => {
-    async function* gen() {
-      yield {
-        custom_id: 'a',
-        result: {
-          type: 'succeeded',
-          message: {
-            content: [{ type: 'text', text: 'ok' }],
-            usage: { cache_read_input_tokens: 2048 },
-          },
-        },
-      };
-    }
-    batchesResults.mockResolvedValue(gen());
-    const results = await service.getBatchResultsLegacy('batch_1');
-    expect(results).toEqual([
-      {
-        customId: 'a',
-        type: 'succeeded',
-        text: 'ok',
-        cacheReadInputTokens: 2048,
-        usage: { cache_read_input_tokens: 2048 },
-      },
-    ]);
-  });
-  it('createBatch honours a model override so it can match the warmed cache', async () => {
-    batchesCreate.mockResolvedValue({
-      id: 'batch_m',
-      processing_status: 'in_progress',
-    });
-    await service.createBatch([{ prompt: 'a' }], { system: 's' }, {
-      model: 'claude-opus-5',
-    });
-    expect(batchesCreate).toHaveBeenCalledWith({
-      requests: [
-        {
-          custom_id: 'request-0',
-          params: {
-            model: 'claude-opus-5',
-            max_tokens: 4096,
-            system: [{ type: 'text', text: 's', cache_control: CC }],
-            messages: [{ role: 'user', content: 'a' }],
-          },
-        },
-      ],
-    });
-  });
-  }); // describe('caching')
-
-  describe('tiers + files + structured output', () => {
-    const CC = { type: 'ephemeral', ttl: '1h' };
-    const FILES_BETA = ['files-api-2025-04-14'];
-
-    it('warmCache renders userTiers with NO system breakpoint and stamps each tier last block', async () => {
-      create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 10, cache_read_input_tokens: 0 } });
-      await service.warmCache(
-        {
-          userTiers: [
-            { blocks: [{ type: 'text', text: 'general' }] },
-            { blocks: [{ type: 'text', text: 'day-a' }, { type: 'text', text: 'day-b' }] },
-            { blocks: [{ type: 'text', text: 'persona' }] },
-          ],
-        },
-        { operation: 'other' },
-        { model: 'claude-fable-5' },
-      );
-      expect(create).toHaveBeenCalledWith({
-        model: 'claude-fable-5',
-        max_tokens: 0,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'general', cache_control: CC },
-              { type: 'text', text: 'day-a' },
-              { type: 'text', text: 'day-b', cache_control: CC },
-              { type: 'text', text: 'persona', cache_control: CC },
-              { type: 'text', text: 'warmup' },
-            ],
-          },
-        ],
-      });
-      // The whole cached prefix lives in messages (M4): no system breakpoint.
-      expect(create.mock.calls[0][0].system).toBeUndefined();
-    });
-
-    it('warmCache with files:true routes to the beta client with the files beta header and shares effort', async () => {
-      betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
-      await service.warmCache(
-        { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
-        { operation: 'other' },
-        { model: 'claude-fable-5', files: true, effort: 'high' },
-      );
-      expect(create).not.toHaveBeenCalled();
-      const arg = betaCreate.mock.calls[0][0];
-      expect(arg.betas).toEqual(FILES_BETA);
-      expect(arg.max_tokens).toBe(0);
-      // A 0-token warm generates nothing, so no output_config is sent — effort is
-      // irrelevant to a cache write and max_tokens:0 + output_config could 400.
-      expect(arg).not.toHaveProperty('output_config');
-    });
-
-    it('warmCache with outputSchema sends the batch output_config (format+effort) and a non-zero max_tokens', async () => {
-      betaCreate.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
-      const schema = { type: 'object', properties: { side: { type: 'string' } } };
-      await service.warmCache(
-        { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
-        { operation: 'other' },
-        { model: 'claude-fable-5', files: true, effort: 'high', outputSchema: schema },
-      );
-      const arg = betaCreate.mock.calls[0][0];
-      expect(arg.betas).toEqual(FILES_BETA);
-      // output_config.format is rejected at max_tokens:0, so a structured warm must
-      // bill a small non-zero budget — and it must mirror the batch's output_config
-      // exactly or the batch reads 0 cache.
-      expect(arg.max_tokens).toBe(16);
-      expect(arg.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
-    });
-
-    it('warmCache with outputSchema honours an explicit maxTokens override', async () => {
-      create.mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
-      await service.warmCache(
-        { userTiers: [{ blocks: [{ type: 'text', text: 'big' }] }] },
-        { operation: 'other' },
-        { model: 'claude-fable-5', outputSchema: { type: 'object' }, maxTokens: 32 },
-      );
-      expect(create.mock.calls[0][0].max_tokens).toBe(32);
-    });
-
-    it('throws 400 when breakpoints exceed 4 (5 user tiers, no system)', async () => {
-      let caught: unknown;
-      try {
-        await service.warmCache({
-          userTiers: [
-            { blocks: [{ type: 'text', text: '1' }] },
-            { blocks: [{ type: 'text', text: '2' }] },
-            { blocks: [{ type: 'text', text: '3' }] },
-            { blocks: [{ type: 'text', text: '4' }] },
-            { blocks: [{ type: 'text', text: '5' }] },
-          ],
-        }, { operation: 'other' });
-      } catch (e) {
-        caught = e;
-      }
-      expect((caught as HttpException).getStatus()).toBe(400);
-      expect(create).not.toHaveBeenCalled();
-      expect(betaCreate).not.toHaveBeenCalled();
-    });
-
-    it('createBatch with files routes to beta batches with betas, output_config (format+effort) and maxTokens', async () => {
-      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
-      const schema = { type: 'object' } as any;
-      await service.createBatch(
-        [{ customId: 'k1', prompt: 'go', context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'f' } }] }] } }],
+  // Batches always run on the beta/files path (uniform beta), so every batch
+  // assertion targets the beta client mocks.
+  describe('submitBatch', () => {
+    it('maps requests (default + custom ids) onto the beta path and returns a neutral handle', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'batch_1', processing_status: 'in_progress' });
+      const handle = await service.submitBatch(
+        [{ prompt: 'a' }, { customId: 'c2', prompt: 'b' }],
         undefined,
-        { model: 'claude-fable-5', outputSchema: schema, maxTokens: 32000, effort: 'high', files: true },
+        {},
       );
       expect(batchesCreate).not.toHaveBeenCalled();
+      expect(betaBatchesCreate).toHaveBeenCalledWith({
+        requests: [
+          {
+            custom_id: 'request-0',
+            params: {
+              model: 'claude-sonnet-5',
+              max_tokens: 4096,
+              messages: [{ role: 'user', content: 'a' }],
+            },
+          },
+          {
+            custom_id: 'c2',
+            params: {
+              model: 'claude-sonnet-5',
+              max_tokens: 4096,
+              messages: [{ role: 'user', content: 'b' }],
+            },
+          },
+        ],
+        betas: FILES_BETA,
+      });
+      expect(handle).toEqual({ batchId: 'batch_1', status: 'in_progress' });
+    });
+
+    it('carries model/maxTokens and output_config (format + effort) onto each request', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      const schema = { type: 'object' } as any;
+      await service.submitBatch([{ customId: 'k1', prompt: 'go' }], undefined, {
+        model: 'claude-fable-5',
+        schema,
+        maxTokens: 32000,
+        effort: 'high',
+      });
       const arg = betaBatchesCreate.mock.calls[0][0];
       expect(arg.betas).toEqual(FILES_BETA);
+      expect(arg.requests[0].params.model).toBe('claude-fable-5');
       expect(arg.requests[0].params.max_tokens).toBe(32000);
-      expect(arg.requests[0].params.output_config).toEqual({ format: { type: 'json_schema', schema }, effort: 'high' });
-    });
-
-    it('createBatch non-files keeps the non-beta path and honours per-request context', async () => {
-      batchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
-      await service.createBatch(
-        [
-          { customId: 'k1', prompt: 'go', context: { prefix: 'S1' } },
-          { customId: 'k2', prompt: 'go', context: { prefix: 'S2' } },
-        ],
-        undefined,
-        { model: 'claude-fable-5' },
-      );
-      expect(betaBatchesCreate).not.toHaveBeenCalled();
-      const arg = batchesCreate.mock.calls[0][0];
-      expect(arg.requests[0].params.messages[0].content[0].text).toBe('S1');
-      expect(arg.requests[1].params.messages[0].content[0].text).toBe('S2');
-    });
-
-    it('uploadFile posts to the beta Files API in a single-arg call and returns the id', async () => {
-      filesUpload.mockResolvedValue({ id: 'file_123' });
-      const id = await service.uploadFile(Buffer.from('PDF'), 'x.pdf', 'application/pdf');
-      expect(id).toBe('file_123');
-      expect(filesUpload).toHaveBeenCalledWith({
-        file: expect.objectContaining({ __uploadable: true, filename: 'x.pdf', type: 'application/pdf' }),
-        betas: FILES_BETA,
+      expect(arg.requests[0].params.output_config).toEqual({
+        format: { type: 'json_schema', schema },
+        effort: 'high',
       });
     });
 
-    it('getBatch/getBatchResults with files:true read the beta batch endpoints; refusal detected', async () => {
-      betaBatchesRetrieve.mockResolvedValue({ id: 'b', processing_status: 'ended', request_counts: {} });
+    it('renders a file block as a beta document with a 1h breakpoint', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      await service.submitBatch(
+        [{ customId: 'k1', prompt: 'go' }],
+        { tiers: [{ blocks: [{ type: 'file', fileId: 'file_9' }, { type: 'text', text: 'plan' }] }] },
+        { model: 'claude-fable-5' },
+      );
+      const content = betaBatchesCreate.mock.calls[0][0].requests[0].params.messages[0].content;
+      expect(content[0]).toEqual({ type: 'document', source: { type: 'file', file_id: 'file_9' } });
+      // The tier's LAST block carries the breakpoint; the prompt is appended uncached.
+      expect(content[1]).toEqual({ type: 'text', text: 'plan', cache_control: CC });
+      expect(content[2]).toEqual({ type: 'text', text: 'go' });
+    });
+
+    it('lets a per-request envelope override the batch-level envelope', async () => {
+      betaBatchesCreate.mockResolvedValue({ id: 'b', processing_status: 'in_progress' });
+      await service.submitBatch(
+        [{ customId: 'k1', prompt: 'go', envelope: { tiers: [{ blocks: [{ type: 'text', text: 'PER' }] }] } }],
+        { tiers: [{ blocks: [{ type: 'text', text: 'BATCH' }] }] },
+        { model: 'claude-fable-5' },
+      );
+      const content = betaBatchesCreate.mock.calls[0][0].requests[0].params.messages[0].content;
+      expect(content[0]).toEqual({ type: 'text', text: 'PER', cache_control: CC });
+    });
+  });
+
+  describe('getBatch', () => {
+    it('reads the beta endpoint and maps processing_status to a neutral lifecycle', async () => {
+      betaBatchesRetrieve.mockResolvedValue({
+        id: 'batch_1',
+        processing_status: 'ended',
+        request_counts: { succeeded: 1, errored: 1 },
+      });
+      const handle = await service.getBatch('batch_1');
+      expect(betaBatchesRetrieve).toHaveBeenCalledWith('batch_1', { betas: FILES_BETA });
+      expect(handle).toEqual({
+        batchId: 'batch_1',
+        status: 'ended',
+        requestCounts: { succeeded: 1, errored: 1 },
+      });
+    });
+  });
+
+  describe('getBatchResults', () => {
+    it('shapes succeeded and errored results keyed by custom_id (beta endpoint)', async () => {
+      async function* gen() {
+        yield {
+          custom_id: 'a',
+          result: { type: 'succeeded', message: { content: [{ type: 'text', text: 'ok' }] } },
+        };
+        yield {
+          custom_id: 'b',
+          result: { type: 'errored', error: { type: 'invalid_request', message: 'bad' } },
+        };
+      }
+      betaBatchesResults.mockResolvedValue(gen());
+      const results = await service.getBatchResults('batch_1');
+      expect(betaBatchesResults).toHaveBeenCalledWith('batch_1', { betas: FILES_BETA });
+      expect(results).toEqual([
+        { customId: 'a', type: 'succeeded', text: 'ok' },
+        {
+          customId: 'b',
+          type: 'errored',
+          error: JSON.stringify({ type: 'invalid_request', message: 'bad' }),
+        },
+      ]);
+    });
+
+    it('shapes canceled and expired results via the fallback branch', async () => {
+      async function* gen() {
+        yield { custom_id: 'a', result: { type: 'canceled' } };
+        yield { custom_id: 'b', result: { type: 'expired' } };
+      }
+      betaBatchesResults.mockResolvedValue(gen());
+      const results = await service.getBatchResults('batch_1');
+      expect(results).toEqual([
+        { customId: 'a', type: 'canceled', error: 'canceled' },
+        { customId: 'b', type: 'expired', error: 'expired' },
+      ]);
+    });
+
+    it('surfaces cacheReadTokens and neutral usage for succeeded items', async () => {
+      async function* gen() {
+        yield {
+          custom_id: 'a',
+          result: {
+            type: 'succeeded',
+            message: {
+              content: [{ type: 'text', text: 'ok' }],
+              usage: { input_tokens: 3, cache_read_input_tokens: 2048, output_tokens: 1 },
+            },
+          },
+        };
+      }
+      betaBatchesResults.mockResolvedValue(gen());
+      const results = await service.getBatchResults('batch_1');
+      expect(results).toEqual([
+        {
+          customId: 'a',
+          type: 'succeeded',
+          text: 'ok',
+          usage: { input: 3, cacheRead: 2048, cacheCreate5m: 0, cacheCreate1h: 0, output: 1 },
+          cacheReadTokens: 2048,
+        },
+      ]);
+    });
+
+    it('maps a refusal stop_reason to a neutral refusal item with usage', async () => {
       async function* gen() {
         yield { custom_id: 'k', result: { type: 'succeeded', message: { stop_reason: 'refusal', content: [], usage: {} } } };
       }
       betaBatchesResults.mockResolvedValue(gen());
-      const summary = await service.getBatchLegacy('b', { files: true });
-      expect(betaBatchesRetrieve).toHaveBeenCalledWith('b', { betas: FILES_BETA });
-      expect(summary.processingStatus).toBe('ended');
-      const results = await service.getBatchResultsLegacy('b', { files: true });
-      expect(betaBatchesResults).toHaveBeenCalledWith('b', { betas: FILES_BETA });
-      expect(results[0]).toMatchObject({ customId: 'k', type: 'refusal', stopReason: 'refusal' });
+      const results = await service.getBatchResults('b');
+      expect(results[0]).toEqual({
+        customId: 'k',
+        type: 'refusal',
+        usage: { input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 },
+      });
     });
   });
 
   describe('messageStructured', () => {
-    const FILES_BETA = ['files-api-2025-04-14'];
-
     it('non-files: sends output_config.format and parses the JSON text', async () => {
       create.mockResolvedValue({
         model: 'claude-fable-5',
@@ -669,10 +376,9 @@ describe('AnthropicLlmProvider', () => {
         usage: {},
       });
       const schema = { type: 'object', required: ['pass'] } as any;
-      const out = await service.messageStructuredLegacy<{ pass: boolean; mismatches: string[] }>(
-        { prompt: 'verify' },
+      const out = await service.messageStructured<{ pass: boolean; mismatches: string[] }>(
+        { prompt: 'verify', model: 'claude-fable-5', schema, effort: 'high' },
         { operation: 'other' },
-        { model: 'claude-fable-5', outputSchema: schema, effort: 'high' },
       );
       expect(betaCreate).not.toHaveBeenCalled();
       const arg = create.mock.calls[0][0];
@@ -682,22 +388,21 @@ describe('AnthropicLlmProvider', () => {
       expect(out).toEqual({ pass: true, mismatches: [] });
     });
 
-    it('files:true routes to the beta client with the files beta header and a cached document tier', async () => {
+    it('routes to the beta client with the files beta header and a cached document tier when the envelope has a file', async () => {
       betaCreate.mockResolvedValue({
         model: 'claude-fable-5',
         stop_reason: 'end_turn',
         content: [{ type: 'text', text: '{"bias":"b"}' }],
         usage: {},
       });
-      await service.messageStructuredLegacy(
-        { prompt: 'analyze' },
-        { operation: 'other' },
+      await service.messageStructured(
         {
+          prompt: 'analyze',
           model: 'claude-fable-5',
-          outputSchema: { type: 'object' } as any,
-          files: true,
-          context: { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: 'file_1' } }] }] },
+          schema: { type: 'object' } as any,
+          envelope: { tiers: [{ blocks: [{ type: 'file', fileId: 'file_1' }] }] },
         },
+        { operation: 'other' },
       );
       expect(create).not.toHaveBeenCalled();
       const arg = betaCreate.mock.calls[0][0];
@@ -707,11 +412,75 @@ describe('AnthropicLlmProvider', () => {
       expect(arg.messages[0].content[arg.messages[0].content.length - 1]).toEqual({ type: 'text', text: 'analyze' });
     });
 
-    it('throws when the model refuses (stop_reason refusal)', async () => {
+    it('stamps one 1h breakpoint on each tier last block with no system breakpoint', async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{}' }],
+        usage: {},
+      });
+      await service.messageStructured(
+        {
+          prompt: 'go',
+          model: 'claude-fable-5',
+          envelope: {
+            tiers: [
+              { blocks: [{ type: 'text', text: 'general' }] },
+              { blocks: [{ type: 'text', text: 'day-a' }, { type: 'text', text: 'day-b' }] },
+              { blocks: [{ type: 'text', text: 'persona' }] },
+            ],
+          },
+        },
+        { operation: 'other' },
+      );
+      const arg = create.mock.calls[0][0];
+      expect(arg.messages[0].content).toEqual([
+        { type: 'text', text: 'general', cache_control: CC },
+        { type: 'text', text: 'day-a' },
+        { type: 'text', text: 'day-b', cache_control: CC },
+        { type: 'text', text: 'persona', cache_control: CC },
+        { type: 'text', text: 'go' },
+      ]);
+      // The whole cached prefix lives in messages: no system breakpoint.
+      expect(arg.system).toBeUndefined();
+    });
+
+    it('throws 400 when breakpoints exceed 4 (5 tiers, no system)', async () => {
+      let caught: unknown;
+      try {
+        await service.messageStructured(
+          {
+            prompt: 'x',
+            envelope: {
+              tiers: [
+                { blocks: [{ type: 'text', text: '1' }] },
+                { blocks: [{ type: 'text', text: '2' }] },
+                { blocks: [{ type: 'text', text: '3' }] },
+                { blocks: [{ type: 'text', text: '4' }] },
+                { blocks: [{ type: 'text', text: '5' }] },
+              ],
+            },
+          },
+          { operation: 'other' },
+        );
+      } catch (e) {
+        caught = e;
+      }
+      expect((caught as HttpException).getStatus()).toBe(400);
+      expect(create).not.toHaveBeenCalled();
+      expect(betaCreate).not.toHaveBeenCalled();
+    });
+
+    it('throws a 422 when the model refuses (stop_reason refusal)', async () => {
       create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: {} });
-      await expect(
-        service.messageStructuredLegacy({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any }),
-      ).rejects.toBeInstanceOf(HttpException);
+      let caught: unknown;
+      try {
+        await service.messageStructured({ prompt: 'x', schema: { type: 'object' } as any }, { operation: 'other' });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(HttpException);
+      expect((caught as HttpException).getStatus()).toBe(422);
     });
 
     it('throws a 502 when the structured output is not valid JSON', async () => {
@@ -723,45 +492,50 @@ describe('AnthropicLlmProvider', () => {
       });
       let caught: unknown;
       try {
-        await service.messageStructuredLegacy({ prompt: 'x' }, { operation: 'other' }, { outputSchema: { type: 'object' } as any });
+        await service.messageStructured({ prompt: 'x', schema: { type: 'object' } as any }, { operation: 'other' });
       } catch (e) {
         caught = e;
       }
       expect((caught as HttpException).getStatus()).toBe(502);
     });
 
-    it('sends input.system when the context carries no system of its own', async () => {
+    it('sends req.system when the envelope carries no system of its own', async () => {
       create.mockResolvedValue({
         model: 'claude-fable-5',
         stop_reason: 'end_turn',
         content: [{ type: 'text', text: '{}' }],
         usage: {},
       });
-      await service.messageStructuredLegacy(
-        { prompt: 'go', system: 'be terse' },
-        { operation: 'other' },
-        { context: { prefix: 'shared ctx' } },
-      );
+      await service.messageStructured({ prompt: 'go', system: 'be terse' }, { operation: 'other' });
       const arg = create.mock.calls[0][0];
       expect(arg.system).toBe('be terse');
     });
 
-    it('prefers the cached context system over input.system when both are set', async () => {
+    it('prefers the envelope system over req.system when both are set', async () => {
       create.mockResolvedValue({
         model: 'claude-fable-5',
         stop_reason: 'end_turn',
         content: [{ type: 'text', text: '{}' }],
         usage: {},
       });
-      await service.messageStructuredLegacy(
-        { prompt: 'go', system: 'be terse' },
+      await service.messageStructured(
+        { prompt: 'go', system: 'be terse', envelope: { system: 'context system' } },
         { operation: 'other' },
-        { context: { system: 'context system' } },
       );
       const arg = create.mock.calls[0][0];
-      expect(arg.system).toEqual([
-        { type: 'text', text: 'context system', cache_control: { type: 'ephemeral', ttl: '1h' } },
-      ]);
+      expect(arg.system).toEqual([{ type: 'text', text: 'context system', cache_control: CC }]);
+    });
+  });
+
+  describe('uploadFile', () => {
+    it('posts to the beta Files API in a single-arg call and returns the id', async () => {
+      filesUpload.mockResolvedValue({ id: 'file_123' });
+      const id = await service.uploadFile(Buffer.from('PDF'), 'x.pdf', 'application/pdf');
+      expect(id).toBe('file_123');
+      expect(filesUpload).toHaveBeenCalledWith({
+        file: expect.objectContaining({ __uploadable: true, filename: 'x.pdf', type: 'application/pdf' }),
+        betas: FILES_BETA,
+      });
     });
   });
 }); // describe('AnthropicLlmProvider')
@@ -802,7 +576,7 @@ describe('AnthropicLlmProvider usage emission', () => {
   it('messageStructured emits usage even on a refusal (refusals are still billed)', async () => {
     const { svc, emit, create } = build();
     create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: { input_tokens: 50, output_tokens: 2 } });
-    await expect(svc.messageStructuredLegacy({ prompt: 'x' }, { operation: 'keys-generation' }, {})).rejects.toBeDefined();
+    await expect(svc.messageStructured({ prompt: 'x' }, { operation: 'keys-generation' })).rejects.toBeDefined();
     expect(emit).toHaveBeenCalledWith('llm.usage', expect.objectContaining({
       attribution: { operation: 'keys-generation' },
       tokens: expect.objectContaining({ input: 50, output: 2 }),
