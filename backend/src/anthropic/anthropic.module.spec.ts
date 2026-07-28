@@ -56,6 +56,6 @@ describe('AnthropicModule client factory', () => {
     const b = factory.get();
     expect(a).toBe(b);
     expect(AnthropicCtor).toHaveBeenCalledTimes(1);
-    expect(AnthropicCtor).toHaveBeenCalledWith({ apiKey: 'sk-test' });
+    expect(AnthropicCtor).toHaveBeenCalledWith({ apiKey: 'sk-test', timeout: 30 * 60 * 1000 });
   });
 });
