@@ -664,7 +664,7 @@ export class AnthropicLlmProvider implements LlmProvider {
   private emitUsage(usage: unknown, modelId: string, attribution: Attribution): void {
     try {
       const tier: ServiceTier = serviceTierFromUsage(usage, 'standard');
-      this.events.emit('anthropic.usage', {
+      this.events.emit('llm.usage', {
         id: randomUUID(),
         timestamp: new Date().toISOString(),
         modelId,

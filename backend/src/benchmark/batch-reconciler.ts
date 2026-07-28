@@ -116,7 +116,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
         // let a cost emit failure interfere with cell reconciliation.
         try {
           const p = parseCellKey(item.customId);
-          this.events.emit('anthropic.usage', {
+          this.events.emit('llm.usage', {
             id: `${batch.batchId}:${item.customId}`,
             // Date the cost to when the batch was SUBMITTED (the real request time),
             // not this reconcile tick — otherwise date grouping and from/to filters

@@ -781,10 +781,10 @@ describe('AnthropicLlmProvider usage emission', () => {
     return { svc, emit, create };
   }
 
-  it('message() emits an anthropic.usage event with the caller-supplied attribution', async () => {
+  it('message() emits an llm.usage event with the caller-supplied attribution', async () => {
     const { svc, emit } = build();
     await svc.message({ prompt: 'x', attribution: { operation: 'demo' } });
-    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
+    expect(emit).toHaveBeenCalledWith('llm.usage', expect.objectContaining({
       modelId: 'claude-fable-5',
       serviceTier: 'standard',
       source: 'sync',
@@ -796,14 +796,14 @@ describe('AnthropicLlmProvider usage emission', () => {
   it('emits the attribution verbatim — there is no silent default', async () => {
     const { svc, emit } = build();
     await svc.message({ prompt: 'x', attribution: { operation: 'message' } });
-    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({ attribution: { operation: 'message' } }));
+    expect(emit).toHaveBeenCalledWith('llm.usage', expect.objectContaining({ attribution: { operation: 'message' } }));
   });
 
   it('messageStructured emits usage even on a refusal (refusals are still billed)', async () => {
     const { svc, emit, create } = build();
     create.mockResolvedValue({ model: 'claude-fable-5', stop_reason: 'refusal', content: [], usage: { input_tokens: 50, output_tokens: 2 } });
     await expect(svc.messageStructuredLegacy({ prompt: 'x' }, { operation: 'keys-generation' }, {})).rejects.toBeDefined();
-    expect(emit).toHaveBeenCalledWith('anthropic.usage', expect.objectContaining({
+    expect(emit).toHaveBeenCalledWith('llm.usage', expect.objectContaining({
       attribution: { operation: 'keys-generation' },
       tokens: expect.objectContaining({ input: 50, output: 2 }),
     }));

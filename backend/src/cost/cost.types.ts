@@ -24,7 +24,7 @@ export interface UsageTokens {
   output: number;
 }
 
-// Emitted on the 'anthropic.usage' event by every capture point.
+// Emitted on the 'llm.usage' event by every capture point.
 export interface UsageEvent {
   id: string; // deterministic for batch (`${batchId}:${customId}`), uuid for sync
   timestamp: string; // ISO-8601 UTC

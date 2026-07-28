@@ -289,7 +289,7 @@ describe('BatchReconciler.reconcile', () => {
     const reconciler = new BatchReconciler(repo as any, llm as any, backtest as any, scoreboard as any, config as any, emitter as any);
     await reconciler.reconcile();
 
-    const usage = emitted.find((e) => e.name === 'anthropic.usage');
+    const usage = emitted.find((e) => e.name === 'llm.usage');
     expect(usage).toBeDefined();
     expect(usage.ev).toEqual(expect.objectContaining({
       id: 'msgbatch_1:context-trader__fable__07222026__base__run1',

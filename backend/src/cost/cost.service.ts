@@ -41,7 +41,7 @@ export class CostService {
 
   // Event listener. Fire-and-forget from the emitter's perspective: any failure
   // is logged and swallowed so a pricing/persist error never affects the request.
-  @OnEvent('anthropic.usage')
+  @OnEvent('llm.usage')
   async onUsage(event: UsageEvent): Promise<void> {
     try {
       const priced = priceUsage(event.tokens, event.modelId, event.serviceTier, event.timestamp);
