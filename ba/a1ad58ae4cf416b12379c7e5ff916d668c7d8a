@@ -1,0 +1,38 @@
+backend/src/benchmark/seven-keys/seven-keys.spec.ts
+  s_84b8ca3387f9fe::t_263864b47f2276 28,39-41,44-51
+  s_84b8ca3387f9fe::t_e0093e360118e9 2
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_84b8ca3387f9fe::t_421399f04f820d 53-67
+  s_20f13903302942::t_b3e0285606690e 41-48
+  s_84b8ca3387f9fe::t_3792fd8e9080e1 104,106-113
+  s_20f13903302942::t_4dd4b2b103ca89 140
+  s_84b8ca3387f9fe::t_86c686ba62612a 10
+  s_20f13903302942::t_c7f2f20379ff95 132
+  s_20f13903302942::t_ac7e1ef9f59c31 121
+backend/src/benchmark/seven-keys/prompts.ts
+  s_84b8ca3387f9fe::t_2d59b6c3f18183 7-14,16-19,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "baa1ad58ae4cf416b12379c7e5ff916d668c7d8a",
+  "prompts": {},
+  "sessions": {
+    "s_20f13903302942": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "63d59469-ae1d-4a5d-8649-4f41afe29102",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    },
+    "s_84b8ca3387f9fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6179579b-2fb0-4ebe-8f17-668a0ffc2665",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
