@@ -1,13 +1,14 @@
-import { BadRequestException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
-import { AnthropicLlmProvider, BatchResultItem } from '../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { LlmProvider } from '../llm/llm.provider';
+import { BatchItemResult } from '../llm/llm.types';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkCell, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
-import { tokensFromUsage } from '../cost/cost.types';
 
 const SYMBOL = 'MES';
 const INTERVAL = 'min-5' as const;
@@ -20,7 +21,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
 
   constructor(
     private readonly repo: BenchmarkRepository,
-    private readonly anthropic: AnthropicLlmProvider,
+    @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly backtest: BacktestService,
     private readonly scoreboard: ScoreboardService,
     config: ConfigService,
@@ -79,9 +80,8 @@ export class BatchReconciler implements OnApplicationBootstrap {
 
   /** Returns the model alias if the batch reached `ended` and was reconciled, else null. */
   private async reconcileBatch(batch: BatchDoc): Promise<string | null> {
-    // Bench batches were created on the beta/files path, so read them there too.
-    const summary = await this.anthropic.getBatchLegacy(batch.batchId, { files: true });
-    const status = summary.processingStatus;
+    const summary = await this.llm.getBatch(batch.batchId);
+    const status = summary.status;
 
     if (status === 'in_progress') {
       await this.repo.updateBatch(batch.batchId, { status: 'in_progress' });
@@ -93,7 +93,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
     }
     if (status !== 'ended') return null; // 'submitted' / unknown: wait for the next tick
 
-    const results = await this.anthropic.getBatchResultsLegacy(batch.batchId, { files: true });
+    const results = await this.llm.getBatchResults(batch.batchId);
     const expected = Object.keys(batch.customIdToCell).length;
     if (results.length !== expected) {
       this.logger.warn(`Batch ${batch.batchId}: ${results.length} results for ${expected} expected cells`);
@@ -132,7 +132,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
                 runIndex: p.runIndex,
               },
             },
-            tokens: tokensFromUsage(item.usage),
+            tokens: item.usage ?? { input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 },
             source: 'batch',
             batchId: batch.batchId,
           });
@@ -156,7 +156,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
     batch: BatchDoc,
     key: string,
     meta: CellMeta | undefined,
-    item: BatchResultItem,
+    item: BatchItemResult,
   ): Promise<BenchmarkCell> {
     const parts = parseCellKey(key);
     // Persist design-§4 provenance from the threaded meta. Missing meta

@@ -4,7 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BatchReconciler } from './batch-reconciler';
 import { BenchmarkRepository } from './benchmark.repository';
-import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { FakeLlmProvider } from '../llm/fake-llm.provider';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { cellKey } from './benchmark.types';
@@ -31,20 +32,19 @@ function makeDeps() {
       created.push(c);
     }),
   };
-  const anthropic = {
-    getBatchLegacy: jest.fn().mockResolvedValue({ batchId: 'batch_1', processingStatus: 'ended' }),
-    getBatchResultsLegacy: jest.fn().mockResolvedValue([
-      { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
-      { customId: REFUSAL_KEY, type: 'refusal', stopReason: 'refusal' },
-    ]),
-  };
+  const llm = new FakeLlmProvider();
+  llm.batchStatus = 'ended';
+  llm.batchResults = [
+    { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
+    { customId: REFUSAL_KEY, type: 'refusal' },
+  ];
   const backtest = {
     run: jest.fn().mockResolvedValue({
       results: [{ status: 'TP', points: 10, dollars: 50, fillTime: 1, exitTime: 2, maxAdverseExcursion: 1, maxFavorableExcursion: 2, rMultiple: 2, closestApproach: null }],
     }),
   };
   const scoreboard = { generate: jest.fn().mockResolvedValue({ markdown: '#', json: {}, generatedAt: 't' }) };
-  return { repo, anthropic, backtest, scoreboard, created };
+  return { repo, llm, backtest, scoreboard, created };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true) {
@@ -53,7 +53,7 @@ async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true)
     providers: [
       BatchReconciler,
       { provide: BenchmarkRepository, useValue: deps.repo },
-      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
+      { provide: LLM_PROVIDER, useValue: deps.llm },
       { provide: BacktestService, useValue: deps.backtest },
       { provide: ScoreboardService, useValue: deps.scoreboard },
       { provide: ConfigService, useValue: config },
@@ -64,8 +64,10 @@ async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true)
 }
 
 describe('BatchReconciler.reconcile', () => {
-  it('backtests a succeeded setup and writes a scored cell; reads the beta batch', async () => {
+  it('backtests a succeeded setup and writes a scored cell; reads the batch through the neutral port', async () => {
     const deps = makeDeps();
+    const getBatchSpy = jest.spyOn(deps.llm, 'getBatch');
+    const getBatchResultsSpy = jest.spyOn(deps.llm, 'getBatchResults');
     const rec = await build(deps);
     await rec.reconcile();
     const cell = deps.created.find((c) => c.runIndex === 1);
@@ -76,9 +78,9 @@ describe('BatchReconciler.reconcile', () => {
     expect(cell.personaSha256).toBe('psha');
     expect(cell.generalSha256).toBe('gsha');
     expect(cell.date).toBe('2026-07-01');
-    // Bench batches were created on the beta/files path, so reads use it too.
-    expect(deps.anthropic.getBatchLegacy).toHaveBeenCalledWith('batch_1', { files: true });
-    expect(deps.anthropic.getBatchResultsLegacy).toHaveBeenCalledWith('batch_1', { files: true });
+    // Reads go through the neutral LlmProvider port, not a legacy method.
+    expect(getBatchSpy).toHaveBeenCalledWith('batch_1');
+    expect(getBatchResultsSpy).toHaveBeenCalledWith('batch_1');
     expect(deps.backtest.run).toHaveBeenCalledWith(expect.objectContaining({
       symbol: 'MES', interval: 'min-5', date: '2026-07-01', session: 'rth', allowIncomplete: false,
       orders: [{ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110 }],
@@ -124,9 +126,9 @@ describe('BatchReconciler.reconcile', () => {
 
   it('rejects an out-of-range confidence as INVALID (FIX 5 validation)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
+    deps.llm.batchResults = [
       { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 9 }) },
-    ]);
+    ];
     const rec = await build(deps);
     await rec.reconcile();
     const cell = deps.created.find((c) => c.runIndex === 1);
@@ -145,29 +147,31 @@ describe('BatchReconciler.reconcile', () => {
 
   it('does not reconcile a batch that is still in_progress', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchLegacy.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'in_progress' });
+    deps.llm.batchStatus = 'in_progress';
+    const getBatchResultsSpy = jest.spyOn(deps.llm, 'getBatchResults');
     const rec = await build(deps);
     await rec.reconcile();
-    expect(deps.anthropic.getBatchResultsLegacy).not.toHaveBeenCalled();
+    expect(getBatchResultsSpy).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'in_progress' });
     expect(deps.scoreboard.generate).not.toHaveBeenCalled();
   });
 
   it('marks a canceled/expired/errored batch terminal without reconciling results', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchLegacy.mockResolvedValue({ batchId: 'batch_1', processingStatus: 'expired' });
+    deps.llm.batchStatus = 'expired';
+    const getBatchResultsSpy = jest.spyOn(deps.llm, 'getBatchResults');
     const rec = await build(deps);
     await rec.reconcile();
-    expect(deps.anthropic.getBatchResultsLegacy).not.toHaveBeenCalled();
+    expect(getBatchResultsSpy).not.toHaveBeenCalled();
     expect(deps.repo.updateBatch).toHaveBeenCalledWith('batch_1', { status: 'expired' });
   });
 
   it('isolates a malformed customId and still reconciles the rest of the batch (FIX 1)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
+    deps.llm.batchResults = [
       { customId: 'not-a-valid-key', type: 'succeeded', text: '{}' },
       { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
-    ]);
+    ];
     const rec = await build(deps);
     await expect(rec.reconcile()).resolves.toBeUndefined();
     const cell = deps.created.find((c) => c.runIndex === 1);
@@ -178,9 +182,9 @@ describe('BatchReconciler.reconcile', () => {
 
   it('does NOT write a cell for a retryable errored item — stays MISSING for re-submit (FIX 3)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
+    deps.llm.batchResults = [
       { customId: KEY, type: 'errored', error: 'overloaded' },
-    ]);
+    ];
     const rec = await build(deps);
     await rec.reconcile();
     expect(deps.repo.createCell).not.toHaveBeenCalled();
@@ -190,9 +194,9 @@ describe('BatchReconciler.reconcile', () => {
 
   it('DOES write a NO_SETUP cell for a refusal item (FIX 3)', async () => {
     const deps = makeDeps();
-    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
-      { customId: KEY, type: 'refusal', stopReason: 'refusal' },
-    ]);
+    deps.llm.batchResults = [
+      { customId: KEY, type: 'refusal' },
+    ];
     const rec = await build(deps);
     await rec.reconcile();
     expect(deps.repo.createCell).toHaveBeenCalled();
@@ -234,9 +238,9 @@ describe('BatchReconciler.reconcile', () => {
     deps.repo.nonTerminalBatches.mockResolvedValue([
       baseBatch({ customIdToCell: { [SC_KEY]: { ...META, featureSha256: 'scsha', staticDocSha256: 'dsha', artifactSha256: 'ksha' } } }),
     ]);
-    deps.anthropic.getBatchResultsLegacy.mockResolvedValue([
+    deps.llm.batchResults = [
       { customId: SC_KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
-    ]);
+    ];
     const rec = await build(deps);
     await rec.reconcile();
     const cell = deps.created.find((c) => c.variant === 'seven-keys-scorecard');
@@ -266,14 +270,14 @@ describe('BatchReconciler.reconcile', () => {
         'context-trader__fable__07222026__base__run1': { date: '2026-07-22', personaSha256: 'p', generalSha256: 'g' },
       },
     };
-    const anthropic = {
-      getBatchLegacy: async () => ({ processingStatus: 'ended' }),
-      getBatchResultsLegacy: async () => [
-        { customId: 'context-trader__fable__07222026__base__run1', type: 'succeeded',
-          text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }),
-          usage: { input_tokens: 20, output_tokens: 2157, cache_read_input_tokens: 3227, cache_creation_input_tokens: 16434, service_tier: 'batch' } },
-      ],
-    };
+    const neutralUsage = { input: 20, cacheRead: 3227, cacheCreate5m: 0, cacheCreate1h: 16434, output: 2157 };
+    const llm = new FakeLlmProvider();
+    llm.batchStatus = 'ended';
+    llm.batchResults = [
+      { customId: 'context-trader__fable__07222026__base__run1', type: 'succeeded',
+        text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }),
+        usage: neutralUsage },
+    ];
     const repo = {
       nonTerminalBatches: async () => [batch],
       createCell: async () => {},
@@ -282,7 +286,7 @@ describe('BatchReconciler.reconcile', () => {
     const backtest = { run: async () => ({ results: [{ status: 'NOT_FILLED', points: null, dollars: null, fillTime: null, exitTime: null, maxAdverseExcursion: null, maxFavorableExcursion: null, rMultiple: null, closestApproach: 49.75 }] }) };
     const scoreboard = { generate: async () => {} };
     const config = { get: () => false };
-    const reconciler = new BatchReconciler(repo as any, anthropic as any, backtest as any, scoreboard as any, config as any, emitter as any);
+    const reconciler = new BatchReconciler(repo as any, llm as any, backtest as any, scoreboard as any, config as any, emitter as any);
     await reconciler.reconcile();
 
     const usage = emitted.find((e) => e.name === 'anthropic.usage');
@@ -295,7 +299,8 @@ describe('BatchReconciler.reconcile', () => {
       batchId: 'msgbatch_1',
       modelId: 'claude-fable-5',
       attribution: { operation: 'setup', benchmark: { modelAlias: 'fable', day: '07222026', trader: 'context-trader', variant: 'base', runIndex: 1 } },
-      tokens: expect.objectContaining({ input: 20, cacheRead: 3227, cacheCreate1h: 16434, output: 2157 }),
+      // Usage arrives already-neutral from the port; no tokensFromUsage transform.
+      tokens: neutralUsage,
     }));
   });
 });
