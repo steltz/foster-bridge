@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
-import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { LlmProvider } from '../llm/llm.provider';
 import { BenchmarkRepository, DayArtifactKind } from './benchmark.repository';
 
 // The GCS-backed Bucket surface this service uses (kept minimal so a fake bucket
@@ -16,7 +17,7 @@ export interface StorageBucketLike {
 
 export interface PdfArtifact {
   gcsPath: string;
-  anthropicFileId: string;
+  providerFileId: string;
   contentHash: string;
 }
 
@@ -24,7 +25,7 @@ export interface PdfArtifact {
 export class DayArtifactsService {
   constructor(
     @Inject(STORAGE_BUCKET) private readonly bucket: StorageBucketLike,
-    private readonly anthropic: AnthropicLlmProvider,
+    @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly repo: BenchmarkRepository,
   ) {}
 
@@ -33,9 +34,9 @@ export class DayArtifactsService {
   }
 
   /**
-   * Firebase Storage is the durable origin; the Anthropic Files copy is the
+   * Firebase Storage is the durable origin; the provider Files copy is the
    * serving copy. When the stored content hash matches and the file_id is live,
-   * reuse it. When the hash matches but the file_id is gone (Anthropic GC'd it),
+   * reuse it. When the hash matches but the file_id is gone (provider GC'd it),
    * re-upload from the GCS origin — never from the passed bytes / a repo
    * checkout. Only genuinely new/changed content writes GCS.
    */
@@ -43,51 +44,53 @@ export class DayArtifactsService {
     const contentHash = this.hash(bytes);
     const existing = await this.repo.getDayArtifact(day, 'pdfFile');
     if (existing && existing.contentHash === contentHash) {
-      if (existing.anthropicFileId) {
-        return { gcsPath: existing.gcsPath, anthropicFileId: existing.anthropicFileId, contentHash };
+      const fileId = existing.providerFileId ?? existing.anthropicFileId;
+      if (fileId) {
+        return { gcsPath: existing.gcsPath, providerFileId: fileId, contentHash };
       }
-      const anthropicFileId = await this.reuploadFromGcs(existing.gcsPath);
+      const providerFileId = await this.reuploadFromGcs(existing.gcsPath);
       await this.repo.saveDayArtifact(day, 'pdfFile', {
         ...existing,
-        anthropicFileId,
+        providerFileId,
         uploadedAt: new Date().toISOString(),
       });
-      return { gcsPath: existing.gcsPath, anthropicFileId, contentHash };
+      return { gcsPath: existing.gcsPath, providerFileId, contentHash };
     }
     const gcsPath = `benchmark/es/${day}/${prefix}_ES_TP.pdf`;
     await this.bucket.file(gcsPath).save(bytes);
-    const anthropicFileId = await this.anthropic.uploadFile(bytes, `${prefix}_ES_TP.pdf`, 'application/pdf');
+    const providerFileId = await this.llm.uploadFile(bytes, `${prefix}_ES_TP.pdf`, 'application/pdf');
     await this.repo.saveDayArtifact(day, 'pdfFile', {
       contentHash,
       gcsPath,
-      anthropicFileId,
+      providerFileId,
       uploadedAt: new Date().toISOString(),
     });
-    return { gcsPath, anthropicFileId, contentHash };
+    return { gcsPath, providerFileId, contentHash };
   }
 
   /**
-   * A LIVE Anthropic file_id for a day's PDF. Returns the stored id when present;
+   * A LIVE provider file_id for a day's PDF. Returns the stored id when present;
    * otherwise re-uploads from the GCS copy (never repo bytes) and persists it.
    * Used by the cache warmer to keep long-running batches serviceable.
    */
   async ensureFileId(day: string): Promise<string> {
     const existing = await this.repo.getDayArtifact(day, 'pdfFile');
     if (!existing) throw new Error(`No pdfFile artifact recorded for day ${day}`);
-    if (existing.anthropicFileId) return existing.anthropicFileId;
-    const anthropicFileId = await this.reuploadFromGcs(existing.gcsPath);
+    const fileId = existing.providerFileId ?? existing.anthropicFileId;
+    if (fileId) return fileId;
+    const providerFileId = await this.reuploadFromGcs(existing.gcsPath);
     await this.repo.saveDayArtifact(day, 'pdfFile', {
       ...existing,
-      anthropicFileId,
+      providerFileId,
       uploadedAt: new Date().toISOString(),
     });
-    return anthropicFileId;
+    return providerFileId;
   }
 
   private async reuploadFromGcs(gcsPath: string): Promise<string> {
     const [buf] = await this.bucket.file(gcsPath).download();
     const filename = gcsPath.split('/').pop() as string;
-    return this.anthropic.uploadFile(buf, filename, 'application/pdf');
+    return this.llm.uploadFile(buf, filename, 'application/pdf');
   }
 
   /** Mirrors a small text doc (TP / RECAP transcript) to GCS + Firestore. */

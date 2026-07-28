@@ -270,9 +270,7 @@ export class BenchmarkService {
     return {
       dayBundle: {
         date: day.date,
-        // pdf.anthropicFileId → neutral bundle fileId; the PdfArtifact field is
-        // renamed to providerFileId in Task 7.
-        fileId: pdf.anthropicFileId,
+        fileId: pdf.providerFileId,
         tpTranscript,
         recapTranscript,
       },

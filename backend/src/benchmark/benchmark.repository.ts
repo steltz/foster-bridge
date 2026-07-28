@@ -45,7 +45,9 @@ export type DayArtifactKind = 'pdfFile' | 'tpTranscript' | 'recapTranscript' | '
 export interface DayArtifactDoc {
   contentHash: string;
   gcsPath: string;
-  anthropicFileId?: string; // pdfFile only
+  providerFileId?: string; // pdfFile only (neutral provider file id)
+  /** @deprecated legacy Anthropic-named field; read-compat only. */
+  anthropicFileId?: string;
   content?: string; // transcripts / keys inline copy
   uploadedAt: string;
   // Seven-keys ('keys') provenance (Plan 2). The KEYS markdown in `content` also
