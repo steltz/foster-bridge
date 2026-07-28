@@ -40,7 +40,7 @@ function makeDeps() {
     collectDayIssues: jest.fn().mockReturnValue([]),
   };
   const dayArtifacts = {
-    ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', anthropicFileId: 'file_1', contentHash: 'h' }),
+    ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' }),
     ensureTranscript: jest.fn().mockResolvedValue(undefined),
   };
   // Provider-neutral fake: proves the benchmark is provider-agnostic — no
@@ -102,6 +102,10 @@ describe('BenchmarkService.run', () => {
     const saved = deps.repo.saveBatch.mock.calls[0][0];
     const meta = saved.customIdToCell['context-trader__fable__07012026__base__run1'];
     expect(meta).toEqual({ date: '2026-07-01', personaSha256: 'psha', generalSha256: 'gsha' });
+    // pdf.providerFileId propagates through assembleDay's bundle.fileId into the
+    // day tier's file block of every submitted request's envelope.
+    const blocks = submitted.requests.flatMap((r) => r.envelope?.tiers?.flatMap((t) => t.blocks) ?? []);
+    expect(blocks).toContainEqual({ type: 'file', fileId: 'file_1' });
   });
 
   it('threads feature + staticDoc hashes for the seven-keys-method variant', async () => {
