@@ -24,7 +24,9 @@ be dropped in and run against the same benchmark, with a single swap point.
 - The benchmark module never imports `@anthropic-ai/sdk` or names Anthropic.
 - Anthropic becomes one adapter behind a neutral `LlmProvider` port.
 - Exactly one swap seam (a config-driven factory) selects the active provider.
-- Capability flags exist for future providers to guard on — but no speculative
+- Capability flags are declared by each provider AND enforced by a guard at the
+  benchmark's entry points (fail fast with a clear message when the configured
+  provider lacks a capability the benchmark requires) — but no speculative
   capability-fallback execution paths are built now (YAGNI; there is no second
   provider to validate them against).
 - Full backend test suite stays green; benchmark specs prove provider-agnosticism
@@ -47,10 +49,21 @@ be dropped in and run against the same benchmark, with a single swap point.
 - **Blast radius:** neutralize the seam fully — neutral usage tokens, rename the
   usage event, and read-compat rename the persisted `anthropicFileId`.
 - **Architecture:** new `llm/` port module + Anthropic adapter (Approach A).
-- **`message()` / `warmCache()`:** kept OFF the port (adapter-only). `message` is
-  demo-only; `warmCache` has zero production callers (the benchmark warms via
-  throwaway batches because Anthropic caches are per-service-tier) and encodes an
-  Anthropic-specific cache concept.
+- **`message()`:** kept OFF the port (adapter-only) — demo-only.
+- **`warmCache()`:** deleted entirely. It has zero production callers (the
+  benchmark warms via throwaway batches because Anthropic caches are
+  per-service-tier), so it is dead code; removing it (and its spec) is cleaner
+  than porting it to the neutral types.
+- **Batch path always beta:** the adapter submits AND retrieves batches on the
+  beta/files path uniformly (the files-beta header is additive and harmless on a
+  fileless batch). This removes the fragile "infer beta from block presence"
+  asymmetry — `getBatch`/`getBatchResults` cannot see the original request, so a
+  neutral port cannot infer per-batch beta-ness at retrieve time. `messageStructured`
+  (a single synchronous call that owns its envelope) keeps inference.
+- **Capability guard:** `BenchmarkService.run`, `CacheWarmer.warm`, and
+  `BatchReconciler.reconcile` assert the required capabilities (batch, fileUpload,
+  structuredOutput) before doing work, so a mis-wired provider fails with a clear
+  message instead of an opaque runtime crash.
 - **Event rename `anthropic.usage` → `llm.usage`:** safe — it is an in-process
   EventEmitter2 channel with only internal emitters/listeners; no external
   consumer, no payload/data change.
@@ -218,13 +231,17 @@ export interface LlmProvider {
   `{type:'document', source:{type:'file', file_id}}`; maps each `LlmCacheTier` to
   one 1h `cache_control` breakpoint on the tier's last block; keeps the
   ≤4-breakpoint guard.
-- Infers the beta/files path itself: if any envelope block is `type:'file'`, route
-  through `client.beta.messages.*` with `FILES_BETA`. The benchmark no longer
-  passes `files: true` anywhere.
+- Batch path (`submitBatch`/`getBatch`/`getBatchResults`) is ALWAYS beta/files —
+  no inference — so submit and retrieve never disagree on beta-ness. The benchmark
+  no longer passes `files: true` anywhere.
+- `messageStructured` (single synchronous call, owns its envelope) infers the
+  beta/files path: if any envelope block is `type:'file'`, route through
+  `client.beta.messages.create` with `FILES_BETA`, else the non-beta path.
 - Maps Anthropic `processing_status` → neutral `BatchLifecycle`; maps batch result
   entries → `BatchItemResult` with neutral `usage: tokensFromUsage(...)`.
 - Keeps `rethrow` (SDK-error → `HttpException`) internal.
-- Keeps `message()` and `warmCache()` public for the demo controller.
+- Keeps `message()` public for the demo controller. `warmCache()` is deleted (dead
+  code).
 - `tokensFromUsage` / `serviceTierFromUsage` MOVE from `cost/cost.types.ts` into
   the adapter (they parse Anthropic SDK usage shapes). The neutral `UsageTokens`,
   `ServiceTier`, `Attribution`, `UsageEvent`, `CostRecord`, and pricing stay in
@@ -242,6 +259,21 @@ export interface LlmProvider {
 | `envelope.builder.ts` | Drop `import Anthropic`; return `PromptEnvelope` / `LlmCacheTier[]` of `LlmContentBlock`; the day-PDF block becomes `{type:'file', fileId: bundle.fileId}`. |
 
 `DayBundle.anthropicFileId` → `fileId` (in-memory rename).
+
+## Capability guard
+
+The three benchmark entry points assert the capabilities the benchmark requires
+before doing any work, so a mis-configured provider fails fast with a clear
+message rather than an opaque runtime crash deep in a call:
+
+- `BenchmarkService.run`, `CacheWarmer.warm`, `BatchReconciler.reconcile` call a
+  shared guard that reads `this.llm.capabilities` and throws when any of
+  `batch`, `fileUpload`, `structuredOutput` is false, naming the missing
+  capabilities.
+- This is what makes the port genuinely "capability-based" rather than
+  batch-required-with-decorative-flags. It does NOT add fallback execution paths
+  (still out of scope) — it only converts a silent assumption into an enforced,
+  legible contract.
 
 ## Cost / usage neutralization
 

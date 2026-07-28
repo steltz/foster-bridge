@@ -23,6 +23,7 @@
 - `backend/src/llm/llm.module.ts` — `@Global` module binding `LLM_PROVIDER` via factory.
 - `backend/src/llm/llm.types.spec.ts` — locks the neutral type shapes.
 - `backend/src/llm/fake-llm.provider.ts` — in-memory `LlmProvider` test double.
+- `backend/src/llm/require-capabilities.ts` — capability-guard helper.
 - `backend/src/llm/llm.contract.spec.ts` — asserts `AnthropicLlmProvider` satisfies the port.
 
 **Modified:**
@@ -32,7 +33,7 @@
 - `backend/src/config/configuration.ts` — add `llm.provider`.
 - `backend/src/app.module.ts` — register `LlmModule`.
 - `backend/src/benchmark/*` — envelope.builder, benchmark.service, batch-reconciler, cache-warmer, seven-keys, day-artifacts, benchmark.module (inject `LLM_PROVIDER`, neutral types).
-- `backend/src/cost/cost.types.ts` — `tokensFromUsage`/`serviceTierFromUsage` move out (Task 9).
+- `backend/src/cost/cost.types.ts` — `tokensFromUsage`/`serviceTierFromUsage` move out (Task 10).
 - `backend/src/cost/cost.service.ts` — `@OnEvent('llm.usage')`.
 - `backend/src/demo/anthropic-demo.controller.ts` — use neutral `submitBatch`/`getBatch`.
 
@@ -423,7 +424,7 @@ git commit -m "test(llm): in-memory FakeLlmProvider double"
 
 ## Task 3: Anthropic adapter implements the port (additive + legacy shims)
 
-The adapter gains all neutral port methods. Because `getBatch`, `getBatchResults`, and `messageStructured` keep their names but change signatures, their **current** forms are renamed to `*Legacy` and their existing callers are pointed at the legacy name in this task (keeps green). `createBatch` stays (new `submitBatch` is added alongside it). Later tasks migrate callers to the neutral methods; Task 9 deletes the shims.
+The adapter gains all neutral port methods. Because `getBatch`, `getBatchResults`, and `messageStructured` keep their names but change signatures, their **current** forms are renamed to `*Legacy` and their existing callers are pointed at the legacy name in this task (keeps green). `createBatch` stays (new `submitBatch` is added alongside it). Later tasks migrate callers to the neutral methods; Task 10 deletes the shims.
 
 **Files:**
 - Modify: `backend/src/anthropic/anthropic.service.ts`
@@ -437,20 +438,36 @@ The adapter gains all neutral port methods. Because `getBatch`, `getBatchResults
 
 Add to `backend/src/anthropic/anthropic.service.spec.ts` a new describe block (keep existing tests; adjust class name in imports to `AnthropicLlmProvider`):
 
+First, at the top of the file, rename the imported symbol from `AnthropicService` to
+`AnthropicLlmProvider` and every reference (`new AnthropicService(...)`, the
+`createTestingModule` `provide`/`inject` entries, the direct
+`new (require('./anthropic.service').AnthropicService)(...)` at line ~780). The
+existing spec constructs the provider two ways — via `Test.createTestingModule`
+(top of file) and via direct `new AnthropicService(clientFactory, config, { emit })`
+(line ~780). The new tests below use the **direct-construction** pattern with an
+inline stub client, so they need no new helpers.
+
 ```ts
-// NOTE: rename the imported symbol at the top of the file:
-//   import { AnthropicLlmProvider } from './anthropic.service';
-// and every `new AnthropicService(...)` / provider ref becomes AnthropicLlmProvider.
+import { AnthropicLlmProvider } from './anthropic.service';
 
 describe('AnthropicLlmProvider port surface', () => {
+  // Build a provider with a stub SDK client. Only the methods a given test
+  // exercises are provided; `clientFactory.get()` returns this stub.
+  const build = (client: any) => {
+    const clientFactory = { get: () => client };
+    const config = { get: () => undefined };            // falls back to default model/maxTokens
+    const emit = jest.fn();
+    return new AnthropicLlmProvider(clientFactory as any, config as any, { emit } as any);
+  };
+
   it('declares full capabilities', () => {
-    const svc = makeService(); // existing spec helper that constructs the provider
+    const svc = build({});
     expect(svc.capabilities).toEqual({ batch: true, fileUpload: true, promptCaching: true, structuredOutput: true });
   });
 
-  it('submitBatch renders a neutral file block as a beta document and infers the files path', async () => {
+  it('submitBatch renders a neutral file block as a beta document and always uses the beta path', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'batch_1', processing_status: 'in_progress' });
-    const svc = makeServiceWithBetaBatchesCreate(create); // helper: client.beta.messages.batches.create = create
+    const svc = build({ beta: { messages: { batches: { create } } } });
     const handle = await svc.submitBatch(
       [{ customId: 'k1', prompt: 'go' }],
       { tiers: [{ blocks: [{ type: 'file', fileId: 'file_9' }, { type: 'text', text: 'plan' }] }] },
@@ -463,16 +480,24 @@ describe('AnthropicLlmProvider port surface', () => {
     expect(body.betas).toContain('files-api-2025-04-14');
   });
 
+  it('submitBatch uses the beta path even for a fileless batch (uniform beta)', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'batch_2', processing_status: 'in_progress' });
+    const svc = build({ beta: { messages: { batches: { create } } } });
+    await svc.submitBatch([{ customId: 'k1', prompt: 'go' }], undefined, { model: 'm' });
+    expect(create.mock.calls[0][0].betas).toContain('files-api-2025-04-14');
+  });
+
   it('getBatch maps processing_status to a neutral lifecycle', async () => {
     const retrieve = jest.fn().mockResolvedValue({ id: 'b', processing_status: 'ended', request_counts: {} });
-    const svc = makeServiceWithBetaBatchesRetrieve(retrieve);
+    const svc = build({ beta: { messages: { batches: { retrieve } } } });
     await expect(svc.getBatch('b')).resolves.toEqual({ batchId: 'b', status: 'ended', requestCounts: {} });
   });
 
   it('getBatchResults returns neutral UsageTokens, not raw usage', async () => {
-    const svc = makeServiceWithBetaBatchResults([
-      { custom_id: 'k1', result: { type: 'succeeded', message: { stop_reason: 'end_turn', content: [{ type: 'text', text: '{}' }], usage: { input_tokens: 3, cache_read_input_tokens: 2, output_tokens: 1 } } } },
-    ]);
+    async function* results() {
+      yield { custom_id: 'k1', result: { type: 'succeeded', message: { stop_reason: 'end_turn', content: [{ type: 'text', text: '{}' }], usage: { input_tokens: 3, cache_read_input_tokens: 2, output_tokens: 1 } } } };
+    }
+    const svc = build({ beta: { messages: { batches: { results: jest.fn().mockResolvedValue(results()) } } } });
     const [item] = await svc.getBatchResults('b');
     expect(item.usage).toEqual({ input: 3, cacheRead: 2, cacheCreate5m: 0, cacheCreate1h: 0, output: 1 });
     expect(item.cacheReadTokens).toBe(2);
@@ -480,7 +505,10 @@ describe('AnthropicLlmProvider port surface', () => {
 });
 ```
 
-> Implementation note for the worker: the existing spec already mocks the SDK client. Reuse its client-mock factory; the `makeServiceWith*` names above are shorthand for "construct the provider with the client method stubbed." Match the existing spec's construction style rather than introducing new helpers if they already exist.
+> The stub shape above (`beta.messages.batches.{create,retrieve,results}`) mirrors
+> the real `@anthropic-ai/sdk` client surface the adapter calls. `getBatchResults`
+> consumes an async iterator, so the stub yields via an async generator — matching
+> how the existing `getBatchResultsLegacy` tests stub `results()`.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -605,7 +633,9 @@ Add the neutral port methods:
       ...(opts.schema ? { format: { type: 'json_schema', schema: opts.schema } } : {}),
       ...(opts.effort ? { effort: opts.effort } : {}),
     };
-    const useFiles = this.envelopeHasFile(envelope) || requests.some((r) => this.envelopeHasFile(r.envelope));
+    // Batches ALWAYS use the beta/files path — submit and retrieve must agree on
+    // beta-ness, and getBatch/getBatchResults cannot see the request to infer it.
+    // The files-beta header is additive: harmless on a fileless batch.
     try {
       const body = {
         requests: requests.map((r, i) => {
@@ -624,9 +654,7 @@ Add the neutral port methods:
           };
         }),
       };
-      const batch = useFiles
-        ? await client.beta.messages.batches.create({ ...body, betas: FILES_BETA } as any)
-        : await client.messages.batches.create(body as any);
+      const batch = await client.beta.messages.batches.create({ ...body, betas: FILES_BETA } as any);
       return { batchId: batch.id, status: this.toLifecycle(batch.processing_status) };
     } catch (err) {
       this.rethrow(err);
@@ -655,7 +683,7 @@ Add the neutral port methods:
   }
 ```
 
-> `tokensFromUsage` is still imported from `../cost/cost.types` here; Task 9 moves it into the adapter. Keep the existing `import { ..., tokensFromUsage } from '../cost/cost.types'` line.
+> `tokensFromUsage` is still imported from `../cost/cost.types` here; Task 10 moves it into the adapter. Keep the existing `import { ..., tokensFromUsage } from '../cost/cost.types'` line.
 
 - [ ] **Step 4: Rename the three colliding methods to `*Legacy`**
 
@@ -732,10 +760,12 @@ import { AnthropicLlmProvider } from './anthropic.service';
   exports: [ANTHROPIC_CLIENT, AnthropicLlmProvider],
 ```
 
-`backend/src/demo/anthropic-demo.controller.ts` — update import + injected type to `AnthropicLlmProvider`; migrate its batch calls to the neutral API now (demo is fully controlled):
-- `this.anthropic.createBatch(body.requests ?? [])` → `this.anthropic.submitBatch((body.requests ?? []).map((r: any) => ({ customId: r.customId, prompt: r.prompt })), undefined, {})`
-- `this.anthropic.getBatch(id)` → `this.anthropic.getBatch(id)` (now returns `BatchHandle`; update any `.processingStatus` reads to `.status`).
-- `this.anthropic.message(...)` stays.
+`backend/src/demo/anthropic-demo.controller.ts` — update import + injected type to `AnthropicLlmProvider`; migrate its batch calls to the neutral API now (demo is fully controlled). Because the batch path is uniformly beta, the demo round-trips correctly:
+- Import: drop `BatchRequestInput`; import `BatchItemRequest` from `../llm/llm.types` (keep `MessageInput` from `../anthropic/anthropic.service`). Change the constructor field type to `AnthropicLlmProvider`.
+- `@Post('batch')`: change the body type `{ requests: BatchRequestInput[] }` → `{ requests: BatchItemRequest[] }`, and `this.anthropic.createBatch(body.requests ?? [])` → `this.anthropic.submitBatch((body.requests ?? []).map((r) => ({ customId: r.customId, prompt: r.prompt })), undefined, {})`.
+- `@Get('batch/:id')`: `this.anthropic.getBatch(id)` now returns `BatchHandle`.
+- `@Get('batch/:id/results')`: `const batch = await this.anthropic.getBatch(id);` then `if (batch.status !== 'ended')` (was `batch.processingStatus`); update the message string to `batch.status`. Then `this.anthropic.getBatchResults(id)`.
+- `this.anthropic.message(...)` stays unchanged.
 
 `backend/src/benchmark/batch-reconciler.ts` — TEMPORARY: point at legacy so it stays green (migrated to neutral in Task 5). Change the two calls:
 - `await this.anthropic.getBatch(batch.batchId, { files: true })` → `await this.anthropic.getBatchLegacy(batch.batchId, { files: true })`
@@ -971,7 +1001,7 @@ git commit -m "feat(benchmark): route batch producers through LLM_PROVIDER port"
 
 - [ ] **Step 1: Update the reconciler spec to the fake + neutral results**
 
-In `batch-reconciler.spec.ts`, provide `FakeLlmProvider` under `LLM_PROVIDER`, set `fake.batchStatus = 'ended'` and `fake.batchResults = [{ customId, type: 'succeeded', text, usage: { input, cacheRead, cacheCreate5m, cacheCreate1h, output } }]`. Keep the existing assertion that a `llm.usage` event is emitted — but note the event name changes in Task 8; for now it still asserts `'anthropic.usage'`. The reconciler no longer calls `tokensFromUsage` (usage arrives neutral), so the emitted `tokens` should equal `item.usage` directly.
+In `batch-reconciler.spec.ts`, provide `FakeLlmProvider` under `LLM_PROVIDER`, set `fake.batchStatus = 'ended'` and `fake.batchResults = [{ customId, type: 'succeeded', text, usage: { input, cacheRead, cacheCreate5m, cacheCreate1h, output } }]`. Keep the existing assertion that a `llm.usage` event is emitted — but note the event name changes in Task 9; for now it still asserts `'anthropic.usage'`. The reconciler no longer calls `tokensFromUsage` (usage arrives neutral), so the emitted `tokens` should equal `item.usage` directly.
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -1142,7 +1172,78 @@ git commit -m "refactor(benchmark): neutral providerFileId with legacy read-comp
 
 ---
 
-## Task 8: Rename usage event `anthropic.usage` → `llm.usage`
+## Task 8: Capability guard at benchmark entry points
+
+Makes the `capabilities` flags functional: the benchmark fails fast with a clear
+message if the configured provider lacks a required capability, instead of crashing
+deep inside a call. No fallback paths — enforcement only.
+
+**Files:**
+- Modify: `backend/src/benchmark/benchmark.service.ts`
+- Modify: `backend/src/benchmark/cache-warmer.ts`
+- Modify: `backend/src/benchmark/batch-reconciler.ts`
+- Test: `backend/src/benchmark/benchmark.service.spec.ts`
+
+- [ ] **Step 1: Write the failing guard test**
+
+Add to `benchmark.service.spec.ts` (the module already provides `FakeLlmProvider` under `LLM_PROVIDER` from Task 4):
+
+```ts
+it('throws a clear error when the provider lacks a required capability', async () => {
+  fake.capabilities = { batch: false, fileUpload: true, promptCaching: true, structuredOutput: true };
+  await expect(service.run({})).rejects.toThrow(/lacks required capabilities: batch/);
+});
+```
+
+> `FakeLlmProvider.capabilities` is declared `readonly` in Task 2. For this test to reassign it, change that field to a mutable `capabilities: LlmCapabilities = {...}` (drop `readonly`) in `fake-llm.provider.ts` — the `LlmProvider` interface keeps `readonly capabilities`, which a mutable field still satisfies.
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `cd backend && pnpm test -- benchmark.service.spec`
+Expected: FAIL — no guard; `run` proceeds and fails later (or passes) rather than throwing the capability error.
+
+- [ ] **Step 3: Add a shared guard helper and call it**
+
+Create `backend/src/llm/require-capabilities.ts`:
+
+```ts
+import { LlmProvider } from './llm.provider';
+import { LlmCapabilities } from './llm.provider';
+
+/** Throws a clear error if the provider lacks any of the required capabilities. */
+export function requireCapabilities(
+  provider: LlmProvider,
+  required: (keyof LlmCapabilities)[],
+): void {
+  const missing = required.filter((k) => !provider.capabilities[k]);
+  if (missing.length) {
+    throw new Error(`Configured LLM provider lacks required capabilities: ${missing.join(', ')}`);
+  }
+}
+```
+
+Call it at the top of each entry point:
+- `benchmark.service.ts` `run()` — first line: `requireCapabilities(this.llm, ['batch', 'fileUpload', 'structuredOutput']);`
+- `cache-warmer.ts` `warm()` — first line (after the early `if (!batches.length) return;` is fine either way; put it before that): `requireCapabilities(this.llm, ['batch', 'fileUpload']);`
+- `batch-reconciler.ts` `reconcile()` — first line inside the method: `requireCapabilities(this.llm, ['batch']);`
+
+Add the import to each: `import { requireCapabilities } from '../llm/require-capabilities';` (seven-keys and day-artifacts are covered transitively via `run()`; no guard needed there).
+
+- [ ] **Step 4: Run the full suite**
+
+Run: `cd backend && pnpm test`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/src/llm/require-capabilities.ts backend/src/benchmark/benchmark.service.ts backend/src/benchmark/cache-warmer.ts backend/src/benchmark/batch-reconciler.ts backend/src/benchmark/benchmark.service.spec.ts backend/src/llm/fake-llm.provider.ts
+git commit -m "feat(benchmark): enforce required LLM provider capabilities"
+```
+
+---
+
+## Task 9: Rename usage event `anthropic.usage` → `llm.usage`
 
 **Files:**
 - Modify: `backend/src/anthropic/anthropic.service.ts` (sync emit)
@@ -1181,23 +1282,24 @@ git commit -m "refactor(cost): rename usage event to provider-neutral llm.usage"
 
 ---
 
-## Task 9: Cleanup — delete legacy shims, dead types, move usage parsers, contract test
+## Task 10: Cleanup — delete legacy shims, dead types, dead warmCache, move usage parsers, contract test
 
 **Files:**
 - Modify: `backend/src/anthropic/anthropic.service.ts`
+- Modify: `backend/src/anthropic/anthropic.service.spec.ts` (drop warmCache tests)
 - Create: `backend/src/anthropic/anthropic.usage.ts`
 - Modify: `backend/src/cost/cost.types.ts`
 - Create: `backend/src/llm/llm.contract.spec.ts`
 
-- [ ] **Step 1: Delete the legacy shims and dead types**
+- [ ] **Step 1: Delete the legacy shims, dead types, and dead `warmCache`**
 
 In `anthropic.service.ts`, delete now-unused members and types:
 - Delete `messageStructuredLegacy`, `getBatchLegacy`, `getBatchResultsLegacy`, and the old `createBatch` (all callers migrated).
-- Delete the old `buildCachedRequest` (CachedContext variant) — only `buildEnvelopeRequest` remains. Delete `CachedContext`, `BatchRequestInput`, `BatchResultItem`, `BatchSummary` interface exports.
-- Keep `MessageInput`/`MessageResult` (used by `message()` for the demo), `message`, `warmCache` (verify `warmCache` compiles — convert its `CachedContext` parameter to `PromptEnvelope` and its `buildCachedRequest` call to `buildEnvelopeRequest`, since it has no production caller but retains a spec).
-- Keep `CacheVerification` (returned by `warmCache`).
+- Delete the old `buildCachedRequest` (CachedContext variant) — only `buildEnvelopeRequest` remains. Delete the `CachedContext`, `BatchRequestInput`, `BatchResultItem`, `BatchSummary` interface exports.
+- Delete `warmCache` and its `WARM_STRUCTURED_MAX_TOKENS` constant — zero production callers (the benchmark warms via throwaway batches). Also delete `CacheVerification` and `toVerification` (only `warmCache` used them). Remove the `warmCache`/`toVerification` tests from `anthropic.service.spec.ts`.
+- Keep `MessageInput`/`MessageResult`, `message`, `uploadFile`, `emitUsage`, `rethrow` (`message` serves the demo).
 
-> Run a search to confirm no remaining references: `grep -rn "CachedContext\|BatchRequestInput\|BatchResultItem\|createBatch\|messageStructuredLegacy\|getBatchLegacy\|getBatchResultsLegacy" backend/src` returns only definitions being deleted.
+> Run a search to confirm no remaining references: `grep -rn "CachedContext\|BatchRequestInput\|BatchResultItem\|BatchSummary\|createBatch\|warmCache\|CacheVerification\|messageStructuredLegacy\|getBatchLegacy\|getBatchResultsLegacy" backend/src` returns only the definitions being deleted (and no callers).
 
 - [ ] **Step 2: Move the Anthropic usage parsers into the adapter package**
 
@@ -1266,18 +1368,18 @@ git commit -m "refactor(llm): remove legacy shims, isolate Anthropic usage parse
 
 **Spec coverage:**
 - New `llm/` port module (types, interface, token, module) → Tasks 1, 4. ✔
-- Anthropic adapter is sole SDK file → Tasks 3, 9 (envelope builder + benchmark stop importing the SDK; verified in Task 9 Step 5). ✔
+- Anthropic adapter is sole SDK file → Tasks 3, 10 (envelope builder + benchmark stop importing the SDK; verified in Task 10 Step 5). ✔
 - Single swap seam (LlmModule factory + `llm.provider` config) → Task 4. ✔
-- Neutral types replace `CachedContext`/`BatchRequestInput`/`BatchResultItem`/raw beta blocks → Tasks 1, 4, 5, 6; deleted in 9. ✔
-- `files: true` flag removed from benchmark view (adapter infers) → Tasks 3–6. ✔
-- Capability flags exposed (no fallback paths built) → Tasks 1–3. ✔
-- Cost/usage neutralization: neutral usage in results + event rename → Tasks 5, 8; parser move → 9. ✔
+- Neutral types replace `CachedContext`/`BatchRequestInput`/`BatchResultItem`/raw beta blocks → Tasks 1, 4, 5, 6; deleted in 10. ✔
+- `files: true` flag removed from benchmark view (batch path always beta; `messageStructured` infers) → Tasks 3–6. ✔
+- Capability flags declared AND enforced by a guard (no fallback paths built) → Tasks 1–3 (declare) + Task 8 (enforce). ✔
+- Cost/usage neutralization: neutral usage in results + event rename → Tasks 5, 9; parser move → 10. ✔
 - `anthropicFileId` → `providerFileId` read-compat → Task 7. ✔
-- Testing: FakeLlmProvider + per-consumer migration + contract test → Tasks 2, 4–7, 9. ✔
-- Demo controller stays on concrete adapter → Task 3. ✔
+- Testing: FakeLlmProvider + per-consumer migration + contract test → Tasks 2, 4–8, 10. ✔
+- Demo controller stays on the concrete adapter (uses neutral methods) → Task 3. ✔
 
-**Placeholder scan:** No TBD/TODO; every code step shows real code or an exact edit. The two "match existing spec helper" notes reference existing test infrastructure the worker will see, not undefined behavior.
+**Placeholder scan:** No TBD/TODO. Every code step shows real code or an exact edit; adapter tests use direct construction (`new AnthropicLlmProvider(clientFactory, config, { emit })`) with inline stub clients — no undefined helpers. The only `/* moved body */` marker (Task 10 Step 2) is an explicit verbatim-move instruction, not a gap.
 
-**Type consistency:** `PromptEnvelope.tiers`, `LlmCacheTier.blocks`, `LlmContentBlock` (`text`/`file`+`fileId`), `submitBatch(requests, envelope, opts)`, `BatchHandle.status`, `BatchItemResult.usage: UsageTokens`, `providerFileId`, `llm.usage`, `LLM_PROVIDER` are used consistently across all tasks. `messageStructured(req, attribution)` signature matches port and all call sites in Task 6.
+**Type consistency:** `PromptEnvelope.tiers`, `LlmCacheTier.blocks`, `LlmContentBlock` (`text`/`file`+`fileId`), `submitBatch(requests, envelope, opts)`, `BatchHandle.status`, `BatchItemResult.usage: UsageTokens`, `providerFileId`, `llm.usage`, `LLM_PROVIDER`, `requireCapabilities` are used consistently across all tasks. `messageStructured(req, attribution)` signature matches port and all call sites in Task 6. `FakeLlmProvider.capabilities` is mutable (Task 8 Step 1 note) while the interface keeps it `readonly`.
 
-**Risks (from spec) addressed:** faithful envelope translation asserted in Task 3 Step 1 (document shape + breakpoints via `buildEnvelopeRequest`); read-compat asserted in Task 7 Step 1; event rename coordinated in Task 8; global module wiring in Task 4.
+**Risks (from spec) addressed:** faithful envelope translation asserted in Task 3 Step 1 (document shape + breakpoints via `buildEnvelopeRequest`); batch-path uniform-beta asserted in Task 3 Step 1 (fileless batch still carries `betas`); read-compat asserted in Task 7 Step 1; capability enforcement asserted in Task 8 Step 1; event rename coordinated in Task 9; global module wiring in Task 4.
