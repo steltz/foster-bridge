@@ -1,27 +1,31 @@
 export interface CurrentDayPromptInput {
   date: string;
-  generalDocs: string; // concatenated general docs (may be '')
-  methodsDoc: string;
   tpTranscript: string;
   recapTranscript: string;
 }
 
-export function currentDayPrompt(i: CurrentDayPromptInput): string {
-  const generalBlock = i.generalDocs
-    ? `First Read ALL of these general trading-strategy documents — session-agnostic context for how zones are built and traded:\n\n${i.generalDocs}\n\n`
+// The general docs + Seven-Keys methodology are session-agnostic — identical on
+// every call for every day of a benchmark run. They are rendered here (for the
+// SevenKeysService cached tier) rather than inlined into currentDayPrompt's
+// returned string, so they get ONE cache_control breakpoint instead of being
+// resent as uncached prompt text on every current-day call.
+export function generalAndMethodsBlock(generalDocs: string, methodsDoc: string): string {
+  const generalBlock = generalDocs
+    ? `Read ALL of these general trading-strategy documents — session-agnostic context for how zones are built and traded:\n\n${generalDocs}\n\n`
     : '';
+  return `${generalBlock}Seven-Keys methodology (defines the keys you grade against):\n${methodsDoc}`;
+}
+
+export function currentDayPrompt(i: CurrentDayPromptInput): string {
   return `You are the current-day Seven-Keys zone analyst for the ${i.date} ES (E-mini S&P 500) session.
 
-${generalBlock}The trade plan worksheet (support/resistance zones) is provided as an attached PDF document. Also use these two session documents:
+The general trading-strategy documents and Seven-Keys methodology were provided above as shared context. The trade plan worksheet (support/resistance zones) is provided as an attached PDF document. Also use these two session documents:
 
 Trade plan video transcript:
 ${i.tpTranscript}
 
 Prior-session recap transcript:
 ${i.recapTranscript}
-
-Seven-Keys methodology (defines the keys you grade against):
-${i.methodsDoc}
 
 Keys 1-2 (expectancy; no price confirmation) are trader behaviors and are NOT your job. Assess EVERY support/resistance zone in the trade plan against Keys 3-7:
 - key3: the likely approach into the zone (exhaustion, first test vs retest)

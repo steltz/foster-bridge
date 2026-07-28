@@ -1,5 +1,5 @@
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from './schemas';
-import { currentDayPrompt, lookbackPrompt, synthesizePrompt, verifyPrompt } from './prompts';
+import { currentDayPrompt, generalAndMethodsBlock, lookbackPrompt, synthesizePrompt, verifyPrompt } from './prompts';
 
 describe('seven-keys schemas', () => {
   it('CURRENT_SCHEMA requires bias/environment/zones and grades zones on keys 3-7', () => {
@@ -25,32 +25,30 @@ describe('seven-keys schemas', () => {
 });
 
 describe('seven-keys prompts', () => {
-  it('currentDayPrompt inlines methods + transcripts and carries the grade-discrimination rule', () => {
+  it('currentDayPrompt inlines transcripts and carries the grade-discrimination rule', () => {
     const p = currentDayPrompt({
       date: '2026-07-01',
-      generalDocs: 'GEN',
-      methodsDoc: 'METHODS',
       tpTranscript: 'TP',
       recapTranscript: 'RECAP',
     });
-    expect(p).toContain('METHODS');
     expect(p).toContain('TP');
     expect(p).toContain('RECAP');
     expect(p).toContain('Copy each zone');
     expect(p).toContain('no more than about a third');
     expect(p).toContain('attached PDF');
+    // general docs + methodology are no longer inlined here — they live in the
+    // cached tier built by generalAndMethodsBlock (see SevenKeysService).
+    expect(p).not.toContain('METHODS');
   });
 
-  it('currentDayPrompt omits the general-docs block when generalDocs is empty', () => {
-    const p = currentDayPrompt({
-      date: '2026-07-01',
-      generalDocs: '',
-      methodsDoc: 'METHODS',
-      tpTranscript: 'TP',
-      recapTranscript: 'RECAP',
-    });
-    expect(p).not.toContain('First Read ALL of these general');
-    expect(p).toContain('attached PDF');
+  it('generalAndMethodsBlock includes methods and omits the general-docs header when generalDocs is empty', () => {
+    const withGeneral = generalAndMethodsBlock('GEN', 'METHODS');
+    expect(withGeneral).toContain('GEN');
+    expect(withGeneral).toContain('METHODS');
+
+    const withoutGeneral = generalAndMethodsBlock('', 'METHODS');
+    expect(withoutGeneral).not.toContain('Read ALL of these general');
+    expect(withoutGeneral).toContain('METHODS');
   });
 
   it('lookbackPrompt lists days oldest-first and marks missing recaps', () => {

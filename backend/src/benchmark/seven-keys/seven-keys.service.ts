@@ -7,7 +7,7 @@ import { BenchmarkRepository, DayArtifactDoc } from '../benchmark.repository';
 import { RepoInputsService, DayInput } from '../repo-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from './schemas';
-import { currentDayPrompt, lookbackPrompt, synthesizePrompt, verifyPrompt, LookbackEntry } from './prompts';
+import { currentDayPrompt, generalAndMethodsBlock, lookbackPrompt, synthesizePrompt, verifyPrompt, LookbackEntry } from './prompts';
 
 // All four agents run on Fable; the current-day analyst is a distinct hard pin
 // (a blind comparison found it more methodology-faithful than Sonnet for grading).
@@ -38,8 +38,31 @@ export class SevenKeysService {
     return this.config.get<string>('benchmark.effort') ?? 'high';
   }
 
+  // messageStructured falls back to the generic anthropic.maxTokens demo default
+  // (4096) when omitted — too low for Fable's always-on thinking at high effort,
+  // which silently truncates every structured call mid-JSON. Every seven-keys
+  // call must use the benchmark ceiling instead.
+  private get maxTokens(): number {
+    return this.config.get<number>('benchmark.maxTokens') ?? 32000;
+  }
+
   private pdfContext(fileId: string): CachedContext {
     return { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: fileId } } as any] }] };
+  }
+
+  // Current-day gets TWO cache tiers: the general-docs+methodology tier (stable
+  // across every day of a benchmark run, so it stays first — most-stable content
+  // must precede the per-day PDF tier for the prefix match to keep holding), then
+  // the PDF. Previously generalDocs/methodsDoc were inlined into the uncached
+  // trailing prompt text on every call — full price, every day, no reuse (see the
+  // Fable-cost pressure test). This is the only call that needs generalDocs.
+  private currentDayContext(fileId: string, generalDocs: string, methodsDoc: string): CachedContext {
+    return {
+      userTiers: [
+        { blocks: [{ type: 'text', text: generalAndMethodsBlock(generalDocs, methodsDoc) }] },
+        { blocks: [{ type: 'document', source: { type: 'file', file_id: fileId } } as any] },
+      ],
+    };
   }
 
   /** Runs current-day ∥ lookback -> synthesize -> verify on Fable. Never persists. */
@@ -78,9 +101,16 @@ export class SevenKeysService {
     // not throw away the prior Fable calls (a 422 refusal is NOT retried).
     const currentPromise = this.withRetry('current-day', () =>
       this.anthropic.messageStructured<Record<string, unknown>>(
-        { prompt: currentDayPrompt({ date: day.date, generalDocs: general.concatenated, methodsDoc, tpTranscript, recapTranscript }) },
+        { prompt: currentDayPrompt({ date: day.date, tpTranscript, recapTranscript }) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-        { model: CURRENT_DAY_MODEL, outputSchema: CURRENT_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+        {
+          model: CURRENT_DAY_MODEL,
+          outputSchema: CURRENT_SCHEMA,
+          files: true,
+          effort: this.effort,
+          maxTokens: this.maxTokens,
+          context: this.currentDayContext(fileId, general.concatenated, methodsDoc),
+        },
       ),
     );
     const lookbackPromise: Promise<Record<string, unknown> | null> = lookbackSet.length
@@ -88,7 +118,7 @@ export class SevenKeysService {
           this.anthropic.messageStructured<Record<string, unknown>>(
             { prompt: lookbackPrompt(day.date, lookbackSet) },
             { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-            { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort },
+            { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
           ),
         )
       : Promise.resolve(null);
@@ -99,7 +129,7 @@ export class SevenKeysService {
       this.anthropic.messageStructured<{ artifact: string }>(
         { prompt: synthesizePrompt(day.date, current, lookback, sources) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-        { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort },
+        { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
       ),
     );
 
@@ -107,7 +137,7 @@ export class SevenKeysService {
       this.anthropic.messageStructured<{ pass: boolean; mismatches: string[] }>(
         { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-        { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, context: this.pdfContext(fileId) },
+        { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, maxTokens: this.maxTokens, context: this.pdfContext(fileId) },
       ),
     );
 
