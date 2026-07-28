@@ -322,42 +322,24 @@ export class AnthropicLlmProvider implements LlmProvider {
     );
   }
 
-  /** Neutral-envelope variant of buildCachedRequest — one 1h breakpoint per tier. */
+  /**
+   * Neutral-envelope variant of buildCachedRequest. Delegates to buildCachedRequest
+   * after mapping neutral blocks to beta params, so the breakpoint-stamping, the
+   * <=4-breakpoint guard, and the system-block handling stay in ONE place — the
+   * neutral->beta block mapping is the only envelope-specific logic here. This makes
+   * byte-identity with the legacy cached path structural rather than hand-maintained.
+   */
   private buildEnvelopeRequest(
     envelope: PromptEnvelope,
     prompt: string,
   ): { system?: Anthropic.TextBlockParam[]; messages: Anthropic.Beta.BetaMessageParam[] } {
-    const system = envelope.system
-      ? [{ type: 'text' as const, text: envelope.system, cache_control: ONE_HOUR_CACHE_CONTROL }]
-      : undefined;
-
-    let messages: Anthropic.Beta.BetaMessageParam[];
-    const tiers = envelope.tiers ?? [];
-    if (tiers.length) {
-      const breakpoints = (system ? 1 : 0) + tiers.length;
-      if (breakpoints > 4) {
-        throw new HttpException(
-          { statusCode: 400, error: `Too many cache breakpoints: ${breakpoints} (max 4)` },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const content: Anthropic.Beta.BetaContentBlockParam[] = [];
-      for (const tier of tiers) {
-        const blocks = this.toBetaBlocks(tier.blocks);
-        if (blocks.length) {
-          blocks[blocks.length - 1] = {
-            ...blocks[blocks.length - 1],
-            cache_control: ONE_HOUR_CACHE_CONTROL,
-          } as Anthropic.Beta.BetaContentBlockParam;
-        }
-        content.push(...blocks);
-      }
-      content.push({ type: 'text', text: prompt });
-      messages = [{ role: 'user', content }];
-    } else {
-      messages = [{ role: 'user', content: prompt }];
-    }
-    return system ? { system, messages } : { messages };
+    return this.buildCachedRequest(
+      {
+        system: envelope.system,
+        userTiers: envelope.tiers?.map((t) => ({ blocks: this.toBetaBlocks(t.blocks) })),
+      },
+      prompt,
+    );
   }
 
   private toLifecycle(status: string): BatchLifecycle {
@@ -396,6 +378,8 @@ export class AnthropicLlmProvider implements LlmProvider {
       const resp = useFiles
         ? await client.beta.messages.create({ ...params, betas: FILES_BETA } as any)
         : await client.messages.create(params as any);
+      // Capture usage BEFORE the refusal throw — a refusal is still billed, and
+      // the sibling message()/batch paths both record refusal tokens.
       this.emitUsage((resp as any).usage, (resp as any).model ?? model, attribution);
       if (resp.stop_reason === 'refusal') {
         throw new HttpException(
@@ -461,6 +445,8 @@ export class AnthropicLlmProvider implements LlmProvider {
   }
 
   async getBatch(id: string): Promise<BatchHandle> {
+    // Uniform beta: batches are always submitted on the beta/files path, so read
+    // them there too (mirrors submitBatch — see its note).
     const legacy = await this.getBatchLegacy(id, { files: true });
     return {
       batchId: legacy.batchId,
@@ -470,6 +456,8 @@ export class AnthropicLlmProvider implements LlmProvider {
   }
 
   async getBatchResults(id: string): Promise<BatchItemResult[]> {
+    // Uniform beta: batches are always submitted on the beta/files path, so read
+    // them there too (mirrors submitBatch — see its note).
     const legacy = await this.getBatchResultsLegacy(id, { files: true });
     return legacy.map((item) => {
       const out: BatchItemResult = { customId: item.customId, type: item.type };
