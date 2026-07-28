@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-28-llm-provider-abstraction.md
+  s_ce3a098bcc8e14::t_08903da037785e 1-1283
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "83af44973ccee6331b9b3badf7994932159692bf",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
