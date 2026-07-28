@@ -7,6 +7,7 @@ import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { LLM_PROVIDER } from '../llm/llm.constants';
 import { LlmProvider } from '../llm/llm.provider';
+import { requireCapabilities } from '../llm/require-capabilities';
 import { parseCellKey, SETUP_SCHEMA } from './benchmark.types';
 
 // 55 minutes < the 1h ephemeral TTL. @Interval fires every fixed span from
@@ -38,6 +39,7 @@ export class CacheWarmer {
   }
 
   async warm(): Promise<void> {
+    requireCapabilities(this.llm, ['batch', 'fileUpload']);
     const batches = await this.repo.nonTerminalBatches();
     if (!batches.length) return;
     const general = this.inputs.collectGeneralDocs().concatenated;

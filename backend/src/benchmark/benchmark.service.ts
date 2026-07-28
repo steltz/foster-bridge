@@ -7,6 +7,7 @@ import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
 import { LLM_PROVIDER } from '../llm/llm.constants';
 import { LlmProvider } from '../llm/llm.provider';
+import { requireCapabilities } from '../llm/require-capabilities';
 import { BatchItemRequest } from '../llm/llm.types';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
@@ -55,6 +56,7 @@ export class BenchmarkService {
   ) {}
 
   async run(opts: RunOptions = {}): Promise<RunSummary> {
+    requireCapabilities(this.llm, ['batch', 'fileUpload', 'structuredOutput']);
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
     const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 32000;

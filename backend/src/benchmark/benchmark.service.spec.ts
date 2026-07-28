@@ -295,4 +295,11 @@ describe('BenchmarkService.run', () => {
     expect(summary.batchesSubmitted).toBe(0);
     errorSpy.mockRestore();
   });
+
+  it('throws a clear error when the provider lacks a required capability', async () => {
+    const deps = makeDeps();
+    deps.fake.capabilities = { batch: false, fileUpload: true, promptCaching: true, structuredOutput: true };
+    const svc = await build(deps);
+    await expect(svc.run({})).rejects.toThrow(/lacks required capabilities: batch/);
+  });
 });

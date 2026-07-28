@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BenchmarkRepository, BatchDoc, BatchStatus, CellMeta } from './benchmark.repository';
 import { LLM_PROVIDER } from '../llm/llm.constants';
 import { LlmProvider } from '../llm/llm.provider';
+import { requireCapabilities } from '../llm/require-capabilities';
 import { BatchItemResult } from '../llm/llm.types';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
@@ -48,6 +49,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
   }
 
   async reconcile(): Promise<void> {
+    requireCapabilities(this.llm, ['batch']);
     // Guards a single instance only; across replicas this is idempotent-but-
     // wasteful (createCell is write-once, so duplicate passes are harmless).
     if (this.running) return; // never overlap a slow reconcile with the next tick

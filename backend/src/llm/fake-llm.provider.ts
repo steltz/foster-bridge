@@ -23,7 +23,7 @@ interface RecordedBatch {
  * the benchmark is provider-agnostic — no Anthropic SDK involved.
  */
 export class FakeLlmProvider implements LlmProvider {
-  readonly capabilities: LlmCapabilities = {
+  capabilities: LlmCapabilities = {
     batch: true,
     fileUpload: true,
     promptCaching: true,
