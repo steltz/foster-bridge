@@ -110,8 +110,8 @@ export class EnvelopeBuilder {
         .join('')
         .trim();
       if (!featureText) {
-        // Task 6's buildCachedRequest stamps one cache breakpoint per tier
-        // regardless of content, so an empty feature tier would waste a
+        // The adapter's buildEnvelopeRequest stamps one cache breakpoint per
+        // tier regardless of content, so an empty feature tier would waste a
         // breakpoint (or risk an API rejection on an empty block) for no
         // benefit — fail loudly instead.
         throw new Error(
