@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-07-28-llm-provider-abstraction-design.md
+  s_ce3a098bcc8e14::t_ab9ee20a57f2ed 1-180,186-296
+  s_ce3a098bcc8e14::t_e652ad2669108f 181-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d4fd3a3881db5e6d05ca7cd3a96ffab8b967f93f",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
