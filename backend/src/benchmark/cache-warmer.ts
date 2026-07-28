@@ -91,7 +91,7 @@ export class CacheWarmer {
             // reconcile this throwaway request — its cost is untracked, same
             // as any other fire-and-forget submission.
             // Carries SETUP_SCHEMA + effort identically to the real batch's
-            // requests (see createBatch) — a mismatched output_config hashes
+            // requests (see submitBatch) — a mismatched output_config hashes
             // to a different cache key, so the batch could never read it.
             await this.llm.submitBatch(
               [{ prompt: 'Cache warm — ignore this request.' }],

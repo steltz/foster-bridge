@@ -213,8 +213,8 @@ export class BenchmarkService {
           }
         }
 
-        // No pre-batch warm here (previously a "two-stage warm" via
-        // anthropic.warmCache — day-bundle prefix, then per-envelope). Cross-tier
+        // No pre-batch warm here (previously a "two-stage warm" via a
+        // provider-side warmCache — day-bundle prefix, then per-envelope). Cross-tier
         // cache sharing does not hold: a batch-tier request never reads a cache
         // entry written by a prior standard-tier call, confirmed empirically
         // (a single-item batch reusing an identical, freshly-read standard-tier
@@ -229,7 +229,7 @@ export class BenchmarkService {
           effort,
         });
         // The submit->save window is inherently non-atomic. If saveBatch throws
-        // AFTER createBatch succeeded, the batch exists at Anthropic but no
+        // AFTER submitBatch succeeded, the batch exists at the provider but no
         // BatchDoc will ever drain it — surface the orphan loudly (a full
         // idempotency-key fix is out of scope) before the day is recorded failed.
         try {
@@ -245,7 +245,7 @@ export class BenchmarkService {
           });
         } catch (saveErr) {
           this.logger.error(
-            `Orphaned batch ${batch.batchId}: created at Anthropic but not persisted; reconciler will not drain it`,
+            `Orphaned batch ${batch.batchId}: created at the provider but not persisted; reconciler will not drain it`,
           );
           throw saveErr;
         }
@@ -270,6 +270,8 @@ export class BenchmarkService {
     return {
       dayBundle: {
         date: day.date,
+        // pdf.anthropicFileId → neutral bundle fileId; the PdfArtifact field is
+        // renamed to providerFileId in Task 7.
         fileId: pdf.anthropicFileId,
         tpTranscript,
         recapTranscript,
