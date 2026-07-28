@@ -1,0 +1,31 @@
+backend/src/benchmark/benchmark.service.ts
+  s_ce3a098bcc8e14::t_63a43eba61b4a5 273
+backend/src/benchmark/benchmark.repository.ts
+  s_ce3a098bcc8e14::t_88c4a6b8f60342 48-50
+backend/src/benchmark/day-artifacts.service.spec.ts
+  s_ce3a098bcc8e14::t_46a9888236dc91 4
+  s_ce3a098bcc8e14::t_932da73005e5c4 41
+  s_ce3a098bcc8e14::t_13e23b8bb1d71d 96-101,108
+  s_ce3a098bcc8e14::t_b3d4d518cf6215 53,57,64,71,73,77,80,88,94-95,102-107,109-117
+  s_ce3a098bcc8e14::t_c35de4f4a388bc 118
+backend/src/benchmark/day-artifacts.service.ts
+  s_ce3a098bcc8e14::t_b1227cb2f80467 4-5
+  s_ce3a098bcc8e14::t_69e0305f32ba2e 20,28
+  s_ce3a098bcc8e14::t_503d7083f21943 37,39,47-49,51,54,57,61,65,68,72,79-81,84,87,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "877003b09cdec61374da603ad6e129a05aa2e2bd",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
