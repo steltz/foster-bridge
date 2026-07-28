@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { FirebaseModule } from './firebase/firebase.module';
 import { AnthropicModule } from './anthropic/anthropic.module';
+import { LlmModule } from './llm/llm.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { ExecutionModule } from './execution/execution.module';
@@ -27,6 +28,7 @@ import { BenchmarkController } from './benchmark/benchmark.controller';
     ScheduleModule.forRoot(),
     FirebaseModule,
     AnthropicModule,
+    LlmModule,
     ContractsModule,
     MarketDataModule,
     ExecutionModule,

@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type Anthropic from '@anthropic-ai/sdk';
-import { CachedContext } from '../anthropic/anthropic.service';
+import { PromptEnvelope, LlmCacheTier } from '../llm/llm.types';
 import { Variant } from './benchmark.types';
 
 export interface DayBundle {
   date: string;
-  anthropicFileId: string;
+  fileId: string;
   tpTranscript: string;
   recapTranscript: string;
 }
@@ -47,21 +46,15 @@ export class EnvelopeBuilder {
   }
 
   // Tier 1: general docs + task framing, as a single cached user text block.
-  // Typed against the BETA content-block param — see CachedContext.userTiers
-  // (Task 6): the day tier's file-backed document block is only valid there,
-  // so every tier in this builder shares that type for consistency.
-  private generalTier(generalDocs: string): { blocks: Anthropic.Beta.BetaContentBlockParam[] } {
+  private generalTier(generalDocs: string): LlmCacheTier {
     return { blocks: [{ type: 'text', text: this.generalText(generalDocs) }] };
   }
 
-  // Tier 2: the day bundle — PDF document block (by file_id) + both transcripts.
-  private dayTier(bundle: DayBundle): { blocks: Anthropic.Beta.BetaContentBlockParam[] } {
+  // Tier 2: the day bundle — PDF file block (by file id) + both transcripts.
+  private dayTier(bundle: DayBundle): LlmCacheTier {
     return {
       blocks: [
-        {
-          type: 'document',
-          source: { type: 'file', file_id: bundle.anthropicFileId },
-        } as Anthropic.Beta.BetaContentBlockParam,
+        { type: 'file', fileId: bundle.fileId },
         {
           type: 'text',
           text: `Trade plan video transcript for the ${bundle.date} ES session:\n${bundle.tpTranscript}`,
@@ -75,13 +68,13 @@ export class EnvelopeBuilder {
   }
 
   /** Tiers 1-2 (general + day bundle) — the shared, cheap-to-warm prefix. */
-  dayBundleContext(generalDocs: string, bundle: DayBundle): CachedContext {
-    return { userTiers: [this.generalTier(generalDocs), this.dayTier(bundle)] };
+  dayBundleContext(generalDocs: string, bundle: DayBundle): PromptEnvelope {
+    return { tiers: [this.generalTier(generalDocs), this.dayTier(bundle)] };
   }
 
   /** Full 3-tier (base) or 4-tier (feature) envelope for a single cell. */
-  fullEnvelope(generalDocs: string, bundle: DayBundle, persona: string, spec: VariantSpec): CachedContext {
-    const tiers: Array<{ blocks: Anthropic.Beta.BetaContentBlockParam[] }> = [
+  fullEnvelope(generalDocs: string, bundle: DayBundle, persona: string, spec: VariantSpec): PromptEnvelope {
+    const tiers: LlmCacheTier[] = [
       this.generalTier(generalDocs),
       this.dayTier(bundle),
       { blocks: [{ type: 'text', text: `Adopt this trading persona fully:\n${persona}` }] },
@@ -127,6 +120,6 @@ export class EnvelopeBuilder {
       }
       tiers.push({ blocks: [{ type: 'text', text: featureText }] });
     }
-    return { userTiers: tiers };
+    return { tiers };
   }
 }

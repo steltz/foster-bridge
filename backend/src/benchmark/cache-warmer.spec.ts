@@ -6,7 +6,8 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
+import { FakeLlmProvider } from '../llm/fake-llm.provider';
+import { LLM_PROVIDER } from '../llm/llm.constants';
 
 function makeDeps() {
   const repo = {
@@ -37,8 +38,9 @@ function makeDeps() {
   // Re-warming now submits a fire-and-forget BATCH request (same cache pool the
   // real BatchReconciler batches read from) instead of a sync/standard-tier
   // call — cross-tier cache sharing does not hold, so a standard-tier warm
-  // never benefited the batches it was meant to serve.
-  const anthropic = { createBatch: jest.fn().mockResolvedValue({ batchId: 'warm-batch', processingStatus: 'in_progress' }) };
+  // never benefited the batches it was meant to serve. Routed through the
+  // neutral LlmProvider port; read back via fake.submittedBatches.
+  const fake = new FakeLlmProvider();
   const config = {
     get: (k: string): any => {
       if (k === 'benchmark.effort') return 'high';
@@ -46,7 +48,7 @@ function makeDeps() {
       return undefined;
     },
   };
-  return { repo, inputs, dayArtifacts, anthropic, config };
+  return { repo, inputs, dayArtifacts, fake, config };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -57,7 +59,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
-      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
+      { provide: LLM_PROVIDER, useValue: deps.fake },
       { provide: ConfigService, useValue: deps.config },
     ],
   }).compile();
@@ -70,22 +72,22 @@ describe('CacheWarmer.warm', () => {
     const warmer = await build(deps);
     await warmer.warm();
     // base + seven-keys-method = 2 distinct envelopes (base run1/run2 collapse).
-    expect(deps.anthropic.createBatch).toHaveBeenCalledTimes(2);
+    expect(deps.fake.submittedBatches).toHaveLength(2);
     // Uses a LIVE file_id (re-derivable from GCS) for the day-bundle tier.
     expect(deps.dayArtifacts.ensureFileId).toHaveBeenCalledWith('07012026');
-    for (const [requests, ctx, opts] of deps.anthropic.createBatch.mock.calls) {
+    for (const submitted of deps.fake.submittedBatches) {
       // A single throwaway request — the warm is fire-and-forget, never polled
       // or reconciled, so its cost is not attributed here (unlike the old
       // sync warmCache path, which emitted a cost event per call).
-      expect(requests).toHaveLength(1);
-      expect(typeof requests[0].prompt).toBe('string');
-      expect(opts).toEqual({ model: 'claude-fable-5', files: true, effort: 'high', outputSchema: SETUP_SCHEMA });
-      // Tier 0 general, Tier 1 day-bundle document referencing the live file_id.
-      expect(ctx.userTiers[1].blocks[0]).toMatchObject({ type: 'document', source: { file_id: 'file_live' } });
-      expect((ctx.userTiers[2].blocks[0] as any).text).toContain('PERSONA');
+      expect(submitted.requests).toHaveLength(1);
+      expect(typeof submitted.requests[0].prompt).toBe('string');
+      expect(submitted.opts).toEqual({ model: 'claude-fable-5', effort: 'high', schema: SETUP_SCHEMA });
+      // Tier 0 general, Tier 1 day-bundle file block referencing the live file id.
+      expect(submitted.envelope!.tiers![1].blocks[0]).toEqual({ type: 'file', fileId: 'file_live' });
+      expect((submitted.envelope!.tiers![2].blocks[0] as any).text).toContain('PERSONA');
     }
     // One of the two envelopes carries the 4th feature tier.
-    const tierCounts = deps.anthropic.createBatch.mock.calls.map(([, ctx]) => ctx.userTiers.length).sort();
+    const tierCounts = deps.fake.submittedBatches.map((b) => b.envelope!.tiers!.length).sort();
     expect(tierCounts).toEqual([3, 4]);
   });
 
@@ -94,18 +96,19 @@ describe('CacheWarmer.warm', () => {
     deps.repo.nonTerminalBatches.mockResolvedValue([]);
     const warmer = await build(deps);
     await warmer.warm();
-    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(deps.fake.submittedBatches).toHaveLength(0);
   });
 
   it('isolates a failed warm so the other distinct (trader,variant) pair still warms', async () => {
     const deps = makeDeps();
-    deps.anthropic.createBatch
+    const submitSpy = jest
+      .spyOn(deps.fake, 'submitBatch')
       .mockRejectedValueOnce(new Error('transient API error'))
-      .mockResolvedValueOnce({ batchId: 'warm-batch', processingStatus: 'in_progress' });
+      .mockResolvedValueOnce({ batchId: 'warm-batch', status: 'submitted' });
     const warmer = await build(deps);
     await expect(warmer.warm()).resolves.toBeUndefined();
     // Both distinct pairs were attempted — the first failure didn't skip the second.
-    expect(deps.anthropic.createBatch).toHaveBeenCalledTimes(2);
+    expect(submitSpy).toHaveBeenCalledTimes(2);
   });
 });
 

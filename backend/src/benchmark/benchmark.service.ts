@@ -1,11 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { BenchmarkRepository, CellMeta, DayArtifactDoc } from './benchmark.repository';
 import { RepoInputsService, DayInput, TraderInput, FeatureInput } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
-import { AnthropicLlmProvider, BatchRequestInput } from '../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { LlmProvider } from '../llm/llm.provider';
+import { BatchItemRequest } from '../llm/llm.types';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { analyzeCoverage } from '../market-data/coverage';
@@ -44,7 +46,7 @@ export class BenchmarkService {
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
-    private readonly anthropic: AnthropicLlmProvider,
+    @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly marketData: MarketDataService,
     // ContractsModule is @Global, so ContractsService injects without an import.
     private readonly contracts: ContractsService,
@@ -184,7 +186,7 @@ export class BenchmarkService {
           }
         }
 
-        const requests: BatchRequestInput[] = [];
+        const requests: BatchItemRequest[] = [];
         const customIdToCell: Record<string, CellMeta> = {};
 
         for (const { trader, variant, feature, missing } of dayCells) {
@@ -206,7 +208,7 @@ export class BenchmarkService {
           };
           for (const runIndex of missing) {
             const key = cellKey({ trader: trader.name, modelAlias: model.alias, day: day.day, variant, runIndex });
-            requests.push({ customId: key, prompt: TRAILING_PROMPT, context: envelope });
+            requests.push({ customId: key, prompt: TRAILING_PROMPT, envelope });
             customIdToCell[key] = meta;
           }
         }
@@ -220,12 +222,11 @@ export class BenchmarkService {
         // spend. The batch below still benefits from cache reuse WITHIN itself —
         // requests sharing an envelope prefix are written once and read cheaply
         // by the rest, which is confirmed to work.
-        const batch = await this.anthropic.createBatch(requests, undefined, {
+        const batch = await this.llm.submitBatch(requests, undefined, {
           model: model.id,
-          outputSchema: SETUP_SCHEMA,
+          schema: SETUP_SCHEMA,
           maxTokens,
           effort,
-          files: true,
         });
         // The submit->save window is inherently non-atomic. If saveBatch throws
         // AFTER createBatch succeeded, the batch exists at Anthropic but no
@@ -269,7 +270,7 @@ export class BenchmarkService {
     return {
       dayBundle: {
         date: day.date,
-        anthropicFileId: pdf.anthropicFileId,
+        fileId: pdf.anthropicFileId,
         tpTranscript,
         recapTranscript,
       },

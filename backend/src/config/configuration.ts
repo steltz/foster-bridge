@@ -11,6 +11,9 @@ export interface AppConfig {
     model: string;
     maxTokens: number;
   };
+  llm: {
+    provider: string;
+  };
   benchmark: {
     model: string;
     repoRoot: string;
@@ -36,6 +39,9 @@ export default (): AppConfig => ({
     apiKey: process.env.ANTHROPIC_API_KEY,
     model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
     maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? '4096', 10),
+  },
+  llm: {
+    provider: process.env.LLM_PROVIDER ?? 'anthropic',
   },
   benchmark: {
     // Benchmark model is independent of the global ANTHROPIC_MODEL; Fable by default.

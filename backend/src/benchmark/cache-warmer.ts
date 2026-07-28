@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { LlmProvider } from '../llm/llm.provider';
 import { parseCellKey, SETUP_SCHEMA } from './benchmark.types';
 
 // 55 minutes < the 1h ephemeral TTL. @Interval fires every fixed span from
@@ -22,7 +23,7 @@ export class CacheWarmer {
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
-    private readonly anthropic: AnthropicLlmProvider,
+    @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly config: ConfigService,
   ) {
     this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
@@ -54,7 +55,7 @@ export class CacheWarmer {
         const recap = await this.repo.getDayArtifact(batch.day, 'recapTranscript');
         const bundle = {
           date: batch.date,
-          anthropicFileId: fileId,
+          fileId,
           tpTranscript: tp?.content ?? '',
           recapTranscript: recap?.content ?? '',
         };
@@ -92,10 +93,10 @@ export class CacheWarmer {
             // Carries SETUP_SCHEMA + effort identically to the real batch's
             // requests (see createBatch) — a mismatched output_config hashes
             // to a different cache key, so the batch could never read it.
-            await this.anthropic.createBatch(
+            await this.llm.submitBatch(
               [{ prompt: 'Cache warm — ignore this request.' }],
               envelope,
-              { model: batch.model.id, files: true, effort, outputSchema: SETUP_SCHEMA },
+              { model: batch.model.id, effort, schema: SETUP_SCHEMA },
             );
           } catch (err) {
             // Isolate one flaky warm (e.g. transient API error) so it doesn't

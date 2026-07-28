@@ -7,7 +7,9 @@ import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
-import { AnthropicLlmProvider } from '../anthropic/anthropic.service';
+import { FakeLlmProvider } from '../llm/fake-llm.provider';
+import { LLM_PROVIDER } from '../llm/llm.constants';
+import { SETUP_SCHEMA } from './benchmark.types';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
@@ -41,12 +43,9 @@ function makeDeps() {
     ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', anthropicFileId: 'file_1', contentHash: 'h' }),
     ensureTranscript: jest.fn().mockResolvedValue(undefined),
   };
-  // No warmCache mock: the pre-batch sync-tier warm was removed (cross-tier
-  // cache sharing does not hold — a batch never reads a standard-tier cache
-  // entry, so warming before submitting the real batch was pure wasted spend).
-  const anthropic = {
-    createBatch: jest.fn().mockResolvedValue({ batchId: 'batch_1', processingStatus: 'in_progress' }),
-  };
+  // Provider-neutral fake: proves the benchmark is provider-agnostic — no
+  // Anthropic SDK involved. Read back what was submitted via fake.submittedBatches.
+  const fake = new FakeLlmProvider();
   const marketData = {
     getDay: jest.fn(async (_s: string, _i: string, date: string) => (date === '2026-07-01' ? [{ time: 1 }] : null)),
   };
@@ -54,7 +53,7 @@ function makeDeps() {
   const sevenKeys = {
     ensureKeys: jest.fn().mockResolvedValue({ content: 'KEYS BODY', contentHash: 'ksha' }),
   };
-  return { repo, inputs, dayArtifacts, anthropic, marketData, contracts, sevenKeys };
+  return { repo, inputs, dayArtifacts, fake, marketData, contracts, sevenKeys };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -65,7 +64,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
-      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
+      { provide: LLM_PROVIDER, useValue: deps.fake },
       { provide: MarketDataService, useValue: deps.marketData },
       { provide: ContractsService, useValue: deps.contracts },
       { provide: SevenKeysService, useValue: deps.sevenKeys },
@@ -85,16 +84,15 @@ describe('BenchmarkService.run', () => {
     const deps = makeDeps();
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
-    expect(deps.anthropic.createBatch).toHaveBeenCalledTimes(1);
+    expect(deps.fake.submittedBatches).toHaveLength(1);
+    const submitted = deps.fake.submittedBatches[0];
     // 1 trader x 1 variant x 2 runs on the one candle-backed day.
-    const call = deps.anthropic.createBatch.mock.calls[0];
-    expect(call[0]).toHaveLength(2);
-    expect(call[2].outputSchema).toBeDefined();
-    expect(call[2].model).toBe('claude-fable-5');
-    // Fable batch contract: budget, effort, and beta (files) path.
-    expect(call[2].maxTokens).toBe(32000);
-    expect(call[2].effort).toBe('high');
-    expect(call[2].files).toBe(true);
+    expect(submitted.requests).toHaveLength(2);
+    expect(submitted.opts.schema).toBe(SETUP_SCHEMA);
+    expect(submitted.opts.model).toBe('claude-fable-5');
+    // Fable batch contract: budget + effort routed through the neutral port.
+    expect(submitted.opts.maxTokens).toBe(32000);
+    expect(submitted.opts.effort).toBe('high');
     expect(summary.batchesSubmitted).toBe(1);
     expect(summary.cellsQueued).toBe(2);
     expect(summary.daysSkipped).toEqual([{ day: '07022026', reason: 'no candles' }]);
@@ -120,7 +118,7 @@ describe('BenchmarkService.run', () => {
     deps.repo.existingRunIndices.mockResolvedValue([1, 2]);
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
-    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(deps.fake.submittedBatches).toHaveLength(0);
     expect(summary.cellsQueued).toBe(0);
   });
 
@@ -132,7 +130,7 @@ describe('BenchmarkService.run', () => {
     ]);
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
-    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    const custIds = deps.fake.submittedBatches[0].requests.map((r) => r.customId);
     expect(custIds).toEqual(['context-trader__fable__07012026__base__run1']); // run2 not re-submitted
     expect(summary.cellsQueued).toBe(1);
   });
@@ -142,7 +140,7 @@ describe('BenchmarkService.run', () => {
     (analyzeCoverage as jest.Mock).mockReturnValue({ complete: false });
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
-    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(deps.fake.submittedBatches).toHaveLength(0);
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'incomplete session' });
   });
 
@@ -161,7 +159,7 @@ describe('BenchmarkService.run', () => {
     // KEYS generated once for the only candle-backed day (07012026).
     expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledTimes(1);
     expect(deps.sevenKeys.ensureKeys.mock.calls[0][0].day).toBe('07012026');
-    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    const custIds = deps.fake.submittedBatches[0].requests.map((r) => r.customId);
     expect(custIds).toEqual(
       expect.arrayContaining([
         'context-trader__fable__07012026__base__run1',
@@ -190,7 +188,7 @@ describe('BenchmarkService.run', () => {
     deps.sevenKeys.ensureKeys.mockResolvedValue(null); // verifier/generation failure
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 1, variants: ['base', 'seven-keys-scorecard'] });
-    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    const custIds = deps.fake.submittedBatches[0].requests.map((r) => r.customId);
     expect(custIds).toContain('context-trader__fable__07012026__base__run1');
     expect(custIds).not.toContain('context-trader__fable__07012026__seven-keys-scorecard__run1');
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'keys generation failed' });
@@ -201,7 +199,7 @@ describe('BenchmarkService.run', () => {
     deps.sevenKeys.ensureKeys.mockRejectedValue(new Error('firestore blip')); // infra throw, not a null return
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 1, variants: ['base', 'seven-keys-scorecard'] });
-    const custIds = deps.anthropic.createBatch.mock.calls[0][0].map((r: any) => r.customId);
+    const custIds = deps.fake.submittedBatches[0].requests.map((r) => r.customId);
     expect(custIds).toContain('context-trader__fable__07012026__base__run1');
     expect(custIds).not.toContain('context-trader__fable__07012026__seven-keys-scorecard__run1');
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'keys generation failed' });
@@ -250,7 +248,7 @@ describe('BenchmarkService.run', () => {
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
     // No missing cells on any day => no IO, no upload, no batch.
     expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
-    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(deps.fake.submittedBatches).toHaveLength(0);
     expect(summary.cellsQueued).toBe(0);
   });
 
@@ -260,7 +258,7 @@ describe('BenchmarkService.run', () => {
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 2, variants: ['base'] });
     expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
-    expect(deps.anthropic.createBatch).not.toHaveBeenCalled();
+    expect(deps.fake.submittedBatches).toHaveLength(0);
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'incomplete session' });
   });
 
@@ -268,25 +266,27 @@ describe('BenchmarkService.run', () => {
     const deps = makeDeps();
     // Both days have candles + complete coverage so both have work.
     deps.marketData.getDay = jest.fn().mockResolvedValue([{ time: 1 }]);
-    deps.anthropic.createBatch
+    const submitSpy = jest
+      .spyOn(deps.fake, 'submitBatch')
       .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValue({ batchId: 'batch_2', processingStatus: 'in_progress' });
+      .mockResolvedValue({ batchId: 'batch_2', status: 'submitted' });
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 1, variants: ['base'] });
-    // First day's createBatch throws; the second day is still processed.
-    expect(deps.anthropic.createBatch).toHaveBeenCalledTimes(2);
+    // First day's submitBatch throws; the second day is still processed.
+    expect(submitSpy).toHaveBeenCalledTimes(2);
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'error: boom' });
     expect(summary.batchesSubmitted).toBe(1);
   });
 
-  it('logs an orphaned batch when saveBatch fails after createBatch (FIX 2)', async () => {
+  it('logs an orphaned batch when saveBatch fails after submitBatch (FIX 2)', async () => {
     const deps = makeDeps();
     deps.repo.saveBatch.mockRejectedValue(new Error('firestore down'));
     const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 1, variants: ['base'] });
-    // The batch was created at Anthropic but not persisted — must be loud.
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Orphaned batch batch_1'));
+    // The batch was created at the provider but not persisted — must be loud.
+    // FakeLlmProvider mints the first batch id as `fake-batch-1`.
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Orphaned batch fake-batch-1'));
     expect(summary.daysSkipped).toContainEqual({ day: '07012026', reason: 'error: firestore down' });
     expect(summary.batchesSubmitted).toBe(0);
     errorSpy.mockRestore();
