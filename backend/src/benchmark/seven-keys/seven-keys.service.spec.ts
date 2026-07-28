@@ -8,7 +8,8 @@ import { SevenKeysService } from './seven-keys.service';
 import { BenchmarkRepository } from '../benchmark.repository';
 import { RepoInputsService } from '../repo-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
-import { AnthropicLlmProvider } from '../../anthropic/anthropic.service';
+import { FakeLlmProvider } from '../../llm/fake-llm.provider';
+import { LLM_PROVIDER } from '../../llm/llm.constants';
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from './schemas';
 
 const DAY = {
@@ -20,19 +21,41 @@ const DAY = {
   recapPath: '/es/07082026/07012026_ES_RECAP.md',
 };
 
-// messageStructuredLegacy stub: canned output keyed on the schema's required fields.
+// Canned outputs keyed on the schema's required fields (mirrors the fake's
+// call-order queue below).
+const CURRENT_RESULT = { bias: 'b', environment: 'e', zones: [{ prices: '7500-7510', side: 'support', key3: 'a', key4: 'b', key5: 'c', key6: 'd', key7: 'e', grade: 'strong' }] };
+const LOOKBACK_RESULT = { calibration: [{ day: '07012026', verdict: 'held' }], continuity: ['x'] };
+const SYNTH_RESULT = { artifact: '# Seven Keys — ES 2026-07-08\n\n| row |' };
+const VERIFY_RESULT = { pass: true, mismatches: [] };
+
 function structuredFor(schema: any): any {
   const req: string[] = schema.required;
-  if (req.includes('zones'))
-    return { bias: 'b', environment: 'e', zones: [{ prices: '7500-7510', side: 'support', key3: 'a', key4: 'b', key5: 'c', key6: 'd', key7: 'e', grade: 'strong' }] };
-  if (req.includes('calibration')) return { calibration: [{ day: '07012026', verdict: 'held' }], continuity: ['x'] };
-  if (req.includes('artifact')) return { artifact: '# Seven Keys — ES 2026-07-08\n\n| row |' };
-  if (req.includes('pass')) return { pass: true, mismatches: [] };
+  if (req.includes('zones')) return CURRENT_RESULT;
+  if (req.includes('calibration')) return LOOKBACK_RESULT;
+  if (req.includes('artifact')) return SYNTH_RESULT;
+  if (req.includes('pass')) return VERIFY_RESULT;
   return {};
 }
 
+// Queues canned structuredResponses in the order the fake will consume them.
+// current-day and lookback are launched via Promise.all, but the fake shifts
+// structuredResponses synchronously in invocation order (current-day is
+// constructed first in the source, so its promise executor runs first), so
+// the queue order is [current, lookback, synth, verify]. When there is no
+// lookback set (bootstrap), only [current, synth, verify] are consumed.
+function queueGenerationRun(fake: FakeLlmProvider, opts?: { lookback?: boolean }) {
+  fake.structuredResponses.push(CURRENT_RESULT);
+  if (opts?.lookback !== false) fake.structuredResponses.push(LOOKBACK_RESULT);
+  fake.structuredResponses.push(SYNTH_RESULT);
+  fake.structuredResponses.push(VERIFY_RESULT);
+}
+
+function findCall(fake: FakeLlmProvider, schema: any) {
+  return fake.structuredCalls.find((c) => c.req.schema === schema)!;
+}
+
 function makeDeps() {
-  const anthropic = { messageStructuredLegacy: jest.fn(async (_i: any, _attr: any, opts: any) => structuredFor(opts.outputSchema)) };
+  const fake = new FakeLlmProvider();
   const repo = {
     getDayArtifact: jest.fn().mockResolvedValue(null),
     saveDayArtifact: jest.fn().mockResolvedValue(undefined),
@@ -45,14 +68,14 @@ function makeDeps() {
     outcomeRecapPathForDay: jest.fn().mockReturnValue(null),
   };
   const dayArtifacts = { ensureFileId: jest.fn().mockResolvedValue('file_1') };
-  return { anthropic, repo, inputs, dayArtifacts };
+  return { fake, repo, inputs, dayArtifacts };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
   const moduleRef = await Test.createTestingModule({
     providers: [
       SevenKeysService,
-      { provide: AnthropicLlmProvider, useValue: deps.anthropic },
+      { provide: LLM_PROVIDER, useValue: deps.fake },
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
@@ -69,22 +92,26 @@ describe('SevenKeysService.generate', () => {
 
   it('bootstrap: skips the lookback agent and runs current(pinned fable) -> synth -> verify', async () => {
     const deps = makeDeps();
+    queueGenerationRun(deps.fake, { lookback: false });
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
-    const schemas = deps.anthropic.messageStructuredLegacy.mock.calls.map((c) => c[2].outputSchema);
+    const schemas = deps.fake.structuredCalls.map((c) => c.req.schema);
     expect(schemas).toContain(CURRENT_SCHEMA);
     expect(schemas).toContain(SYNTH_SCHEMA);
     expect(schemas).toContain(VERIFY_SCHEMA);
     expect(schemas).not.toContain(LOOKBACK_SCHEMA); // no prior KEYS -> bootstrap
-    // Current-day is explicitly pinned to Fable and carries the PDF (files:true).
-    const currentCall = deps.anthropic.messageStructuredLegacy.mock.calls.find((c) => c[2].outputSchema === CURRENT_SCHEMA)!;
-    expect(currentCall[2].model).toBe('claude-fable-5');
-    expect(currentCall[2].files).toBe(true);
+    // Current-day is explicitly pinned to Fable and carries the PDF via envelope.
+    const currentCall = findCall(deps.fake, CURRENT_SCHEMA);
+    expect(currentCall.req.model).toBe('claude-fable-5');
+    expect(currentCall.req.envelope?.tiers).toContainEqual(
+      expect.objectContaining({ blocks: expect.arrayContaining([{ type: 'file', fileId: 'file_1' }]) }),
+    );
     expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [], lookbackMissing: [] });
   });
 
   it('runs the lookback agent oldest-first when prior KEYS exist, and reports sources oldest-first', async () => {
     const deps = makeDeps();
+    queueGenerationRun(deps.fake);
     deps.inputs.priorCompleteDays.mockReturnValue([
       { day: '07012026', date: '2026-07-01' },
       { day: '07022026', date: '2026-07-02' },
@@ -95,13 +122,14 @@ describe('SevenKeysService.generate', () => {
     deps.inputs.outcomeRecapPathForDay.mockReturnValue('/es/next/x_ES_RECAP.md');
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
-    const lookbackCall = deps.anthropic.messageStructuredLegacy.mock.calls.find((c) => c[2].outputSchema === LOOKBACK_SCHEMA)!;
-    expect(lookbackCall[0].prompt.indexOf('07012026')).toBeLessThan(lookbackCall[0].prompt.indexOf('07022026'));
+    const lookbackCall = findCall(deps.fake, LOOKBACK_SCHEMA);
+    expect(lookbackCall.req.prompt.indexOf('07012026')).toBeLessThan(lookbackCall.req.prompt.indexOf('07022026'));
     expect(out.lookbackSources).toEqual(['07012026_ES_KEYS.md', '07022026_ES_KEYS.md']);
   });
 
   it('caps the lookback set to the 3 most recent prior KEYS days (still oldest-first)', async () => {
     const deps = makeDeps();
+    queueGenerationRun(deps.fake);
     deps.inputs.priorCompleteDays.mockReturnValue(
       ['07012026', '07022026', '07032026', '07042026'].map((day) => ({ day, date: `2026-07-0${day[1]}` })),
     );
@@ -113,9 +141,10 @@ describe('SevenKeysService.generate', () => {
 
   it('verifier fail -> verified:false with mismatches, no persistence attempted here', async () => {
     const deps = makeDeps();
-    deps.anthropic.messageStructuredLegacy.mockImplementation(async (_i: any, _attr: any, opts: any) =>
-      opts.outputSchema === VERIFY_SCHEMA ? { pass: false, mismatches: ['invented 7999'] } : structuredFor(opts.outputSchema),
-    );
+    jest.spyOn(deps.fake, 'messageStructured').mockImplementation(async (req: any, attribution: any) => {
+      deps.fake.structuredCalls.push({ req, attribution });
+      return req.schema === VERIFY_SCHEMA ? { pass: false, mismatches: ['invented 7999'] } : structuredFor(req.schema);
+    });
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
     expect(out.verified).toBe(false);
@@ -124,25 +153,27 @@ describe('SevenKeysService.generate', () => {
 
   it('verify runs after synth and embeds the synthesized artifact', async () => {
     const deps = makeDeps();
+    queueGenerationRun(deps.fake, { lookback: false });
     const svc = await build(deps);
     await svc.generate(DAY as any);
-    const calls = deps.anthropic.messageStructuredLegacy.mock.calls;
-    const synthIdx = calls.findIndex((c) => c[2].outputSchema === SYNTH_SCHEMA);
-    const verifyIdx = calls.findIndex((c) => c[2].outputSchema === VERIFY_SCHEMA);
+    const calls = deps.fake.structuredCalls;
+    const synthIdx = calls.findIndex((c) => c.req.schema === SYNTH_SCHEMA);
+    const verifyIdx = calls.findIndex((c) => c.req.schema === VERIFY_SCHEMA);
     expect(synthIdx).toBeLessThan(verifyIdx);
-    expect(calls[verifyIdx][0].prompt).toContain('# Seven Keys — ES 2026-07-08');
+    expect(calls[verifyIdx].req.prompt).toContain('# Seven Keys — ES 2026-07-08');
   });
 
   it('retries a transient upstream failure (503) on the verify step, then succeeds', async () => {
     const deps = makeDeps();
     let verifyCalls = 0;
-    deps.anthropic.messageStructuredLegacy.mockImplementation(async (_i: any, _attr: any, opts: any) => {
-      if (opts.outputSchema === VERIFY_SCHEMA) {
+    jest.spyOn(deps.fake, 'messageStructured').mockImplementation(async (req: any, attribution: any) => {
+      deps.fake.structuredCalls.push({ req, attribution });
+      if (req.schema === VERIFY_SCHEMA) {
         verifyCalls++;
         if (verifyCalls === 1) throw new HttpException({ statusCode: 503, error: 'upstream' }, 503);
-        return { pass: true, mismatches: [] };
+        return VERIFY_RESULT;
       }
-      return structuredFor(opts.outputSchema);
+      return structuredFor(req.schema);
     });
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
@@ -153,12 +184,13 @@ describe('SevenKeysService.generate', () => {
   it('gives up after MAX_ATTEMPTS transient failures and rethrows the last error', async () => {
     const deps = makeDeps();
     let verifyCalls = 0;
-    deps.anthropic.messageStructuredLegacy.mockImplementation(async (_i: any, _attr: any, opts: any) => {
-      if (opts.outputSchema === VERIFY_SCHEMA) {
+    jest.spyOn(deps.fake, 'messageStructured').mockImplementation(async (req: any, attribution: any) => {
+      deps.fake.structuredCalls.push({ req, attribution });
+      if (req.schema === VERIFY_SCHEMA) {
         verifyCalls++;
         throw new HttpException({ statusCode: 503, error: 'upstream' }, 503);
       }
-      return structuredFor(opts.outputSchema);
+      return structuredFor(req.schema);
     });
     const svc = await build(deps);
     await expect(svc.generate(DAY as any)).rejects.toBeInstanceOf(HttpException);
@@ -168,12 +200,13 @@ describe('SevenKeysService.generate', () => {
   it('does NOT retry a 422 refusal — it propagates so ensureKeys can skip the day', async () => {
     const deps = makeDeps();
     let currentCalls = 0;
-    deps.anthropic.messageStructuredLegacy.mockImplementation(async (_i: any, _attr: any, opts: any) => {
-      if (opts.outputSchema === CURRENT_SCHEMA) {
+    jest.spyOn(deps.fake, 'messageStructured').mockImplementation(async (req: any, attribution: any) => {
+      deps.fake.structuredCalls.push({ req, attribution });
+      if (req.schema === CURRENT_SCHEMA) {
         currentCalls++;
         throw new HttpException({ statusCode: 422, error: 'refused' }, 422);
       }
-      return structuredFor(opts.outputSchema);
+      return structuredFor(req.schema);
     });
     const svc = await build(deps);
     await expect(svc.generate(DAY as any)).rejects.toBeInstanceOf(HttpException);
@@ -182,6 +215,7 @@ describe('SevenKeysService.generate', () => {
 
   it('reports lookbackMissing for a recent prior complete day that has no KEYS', async () => {
     const deps = makeDeps();
+    queueGenerationRun(deps.fake);
     deps.inputs.priorCompleteDays.mockReturnValue([
       { day: '07012026', date: '2026-07-01' },
       { day: '07022026', date: '2026-07-02' },

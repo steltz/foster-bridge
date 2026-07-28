@@ -1,8 +1,10 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { AnthropicLlmProvider, CachedContext } from '../../anthropic/anthropic.service';
+import { LLM_PROVIDER } from '../../llm/llm.constants';
+import { LlmProvider } from '../../llm/llm.provider';
+import { PromptEnvelope } from '../../llm/llm.types';
 import { BenchmarkRepository, DayArtifactDoc } from '../benchmark.repository';
 import { RepoInputsService, DayInput } from '../repo-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
@@ -27,7 +29,7 @@ export class SevenKeysService {
   private readonly logger = new Logger(SevenKeysService.name);
 
   constructor(
-    private readonly anthropic: AnthropicLlmProvider,
+    @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly repo: BenchmarkRepository,
     private readonly inputs: RepoInputsService,
     private readonly dayArtifacts: DayArtifactsService,
@@ -46,8 +48,8 @@ export class SevenKeysService {
     return this.config.get<number>('benchmark.maxTokens') ?? 32000;
   }
 
-  private pdfContext(fileId: string): CachedContext {
-    return { userTiers: [{ blocks: [{ type: 'document', source: { type: 'file', file_id: fileId } } as any] }] };
+  private pdfContext(fileId: string): PromptEnvelope {
+    return { tiers: [{ blocks: [{ type: 'file', fileId }] }] };
   }
 
   // Current-day gets TWO cache tiers: the general-docs+methodology tier (stable
@@ -56,11 +58,11 @@ export class SevenKeysService {
   // the PDF. Previously generalDocs/methodsDoc were inlined into the uncached
   // trailing prompt text on every call — full price, every day, no reuse (see the
   // Fable-cost pressure test). This is the only call that needs generalDocs.
-  private currentDayContext(fileId: string, generalDocs: string, methodsDoc: string): CachedContext {
+  private currentDayContext(fileId: string, generalDocs: string, methodsDoc: string): PromptEnvelope {
     return {
-      userTiers: [
+      tiers: [
         { blocks: [{ type: 'text', text: generalAndMethodsBlock(generalDocs, methodsDoc) }] },
-        { blocks: [{ type: 'document', source: { type: 'file', file_id: fileId } } as any] },
+        { blocks: [{ type: 'file', fileId }] },
       ],
     };
   }
@@ -100,25 +102,29 @@ export class SevenKeysService {
     // Each call is retried on a transient upstream failure so one flaky step does
     // not throw away the prior Fable calls (a 422 refusal is NOT retried).
     const currentPromise = this.withRetry('current-day', () =>
-      this.anthropic.messageStructuredLegacy<Record<string, unknown>>(
-        { prompt: currentDayPrompt({ date: day.date, tpTranscript, recapTranscript }) },
-        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+      this.llm.messageStructured<Record<string, unknown>>(
         {
+          prompt: currentDayPrompt({ date: day.date, tpTranscript, recapTranscript }),
           model: CURRENT_DAY_MODEL,
-          outputSchema: CURRENT_SCHEMA,
-          files: true,
+          schema: CURRENT_SCHEMA,
           effort: this.effort,
           maxTokens: this.maxTokens,
-          context: this.currentDayContext(fileId, general.concatenated, methodsDoc),
+          envelope: this.currentDayContext(fileId, general.concatenated, methodsDoc),
         },
+        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
       ),
     );
     const lookbackPromise: Promise<Record<string, unknown> | null> = lookbackSet.length
       ? this.withRetry('lookback', () =>
-          this.anthropic.messageStructuredLegacy<Record<string, unknown>>(
-            { prompt: lookbackPrompt(day.date, lookbackSet) },
+          this.llm.messageStructured<Record<string, unknown>>(
+            {
+              prompt: lookbackPrompt(day.date, lookbackSet),
+              model: SEVEN_KEYS_MODEL,
+              schema: LOOKBACK_SCHEMA,
+              effort: this.effort,
+              maxTokens: this.maxTokens,
+            },
             { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-            { model: SEVEN_KEYS_MODEL, outputSchema: LOOKBACK_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
           ),
         )
       : Promise.resolve(null);
@@ -126,18 +132,29 @@ export class SevenKeysService {
 
     const sources = lookbackSet.length ? lookbackSources.join(' · ') : 'none — bootstrap';
     const synth = await this.withRetry('synthesize', () =>
-      this.anthropic.messageStructuredLegacy<{ artifact: string }>(
-        { prompt: synthesizePrompt(day.date, current, lookback, sources) },
+      this.llm.messageStructured<{ artifact: string }>(
+        {
+          prompt: synthesizePrompt(day.date, current, lookback, sources),
+          model: SEVEN_KEYS_MODEL,
+          schema: SYNTH_SCHEMA,
+          effort: this.effort,
+          maxTokens: this.maxTokens,
+        },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-        { model: SEVEN_KEYS_MODEL, outputSchema: SYNTH_SCHEMA, effort: this.effort, maxTokens: this.maxTokens },
       ),
     );
 
     const verdict = await this.withRetry('verify', () =>
-      this.anthropic.messageStructuredLegacy<{ pass: boolean; mismatches: string[] }>(
-        { prompt: verifyPrompt(day.date, tpTranscript, synth.artifact) },
+      this.llm.messageStructured<{ pass: boolean; mismatches: string[] }>(
+        {
+          prompt: verifyPrompt(day.date, tpTranscript, synth.artifact),
+          model: SEVEN_KEYS_MODEL,
+          schema: VERIFY_SCHEMA,
+          effort: this.effort,
+          maxTokens: this.maxTokens,
+          envelope: this.pdfContext(fileId),
+        },
         { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
-        { model: SEVEN_KEYS_MODEL, outputSchema: VERIFY_SCHEMA, files: true, effort: this.effort, maxTokens: this.maxTokens, context: this.pdfContext(fileId) },
       ),
     );
 
