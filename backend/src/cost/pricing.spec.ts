@@ -1,4 +1,4 @@
-import { priceUsage } from './pricing';
+import { priceUsage, cacheReadDiscountFactor } from './pricing';
 import { UsageTokens } from './cost.types';
 
 const zero: UsageTokens = { input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 };
@@ -74,35 +74,71 @@ describe('priceUsage – moonshot models', () => {
   const T = (o: Partial<UsageTokens> = {}): UsageTokens => ({
     input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0, ...o,
   });
-  const TS = '2026-07-28T00:00:00.000Z';
+  const MOONSHOT_TS = '2026-07-28T00:00:00.000Z';
 
   it('prices kimi-k3 input miss at $3/MTok and output at $15/MTok', () => {
-    const p = priceUsage(T({ input: 1_000_000, output: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
+    const p = priceUsage(T({ input: 1_000_000, output: 1_000_000 }), 'kimi-k3', 'standard', MOONSHOT_TS)!;
     expect(p.cost.input).toBeCloseTo(3, 8);
     expect(p.cost.output).toBeCloseTo(15, 8);
   });
 
   it('prices kimi-k3 cache-read at $0.30/MTok (0.1x miss)', () => {
-    const p = priceUsage(T({ cacheRead: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
+    const p = priceUsage(T({ cacheRead: 1_000_000 }), 'kimi-k3', 'standard', MOONSHOT_TS)!;
     expect(p.cost.cacheRead).toBeCloseTo(0.3, 8);
   });
 
   it('does NOT discount kimi-k3 on the batch tier (not batchable → batchMultiplier 1.0)', () => {
-    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
-    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'batch', TS)!;
+    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'standard', MOONSHOT_TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'batch', MOONSHOT_TS)!;
     expect(bat.cost.input).toBeCloseTo(std.cost.input, 8);
   });
 
+  it('prices kimi-k2.6 standard absolutes: $0.95/MTok in, $4.00/MTok out', () => {
+    const p = priceUsage(T({ input: 1_000_000, output: 1_000_000 }), 'kimi-k2.6', 'standard', MOONSHOT_TS)!;
+    expect(p.cost.input).toBeCloseTo(0.95, 8);
+    expect(p.cost.output).toBeCloseTo(4.0, 8);
+  });
+
+  it('prices kimi-k2.6 cache-read at $0.16/MTok (exercises the override path, not the global fallback)', () => {
+    const p = priceUsage(T({ cacheRead: 1_000_000 }), 'kimi-k2.6', 'standard', MOONSHOT_TS)!;
+    expect(p.cost.cacheRead).toBeCloseTo(0.16, 8);
+  });
+
   it('discounts kimi-k2.6 batch to 60% of standard (40% off)', () => {
-    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'standard', TS)!;
-    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'batch', TS)!;
+    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'standard', MOONSHOT_TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'batch', MOONSHOT_TS)!;
     expect(bat.cost.input).toBeCloseTo(std.cost.input * 0.6, 8);
   });
 
+  it('keeps kimi-k2.6 priority tier at 1x (batchMultiplier must not leak past the batch tier)', () => {
+    const p = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'priority', MOONSHOT_TS)!;
+    expect(p.cost.input).toBeCloseTo(0.95, 8);
+  });
+
+  it('pins the full kimi-k2.7-code rate card and its batch total at 60% of standard', () => {
+    const tokens = T({ input: 1_000_000, output: 1_000_000, cacheRead: 1_000_000 });
+    const std = priceUsage(tokens, 'kimi-k2.7-code', 'standard', MOONSHOT_TS)!;
+    expect(std.cost.input).toBeCloseTo(0.95, 8);
+    expect(std.cost.output).toBeCloseTo(4.0, 8);
+    expect(std.cost.cacheRead).toBeCloseTo(0.19, 8);
+    const bat = priceUsage(tokens, 'kimi-k2.7-code', 'batch', MOONSHOT_TS)!;
+    expect(bat.cost.total).toBeCloseTo(std.cost.total * 0.6, 8);
+  });
+
   it('keeps the Anthropic batch tier at 0.5x (regression guard)', () => {
-    const std = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'standard', TS)!;
-    const bat = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'batch', TS)!;
+    const std = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'standard', MOONSHOT_TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'batch', MOONSHOT_TS)!;
     expect(bat.cost.input).toBeCloseTo(std.cost.input * 0.5, 8);
     expect(std.cost.input).toBeCloseTo(10, 8);
+  });
+});
+
+describe('cacheReadDiscountFactor', () => {
+  it('returns 9 for a model with no cacheReadMultiplier override (global CACHE_READ = 0.1)', () => {
+    expect(cacheReadDiscountFactor('kimi-k3', TS)).toBeCloseTo(9, 8);
+  });
+
+  it('returns 4.9375 for kimi-k2.6 (per-model cacheReadMultiplier override, not the global 9)', () => {
+    expect(cacheReadDiscountFactor('kimi-k2.6', TS)).toBeCloseTo(4.9375, 8);
   });
 });

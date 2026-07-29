@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CostRepository, ListFilters } from './cost.repository';
-import { priceUsage, CACHE_READ_DISCOUNT_FACTOR } from './pricing';
+import { priceUsage, cacheReadDiscountFactor } from './pricing';
 import { CostRecord, UsageEvent } from './cost.types';
 
 export type GroupBy = 'tier' | 'operation' | 'model' | 'day' | 'trader' | 'variant' | 'date';
@@ -95,8 +95,8 @@ export class CostService {
     for (const r of records) {
       const usd = r.cost?.total ?? 0;
       totalUsd += usd;
-      // Gross read discount vs full input price (factor derived from CACHE_READ).
-      grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * CACHE_READ_DISCOUNT_FACTOR;
+      // Gross read discount vs full input price (factor derived per-model).
+      grossCacheReadDiscountUsd += (r.cost?.cacheRead ?? 0) * cacheReadDiscountFactor(r.model.id, r.timestamp);
       // Net = uncached-input-equivalent - actual input-side cost paid (input+read+create).
       if (r.cost) {
         netCacheBenefitUsd += r.cost.uncachedInputEquiv - (r.cost.input + r.cost.cacheRead + r.cost.cacheCreate);
