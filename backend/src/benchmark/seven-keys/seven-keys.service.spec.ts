@@ -120,12 +120,16 @@ describe('SevenKeysService.generate', () => {
     expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [], lookbackMissing: [] });
   });
 
-  it('threads benchmark.model through resolveModel to every call (config -> model wiring)', async () => {
+  it('threads benchmark.model through resolveModel to every call, including lookback (config -> model wiring)', async () => {
     const deps = makeDeps();
-    queueGenerationRun(deps.fake, { lookback: false });
+    queueGenerationRun(deps.fake); // includes lookback
+    deps.inputs.priorCompleteDays.mockReturnValue([{ day: '07012026', date: '2026-07-01' }]);
+    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) =>
+      kind === 'keys' ? { content: `KEYS-${d}` } : null,
+    );
     const svc = await build(deps, { 'benchmark.model': 'k3' });
     await svc.generate(DAY as any);
-    expect(deps.fake.structuredCalls.length).toBeGreaterThan(0);
+    expect(deps.fake.structuredCalls.length).toBe(4); // current, lookback, synth, verify
     for (const call of deps.fake.structuredCalls) {
       expect(call.req.model).toBe('kimi-k3');
       expect(call.attribution.benchmark?.modelAlias).toBe('k3');
