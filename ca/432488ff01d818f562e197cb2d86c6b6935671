@@ -1,0 +1,28 @@
+docs/superpowers/specs/2026-07-28-moonshot-llm-provider-design.md
+  s_5960090fb39247::t_7a66de128fe16a 32-37
+  s_5960090fb39247::t_ca99aab8854daa 387-398
+  s_5960090fb39247::t_9656db8c2b679d 364-372
+  s_5960090fb39247::t_931707ec5662b7 3
+  s_5960090fb39247::t_298c16d2975846 354-355,358
+  s_5960090fb39247::t_f7243f207c147a 408-422
+  s_5960090fb39247::t_0ebfafc33fc979 149-151,158-177
+  s_5960090fb39247::t_b496b1d55fcc1c 233-278
+  s_5960090fb39247::t_33315f63c461a0 178
+  s_5960090fb39247::t_200e09f50f050d 359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ca432488ff01d818f562e197cb2d86c6b6935671",
+  "prompts": {},
+  "sessions": {
+    "s_5960090fb39247": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "38ffae10-6ff9-42a3-9545-0ed905c22e18",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
