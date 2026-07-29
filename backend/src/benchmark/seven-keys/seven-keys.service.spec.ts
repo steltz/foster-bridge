@@ -71,7 +71,11 @@ function makeDeps() {
   return { fake, repo, inputs, dayArtifacts };
 }
 
-async function build(deps: ReturnType<typeof makeDeps>) {
+// configOverrides layers on top of the { 'benchmark.effort': 'high' } default so
+// individual tests can pin e.g. 'benchmark.model' without hand-rolling a new
+// ConfigService stub each time.
+async function build(deps: ReturnType<typeof makeDeps>, configOverrides: Record<string, unknown> = {}) {
+  const config: Record<string, unknown> = { 'benchmark.effort': 'high', ...configOverrides };
   const moduleRef = await Test.createTestingModule({
     providers: [
       SevenKeysService,
@@ -79,7 +83,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: RepoInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
-      { provide: ConfigService, useValue: { get: (k: string) => (k === 'benchmark.effort' ? 'high' : undefined) } },
+      { provide: ConfigService, useValue: { get: (k: string) => config[k] } },
     ],
   }).compile();
   return moduleRef.get(SevenKeysService);
@@ -90,7 +94,7 @@ describe('SevenKeysService.generate', () => {
     (readFileSync as jest.Mock).mockImplementation((p: string) => (String(p).includes('RECAP') ? 'RECAP' : 'TP'));
   });
 
-  it('bootstrap: skips the lookback agent and runs current(pinned fable) -> synth -> verify', async () => {
+  it('bootstrap: skips the lookback agent and runs current(config-derived flagship) -> synth -> verify', async () => {
     const deps = makeDeps();
     queueGenerationRun(deps.fake, { lookback: false });
     const svc = await build(deps);
@@ -100,7 +104,7 @@ describe('SevenKeysService.generate', () => {
     expect(schemas).toContain(SYNTH_SCHEMA);
     expect(schemas).toContain(VERIFY_SCHEMA);
     expect(schemas).not.toContain(LOOKBACK_SCHEMA); // no prior KEYS -> bootstrap
-    // Current-day is explicitly pinned to Fable and carries the PDF via envelope.
+    // Current-day runs on the config-derived flagship (default: claude-fable-5) and carries the PDF via envelope.
     const currentCall = findCall(deps.fake, CURRENT_SCHEMA);
     expect(currentCall.req.model).toBe('claude-fable-5');
     expect(currentCall.req.effort).toBe('high');
@@ -114,6 +118,18 @@ describe('SevenKeysService.generate', () => {
       expect.objectContaining({ blocks: expect.arrayContaining([{ type: 'file', fileId: 'file_1' }]) }),
     );
     expect(out).toEqual({ verified: true, mismatches: [], artifact: '# Seven Keys — ES 2026-07-08\n\n| row |', lookbackSources: [], lookbackMissing: [] });
+  });
+
+  it('threads benchmark.model through resolveModel to every call (config -> model wiring)', async () => {
+    const deps = makeDeps();
+    queueGenerationRun(deps.fake, { lookback: false });
+    const svc = await build(deps, { 'benchmark.model': 'k3' });
+    await svc.generate(DAY as any);
+    expect(deps.fake.structuredCalls.length).toBeGreaterThan(0);
+    for (const call of deps.fake.structuredCalls) {
+      expect(call.req.model).toBe('kimi-k3');
+      expect(call.attribution.benchmark?.modelAlias).toBe('k3');
+    }
   });
 
   it('runs the lookback agent oldest-first when prior KEYS exist, and reports sources oldest-first', async () => {

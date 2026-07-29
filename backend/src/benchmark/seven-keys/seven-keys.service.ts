@@ -45,14 +45,19 @@ export class SevenKeysService {
   }
 
   // Provider-aware flagship (Fable on Anthropic, Kimi K3 on Moonshot). All four
-  // seven-keys agents run on it; a blind comparison found the flagship more
-  // methodology-faithful than the mid-tier model for grading.
+  // seven-keys agents run on it; on Anthropic a blind comparison found Fable
+  // more methodology-faithful than Sonnet for grading; current-day is no
+  // longer a separate pin.
+  private get flagship(): { alias: string; id: string } {
+    return resolveModel(this.config.get<string>('benchmark.model') ?? 'claude-fable-5');
+  }
+
   private get flagshipModel(): string {
-    return this.config.get<string>('benchmark.model') ?? 'claude-fable-5';
+    return this.flagship.id;
   }
 
   private get flagshipAlias(): string {
-    return resolveModel(this.flagshipModel).alias;
+    return this.flagship.alias;
   }
 
   private pdfContext(fileId: string): PromptEnvelope {
@@ -74,7 +79,7 @@ export class SevenKeysService {
     };
   }
 
-  /** Runs current-day ∥ lookback -> synthesize -> verify on Fable. Never persists. */
+  /** Runs current-day ∥ lookback -> synthesize -> verify on the flagship model. Never persists. */
   async generate(day: DayInput): Promise<KeysArtifact> {
     const methodsDoc = this.inputs.readMethodsDoc();
     if (!methodsDoc) throw new Error(`Seven-keys methods doc missing (day ${day.day})`);
@@ -107,7 +112,7 @@ export class SevenKeysService {
     const lookbackMissing = prior.slice(-3).filter((p) => !haveKeys.has(p.day)).map((p) => p.day);
 
     // Each call is retried on a transient upstream failure so one flaky step does
-    // not throw away the prior Fable calls (a 422 refusal is NOT retried).
+    // not throw away the prior flagship calls (a 422 refusal is NOT retried).
     const currentPromise = this.withRetry('current-day', () =>
       this.llm.messageStructured<Record<string, unknown>>(
         {
@@ -274,7 +279,7 @@ export class SevenKeysService {
 
   // Bounded retry for the generation chain. Retries only transient upstream
   // failures (HTTP 429 / 5xx, or a raw non-HttpException error) so one flaky call
-  // doesn't discard the prior Fable calls; a 422 refusal — a deterministic content
+  // doesn't discard the prior flagship calls; a 422 refusal — a deterministic content
   // decision — is NOT retried and propagates to ensureKeys as a day skip.
   private async withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
     const MAX_ATTEMPTS = 3;
