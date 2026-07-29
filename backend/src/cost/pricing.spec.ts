@@ -69,3 +69,40 @@ describe('priceUsage', () => {
     expect(net).toBeLessThan(0);
   });
 });
+
+describe('priceUsage – moonshot models', () => {
+  const T = (o: Partial<UsageTokens> = {}): UsageTokens => ({
+    input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0, ...o,
+  });
+  const TS = '2026-07-28T00:00:00.000Z';
+
+  it('prices kimi-k3 input miss at $3/MTok and output at $15/MTok', () => {
+    const p = priceUsage(T({ input: 1_000_000, output: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
+    expect(p.cost.input).toBeCloseTo(3, 8);
+    expect(p.cost.output).toBeCloseTo(15, 8);
+  });
+
+  it('prices kimi-k3 cache-read at $0.30/MTok (0.1x miss)', () => {
+    const p = priceUsage(T({ cacheRead: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
+    expect(p.cost.cacheRead).toBeCloseTo(0.3, 8);
+  });
+
+  it('does NOT discount kimi-k3 on the batch tier (not batchable → batchMultiplier 1.0)', () => {
+    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'standard', TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k3', 'batch', TS)!;
+    expect(bat.cost.input).toBeCloseTo(std.cost.input, 8);
+  });
+
+  it('discounts kimi-k2.6 batch to 60% of standard (40% off)', () => {
+    const std = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'standard', TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'kimi-k2.6', 'batch', TS)!;
+    expect(bat.cost.input).toBeCloseTo(std.cost.input * 0.6, 8);
+  });
+
+  it('keeps the Anthropic batch tier at 0.5x (regression guard)', () => {
+    const std = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'standard', TS)!;
+    const bat = priceUsage(T({ input: 1_000_000 }), 'claude-fable-5', 'batch', TS)!;
+    expect(bat.cost.input).toBeCloseTo(std.cost.input * 0.5, 8);
+    expect(std.cost.input).toBeCloseTo(10, 8);
+  });
+});
