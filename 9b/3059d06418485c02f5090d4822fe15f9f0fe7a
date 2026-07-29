@@ -1,0 +1,30 @@
+backend/src/cost/pricing.ts
+  s_2b4b60567393e1::t_74cc18ced6f83e 39
+  s_2b4b60567393e1::t_74ffce09716b09 35-36,38,42-59,73
+backend/src/cost/report.builder.ts
+  s_2b4b60567393e1::t_1a7079b4f5aaf5 2
+  s_2b4b60567393e1::t_bb08160097c4d7 30
+backend/src/cost/pricing.spec.ts
+  s_2b4b60567393e1::t_efbe81185ea5c6 1
+  s_2b4b60567393e1::t_9db2ce80654ee9 77,80,86,91-92,96-106,108-109,113-127,129-130,135-143
+  s_2b4b60567393e1::t_07bb068bc4f326 144
+backend/src/cost/cost.service.ts
+  s_2b4b60567393e1::t_b958ca71b7abd4 98-99
+  s_2b4b60567393e1::t_b2035dfa561496 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9b3059d06418485c02f5090d4822fe15f9f0fe7a",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
