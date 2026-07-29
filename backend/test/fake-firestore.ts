@@ -1,5 +1,6 @@
 // In-memory Firestore fake. Supports the access patterns the app uses:
 //   collection(path).doc(id).get() / .create(data) / .set(data) / .update(data)
+//   collection(path).doc(id).collection(sub) -> nested collectionRef, keyed by full path
 //   collection(path).get()
 //   collection(path).select(...).get()
 //   collection(path).where(field, op, value)[.where(...)].get()  (op '==' | 'in')
@@ -26,6 +27,11 @@ export function fakeFirestore() {
         docs.has(path)
           ? Promise.resolve(void docs.set(path, { ...docs.get(path), ...data }))
           : Promise.reject(Object.assign(new Error(`NOT_FOUND: ${path}`), { code: 5 })),
+      delete: () => Promise.resolve(void docs.delete(path)),
+      // Subcollection off this doc, e.g. moonshotExtracts/<hash>.collection('chunks').
+      // listDocs' depth filter is parameterized by base, so it already scopes
+      // correctly to whatever nested path this produces.
+      collection: (sub: string) => collectionRef(`${path}/${sub}`),
     };
   }
 
