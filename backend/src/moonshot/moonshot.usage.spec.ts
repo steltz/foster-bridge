@@ -11,6 +11,8 @@ describe('tokensFromUsage – moonshot', () => {
     expect(tokensFromUsage(undefined)).toEqual({
       input: 0, cacheRead: 0, cacheCreate5m: 0, cacheCreate1h: 0, output: 0,
     });
-    expect(tokensFromUsage({ prompt_tokens: 10, cached_tokens: 40 }).input).toBe(0);
+    expect(tokensFromUsage({ prompt_tokens: 10, cached_tokens: 40 })).toEqual({
+      input: 0, cacheRead: 40, cacheCreate5m: 0, cacheCreate1h: 0, output: 0,
+    });
   });
 });
