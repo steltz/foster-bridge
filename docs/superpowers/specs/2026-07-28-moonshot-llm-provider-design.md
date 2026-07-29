@@ -1,6 +1,6 @@
 # Moonshot (Kimi K3) LLM Provider — Design Spec
 
-*Date: 2026-07-28. Status: approved design, pending spec review → implementation plan.*
+*Date: 2026-07-28 (revised same day — hardening pass, decisions D5–D8). Status: approved design; plan drafted. Hardening folded into §6.1.1, §6.4, §7, §8, §9, §10.*
 
 ## 1. Goal & context
 
@@ -29,6 +29,12 @@ OpenAI-compatible (`openai` Node SDK via `baseURL` swap).
 | D2 | Model identity across providers | **Provider-aware `flagship` alias** (Anthropic→`claude-fable-5`, Moonshot→`kimi-k3`) |
 | D3 | K3 vs batch (K3 is NOT batchable) | **Hybrid adapter, K3 stays flagship**: native batch for batchable models, emulated batch for K3 |
 | D4 | Emulated-batch execution model | **Durable worker + restart recovery** (Firestore-persisted, `OnApplicationBootstrap` resume) |
+| D5 | Emulated multi-process safety | **Transactional item claiming** (`pending → running` with a lease) so `kick()` and bootstrap-resume never double-run an item across instances |
+| D6 | Emulated stuck-batch handling | **Batch `expiresAt`** → past deadline with non-terminal items, mark the batch terminal `errored`; the reconciler re-queues those run-indices |
+| D7 | Emulated cache priming | **Prefix-grouped fan-out** — group items by `prompt_cache_key`, prime one call per group before fanning it out (a single global prime warms only one of many cell prefixes) |
+| D8 | Structured-output strict mode | **Provider-aware schema shaping** (`toMoonshotSchema` — all properties required, optionals nullable) + `walle` validation + a `json_object`/`partial` fallback |
+
+*D5–D8 are a hardening pass over D3/D4's emulated path (the novel, highest-risk component); they change no external interface — only the Moonshot adapter's internals, data model, and config.*
 
 ## 3. Verified API facts (July 2026)
 
@@ -140,13 +146,35 @@ Anthropic's `message()`/demo path is untouched.
 - Build messages via `moonshot.envelope.buildRequest(req.envelope, req.prompt)`; if no envelope,
   a single `user` message with `req.prompt` (and `req.system` as a leading `system` message).
 - Request: `{model, messages, max_completion_tokens, reasoning_effort,
-  response_format:{type:'json_schema', json_schema:{name:'setup', strict:true, schema}},
-  prompt_cache_key}` (omit `temperature`/`top_p`/`top_k` entirely).
+  response_format:{type:'json_schema', json_schema:{name:'setup', strict:true,
+  schema: toMoonshotSchema(schema)}}, prompt_cache_key}` (omit `temperature`/`top_p`/`top_k`
+  entirely; see §6.1.1 for `toMoonshotSchema` and the fallback).
 - Emit `llm.usage` (`source:'sync'`, `serviceTier:'standard'`) **before** any refusal throw,
   mirroring Anthropic ordering.
 - Errors: `content_filter` (400) → HTTP 422 refusal; `finish_reason==='length'` → HTTP 502
   (incomplete); non-JSON `content` → HTTP 502; map `429/5xx` to the existing rethrow shape.
 - Parse `choices[0].message.content` → `JSON.parse`.
+
+### 6.1.1 Structured-output strict mode & fallback (D8)
+
+Moonshot `strict:true` json_schema is expected to follow OpenAI strict semantics, which — unlike
+the Anthropic validator `SETUP_SCHEMA` was written for — **forbid optional properties**: every key
+in `properties` must appear in `required` (with `additionalProperties:false`). `SETUP_SCHEMA`
+declares `rejectedAlternative` in `properties` but **not** in `required`, so a naive `strict:true`
+send would reject it on the very first K3 call. Mitigation, in order:
+
+1. **Provider-aware schema shaping — `toMoonshotSchema(schema)`:** a pure transform that adds every
+   `properties` key to `required` and makes originally-optional ones nullable
+   (`{ type: ['string','null'] }` or `anyOf:[<T>,{type:'null'}]`, whichever `walle` accepts). The
+   reconciler already tolerates a missing/`null` `rejectedAlternative`, so nulling it is safe. This
+   keeps `strict:true` (highest reliability) while satisfying OpenAI-strict. Applied on **both** the
+   sync (`messageStructured`) and batch (JSONL body / emulated item) paths so they share one shape.
+2. **`walle` CI validation** of the shaped schema before shipping (the docs provide this validator
+   for `strict=true`).
+3. **Implemented fallback (not just named):** if a model/schema rejects strict json_schema, fall
+   back to `response_format:{type:'json_object'}` + a trailing `{role:'assistant', content:'{',
+   partial:true}` prefill to force a JSON object, then rely on the existing downstream `JSON.parse`
+   + reconciler re-validation. Selected per call via a small helper so sync and batch share it.
 
 ### 6.2 Envelope / caching (`moonshot.envelope.ts`)
 
@@ -202,29 +230,52 @@ The synthetic id is opaque to the benchmark (day-artifacts persists whatever str
   map per `custom_id`: `status_code 200` + parseable content → `succeeded` (text + usage via
   `tokensFromUsage`, `cacheReadTokens = cached_tokens`); content_filter → `refusal`; else `errored`.
 
-**Emulated path (K3):** durable worker + recovery (D4).
+**Emulated path (K3):** durable worker + recovery (D4), hardened for multi-process safety (D5),
+stuck-batch expiry (D6), and prefix-grouped cache priming (D7).
 
-- `submitBatch`: persist a batch doc `moonshotBatches/{batchId}` `{batchId, model, opts(model,
-  schema,maxTokens,effort), status:'in_progress', total, createdAt}` and one item doc
-  `.../items/{customId}` `{customId, params(rendered request), status:'pending'}` per request.
-  `batchId` is a minted synthetic id (e.g. `msb_{uuid-like}` from injected id source — no
-  `Math.random`/`Date.now` restrictions apply in normal app code, only in workflow scripts).
-  Return `{batchId, status:'submitted'}` immediately (no LLM work inline).
-- `MoonshotBatchWorker`: for each `in_progress` batch, drain `pending` items with bounded
-  concurrency (`MOONSHOT_BATCH_CONCURRENCY`, default 8). **Prime-then-fan-out:** run one item
-  first (warms the implicit cache), then fan out the rest to maximize cache hits. Each item →
-  sync `chat/completions`; persist result doc `{status:'succeeded'|'refusal'|'errored', text?,
-  usage?, error?}`. Classify errors: `content_filter` → `refusal` (permanent, recorded);
-  `429`/`5xx`/network → retry with exponential backoff, then `errored` (transient → reconciler
-  re-queues the run-index). When all items terminal → set batch `status:'ended'`.
-- Recovery: `OnApplicationBootstrap` scans `moonshotBatches` where `status:'in_progress'` and
-  resumes draining their remaining `pending` items (idempotent — only untouched items).
-  Concurrency guard prevents overlapping drains of the same batch across the worker tick and
-  bootstrap.
-- `getBatch`: read batch doc → `in_progress` until all items terminal → `ended`.
-- `getBatchResults`: read all item docs → `BatchItemResult[]`.
-- GC: a cron drops `moonshotBatches` in terminal state older than a TTL (the cache-warmer fires
-  fire-and-forget 1-item emulated batches that are never reconciled, so they must self-clean).
+- `submitBatch`: mint `batchId = msb_{randomUUID()}` (opaque; nothing parses it) and persist a
+  batch doc `moonshotBatches/{batchId}` `{batchId, model, opts(schema,maxTokens,effort),
+  batchEnvelope?, status:'in_progress', total, createdAt, expiresAt}` where
+  `expiresAt = createdAt + moonshot.batchMaxAgeMs` (default 3h), plus one item doc
+  `.../items/{customId}` `{customId, prompt, envelope?, status:'pending', attempts:0}` per request.
+  Items store the **neutral** `BatchItemRequest` (file blocks stay as ids, not resolved text), so
+  docs stay small. Return `{batchId, status:'submitted'}` immediately (no LLM work inline); kick
+  the worker.
+- **Item claiming (D5 — multi-process safe):** the worker never runs a bare `pending` item. It
+  claims each item in a **Firestore transaction**: read → if `status==='pending'`, or
+  `status==='running'` with an expired `leaseUntil`, set `status:'running'`,
+  `leaseUntil = now + LEASE_MS` (10 min), `attempts += 1`; else skip (another process owns it).
+  Only the transaction winner issues the chat call. This makes `kick()` (from `submitBatch`, on
+  whichever instance ran the benchmark) and `OnApplicationBootstrap` resume (on every booted
+  instance) safe to run concurrently without ever double-spending on the same item — the
+  in-process guard alone cannot span processes.
+- **Prefix-grouped fan-out (D7 — real cache benefit):** group claimable items by their envelope
+  hash (`sha256(JSON.stringify(item.envelope ?? batchEnvelope))`, 1:1 with `prompt_cache_key`). For
+  each group, run ONE item first and await it (primes that prefix's implicit cache), then fan the
+  group's remaining items out under bounded concurrency (`MOONSHOT_BATCH_CONCURRENCY`, default 8),
+  with the same bound applied across groups. A single global prime warms only one of many distinct
+  cell prefixes in a benchmark batch — each cell's prefix must be primed once for its sibling
+  `runIndex`es to land cache hits. This is what makes the ~90% caching benefit in §6.6 actually hold
+  for the emulated path.
+- Each claimed item → sync `chat/completions`; on completion persist the terminal item state
+  `{status:'succeeded'|'refusal'|'errored', text?, usage?, cacheReadTokens?, error?}` (which clears
+  the lease). Classify: `content_filter` → `refusal` (permanent, recorded); `429`/`5xx`/network →
+  retry with exponential backoff, then `errored` (transient → reconciler re-queues the run-index).
+- **Batch expiry (D6 — no stuck batches):** on each drain tick, if `now > expiresAt` and any item
+  is still non-terminal, mark the batch terminal `errored`. `getBatch` then returns `errored`, the
+  reconciler marks its `benchmarkBatch` terminal, and the affected `runIndex`es re-queue cleanly on
+  the next `run()`. Without this, a worker that dies with no instance resuming would leave the batch
+  `in_progress` forever — polled every minute forever and silently re-queued into duplicate batches.
+- Recovery: `OnApplicationBootstrap` (guarded to `llm.provider==='moonshot'`) scans `moonshotBatches`
+  where `status:'in_progress'` and re-drains them; claiming (D5) makes this idempotent and safe
+  alongside a live `kick()`.
+- `getBatch`: batch doc `status` → `in_progress` | `ended` | `errored` (a batch `ends` once every
+  item is terminal). `getBatchResults`: read the item docs → `BatchItemResult[]` (skip any still
+  `pending`/`running`).
+- GC: a cron deletes terminal (`ended`/`errored`) `moonshotBatches` older than
+  `endedAt + moonshot.batchGcTtlMs` (default 24h) — keyed off the **terminal** time, not
+  `createdAt`, so a lagging reconciler can never have results deleted out from under it. This also
+  self-cleans the cache-warmer's fire-and-forget 1-item emulated batches (never reconciled).
 
 The reconciler is unchanged: it treats only `succeeded`/`refusal` items as real results and
 re-queues everything else; it hardcodes `serviceTier:'batch'` on emitted usage
@@ -300,16 +351,25 @@ benchmark + seven-keys run on `kimi-k3`.
 | `moonshot.model` | `MOONSHOT_MODEL` | `kimi-k3` |
 | `moonshot.batchConcurrency` | `MOONSHOT_BATCH_CONCURRENCY` | `8` |
 | `moonshot.completionWindow` | `MOONSHOT_COMPLETION_WINDOW` | `1d` |
+| `moonshot.batchMaxAgeMs` | `MOONSHOT_BATCH_MAX_AGE_MS` | `10800000` (3h) — emulated-batch expiry (D6) |
+| `moonshot.batchGcTtlMs` | `MOONSHOT_BATCH_GC_TTL_MS` | `86400000` (24h) — terminal-batch GC, from `endedAt` |
 | `benchmark.model` (provider-aware) | `BENCHMARK_MODEL` | `kimi-k3` when `LLM_PROVIDER=moonshot`, else `claude-fable-5` |
+
+(`LEASE_MS`, the item-claim lease, is a fixed 10-min constant — not env-tunable.)
 
 ## 8. Data model (Firestore, Moonshot-owned)
 
 - `moonshotExtracts/{sha256}` → `{ text, filename?, mediaType?, createdAt }` (+ optional
   `chunks/{n}` subcollection for >~900 KB extracts).
-- `moonshotBatches/{batchId}` → `{ batchId, model, opts, status:'in_progress'|'ended'|'errored',
-  total, createdAt, endedAt? }`.
-- `moonshotBatches/{batchId}/items/{customId}` → `{ customId, params, status:'pending'|'succeeded'|
-  'refusal'|'errored', text?, usage?, error?, attemptedAt? }`.
+- `moonshotBatches/{batchId}` → `{ batchId, model, opts, batchEnvelope?,
+  status:'in_progress'|'ended'|'errored', total, createdAt, expiresAt, endedAt? }`.
+- `moonshotBatches/{batchId}/items/{customId}` → `{ customId, prompt, envelope?,
+  status:'pending'|'running'|'succeeded'|'refusal'|'errored', attempts, leaseUntil?, text?,
+  usage?, cacheReadTokens?, error? }`.
+
+`status:'running'` + `leaseUntil` are the claim (D5): a claim is a Firestore transaction that flips
+`pending → running` (or reclaims a `running` item whose `leaseUntil` has passed) and bumps
+`attempts`; only the winner runs the call. `expiresAt` bounds a stuck batch (D6).
 
 The adapter depends on the existing global `FIRESTORE` provider (as `BenchmarkRepository` does),
 wrapped behind `MoonshotBatchStore`/`MoonshotExtractStore` interfaces so the service is not
@@ -324,9 +384,18 @@ coupled to Firestore directly.
   (incl. `input = prompt−cached`, cache-create always 0).
 - `moonshot.envelope.spec.ts` — tiers → ordered `system` messages, file-block resolution to
   extracted text, trailing prompt as final `user`, stable `prompt_cache_key` across runs.
-- Emulated-batch spec — submit persists items; worker drains with prime-then-fan-out; **restart
-  recovery** resumes `in_progress`; `content_filter`→`refusal` (kept) vs `429/5xx`→`errored`
-  (re-queued); GC removes terminal batches.
+- Emulated-batch spec — submit persists items; worker drains and terminates; **restart recovery**
+  resumes `in_progress`; `content_filter`→`refusal` (kept) vs `429/5xx`→`errored` (re-queued); GC
+  removes terminal batches (by `endedAt + TTL`).
+- Claiming spec (D5) — two concurrent `drainBatch` calls (two simulated processes) execute each
+  item **exactly once** (chat-call counter == item count); a `running` item with an expired
+  `leaseUntil` is reclaimable, a fresh one is not.
+- Expiry spec (D6) — a batch past `expiresAt` with non-terminal items is marked `errored` and stops
+  being polled; `getBatch` returns `errored`.
+- Grouped-priming spec (D7) — items sharing an envelope are primed once (first group call awaited
+  before the group's rest start); distinct envelopes each get their own prime.
+- Schema-shaping spec (D8) — `toMoonshotSchema(SETUP_SCHEMA)` marks every property `required` with
+  the optional one nullable; a strict-reject engages the `json_object`/`partial` fallback.
 - Native-batch spec — JSONL line shape (no `temperature`/`top_p`; single model; `endpoint`;
   `completion_window` mapping/validation), status mapping, output/error-file parsing.
 - Pricing spec — K3 batch priced == standard (`batchMultiplier:1.0`); code models 40% off;
@@ -336,9 +405,21 @@ coupled to Firestore directly.
 
 ## 10. Risks & open items
 
-- **`walle` MFJS validation:** `SETUP_SCHEMA` is expected to fit the safe subset (it already
-  avoids `maxLength/min/max` for Anthropic). Add a CI check with `walle` if available; otherwise
-  fall back to `json_object` + `partial:true` prefill for any model with unstable schema support.
+- **Structured-output strict mode:** addressed in §6.1.1 (D8) via `toMoonshotSchema` shaping +
+  `walle` validation + a `json_object`/`partial` fallback — no longer an open risk, since
+  `SETUP_SCHEMA`'s optional `rejectedAlternative` would otherwise fail `strict:true` on the first
+  K3 call.
+- **K3 completion-token budget:** K3 always reasons at `reasoning_effort` high/max, and the 32000
+  `max_completion_tokens` default (tuned for Fable) may truncate a heavy-reasoning setup
+  (`finish_reason:length` → 502 → retry churn). Track the truncation rate; raise
+  `BENCHMARK_MAX_TOKENS` for K3 if observed (K3 ceiling is 1,048,576).
+- **Multi-process emulated drain:** addressed by transactional item claiming (§6.4, D5); the
+  in-process guard alone is insufficient when `kick()` and bootstrap-resume run on different
+  instances.
+- **Firestore write amplification:** emulated batches write one item doc at submit + one claim
+  transaction + one result write per request — thousands of writes on a large run vs Anthropic's
+  single server-side batch. Well within Firestore's per-DB write ceiling, but the cost/throughput
+  trade-off is the price of durable emulation; batchable models (native path) avoid it.
 - **Firestore 1 MiB limit** on extracted text — mitigated by chunking (§6.3).
 - **Rate limits / tiers:** Moonshot concurrency/RPM are tiered by cumulative recharge; the
   emulated worker must honor `MOONSHOT_BATCH_CONCURRENCY` and back off on
