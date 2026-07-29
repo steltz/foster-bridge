@@ -24,6 +24,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/schedule": "^4.1.0",
     "firebase-admin": "^12.3.0",
+    "openai": "^4.104.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

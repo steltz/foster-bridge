@@ -109,3 +109,35 @@ describe('configuration benchmark schedulerEnabled', () => {
     }
   });
 });
+
+describe('configuration – moonshot', () => {
+  const ENV = process.env;
+  beforeEach(() => {
+    process.env = { ...ENV };
+  });
+  afterEach(() => {
+    process.env = ENV;
+  });
+
+  it('defaults the moonshot block', () => {
+    delete process.env.MOONSHOT_API_KEY;
+    const cfg = configuration();
+    expect(cfg.moonshot.baseUrl).toBe('https://api.moonshot.ai/v1');
+    expect(cfg.moonshot.model).toBe('kimi-k3');
+    expect(cfg.moonshot.batchConcurrency).toBe(8);
+    expect(cfg.moonshot.completionWindow).toBe('1d');
+    expect(cfg.moonshot.apiKey).toBeUndefined();
+  });
+
+  it('defaults benchmark.model to kimi-k3 when LLM_PROVIDER=moonshot', () => {
+    process.env.LLM_PROVIDER = 'moonshot';
+    delete process.env.BENCHMARK_MODEL;
+    expect(configuration().benchmark.model).toBe('kimi-k3');
+  });
+
+  it('keeps benchmark.model as claude-fable-5 for anthropic', () => {
+    delete process.env.LLM_PROVIDER;
+    delete process.env.BENCHMARK_MODEL;
+    expect(configuration().benchmark.model).toBe('claude-fable-5');
+  });
+});

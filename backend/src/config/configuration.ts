@@ -11,6 +11,15 @@ export interface AppConfig {
     model: string;
     maxTokens: number;
   };
+  moonshot: {
+    apiKey?: string;
+    baseUrl: string;
+    model: string;
+    batchConcurrency: number;
+    completionWindow: string;
+    batchMaxAgeMs: number;
+    batchGcTtlMs: number;
+  };
   llm: {
     provider: string;
   };
@@ -40,12 +49,25 @@ export default (): AppConfig => ({
     model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
     maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? '4096', 10),
   },
+  moonshot: {
+    apiKey: process.env.MOONSHOT_API_KEY,
+    baseUrl: process.env.MOONSHOT_BASE_URL ?? 'https://api.moonshot.ai/v1',
+    model: process.env.MOONSHOT_MODEL ?? 'kimi-k3',
+    batchConcurrency: parseInt(process.env.MOONSHOT_BATCH_CONCURRENCY ?? '8', 10),
+    completionWindow: process.env.MOONSHOT_COMPLETION_WINDOW ?? '1d',
+    // D6: emulated-batch expiry (3h) and D5/D6 GC TTL from endedAt (24h).
+    batchMaxAgeMs: parseInt(process.env.MOONSHOT_BATCH_MAX_AGE_MS ?? '10800000', 10),
+    batchGcTtlMs: parseInt(process.env.MOONSHOT_BATCH_GC_TTL_MS ?? '86400000', 10),
+  },
   llm: {
     provider: process.env.LLM_PROVIDER ?? 'anthropic',
   },
   benchmark: {
-    // Benchmark model is independent of the global ANTHROPIC_MODEL; Fable by default.
-    model: process.env.BENCHMARK_MODEL ?? 'claude-fable-5',
+    // Flagship benchmark model is provider-aware: Fable on Anthropic, Kimi K3 on
+    // Moonshot. An explicit BENCHMARK_MODEL always wins.
+    model:
+      process.env.BENCHMARK_MODEL ??
+      ((process.env.LLM_PROVIDER ?? 'anthropic') === 'moonshot' ? 'kimi-k3' : 'claude-fable-5'),
     // configuration.{ts,js} lives at backend/src/config (dist/config after build);
     // '../../..' lands on the repo root (parent of backend/) in both layouts.
     repoRoot: process.env.BENCHMARK_REPO_ROOT ?? resolve(__dirname, '..', '..', '..'),
