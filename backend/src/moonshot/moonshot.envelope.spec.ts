@@ -36,4 +36,12 @@ describe('MoonshotEnvelopeBuilder.buildRequest', () => {
     const env: PromptEnvelope = { tiers: [{ blocks: [{ type: 'file', fileId: 'moonshot-extract:missing' }] }] };
     await expect(b.buildRequest(env, 'x')).rejects.toThrow(/extract/i);
   });
+
+  it('returns promptCacheKey undefined when there is no stable prefix (no system, no tiers)', async () => {
+    const b = new MoonshotEnvelopeBuilder(fakeExtractStore({}));
+    const env: PromptEnvelope = {};
+    const { messages, promptCacheKey } = await b.buildRequest(env, 'hello');
+    expect(promptCacheKey).toBeUndefined();
+    expect(messages).toEqual([{ role: 'user', content: 'hello' }]);
+  });
 });

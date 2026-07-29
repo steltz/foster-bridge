@@ -1,9 +1,21 @@
+import { Logger } from '@nestjs/common';
 import { UsageTokens } from '../cost/cost.types';
 import { tokensFromUsage } from './moonshot.usage';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  partial?: boolean;
+}
+
+/** Minimal structural shape of an OpenAI-compatible chat client — just enough to
+ *  call createChatWithFallback without importing the real SDK's types here. */
+export interface MoonshotChatClient {
+  chat: {
+    completions: {
+      create(body: unknown): Promise<any>;
+    };
+  };
 }
 
 /** A fully-rendered Moonshot chat request body (sampling params intentionally omitted). */
@@ -23,7 +35,16 @@ export interface MoonshotChatResult {
   rawUsage: any;
 }
 
+const logger = new Logger('MoonshotChat');
+// Distinct unrecognized effort strings already warned about, so a misconfigured
+// caller (e.g. a benchmark variant passing 'medium') logs once per distinct
+// value rather than once per request.
+const warnedEfforts = new Set<string>();
+
 // Map benchmark/seven-keys effort strings onto Moonshot's low|high|max set.
+// Anything else silently upgrades to 'high' — but only after a one-time warning
+// per distinct unrecognized value, since a real misconfigured value (e.g.
+// 'medium') upgrading silently would otherwise skew benchmark comparability.
 export function mapEffort(effort?: string): string {
   switch (effort) {
     case 'low':
@@ -31,6 +52,10 @@ export function mapEffort(effort?: string): string {
     case 'max':
       return effort;
     default:
+      if (effort !== undefined && !warnedEfforts.has(effort)) {
+        warnedEfforts.add(effort);
+        logger.warn(`Unrecognized reasoning effort "${effort}" — mapping to "high"`);
+      }
       return 'high';
   }
 }
@@ -52,9 +77,21 @@ export function toMoonshotSchema(schema: any): any {
 }
 
 function nullable(def: any): any {
-  if (def && Array.isArray(def.type)) return def.type.includes('null') ? def : { ...def, type: [...def.type, 'null'] };
-  if (def && typeof def.type === 'string') return { ...def, type: [def.type, 'null'] };
-  return { anyOf: [def, { type: 'null' }] }; // enum / $ref / anyOf, etc.
+  if (def && Array.isArray(def.type)) {
+    const type = def.type.includes('null') ? def.type : [...def.type, 'null'];
+    return { ...def, type, ...withNullEnum(def) };
+  }
+  if (def && typeof def.type === 'string') {
+    return { ...def, type: [def.type, 'null'], ...withNullEnum(def) };
+  }
+  return { anyOf: [def, { type: 'null' }] }; // enum-only / $ref / anyOf, etc.
+}
+
+// Appends `null` to `def.enum` when present, so a nullable-typed enum property
+// actually permits the null its widened `type` array claims to allow.
+function withNullEnum(def: any): { enum?: any[] } {
+  if (!Array.isArray(def?.enum)) return {};
+  return { enum: def.enum.includes(null) ? def.enum : [...def.enum, null] };
 }
 
 export function jsonSchemaFormat(schema: unknown): unknown {
@@ -66,12 +103,16 @@ export function isSchemaRejection(err: any): boolean {
   if (err?.status !== 400) return false;
   const type = err?.error?.type ?? err?.code;
   const blob = `${err?.message ?? ''} ${JSON.stringify(err?.error ?? {})}`;
+  // A context-length / token-limit 400 is not a schema rejection — retrying in
+  // json_object mode appends a fallback message, which only enlarges an
+  // already-too-large request, so don't burn a retry on it.
+  if (/context.?length|max_completion_tokens|too many tokens/i.test(blob)) return false;
   return type === 'invalid_request_error' || /schema|response_format|json_schema/i.test(blob);
 }
 
 // D8 fallback: issue a chat call; if a strict json_schema body is rejected, retry
 // once in json_object mode with a '{' partial prefill and repair the leading brace.
-export async function createChatWithFallback(client: any, body: MoonshotChatBody): Promise<any> {
+export async function createChatWithFallback(client: MoonshotChatClient, body: MoonshotChatBody): Promise<any> {
   try {
     return await client.chat.completions.create(body);
   } catch (err) {

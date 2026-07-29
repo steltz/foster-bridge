@@ -6,7 +6,7 @@ import { ChatMessage } from './moonshot.chat';
 
 export interface BuiltRequest {
   messages: ChatMessage[];
-  promptCacheKey: string;
+  promptCacheKey: string | undefined;
 }
 
 /**
@@ -15,7 +15,10 @@ export interface BuiltRequest {
  * breakpoints: stable tiers become leading `system` messages (file blocks
  * resolved to their extracted text), and the variable per-request prompt is the
  * final `user` message. prompt_cache_key = sha256 of the stable prefix, so all
- * runs sharing a prefix route to the same cache.
+ * runs sharing a prefix route to the same cache. When there is no stable prefix
+ * at all (no system, no tiers), there is nothing to key a shared cache on, so
+ * promptCacheKey is left undefined rather than sending sha256('') — which would
+ * otherwise route every envelope-less request into one shared cache bucket.
  */
 @Injectable()
 export class MoonshotEnvelopeBuilder {
@@ -42,8 +45,11 @@ export class MoonshotEnvelopeBuilder {
       messages.push({ role: 'system', content: parts.join('\n') });
     }
 
-    const prefix = messages.map((m) => `${m.role}\n${m.content}`).join('\n\x00\n');
-    const promptCacheKey = createHash('sha256').update(prefix).digest('hex');
+    const promptCacheKey = messages.length === 0
+      ? undefined
+      : createHash('sha256')
+          .update(messages.map((m) => `${m.role}\n${m.content}`).join('\n\x00\n'))
+          .digest('hex');
     messages.push({ role: 'user', content: prompt });
     return { messages, promptCacheKey };
   }
