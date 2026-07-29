@@ -912,7 +912,7 @@ export class MoonshotEnvelopeBuilder {
       messages.push({ role: 'system', content: parts.join('\n') });
     }
 
-    const prefix = messages.map((m) => `${m.role}\n${m.content}`).join('\n \n');
+    const prefix = messages.map((m) => `${m.role}\n${m.content}`).join('\n\x00\n');
     const promptCacheKey = createHash('sha256').update(prefix).digest('hex');
     messages.push({ role: 'user', content: prompt });
     return { messages, promptCacheKey };
