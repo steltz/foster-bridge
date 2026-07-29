@@ -59,4 +59,47 @@ describe('MoonshotBatchStore', () => {
     await store.createBatch(batch({ batchId: 'new', status: 'ended', endedAt: '2999-01-01T00:00:00.000Z' }), []);
     expect(await store.listTerminalBatchesOlderThan('2026-01-01T00:00:00.000Z')).toEqual(['old']);
   });
+
+  it('GC also lists an errored batch, falling back to createdAt when endedAt is absent', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ batchId: 'stuck', status: 'errored', createdAt: '2020-01-01T00:00:00.000Z' }), []);
+    expect(await store.listTerminalBatchesOlderThan('2026-01-01T00:00:00.000Z')).toEqual(['stuck']);
+  });
+
+  it('deleteBatch removes both item docs and the batch doc', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 2 }), [
+      { customId: 'c1', prompt: 'p1', status: 'pending' },
+      { customId: 'c2', prompt: 'p2', status: 'pending' },
+    ]);
+    await store.deleteBatch('b1');
+    expect(await store.getBatch('b1')).toBeNull();
+    expect(await store.listItems('b1')).toEqual([]);
+  });
+
+  it('updateItem on a missing doc rejects (pins the failure mode Task 8 relies on)', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 0 }), []);
+    await expect(store.updateItem('b1', 'missing', { status: 'succeeded' })).rejects.toMatchObject({ code: 5 });
+  });
+
+  it('claimItem returns false for a missing item', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 0 }), []);
+    expect(await store.claimItem('b1', 'missing', 600_000)).toBe(false);
+  });
+
+  it('createBatch strips explicit-undefined fields before writing (e.g. a caller-omitted maxTokens)', async () => {
+    const db = fakeFirestore();
+    const store = new MoonshotBatchStore(db);
+    await store.createBatch(batch({ opts: { schema: {}, maxTokens: undefined, effort: 'high' } }), [
+      { customId: 'c1', prompt: 'p1', status: 'pending', text: undefined, error: undefined },
+    ]);
+    const rawBatch = (await db.collection('moonshotBatches').doc('b1').get()).data();
+    expect('maxTokens' in rawBatch.opts).toBe(false);
+    const rawItem = (await db.collection('moonshotBatches').doc('b1').collection('items').doc('c1').get()).data();
+    expect('text' in rawItem).toBe(false);
+    expect('error' in rawItem).toBe(false);
+    expect((await store.getBatch('b1'))!.opts.effort).toBe('high'); // still round-trips through the store
+  });
 });

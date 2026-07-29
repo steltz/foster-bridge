@@ -25,12 +25,33 @@ export interface EmulatedBatchItem {
   prompt: string;
   envelope?: PromptEnvelope; // per-item; overrides batchEnvelope
   status: EmulatedItemStatus;
-  attempts?: number; // D5: incremented on each claim
+  attempts?: number; // D5: incremented on each claim. Observability only — no
+  // maxAttempts/retry-limit logic reads this (yet).
   leaseUntil?: string; // D5: ISO; a running item is reclaimable once this passes
   text?: string;
   error?: string;
   cacheReadTokens?: number;
   usage?: UsageTokens;
+}
+
+// Firestore rejects explicit `undefined` field values (ignoreUndefinedProperties
+// is not set on this app's Firestore instance — see moonshot.extract-store.ts),
+// so strip them recursively before every write. Object keys with an undefined
+// value are dropped; array elements are left in place (never filtered out, which
+// would shift indices) except that an object element is itself recursed into.
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((v) => (v !== null && typeof v === 'object' ? stripUndefined(v) : v)) as unknown as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = v !== null && typeof v === 'object' ? stripUndefined(v) : v;
+    }
+    return out as T;
+  }
+  return value;
 }
 
 /** Firestore-durable store for client-side emulated batches (kimi-k3). */
@@ -41,9 +62,17 @@ export class MoonshotBatchStore {
   private batchRef(id: string) { return this.db.collection(BATCHES).doc(id); }
   private itemRef(batchId: string, customId: string) { return this.batchRef(batchId).collection('items').doc(customId); }
 
+  // NOTE on `total`: these writes are non-atomic — the batch doc lands, then
+  // each item doc separately. A crash partway through the item writes leaves
+  // an in_progress batch whose item count is short of `total`. This store
+  // does not (and, without a multi-doc transaction across an unbounded item
+  // count, cannot) guarantee the two stay in sync — the WORKER (Task 8) owns
+  // enforcing the invariant: before marking a drained batch 'ended', verify
+  // `(await listItems(batchId)).length === total` and mark 'errored' instead
+  // on a mismatch.
   async createBatch(doc: EmulatedBatchDoc, items: EmulatedBatchItem[]): Promise<void> {
-    await this.batchRef(doc.batchId).set(doc as any);
-    for (const item of items) await this.itemRef(doc.batchId, item.customId).set(item as any);
+    await this.batchRef(doc.batchId).set(stripUndefined(doc));
+    for (const item of items) await this.itemRef(doc.batchId, item.customId).set(stripUndefined(item));
   }
 
   async getBatch(batchId: string): Promise<EmulatedBatchDoc | null> {
@@ -75,10 +104,15 @@ export class MoonshotBatchStore {
   // already hold every field from the just-read snapshot.
   async claimItem(batchId: string, customId: string, leaseMs: number): Promise<boolean> {
     const ref = this.itemRef(batchId, customId);
-    const nowMs = Date.now();
-    const nowIso = new Date(nowMs).toISOString();
-    const leaseUntil = new Date(nowMs + leaseMs).toISOString();
     return this.db.runTransaction(async (tx) => {
+      // Computed inside the callback, not once outside runTransaction: real
+      // Firestore retries this callback on write contention, and a time
+      // captured before the first attempt would go stale by the retry delay —
+      // shortening the granted lease and comparing "expired" against a nowIso
+      // that's no longer now.
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
+      const leaseUntil = new Date(nowMs + leaseMs).toISOString();
       const snap = await tx.get(ref);
       if (!snap.exists) return false;
       const item = snap.data() as EmulatedBatchItem;
@@ -88,17 +122,17 @@ export class MoonshotBatchStore {
       // and the write must happen inside a single transaction attempt with no
       // interleaving point, or two concurrent claimers could both read
       // "claimable" before either writes.
-      tx.set(ref, { ...item, status: 'running', leaseUntil, attempts: (item.attempts ?? 0) + 1 } as any);
+      tx.set(ref, { ...item, status: 'running', leaseUntil, attempts: (item.attempts ?? 0) + 1 });
       return true;
     });
   }
 
   async updateItem(batchId: string, customId: string, patch: Partial<EmulatedBatchItem>): Promise<void> {
-    await this.itemRef(batchId, customId).update(patch as any);
+    await this.itemRef(batchId, customId).update(patch);
   }
 
   async setBatchStatus(batchId: string, status: EmulatedBatchStatus, endedAt?: string): Promise<void> {
-    await this.batchRef(batchId).update({ status, ...(endedAt ? { endedAt } : {}) } as any);
+    await this.batchRef(batchId).update({ status, ...(endedAt ? { endedAt } : {}) });
   }
 
   async listInProgressBatches(): Promise<EmulatedBatchDoc[]> {
@@ -115,7 +149,7 @@ export class MoonshotBatchStore {
       const snap = await this.db.collection(BATCHES).where('status', '==', status).get();
       for (const d of snap.docs) {
         const doc = d.data() as EmulatedBatchDoc;
-        if ((doc.endedAt ?? doc.createdAt) < cutoffIso) out.push(doc.batchId);
+        if ((doc.endedAt ?? doc.createdAt) < cutoffIso) out.push(d.id); // doc id is the ref's source of truth
       }
     }
     return out;
