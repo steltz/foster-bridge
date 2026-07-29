@@ -1,0 +1,20 @@
+backend/src/config/configuration.spec.ts
+  s_2b4b60567393e1::t_fedca7be9be321 117-121,133-134,138-155
+  s_2b4b60567393e1::t_1c64b0eb5d66f9 156-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0559870f8e5535de9fd23f6e300e651d6f59d90e",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
