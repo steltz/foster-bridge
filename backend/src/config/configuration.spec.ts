@@ -42,6 +42,9 @@ describe('configuration benchmark defaults', () => {
     delete process.env.BENCHMARK_MAX_TOKENS;
     delete process.env.BENCHMARK_EFFORT;
     delete process.env.BENCHMARK_SCHEDULER;
+    // benchmark.model is now provider-aware (see configuration.ts); isolate
+    // these defaults from an ambient LLM_PROVIDER=moonshot.
+    delete process.env.LLM_PROVIDER;
   });
   afterAll(() => {
     process.env = OLD_ENV;
