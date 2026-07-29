@@ -7,6 +7,10 @@ const EXTRACTS = 'moonshotExtracts';
 // 300k UTF-16 code units ≤ ~900KB UTF-8 (worst-case 3 bytes/unit), safely
 // under Firestore's 1MiB doc limit (which counts UTF-8 bytes, not JS string
 // length — a naive 900k-unit chunk of CJK text can be ~2.7MB and blow the cap).
+// May only ever DECREASE without a data migration: re-putting the same hash
+// at a LARGER size leaves stale higher-index chunk docs from the prior
+// (larger) chunk count around, and the count-equality check in getByHash
+// then rejects that doc forever.
 export const EXTRACT_CHUNK_SIZE = 300_000;
 export const LRU_MAX = 32;
 

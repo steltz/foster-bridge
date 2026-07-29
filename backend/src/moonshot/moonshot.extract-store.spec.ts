@@ -109,4 +109,52 @@ describe('MoonshotExtractStore', () => {
 
     await expect(store.getByHash('torn')).rejects.toThrow('doc "torn" declares 2 chunks but 1 are present');
   });
+
+  it('writes chunk docs before the parent doc (crash-safe commit ordering)', async () => {
+    const raw = fakeFirestore();
+    const writes: string[] = [];
+    // Wrap every doc ref so `.set()` records the path it wrote to, without
+    // changing any other behavior. Recurses through `.collection()` so writes
+    // to the `chunks` subcollection are tracked too.
+    const wrapDoc = (ref: any): any => ({
+      ...ref,
+      set: (data: any) => {
+        writes.push(ref.path);
+        return ref.set(data);
+      },
+      collection: (sub: string) => wrapColl(ref.collection(sub)),
+    });
+    const wrapColl = (coll: any): any => ({ ...coll, doc: (id: string) => wrapDoc(coll.doc(id)) });
+    const db = { ...raw, collection: (name: string) => wrapColl(raw.collection(name)) };
+
+    const store = new MoonshotExtractStore(db as any);
+    const big = 'x'.repeat(EXTRACT_CHUNK_SIZE * 2 + 10); // 3 chunks
+    await store.put('ordered', big);
+
+    const parentPath = `${EXTRACTS_COLLECTION}/ordered`;
+    expect(writes.length).toBeGreaterThan(1);
+    expect(writes[writes.length - 1]).toBe(parentPath); // parent doc is the last write — the commit point
+    for (const path of writes.slice(0, -1)) {
+      expect(path.startsWith(`${parentPath}/chunks/`)).toBe(true); // every earlier write is a chunk doc
+    }
+  });
+
+  it('reassembles chunks in numeric id order, not insertion or lexicographic order', async () => {
+    const db = fakeFirestore();
+    const store = new MoonshotExtractStore(db);
+    const hash = 'eleven';
+    const parentRef = db.collection(EXTRACTS_COLLECTION).doc(hash);
+    await parentRef.set({ chunked: true, chunks: 11 });
+
+    // Hand-write chunk docs 10 down to 0 (reverse of numeric order). A naive
+    // lexicographic id sort ('0','1','10','2',...,'9') or the fake's raw
+    // insertion order would both reassemble this wrong; only a numeric sort
+    // produces '<0><1>...<10>'.
+    for (let i = 10; i >= 0; i--) {
+      await parentRef.collection('chunks').doc(String(i)).set({ text: `<${i}>` });
+    }
+
+    const expected = Array.from({ length: 11 }, (_, i) => `<${i}>`).join('');
+    expect(await store.getByHash(hash)).toBe(expected);
+  });
 });
