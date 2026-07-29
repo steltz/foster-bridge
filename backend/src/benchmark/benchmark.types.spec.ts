@@ -1,4 +1,4 @@
-import { cellKey, parseCellKey, SETUP_SCHEMA, CORE_VARIANTS, ALL_VARIANTS, SCORECARD_VARIANT, resolveModel } from './benchmark.types';
+import { cellKey, parseCellKey, SETUP_SCHEMA, CORE_VARIANTS, ALL_VARIANTS, SCORECARD_VARIANT, resolveModel, MODEL_ALIASES } from './benchmark.types';
 
 describe('cellKey', () => {
   it('round-trips a cell key', () => {
@@ -45,6 +45,19 @@ describe('resolveModel', () => {
   });
   it('falls back to using an unknown value as both alias and id', () => {
     expect(resolveModel('claude-mystery-9')).toEqual({ alias: 'claude-mystery-9', id: 'claude-mystery-9' });
+  });
+});
+
+describe('resolveModel – kimi aliases', () => {
+  it('resolves the kimi aliases to ids', () => {
+    expect(MODEL_ALIASES.k3).toBe('kimi-k3');
+    expect(resolveModel('k3')).toEqual({ alias: 'k3', id: 'kimi-k3' });
+    expect(resolveModel('k26')).toEqual({ alias: 'k26', id: 'kimi-k2.6' });
+    expect(resolveModel('k27-code')).toEqual({ alias: 'k27-code', id: 'kimi-k2.7-code' });
+  });
+
+  it('maps a raw kimi id back to its alias', () => {
+    expect(resolveModel('kimi-k3')).toEqual({ alias: 'k3', id: 'kimi-k3' });
   });
 });
 

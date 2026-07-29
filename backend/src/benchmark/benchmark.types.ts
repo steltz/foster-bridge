@@ -115,6 +115,9 @@ export const MODEL_ALIASES: Record<string, string> = {
   opus: 'claude-opus-4-8',
   sonnet: 'claude-sonnet-5',
   haiku: 'claude-haiku-4-5-20251001',
+  k3: 'kimi-k3',
+  k26: 'kimi-k2.6',
+  'k27-code': 'kimi-k2.7-code',
 };
 
 // Accepts an alias ('fable') or a raw id ('claude-fable-5'); returns both.

@@ -8,13 +8,9 @@ import { PromptEnvelope } from '../../llm/llm.types';
 import { BenchmarkRepository, DayArtifactDoc } from '../benchmark.repository';
 import { RepoInputsService, DayInput } from '../repo-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
+import { resolveModel } from '../benchmark.types';
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from './schemas';
 import { currentDayPrompt, generalAndMethodsBlock, lookbackPrompt, synthesizePrompt, verifyPrompt, LookbackEntry } from './prompts';
-
-// All four agents run on Fable; the current-day analyst is a distinct hard pin
-// (a blind comparison found it more methodology-faithful than Sonnet for grading).
-const SEVEN_KEYS_MODEL = 'claude-fable-5';
-const CURRENT_DAY_MODEL = 'claude-fable-5';
 
 export interface KeysArtifact {
   verified: boolean;
@@ -46,6 +42,17 @@ export class SevenKeysService {
   // call must use the benchmark ceiling instead.
   private get maxTokens(): number {
     return this.config.get<number>('benchmark.maxTokens') ?? 32000;
+  }
+
+  // Provider-aware flagship (Fable on Anthropic, Kimi K3 on Moonshot). All four
+  // seven-keys agents run on it; a blind comparison found the flagship more
+  // methodology-faithful than the mid-tier model for grading.
+  private get flagshipModel(): string {
+    return this.config.get<string>('benchmark.model') ?? 'claude-fable-5';
+  }
+
+  private get flagshipAlias(): string {
+    return resolveModel(this.flagshipModel).alias;
   }
 
   private pdfContext(fileId: string): PromptEnvelope {
@@ -105,13 +112,13 @@ export class SevenKeysService {
       this.llm.messageStructured<Record<string, unknown>>(
         {
           prompt: currentDayPrompt({ date: day.date, tpTranscript, recapTranscript }),
-          model: CURRENT_DAY_MODEL,
+          model: this.flagshipModel,
           schema: CURRENT_SCHEMA,
           effort: this.effort,
           maxTokens: this.maxTokens,
           envelope: this.currentDayContext(fileId, general.concatenated, methodsDoc),
         },
-        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+        { operation: 'keys-generation', benchmark: { modelAlias: this.flagshipAlias, day: day.day } },
       ),
     );
     const lookbackPromise: Promise<Record<string, unknown> | null> = lookbackSet.length
@@ -119,12 +126,12 @@ export class SevenKeysService {
           this.llm.messageStructured<Record<string, unknown>>(
             {
               prompt: lookbackPrompt(day.date, lookbackSet),
-              model: SEVEN_KEYS_MODEL,
+              model: this.flagshipModel,
               schema: LOOKBACK_SCHEMA,
               effort: this.effort,
               maxTokens: this.maxTokens,
             },
-            { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+            { operation: 'keys-generation', benchmark: { modelAlias: this.flagshipAlias, day: day.day } },
           ),
         )
       : Promise.resolve(null);
@@ -135,12 +142,12 @@ export class SevenKeysService {
       this.llm.messageStructured<{ artifact: string }>(
         {
           prompt: synthesizePrompt(day.date, current, lookback, sources),
-          model: SEVEN_KEYS_MODEL,
+          model: this.flagshipModel,
           schema: SYNTH_SCHEMA,
           effort: this.effort,
           maxTokens: this.maxTokens,
         },
-        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+        { operation: 'keys-generation', benchmark: { modelAlias: this.flagshipAlias, day: day.day } },
       ),
     );
 
@@ -148,13 +155,13 @@ export class SevenKeysService {
       this.llm.messageStructured<{ pass: boolean; mismatches: string[] }>(
         {
           prompt: verifyPrompt(day.date, tpTranscript, synth.artifact),
-          model: SEVEN_KEYS_MODEL,
+          model: this.flagshipModel,
           schema: VERIFY_SCHEMA,
           effort: this.effort,
           maxTokens: this.maxTokens,
           envelope: this.pdfContext(fileId),
         },
-        { operation: 'keys-generation', benchmark: { modelAlias: 'fable', day: day.day } },
+        { operation: 'keys-generation', benchmark: { modelAlias: this.flagshipAlias, day: day.day } },
       ),
     );
 
@@ -226,7 +233,7 @@ export class SevenKeysService {
       gcsPath: `benchmark/es/${day.day}/${day.prefix}_ES_KEYS.md`, // inline-stored; path is a stable marker
       content,
       uploadedAt: generatedAt,
-      generatedBy: CURRENT_DAY_MODEL,
+      generatedBy: this.flagshipModel,
       generatedAt,
       lookbackSources: result.lookbackSources,
       lookbackMissing: result.lookbackMissing,
@@ -254,7 +261,7 @@ export class SevenKeysService {
   private composeKeysMarkdown(artifactBody: string, generatedAt: string, lookbackSources: string[]): string {
     return [
       '---',
-      `generatedBy: ${CURRENT_DAY_MODEL}`,
+      `generatedBy: ${this.flagshipModel}`,
       `generatedAt: ${generatedAt}`,
       `lookbackSources: [${lookbackSources.join(', ')}]`,
       'verified: true',
