@@ -84,6 +84,8 @@ In `backend/src/config/configuration.ts`, add to the `AppConfig` interface (afte
     model: string;
     batchConcurrency: number;
     completionWindow: string;
+    batchMaxAgeMs: number;
+    batchGcTtlMs: number;
   };
 ```
 
@@ -96,6 +98,9 @@ In the factory, change the `benchmark.model` line and add the `moonshot` block. 
     model: process.env.MOONSHOT_MODEL ?? 'kimi-k3',
     batchConcurrency: parseInt(process.env.MOONSHOT_BATCH_CONCURRENCY ?? '8', 10),
     completionWindow: process.env.MOONSHOT_COMPLETION_WINDOW ?? '1d',
+    // D6: emulated-batch expiry (3h) and D5/D6 GC TTL from endedAt (24h).
+    batchMaxAgeMs: parseInt(process.env.MOONSHOT_BATCH_MAX_AGE_MS ?? '10800000', 10),
+    batchGcTtlMs: parseInt(process.env.MOONSHOT_BATCH_GC_TTL_MS ?? '86400000', 10),
   },
 ```
 
@@ -125,6 +130,8 @@ MOONSHOT_BASE_URL=https://api.moonshot.ai/v1
 MOONSHOT_MODEL=kimi-k3
 MOONSHOT_BATCH_CONCURRENCY=8
 MOONSHOT_COMPLETION_WINDOW=1d
+MOONSHOT_BATCH_MAX_AGE_MS=10800000
+MOONSHOT_BATCH_GC_TTL_MS=86400000
 ```
 
 - [ ] **Step 7: Commit**
@@ -642,8 +649,59 @@ git commit -m "feat(moonshot): durable content-hash extract store with chunking"
 - Create: `backend/src/moonshot/moonshot.chat.ts`
 - Create: `backend/src/moonshot/moonshot.envelope.ts`
 - Test: `backend/src/moonshot/moonshot.envelope.spec.ts`
+- Test: `backend/src/moonshot/moonshot.chat.spec.ts`
 
-- [ ] **Step 1: Write the failing envelope test**
+- [ ] **Step 1: Write the failing envelope + chat-helper tests**
+
+Create `backend/src/moonshot/moonshot.chat.spec.ts` (covers D8 schema shaping + fallback):
+
+```ts
+import { toMoonshotSchema, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
+
+describe('toMoonshotSchema (D8)', () => {
+  it('marks every property required and makes optionals nullable', () => {
+    const shaped = toMoonshotSchema({
+      type: 'object',
+      required: ['a'],
+      properties: { a: { type: 'string' }, b: { type: 'string' } },
+      additionalProperties: false,
+    }) as any;
+    expect(shaped.required.sort()).toEqual(['a', 'b']);
+    expect(shaped.properties.a).toEqual({ type: 'string' });          // required: unchanged
+    expect(shaped.properties.b).toEqual({ type: ['string', 'null'] }); // optional: nullable
+  });
+});
+
+describe('jsonSchemaFormat', () => {
+  it('wraps a shaped schema in strict json_schema', () => {
+    const f = jsonSchemaFormat({ type: 'object', required: [], properties: { x: { type: 'number' } } }) as any;
+    expect(f.type).toBe('json_schema');
+    expect(f.json_schema.strict).toBe(true);
+    expect(f.json_schema.schema.required).toEqual(['x']);
+  });
+});
+
+describe('createChatWithFallback (D8)', () => {
+  it('falls back to json_object + brace repair when strict json_schema is rejected', async () => {
+    let call = 0;
+    const client = { chat: { completions: { create: async (body: any) => {
+      call++;
+      if (call === 1) throw Object.assign(new Error('bad schema'), { status: 400, error: { type: 'invalid_request_error' } });
+      expect(body.response_format).toEqual({ type: 'json_object' });
+      expect(body.messages[body.messages.length - 1]).toEqual({ role: 'assistant', content: '{', partial: true });
+      return { choices: [{ message: { content: '"a":1}' }, finish_reason: 'stop' }] };
+    } } } };
+    const resp = await createChatWithFallback(client as any, { model: 'kimi-k3', messages: [{ role: 'user', content: 'x' }], max_completion_tokens: 10, reasoning_effort: 'high', response_format: { type: 'json_schema' } as any });
+    expect(resp.choices[0].message.content).toBe('{"a":1}');
+    expect(call).toBe(2);
+  });
+
+  it('rethrows a non-schema error unchanged', async () => {
+    const client = { chat: { completions: { create: async () => { throw Object.assign(new Error('boom'), { status: 500 }); } } } };
+    await expect(createChatWithFallback(client as any, { model: 'k', messages: [], max_completion_tokens: 1, reasoning_effort: 'high', response_format: { type: 'json_schema' } as any })).rejects.toThrow('boom');
+  });
+});
+```
 
 Create `backend/src/moonshot/moonshot.envelope.spec.ts`:
 
@@ -736,8 +794,62 @@ export function mapEffort(effort?: string): string {
   }
 }
 
+// D8: shape a JSON schema for Moonshot strict json_schema. OpenAI-strict semantics
+// forbid optional properties (every `properties` key must be in `required`), unlike
+// the Anthropic validator SETUP_SCHEMA was written for — so add all keys to
+// `required` and make originally-optional ones nullable. The reconciler already
+// tolerates a null/missing optional (e.g. rejectedAlternative), so nulling is safe.
+export function toMoonshotSchema(schema: any): any {
+  if (!schema || schema.type !== 'object' || !schema.properties) return schema;
+  const props = schema.properties as Record<string, any>;
+  const required = new Set<string>(schema.required ?? []);
+  const shaped: Record<string, any> = {};
+  for (const [key, def] of Object.entries(props)) {
+    shaped[key] = required.has(key) ? def : nullable(def);
+  }
+  return { ...schema, properties: shaped, required: Object.keys(props), additionalProperties: false };
+}
+
+function nullable(def: any): any {
+  if (def && Array.isArray(def.type)) return def.type.includes('null') ? def : { ...def, type: [...def.type, 'null'] };
+  if (def && typeof def.type === 'string') return { ...def, type: [def.type, 'null'] };
+  return { anyOf: [def, { type: 'null' }] }; // enum / $ref / anyOf, etc.
+}
+
 export function jsonSchemaFormat(schema: unknown): unknown {
-  return { type: 'json_schema', json_schema: { name: 'setup', strict: true, schema } };
+  return { type: 'json_schema', json_schema: { name: 'setup', strict: true, schema: toMoonshotSchema(schema) } };
+}
+
+// True when an error looks like Moonshot rejecting the json_schema / response_format.
+export function isSchemaRejection(err: any): boolean {
+  if (err?.status !== 400) return false;
+  const type = err?.error?.type ?? err?.code;
+  const blob = `${err?.message ?? ''} ${JSON.stringify(err?.error ?? {})}`;
+  return type === 'invalid_request_error' || /schema|response_format|json_schema/i.test(blob);
+}
+
+// D8 fallback: issue a chat call; if a strict json_schema body is rejected, retry
+// once in json_object mode with a '{' partial prefill and repair the leading brace.
+export async function createChatWithFallback(client: any, body: MoonshotChatBody): Promise<any> {
+  try {
+    return await client.chat.completions.create(body);
+  } catch (err) {
+    const isJsonSchema = (body.response_format as any)?.type === 'json_schema';
+    if (!isJsonSchema || !isSchemaRejection(err)) throw err;
+    const fallback = {
+      ...body,
+      response_format: { type: 'json_object' },
+      messages: [...body.messages, { role: 'assistant', content: '{', partial: true }],
+    };
+    const resp = await client.chat.completions.create(fallback);
+    const content = resp?.choices?.[0]?.message?.content ?? '';
+    // Partial mode does not echo the '{' prefill; repair it. A json_object response
+    // that ignored the prefill already leads with '{', so guard on it.
+    if (resp?.choices?.[0]?.message && !content.trimStart().startsWith('{')) {
+      resp.choices[0].message.content = '{' + content;
+    }
+    return resp;
+  }
 }
 
 // Extract text/finish-reason/usage from an OpenAI-compatible chat response.
@@ -808,21 +920,21 @@ export class MoonshotEnvelopeBuilder {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `cd backend && npx jest src/moonshot/moonshot.envelope.spec.ts`
-Expected: PASS (all 3 cases).
+Run: `cd backend && npx jest src/moonshot/moonshot.envelope.spec.ts src/moonshot/moonshot.chat.spec.ts`
+Expected: PASS (envelope: 3 cases; chat: 4 cases).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/moonshot/moonshot.chat.ts backend/src/moonshot/moonshot.envelope.ts backend/src/moonshot/moonshot.envelope.spec.ts
-git commit -m "feat(moonshot): chat helper + implicit-prefix envelope builder"
+git add backend/src/moonshot/moonshot.chat.ts backend/src/moonshot/moonshot.envelope.ts backend/src/moonshot/moonshot.envelope.spec.ts backend/src/moonshot/moonshot.chat.spec.ts
+git commit -m "feat(moonshot): chat helper (schema shaping + fallback) + envelope builder"
 ```
 
 ---
 
-## Task 7: Emulated-batch store (durable batch + item docs)
+## Task 7: Emulated-batch store (durable batch + item docs, claiming + expiry)
 
 **Files:**
 - Create: `backend/src/moonshot/moonshot.batch-store.ts`
@@ -858,30 +970,79 @@ function fakeFirestore() {
       return { docs: rows.map(([k, v]) => ({ id: k.slice(prefix.length), data: () => v, ref: makeDoc(k) })) };
     },
   });
-  return { collection: (name: string) => makeColl(name) } as any;
+  // runTransaction: single-threaded in-memory — get is async, update/set apply
+  // synchronously (the fake's async update has no internal await, so it commits
+  // immediately), which is enough to exercise the claim's read-then-write.
+  return {
+    collection: (name: string) => makeColl(name),
+    async runTransaction(fn: any) {
+      const tx = {
+        async get(ref: any) { return ref.get(); },
+        update(ref: any, patch: any) { void ref.update(patch); },
+        set(ref: any, val: any) { void ref.set(val); },
+      };
+      return fn(tx);
+    },
+  } as any;
 }
 
+const batch = (over: any = {}) => ({
+  batchId: 'b1', model: 'kimi-k3', opts: { schema: {}, maxTokens: 100, effort: 'high' },
+  status: 'in_progress', total: 2, createdAt: '2026-07-28T00:00:00.000Z', expiresAt: '2999-01-01T00:00:00.000Z', ...over,
+});
+
 describe('MoonshotBatchStore', () => {
-  it('creates a batch with items, lists pending, updates, and completes', async () => {
+  it('creates a batch with items, lists unfinished, updates, and completes', async () => {
     const store = new MoonshotBatchStore(fakeFirestore());
-    await store.createBatch(
-      { batchId: 'b1', model: 'kimi-k3', opts: { schema: {}, maxTokens: 100, effort: 'high' }, status: 'in_progress', total: 2, createdAt: '2026-07-28T00:00:00.000Z' },
-      [
-        { customId: 'c1', prompt: 'p1', status: 'pending' },
-        { customId: 'c2', prompt: 'p2', status: 'pending' },
-      ],
-    );
-    expect((await store.listPendingItems('b1')).map((i) => i.customId).sort()).toEqual(['c1', 'c2']);
+    await store.createBatch(batch(), [
+      { customId: 'c1', prompt: 'p1', status: 'pending' },
+      { customId: 'c2', prompt: 'p2', status: 'pending' },
+    ]);
+    expect((await store.listUnfinishedItems('b1')).map((i) => i.customId).sort()).toEqual(['c1', 'c2']);
 
     await store.updateItem('b1', 'c1', { status: 'succeeded', text: '{}' });
-    expect((await store.listPendingItems('b1')).map((i) => i.customId)).toEqual(['c2']);
+    expect((await store.listUnfinishedItems('b1')).map((i) => i.customId)).toEqual(['c2']);
 
     await store.setBatchStatus('b1', 'ended', '2026-07-28T00:05:00.000Z');
     expect((await store.getBatch('b1'))!.status).toBe('ended');
     expect((await store.listInProgressBatches()).length).toBe(0);
+    expect((await store.listItems('b1')).find((i) => i.customId === 'c1')!.text).toBe('{}');
+  });
 
-    const results = await store.listItems('b1');
-    expect(results.find((i) => i.customId === 'c1')!.text).toBe('{}');
+  it('listUnfinishedItems returns pending and running only', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 3 }), [
+      { customId: 'p', prompt: '', status: 'pending' },
+      { customId: 'r', prompt: '', status: 'running' },
+      { customId: 'd', prompt: '', status: 'succeeded' },
+    ]);
+    expect((await store.listUnfinishedItems('b1')).map((i) => i.customId).sort()).toEqual(['p', 'r']);
+  });
+
+  it('claims a pending item once, then refuses a second claim (D5)', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 1 }), [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    expect(await store.claimItem('b1', 'c1', 600_000)).toBe(true);
+    expect(await store.claimItem('b1', 'c1', 600_000)).toBe(false); // now running with a fresh lease
+    const item = (await store.listItems('b1'))[0];
+    expect(item.status).toBe('running');
+    expect(item.attempts).toBe(1);
+  });
+
+  it('reclaims a running item whose lease has expired (D5)', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ total: 1 }), [
+      { customId: 'c1', prompt: 'p', status: 'running', leaseUntil: '2000-01-01T00:00:00.000Z', attempts: 1 },
+    ]);
+    expect(await store.claimItem('b1', 'c1', 600_000)).toBe(true); // stale lease → reclaimable
+    expect((await store.listItems('b1'))[0].attempts).toBe(2);
+  });
+
+  it('GC lists terminal batches by endedAt, not createdAt', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ batchId: 'old', status: 'ended', endedAt: '2020-01-01T00:00:00.000Z' }), []);
+    await store.createBatch(batch({ batchId: 'new', status: 'ended', endedAt: '2999-01-01T00:00:00.000Z' }), []);
+    expect(await store.listTerminalBatchesOlderThan('2026-01-01T00:00:00.000Z')).toEqual(['old']);
   });
 });
 ```
@@ -904,7 +1065,7 @@ import { PromptEnvelope, BatchSubmitOptions, UsageTokens } from '../llm/llm.type
 const BATCHES = 'moonshotBatches';
 
 export type EmulatedBatchStatus = 'in_progress' | 'ended' | 'errored';
-export type EmulatedItemStatus = 'pending' | 'succeeded' | 'refusal' | 'errored';
+export type EmulatedItemStatus = 'pending' | 'running' | 'succeeded' | 'refusal' | 'errored';
 
 export interface EmulatedBatchDoc {
   batchId: string;
@@ -914,6 +1075,7 @@ export interface EmulatedBatchDoc {
   status: EmulatedBatchStatus;
   total: number;
   createdAt: string;
+  expiresAt: string; // D6: past this, a non-drained batch is marked errored
   endedAt?: string;
 }
 
@@ -922,6 +1084,8 @@ export interface EmulatedBatchItem {
   prompt: string;
   envelope?: PromptEnvelope; // per-item; overrides batchEnvelope
   status: EmulatedItemStatus;
+  attempts?: number; // D5: incremented on each claim
+  leaseUntil?: string; // D5: ISO; a running item is reclaimable once this passes
   text?: string;
   error?: string;
   cacheReadTokens?: number;
@@ -934,12 +1098,11 @@ export class MoonshotBatchStore {
   constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
   private batchRef(id: string) { return this.db.collection(BATCHES).doc(id); }
+  private itemRef(batchId: string, customId: string) { return this.batchRef(batchId).collection('items').doc(customId); }
 
   async createBatch(doc: EmulatedBatchDoc, items: EmulatedBatchItem[]): Promise<void> {
     await this.batchRef(doc.batchId).set(doc as any);
-    for (const item of items) {
-      await this.batchRef(doc.batchId).collection('items').doc(item.customId).set(item as any);
-    }
+    for (const item of items) await this.itemRef(doc.batchId, item.customId).set(item as any);
   }
 
   async getBatch(batchId: string): Promise<EmulatedBatchDoc | null> {
@@ -952,13 +1115,33 @@ export class MoonshotBatchStore {
     return snap.docs.map((d) => d.data() as EmulatedBatchItem);
   }
 
-  async listPendingItems(batchId: string): Promise<EmulatedBatchItem[]> {
-    const snap = await this.batchRef(batchId).collection('items').where('status', '==', 'pending').get();
-    return snap.docs.map((d) => d.data() as EmulatedBatchItem);
+  // Items not yet terminal (pending OR running) — the worker's work set.
+  async listUnfinishedItems(batchId: string): Promise<EmulatedBatchItem[]> {
+    const all = await this.listItems(batchId);
+    return all.filter((i) => i.status === 'pending' || i.status === 'running');
+  }
+
+  // D5: transactional claim. Flip pending→running, or reclaim a running item whose
+  // lease has expired. Returns true only to the winner, who then runs the call. This
+  // is what makes concurrent kick()/bootstrap-resume across processes single-run.
+  async claimItem(batchId: string, customId: string, leaseMs: number): Promise<boolean> {
+    const ref = this.itemRef(batchId, customId);
+    const nowMs = Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+    const leaseUntil = new Date(nowMs + leaseMs).toISOString();
+    return this.db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return false;
+      const item = snap.data() as EmulatedBatchItem;
+      const claimable = item.status === 'pending' || (item.status === 'running' && (item.leaseUntil ?? '') < nowIso);
+      if (!claimable) return false;
+      tx.update(ref, { status: 'running', leaseUntil, attempts: (item.attempts ?? 0) + 1 } as any);
+      return true;
+    });
   }
 
   async updateItem(batchId: string, customId: string, patch: Partial<EmulatedBatchItem>): Promise<void> {
-    await this.batchRef(batchId).collection('items').doc(customId).update(patch as any);
+    await this.itemRef(batchId, customId).update(patch as any);
   }
 
   async setBatchStatus(batchId: string, status: EmulatedBatchStatus, endedAt?: string): Promise<void> {
@@ -970,15 +1153,16 @@ export class MoonshotBatchStore {
     return snap.docs.map((d) => d.data() as EmulatedBatchDoc);
   }
 
-  // Terminal batches older than the cutoff (ISO). Filtered in memory to avoid a
-  // composite index. Used by the GC to drop fire-and-forget warm batches.
+  // Terminal batches whose TERMINAL time (endedAt, or createdAt as a fallback) is
+  // older than the cutoff. Keyed off endedAt so a lagging reconciler never has
+  // results GC'd before it reads them. Filtered in memory to avoid a composite index.
   async listTerminalBatchesOlderThan(cutoffIso: string): Promise<string[]> {
     const out: string[] = [];
     for (const status of ['ended', 'errored'] as const) {
       const snap = await this.db.collection(BATCHES).where('status', '==', status).get();
       for (const d of snap.docs) {
         const doc = d.data() as EmulatedBatchDoc;
-        if (doc.createdAt < cutoffIso) out.push(doc.batchId);
+        if ((doc.endedAt ?? doc.createdAt) < cutoffIso) out.push(doc.batchId);
       }
     }
     return out;
@@ -995,18 +1179,18 @@ export class MoonshotBatchStore {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `cd backend && npx jest src/moonshot/moonshot.batch-store.spec.ts`
-Expected: PASS.
+Expected: PASS (all 5 cases).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/moonshot/moonshot.batch-store.ts backend/src/moonshot/moonshot.batch-store.spec.ts
-git commit -m "feat(moonshot): durable emulated-batch store"
+git commit -m "feat(moonshot): durable emulated-batch store with item claiming + expiry"
 ```
 
 ---
 
-## Task 8: Emulated-batch worker (drain + retry + recovery + GC)
+## Task 8: Emulated-batch worker (claiming + grouped priming + expiry + recovery + GC)
 
 **Files:**
 - Create: `backend/src/moonshot/moonshot.batch-worker.ts`
@@ -1020,20 +1204,30 @@ Create `backend/src/moonshot/moonshot.batch-worker.spec.ts`:
 import { MoonshotBatchWorker } from './moonshot.batch-worker';
 import { MoonshotBatchStore } from './moonshot.batch-store';
 
-// In-memory batch store double (implements only what the worker calls).
+// In-memory batch store double (only what the worker calls), including the D5
+// claim — atomic in-memory: no `await` before the mutation, so two concurrent
+// claims of the same item cannot both win.
 class MemBatchStore {
   batches = new Map<string, any>();
   items = new Map<string, any[]>();
   async getBatch(id: string) { return this.batches.get(id) ?? null; }
-  async listPendingItems(id: string) { return (this.items.get(id) ?? []).filter((i) => i.status === 'pending'); }
   async listItems(id: string) { return this.items.get(id) ?? []; }
-  async updateItem(id: string, cid: string, patch: any) {
+  async listUnfinishedItems(id: string) { return (this.items.get(id) ?? []).filter((i) => i.status === 'pending' || i.status === 'running'); }
+  async claimItem(id: string, cid: string, leaseMs: number) {
     const it = (this.items.get(id) ?? []).find((i) => i.customId === cid);
-    Object.assign(it, patch);
+    if (!it) return false;
+    const nowIso = new Date().toISOString();
+    const claimable = it.status === 'pending' || (it.status === 'running' && (it.leaseUntil ?? '') < nowIso);
+    if (!claimable) return false;
+    it.status = 'running';
+    it.leaseUntil = new Date(Date.now() + leaseMs).toISOString();
+    it.attempts = (it.attempts ?? 0) + 1;
+    return true;
   }
-  async setBatchStatus(id: string, status: string, endedAt?: string) {
-    Object.assign(this.batches.get(id), { status, endedAt });
+  async updateItem(id: string, cid: string, patch: any) {
+    Object.assign((this.items.get(id) ?? []).find((i) => i.customId === cid), patch);
   }
+  async setBatchStatus(id: string, status: string, endedAt?: string) { Object.assign(this.batches.get(id), { status, endedAt }); }
   async listInProgressBatches() { return [...this.batches.values()].filter((b) => b.status === 'in_progress'); }
   async listTerminalBatchesOlderThan() { return []; }
   async deleteBatch() {}
@@ -1041,20 +1235,17 @@ class MemBatchStore {
 
 const fakeEnvelopes = { async buildRequest() { return { messages: [{ role: 'user', content: 'x' }], promptCacheKey: 'k' }; } } as any;
 const fakeConfig = { get: (k: string) => (k === 'moonshot.batchConcurrency' ? 2 : undefined) } as any;
+const future = '2999-01-01T00:00:00.000Z';
 
 function clientFactory(handler: (body: any) => any) {
   return { get: () => ({ chat: { completions: { create: async (body: any) => handler(body) } } }) } as any;
 }
-
-const okResp = (content: string) => ({
-  choices: [{ message: { content }, finish_reason: 'stop' }],
-  usage: { prompt_tokens: 10, cached_tokens: 4, completion_tokens: 2 },
-});
+const okResp = (content: string) => ({ choices: [{ message: { content }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, cached_tokens: 4, completion_tokens: 2 } });
 
 describe('MoonshotBatchWorker', () => {
-  it('drains all pending items to succeeded and ends the batch', async () => {
+  it('drains all unfinished items to succeeded and ends the batch', async () => {
     const store = new MemBatchStore();
-    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: { effort: 'high', maxTokens: 100 }, status: 'in_progress', total: 2 });
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: { effort: 'high', maxTokens: 100 }, status: 'in_progress', total: 2, expiresAt: future });
     store.items.set('b1', [
       { customId: 'c1', prompt: 'p1', status: 'pending' },
       { customId: 'c2', prompt: 'p2', status: 'pending' },
@@ -1069,31 +1260,54 @@ describe('MoonshotBatchWorker', () => {
 
   it('classifies content_filter as refusal (kept) and persistent 5xx as errored (re-queued)', async () => {
     const store = new MemBatchStore();
-    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: { effort: 'high', maxTokens: 100 }, status: 'in_progress', total: 2 });
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: { effort: 'high', maxTokens: 100 }, status: 'in_progress', total: 2, expiresAt: future });
     store.items.set('b1', [
       { customId: 'refuse', prompt: 'REFUSE', status: 'pending' },
       { customId: 'boom', prompt: 'BOOM', status: 'pending' },
     ]);
-    // The client branches on the (echoed) prompt so each item hits a distinct error.
     const client = clientFactory((body: any) => {
-      if (JSON.stringify(body.messages).includes('REFUSE')) {
-        throw Object.assign(new Error('filtered'), { status: 400, error: { type: 'content_filter' } });
-      }
+      if (JSON.stringify(body.messages).includes('REFUSE')) throw Object.assign(new Error('filtered'), { status: 400, error: { type: 'content_filter' } });
       throw Object.assign(new Error('server'), { status: 500 });
     });
     const echoEnvelopes = { async buildRequest(_e: any, prompt: string) { return { messages: [{ role: 'user', content: prompt }], promptCacheKey: 'k' }; } } as any;
     const worker = new MoonshotBatchWorker(client, echoEnvelopes, store as unknown as MoonshotBatchStore, fakeConfig);
-    (worker as any).sleep = async () => {}; // skip real backoff delays so the retry loop is instant
+    (worker as any).sleep = async () => {}; // skip backoff so the retry loop is instant
     await worker.drainBatch('b1');
     const items = await store.listItems('b1');
-    expect(items.find((i) => i.customId === 'refuse')!.status).toBe('refusal'); // permanent → recorded
-    expect(items.find((i) => i.customId === 'boom')!.status).toBe('errored'); // transient after retries → reconciler re-queues
-    expect(store.batches.get('b1').status).toBe('ended'); // batch still ends
+    expect(items.find((i) => i.customId === 'refuse')!.status).toBe('refusal');
+    expect(items.find((i) => i.customId === 'boom')!.status).toBe('errored');
+    expect(store.batches.get('b1').status).toBe('ended');
+  });
+
+  it('marks a batch past expiresAt as errored, leaving items untouched (D6)', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: '2000-01-01T00:00:00.000Z' });
+    store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    let called = 0;
+    const worker = new MoonshotBatchWorker(clientFactory(() => { called++; return okResp('{}'); }), fakeEnvelopes, store as unknown as MoonshotBatchStore, fakeConfig);
+    await worker.drainBatch('b1');
+    expect(called).toBe(0);
+    expect(store.batches.get('b1').status).toBe('errored');
+    expect((await store.listItems('b1'))[0].status).toBe('pending'); // untouched → reconciler re-queues
+  });
+
+  it('two workers sharing a store run each item exactly once (D5 claim gate)', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 2, expiresAt: future });
+    store.items.set('b1', [
+      { customId: 'c1', prompt: 'p1', status: 'pending' },
+      { customId: 'c2', prompt: 'p2', status: 'pending' },
+    ]);
+    let calls = 0;
+    const mk = () => new MoonshotBatchWorker(clientFactory(() => { calls++; return okResp('{}'); }), fakeEnvelopes, store as unknown as MoonshotBatchStore, fakeConfig);
+    await Promise.all([mk().drainBatch('b1'), mk().drainBatch('b1')]);
+    expect(calls).toBe(2); // each item claimed + run exactly once across the two workers
+    expect((await store.listItems('b1')).every((i) => i.status === 'succeeded')).toBe(true);
   });
 });
 ```
 
-> Note: `runOne` is a public (non-`private`) method on the worker so its retry/classification logic is exercised directly here (a throwing client), and `sleep` is a private method the test overrides to remove backoff latency.
+> Note: `runOne` is public so its retry/classification is exercised directly; `sleep` is a private method the tests override to remove backoff latency; the two-worker test relies on `claimItem` being atomic (no `await` before the status flip) — the real store gets this from a Firestore transaction, the fake from single-threaded synchronicity.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -1108,14 +1322,16 @@ Create `backend/src/moonshot/moonshot.batch-worker.ts`:
 import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { createHash } from 'node:crypto';
 import { MOONSHOT_CLIENT, MoonshotClientFactory } from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
-import { MoonshotBatchStore, EmulatedBatchItem } from './moonshot.batch-store';
-import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat } from './moonshot.chat';
+import { MoonshotBatchStore, EmulatedBatchItem, EmulatedBatchDoc } from './moonshot.batch-store';
+import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
 import { UsageTokens } from '../cost/cost.types';
 
 const MAX_ATTEMPTS = 4;
-const GC_AFTER_MS = 2 * 60 * 60 * 1000; // drop terminal (incl. warm) batches after 2h
+const LEASE_MS = 10 * 60 * 1000; // D5: item-claim lease
+const GC_TTL_DEFAULT_MS = 24 * 60 * 60 * 1000;
 
 interface RunOutcome {
   status: 'succeeded' | 'refusal' | 'errored';
@@ -1126,16 +1342,17 @@ interface RunOutcome {
 }
 
 /**
- * Drains kimi-k3 emulated batches. Each item is a synchronous chat call; results
- * are persisted durably so getBatch/getBatchResults work from any process. A
- * restart resumes in-flight batches via OnApplicationBootstrap. Content_filter →
- * refusal (permanent, recorded); 429/5xx/network → retry then errored (transient,
- * the reconciler re-queues that run-index).
+ * Drains kimi-k3 emulated batches. Each item is a synchronous chat call, claimed
+ * transactionally (D5) so concurrent kick()/bootstrap-resume across processes never
+ * double-run an item; results persist durably so getBatch/getBatchResults work from
+ * any process. Items are primed one-per-prefix-group before fanning out (D7). A
+ * batch past its deadline is force-terminated (D6). content_filter → refusal
+ * (permanent); 429/5xx/network → retry then errored (transient → reconciler re-queues).
  */
 @Injectable()
 export class MoonshotBatchWorker implements OnApplicationBootstrap {
   private readonly logger = new Logger(MoonshotBatchWorker.name);
-  private readonly active = new Set<string>(); // batchIds currently draining in THIS process
+  private readonly active = new Set<string>(); // batchIds draining in THIS process
 
   constructor(
     @Inject(MOONSHOT_CLIENT) private readonly clientFactory: MoonshotClientFactory,
@@ -1165,38 +1382,60 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
     for (const b of batches) this.kick(b.batchId);
   }
 
-  // Idempotent: only processes items still 'pending'; safe to call concurrently
-  // with the bootstrap resume thanks to the in-process `active` guard.
+  // Drain one emulated batch: expire if past deadline (D6), else claim+run each
+  // unfinished item, priming one call per prefix group (D7) before fanning out.
   async drainBatch(batchId: string): Promise<void> {
     if (this.active.has(batchId)) return;
     this.active.add(batchId);
     try {
       const batch = await this.store.getBatch(batchId);
       if (!batch || batch.status !== 'in_progress') return;
-      const pending = await this.store.listPendingItems(batchId);
-      await this.runPool(pending, async (item) => {
-        const outcome = await this.runOne(item, batch);
-        await this.store.updateItem(batchId, item.customId, {
-          status: outcome.status,
-          ...(outcome.text !== undefined ? { text: outcome.text } : {}),
-          ...(outcome.error !== undefined ? { error: outcome.error } : {}),
-          ...(outcome.usage !== undefined ? { usage: outcome.usage } : {}),
-          ...(outcome.cacheReadTokens !== undefined ? { cacheReadTokens: outcome.cacheReadTokens } : {}),
-        });
-      });
-      // Re-check: end the batch once nothing is left pending.
-      const stillPending = await this.store.listPendingItems(batchId);
-      if (!stillPending.length) {
-        await this.store.setBatchStatus(batchId, 'ended', new Date().toISOString());
+      const unfinished = await this.store.listUnfinishedItems(batchId);
+      if (new Date().toISOString() > batch.expiresAt) {
+        if (unfinished.length) await this.store.setBatchStatus(batchId, 'errored', new Date().toISOString());
+        return;
       }
+      const groups = this.groupByPrefix(unfinished, batch);
+      // Phase 1: prime one item per group (warms each distinct cell prefix).
+      await this.runPool(groups.map((g) => g[0]), (item) => this.claimAndRun(batchId, item, batch));
+      // Phase 2: fan out the remaining items of every group (siblings hit cache).
+      await this.runPool(groups.flatMap((g) => g.slice(1)), (item) => this.claimAndRun(batchId, item, batch));
+      const remaining = await this.store.listUnfinishedItems(batchId);
+      if (!remaining.length) await this.store.setBatchStatus(batchId, 'ended', new Date().toISOString());
+      else if (new Date().toISOString() > batch.expiresAt) await this.store.setBatchStatus(batchId, 'errored', new Date().toISOString());
     } finally {
       this.active.delete(batchId);
     }
   }
 
-  // One item = one sync chat call. "Prime-then-fan-out" ordering is handled by the
-  // pool running the first task alone before opening the rest (see runPool).
-  async runOne(item: EmulatedBatchItem, batch: { model: string; opts: { schema?: unknown; maxTokens?: number; effort?: string }; batchEnvelope?: any }): Promise<RunOutcome> {
+  // D7: group by envelope hash (1:1 with prompt_cache_key) so each distinct cell
+  // prefix is primed exactly once before its sibling runIndexes fan out.
+  private groupByPrefix(items: EmulatedBatchItem[], batch: EmulatedBatchDoc): EmulatedBatchItem[][] {
+    const groups = new Map<string, EmulatedBatchItem[]>();
+    for (const item of items) {
+      const key = createHash('sha256').update(JSON.stringify(item.envelope ?? batch.batchEnvelope ?? null)).digest('hex');
+      const g = groups.get(key);
+      if (g) g.push(item); else groups.set(key, [item]);
+    }
+    return [...groups.values()];
+  }
+
+  // Claim (D5) then run one item. A lost claim (another process/tick owns it) is a no-op.
+  private async claimAndRun(batchId: string, item: EmulatedBatchItem, batch: EmulatedBatchDoc): Promise<void> {
+    const claimed = await this.store.claimItem(batchId, item.customId, LEASE_MS);
+    if (!claimed) return;
+    const outcome = await this.runOne(item, batch);
+    await this.store.updateItem(batchId, item.customId, {
+      status: outcome.status,
+      ...(outcome.text !== undefined ? { text: outcome.text } : {}),
+      ...(outcome.error !== undefined ? { error: outcome.error } : {}),
+      ...(outcome.usage !== undefined ? { usage: outcome.usage } : {}),
+      ...(outcome.cacheReadTokens !== undefined ? { cacheReadTokens: outcome.cacheReadTokens } : {}),
+    });
+  }
+
+  // One item = one sync chat call (with the strict→json_object fallback).
+  async runOne(item: EmulatedBatchItem, batch: EmulatedBatchDoc): Promise<RunOutcome> {
     const built = await this.envelopes.buildRequest(item.envelope ?? batch.batchEnvelope, item.prompt);
     const body: MoonshotChatBody = {
       model: batch.model,
@@ -1209,15 +1448,13 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
     let lastErr: unknown;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const resp = await this.clientFactory.get().chat.completions.create(body as any);
+        const resp = await createChatWithFallback(this.clientFactory.get(), body);
         const r = toChatResult(resp);
         return { status: 'succeeded', text: r.text, usage: r.usage, cacheReadTokens: r.usage.cacheRead };
       } catch (err) {
         const status = (err as { status?: number }).status;
         const type = (err as any)?.error?.type ?? (err as any)?.code;
-        if (status === 400 && type === 'content_filter') {
-          return { status: 'refusal' }; // permanent decision — recorded, not retried
-        }
+        if (status === 400 && type === 'content_filter') return { status: 'refusal' }; // permanent — recorded, not retried
         lastErr = err;
         if (attempt === MAX_ATTEMPTS || !this.isTransient(status)) break;
         await this.sleep(250 * 2 ** (attempt - 1));
@@ -1234,28 +1471,23 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
     return new Promise((r) => setTimeout(r, ms));
   }
 
-  // Bounded-concurrency pool. Runs the FIRST task alone (primes Moonshot's implicit
-  // cache with the shared prefix) before fanning the rest out, so subsequent
-  // same-prefix calls land cache hits instead of all missing at once.
+  // Bounded-concurrency pool. Phase ordering (prime vs fan-out) is decided by the
+  // caller (drainBatch); this just runs `items` at most `concurrency` at a time.
   private async runPool<T>(items: T[], fn: (item: T) => Promise<void>): Promise<void> {
     if (!items.length) return;
-    await fn(items[0]);
-    const rest = items.slice(1);
     let cursor = 0;
     const limit = Math.max(1, this.concurrency);
-    const workers = Array.from({ length: Math.min(limit, rest.length) }, async () => {
-      while (cursor < rest.length) {
-        const idx = cursor++;
-        await fn(rest[idx]);
-      }
+    const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (cursor < items.length) await fn(items[cursor++]);
     });
-    await Promise.all(workers);
+    await Promise.all(runners);
   }
 
   @Cron(CronExpression.EVERY_30_MINUTES)
   async gc(): Promise<void> {
     if ((this.config.get<string>('llm.provider') ?? 'anthropic') !== 'moonshot') return;
-    const cutoff = new Date(Date.now() - GC_AFTER_MS).toISOString();
+    const ttl = this.config.get<number>('moonshot.batchGcTtlMs') ?? GC_TTL_DEFAULT_MS;
+    const cutoff = new Date(Date.now() - ttl).toISOString();
     const stale = await this.store.listTerminalBatchesOlderThan(cutoff);
     for (const id of stale) await this.store.deleteBatch(id);
     if (stale.length) this.logger.log(`GC removed ${stale.length} terminal emulated batches`);
@@ -1266,13 +1498,13 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `cd backend && npx jest src/moonshot/moonshot.batch-worker.spec.ts`
-Expected: PASS (both cases).
+Expected: PASS (all 4 cases).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/moonshot/moonshot.batch-worker.ts backend/src/moonshot/moonshot.batch-worker.spec.ts
-git commit -m "feat(moonshot): durable emulated-batch worker with recovery + gc"
+git commit -m "feat(moonshot): emulated-batch worker with claiming, grouped priming, expiry, gc"
 ```
 
 ---
@@ -1386,7 +1618,7 @@ import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotExtractStore } from './moonshot.extract-store';
 import { MoonshotBatchStore } from './moonshot.batch-store';
 import { MoonshotBatchWorker } from './moonshot.batch-worker';
-import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat } from './moonshot.chat';
+import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
 import { tokensFromUsage } from './moonshot.usage';
 
 @Injectable()
@@ -1425,7 +1657,7 @@ export class MoonshotLlmProvider implements LlmProvider {
       ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) as any } : {}),
     };
     try {
-      const resp = await this.clientFactory.get().chat.completions.create(body as any);
+      const resp = await createChatWithFallback(this.clientFactory.get(), body);
       const r = toChatResult(resp);
       // Capture usage BEFORE any refusal/parse throw — a refusal is still billed.
       this.emitUsage(r.rawUsage, (resp as any).model ?? model, attribution);
@@ -1657,11 +1889,14 @@ In `backend/src/moonshot/moonshot.service.ts`, **replace the three throwing stub
     model: string,
   ): Promise<BatchHandle> {
     const batchId = `msb_${randomUUID()}`;
+    const nowMs = Date.now();
+    const maxAge = this.config.get<number>('moonshot.batchMaxAgeMs') ?? 10_800_000; // 3h
     const items = requests.map((r, i) => ({
       customId: r.customId ?? `request-${i}`,
       prompt: r.prompt,
       ...(r.envelope ? { envelope: r.envelope } : {}),
       status: 'pending' as const,
+      attempts: 0,
     }));
     await this.batchStore.createBatch(
       {
@@ -1671,7 +1906,8 @@ In `backend/src/moonshot/moonshot.service.ts`, **replace the three throwing stub
         ...(envelope ? { batchEnvelope: envelope } : {}),
         status: 'in_progress',
         total: items.length,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(nowMs).toISOString(),
+        expiresAt: new Date(nowMs + maxAge).toISOString(), // D6
       },
       items,
     );
@@ -1741,7 +1977,7 @@ In `backend/src/moonshot/moonshot.service.ts`, **replace the three throwing stub
   private async emulatedResults(batchId: string): Promise<BatchItemResult[]> {
     const items = await this.batchStore.listItems(batchId);
     return items
-      .filter((i) => i.status !== 'pending')
+      .filter((i) => i.status !== 'pending' && i.status !== 'running') // terminal items only
       .map((i) => ({
         customId: i.customId,
         type: i.status,
@@ -2099,17 +2335,21 @@ git commit -m "test(moonshot): full-suite verification and keyless-boot check" |
 |---|---|
 | §5 new files under `backend/src/moonshot/` | 4–11 |
 | §6.1 messageStructured | 9 |
+| §6.1.1 strict schema shaping + fallback (D8) | 6 (`toMoonshotSchema`/`createChatWithFallback`), used by 9 & 8/10 |
 | §6.2 envelope / implicit caching + prompt_cache_key | 6 |
 | §6.3 uploadFile → durable extract store | 5, 9 |
 | §6.4 hybrid batch (native + emulated) | 7, 8, 10 |
+| §6.4 D5 item claiming | 7 (`claimItem`), 8 (`claimAndRun`) |
+| §6.4 D6 batch expiry | 1 (`batchMaxAgeMs`), 7 (`expiresAt`), 8 (drain expiry check) |
+| §6.4 D7 prefix-grouped priming | 8 (`groupByPrefix` + two-phase `runPool`) |
 | §6.4.1 cache-warmer mapping (works via emulated submitBatch) | 8, 10 (no benchmark change) |
 | §6.5 usage mapping | 4 |
 | §6.6 pricing overrides + kimi rates | 2 |
 | §6.7 provider-aware flagship | 1, 3 |
-| §7 config/env | 1 |
-| §8 Firestore data model | 5, 7 |
-| §9 testing (contract, usage, envelope, batch, pricing, swap) | 2, 4, 5, 6, 8, 9, 10, 11, 12 |
-| §10 risks (chunking, backoff, GC) | 5, 8 |
+| §7 config/env (incl. `batchMaxAgeMs`/`batchGcTtlMs`) | 1 |
+| §8 Firestore data model (`running`/lease/`attempts`/`expiresAt`) | 5, 7 |
+| §9 testing (contract, usage, envelope, chat, batch, pricing, swap, D5/D6/D8) | 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 |
+| §10 risks (chunking, backoff, GC-by-endedAt, write amplification, K3 token budget) | 5, 7, 8 |
 
 ## Notes for the implementer
 
@@ -2117,3 +2357,5 @@ git commit -m "test(moonshot): full-suite verification and keyless-boot check" |
 - **Never send `temperature`/`top_p`** in any Moonshot request (sync or batch) — Moonshot fixes them and rejects batches that set them.
 - **The reconciler and cache-warmer are unchanged.** They drive Moonshot purely through the neutral port; the emulated batch's synthetic `msb_…` id is opaque to them (only `customId` is ever parsed).
 - **Emulated k3 batches emit `serviceTier:'batch'`** via the existing reconciler, but pricing charges them at standard rates (`kimi-k3` `batchMultiplier:1.0`) — this is intentional, since k3 gets no batch discount.
+- **Hardening (D5–D8) lives entirely in the Moonshot adapter.** D5 item claiming (`claimItem` transaction) makes concurrent `kick()`/bootstrap-resume single-run; D6 `expiresAt` prevents stuck `in_progress` batches; D7 groups the emulated fan-out by prefix so caching actually pays off; D8 shapes the schema for strict mode and adds a `json_object`/`partial` fallback. All schema sends go through `jsonSchemaFormat` (which applies `toMoonshotSchema`), and all sync chat sends (service + worker) go through `createChatWithFallback`.
+- **`claimItem` atomicity is load-bearing.** The real store gets it from a Firestore `runTransaction`; the test fakes rely on single-threaded synchronicity (no `await` before the status flip). Do not introduce an `await` between the claimability check and the `update` inside `claimItem`.
