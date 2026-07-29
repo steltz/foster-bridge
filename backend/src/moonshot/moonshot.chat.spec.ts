@@ -6,6 +6,7 @@ import {
   mapEffort,
   isSchemaRejection,
   toChatResult,
+  MoonshotChatClient,
 } from './moonshot.chat';
 import { SETUP_SCHEMA } from '../benchmark/benchmark.types';
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from '../benchmark/seven-keys/schemas';
@@ -34,6 +35,16 @@ describe('toMoonshotSchema (D8) — nullable enums', () => {
       type: 'object',
       required: [],
       properties: { color: { type: 'string', enum: ['a', 'b'] } },
+    }) as any;
+    expect(shaped.properties.color.type).toEqual(['string', 'null']);
+    expect(shaped.properties.color.enum).toEqual(['a', 'b', null]);
+  });
+
+  it('appends null to enum values for an optional array-type property (type array + enum)', () => {
+    const shaped = toMoonshotSchema({
+      type: 'object',
+      required: [],
+      properties: { color: { type: ['string'], enum: ['a', 'b'] } },
     }) as any;
     expect(shaped.properties.color.type).toEqual(['string', 'null']);
     expect(shaped.properties.color.enum).toEqual(['a', 'b', null]);
@@ -69,24 +80,21 @@ describe('toMoonshotSchema (D8) — anyOf branch + additionalProperties injectio
   });
 });
 
-// Recursively verifies OpenAI-strict invariants on `shaped` (toMoonshotSchema's
-// output). `original` is only used to know which subtrees were already "closed"
-// (every property already required) — the shaper doesn't recurse, so nested
-// schemas pass straight through unchanged; we only assert closedness there if
-// the input already had it, and skip otherwise (don't overreach beyond what the
-// shaper actually promises). Purpose: break loudly if a schema gains a nested
-// optional field this shaper silently ignores.
-function assertStrictSchema(shaped: any, original: any): void {
+// Recursively verifies OpenAI-strict invariants directly on `shaped`
+// (toMoonshotSchema's output), unconditionally at every object level reached
+// via `properties` or array `items` — not just where the input happened to
+// already be closed. Purpose: break loudly if a schema gains a nested optional
+// field this shaper doesn't recurse into and therefore doesn't close; `path`
+// pinpoints exactly which node failed (e.g. `$.zones[]`).
+function assertStrictSchema(shaped: any, path = '$'): void {
   if (!shaped || typeof shaped !== 'object') return;
   if (shaped.properties) {
     const keys = Object.keys(shaped.properties);
-    const origKeys = original?.properties ? Object.keys(original.properties) : [];
-    const origRequired = new Set(original?.required ?? []);
-    const wasClosed = origKeys.length > 0 && origKeys.every((k) => origRequired.has(k));
-    if (wasClosed) expect([...(shaped.required ?? [])].sort()).toEqual([...keys].sort());
-    for (const key of keys) assertStrictSchema(shaped.properties[key], original?.properties?.[key]);
+    expect({ path, required: [...(shaped.required ?? [])].sort() }).toEqual({ path, required: [...keys].sort() });
+    expect({ path, addl: shaped.additionalProperties }).toEqual({ path, addl: false });
+    for (const key of keys) assertStrictSchema(shaped.properties[key], `${path}.${key}`);
   }
-  if (shaped.items) assertStrictSchema(shaped.items, original?.items);
+  if (shaped.items) assertStrictSchema(shaped.items, `${path}[]`);
 }
 
 describe('toMoonshotSchema schema gate (real schemas)', () => {
@@ -110,7 +118,7 @@ describe('toMoonshotSchema schema gate (real schemas)', () => {
       }
     }
 
-    assertStrictSchema(shaped, original);
+    assertStrictSchema(shaped);
   });
 });
 
@@ -191,8 +199,8 @@ describe('createChatWithFallback (D8)', () => {
   });
 
   it('rethrows a non-schema error unchanged', async () => {
-    const client = { chat: { completions: { create: async () => { throw Object.assign(new Error('boom'), { status: 500 }); } } } };
-    await expect(createChatWithFallback(client as any, { model: 'k', messages: [], max_completion_tokens: 1, reasoning_effort: 'high', response_format: { type: 'json_schema' } as any })).rejects.toThrow('boom');
+    const client: MoonshotChatClient = { chat: { completions: { create: async () => { throw Object.assign(new Error('boom'), { status: 500 }); } } } };
+    await expect(createChatWithFallback(client, { model: 'k', messages: [], max_completion_tokens: 1, reasoning_effort: 'high', response_format: { type: 'json_schema' } as any })).rejects.toThrow('boom');
   });
 
   it('does not double the leading brace when the json_object fallback response already starts with {', async () => {
