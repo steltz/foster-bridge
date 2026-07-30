@@ -139,6 +139,17 @@ describe('configuration – moonshot', () => {
     expect(cfg.moonshot.apiKey).toBeUndefined();
   });
 
+  // A set-but-empty MOONSHOT_BASE_URL (e.g. a copied .env.example, or a
+  // blanked deploy var) must fall back too: `||`, not `??`. An empty string
+  // reaching the OpenAI SDK's constructor resolves to
+  // https://api.openai.com/v1, silently sending the Moonshot key to OpenAI's
+  // host — see moonshot.module.spec.ts for the matching guard on the other
+  // (module-factory) `||` site.
+  it('treats a set-but-empty MOONSHOT_BASE_URL as unset', () => {
+    process.env.MOONSHOT_BASE_URL = '';
+    expect(configuration().moonshot.baseUrl).toBe('https://api.moonshot.ai/v1');
+  });
+
   it('reads env overrides', () => {
     process.env.MOONSHOT_API_KEY = 'sk-moon';
     process.env.MOONSHOT_BASE_URL = 'https://example.test/v1';

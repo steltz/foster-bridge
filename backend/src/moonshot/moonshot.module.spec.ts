@@ -1,8 +1,9 @@
 // Mirrors anthropic.module.spec.ts (lazy / 401 / memoize / baseURL override),
 // plus a regression guard for the empty-string MOONSHOT_BASE_URL defect (see
 // the last test below). MoonshotExtractStore + MoonshotBatchStore each
-// @Inject(FIRESTORE), so a @Global FakeFirebaseModule stands in for the real
-// FirebaseModule (which would initialize firebase-admin) here.
+// @Inject(FIRESTORE); MoonshotModule declares `imports: [FirebaseModule]` to
+// supply it, so this spec overrides that import with a @Global fake rather
+// than let the real FirebaseModule initialize firebase-admin.
 const OpenAICtor = jest.fn().mockImplementation(() => ({ __client: true }));
 jest.mock('openai', () => ({ __esModule: true, default: OpenAICtor, toFile: jest.fn() }));
 
@@ -42,15 +43,15 @@ describe('MoonshotModule client factory', () => {
         // MOONSHOT_API_KEY cannot mask the "no key set" case.
         ConfigModule.forRoot({ isGlobal: true, load: [configuration], ignoreEnvFile: true }),
         EventEmitterModule.forRoot(),
-        FakeFirebaseModule,
         MoonshotModule,
       ],
     })
-      // MoonshotModule declares `imports: [FirebaseModule]` itself; without this
-      // override, Test.createTestingModule would also instantiate the REAL
-      // FirebaseModule (initializing firebase-admin) alongside FakeFirebaseModule
-      // above. Swap it for the same fake so FIRESTORE resolves to the stub
-      // everywhere in the graph and no real Firebase app is ever created.
+      // MoonshotModule pulls in FirebaseModule via its own `imports: [FirebaseModule]`
+      // (for FIRESTORE), so swap that nested import for the fake here rather than
+      // sibling-import the fake at the top level — the latter would leave the
+      // REAL FirebaseModule instantiated too (initializing firebase-admin) with
+      // both providers racing to supply FIRESTORE globally. This override is the
+      // only source of FIRESTORE in this test module.
       .overrideModule(FirebaseModule)
       .useModule(FakeFirebaseModule)
       .compile();
@@ -93,8 +94,10 @@ describe('MoonshotModule client factory', () => {
   // Regression guard for the empty-baseURL defect: an empty string reaching the
   // SDK resolves to https://api.openai.com/v1 (openai@4.104.0 index.js:81
   // `baseURL || 'https://api.openai.com/v1'`), silently sending the Moonshot key
-  // to OpenAI's host. FAILS if either configuration.ts or this module's factory
-  // reverts from `||` back to `??` for the baseUrl read.
+  // to OpenAI's host. Each `||` (configuration.ts's and this module factory's)
+  // independently guards against that, so this only FAILS if BOTH revert from
+  // `||` back to `??` for the baseUrl read (defense in depth) — the config-layer
+  // guard alone is pinned separately in configuration.spec.ts.
   it('falls back to the Moonshot host when MOONSHOT_BASE_URL is set but empty', async () => {
     process.env.MOONSHOT_API_KEY = 'sk-test';
     process.env.MOONSHOT_BASE_URL = '';
