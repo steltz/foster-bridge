@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID, createHash } from 'node:crypto';
 import { toFile } from 'openai';
-import { Attribution } from '../cost/cost.types';
+import { Attribution, UsageEvent } from '../cost/cost.types';
 import { LlmProvider, LlmCapabilities } from '../llm/llm.provider';
 import {
   StructuredRequest,
@@ -49,19 +49,23 @@ export class MoonshotLlmProvider implements LlmProvider {
 
   async messageStructured<T = unknown>(req: StructuredRequest, attribution: Attribution): Promise<T> {
     const model = req.model ?? this.defaultModel;
-    const built = await this.envelopes.buildRequest(req.envelope, req.prompt, req.system);
-    const body: MoonshotChatBody = {
-      model,
-      messages: built.messages,
-      max_completion_tokens: req.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
-      reasoning_effort: mapEffort(req.effort),
-      // Spread conditionally: promptCacheKey is `string | undefined` (undefined when
-      // the envelope has no stable prefix), and an explicit `prompt_cache_key:
-      // undefined` key would still be an own property on the request body.
-      ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
-      ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) as any } : {}),
-    };
     try {
+      // Inside the try for the same reason as uploadFile's store read: buildRequest
+      // can throw (an unresolvable file-block id). Behaviorally a no-op today —
+      // that throw is a plain Error and rethrow passes it through unchanged — but
+      // it keeps every failure on this path funnelled through one mapping point.
+      const built = await this.envelopes.buildRequest(req.envelope, req.prompt, req.system);
+      const body: MoonshotChatBody = {
+        model,
+        messages: built.messages,
+        max_completion_tokens: req.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+        reasoning_effort: mapEffort(req.effort),
+        // Spread conditionally: promptCacheKey is `string | undefined` (undefined when
+        // the envelope has no stable prefix), and an explicit `prompt_cache_key:
+        // undefined` key would still be an own property on the request body.
+        ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
+        ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) as any } : {}),
+      };
       // Known cost, deliberately unmemoized: createChatWithFallback re-probes
       // strict json_schema on EVERY call, so a schema Moonshot permanently rejects
       // burns one wasted 400 per request. If that shows up in practice, the fix is
@@ -108,14 +112,24 @@ export class MoonshotLlmProvider implements LlmProvider {
       if (cached != null) return `${MOONSHOT_EXTRACT_ID_PREFIX}${hash}`;
       const file = await toFile(bytes, filename, { type: mediaType });
       const uploaded = await client.files.create({ file, purpose: 'file-extract' as any });
-      const text = await (await client.files.content(uploaded.id)).text();
-      await this.extracts.put(hash, text, { filename, mediaType });
+      // Everything after a successful create runs under a `finally` that always
+      // attempts the delete: this is the ONLY caller of files.del in the codebase,
+      // and Moonshot caps an account at 1,000 files, so a content-read or
+      // extract-store failure sequenced BEFORE the delete would leak the remote
+      // file permanently. Losing the remote copy on a failed attempt costs
+      // nothing — a retry re-uploads. `return` still evaluates after `put`
+      // resolves, so the success path keeps its put-before-return ordering.
       try {
-        await (client.files as any).del(uploaded.id);
-      } catch (delErr) {
-        this.logger.warn(`Moonshot file ${uploaded.id} extracted but not deleted: ${(delErr as Error).message}`);
+        const text = await (await client.files.content(uploaded.id)).text();
+        await this.extracts.put(hash, text, { filename, mediaType });
+        return `${MOONSHOT_EXTRACT_ID_PREFIX}${hash}`;
+      } finally {
+        try {
+          await (client.files as any).del(uploaded.id);
+        } catch (delErr) {
+          this.logger.warn(`Moonshot file ${uploaded.id} extracted but not deleted: ${(delErr as Error).message}`);
+        }
       }
-      return `${MOONSHOT_EXTRACT_ID_PREFIX}${hash}`;
     } catch (err) {
       this.rethrow(err);
     }
@@ -139,7 +153,10 @@ export class MoonshotLlmProvider implements LlmProvider {
 
   private emitUsage(rawUsage: unknown, modelId: string, attribution: Attribution): void {
     try {
-      this.events.emit('llm.usage', {
+      // Typed against UsageEvent so the payload can't drift from what CostService
+      // consumes. serviceTier is always 'standard': an OpenAI-compatible usage
+      // object carries no tier signal, and Moonshot's sync API has one tier.
+      const event: UsageEvent = {
         id: randomUUID(),
         timestamp: new Date().toISOString(),
         modelId,
@@ -147,16 +164,21 @@ export class MoonshotLlmProvider implements LlmProvider {
         attribution,
         tokens: tokensFromUsage(rawUsage),
         source: 'sync',
-      });
-    } catch {
-      // Capture must never affect the request path.
+      };
+      this.events.emit('llm.usage', event);
+    } catch (err) {
+      // Capture must never affect the request path — but swallowing silently means
+      // cost tracking drops records with no trace, so log it.
+      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error).message}`);
     }
   }
 
   /** Maps OpenAI/Moonshot SDK errors to Nest HttpExceptions; passes others through. */
   protected rethrow(err: unknown): never {
     if (err instanceof HttpException) throw err;
-    const status = (err as { status?: number }).status;
+    // Optional chain: a thrown null/undefined must fall through to the
+    // normalization below, not TypeError on the member access.
+    const status = (err as { status?: number })?.status;
     const type = (err as any)?.error?.type ?? (err as any)?.code;
     if (typeof status === 'number') {
       if (status === 400 && type === 'content_filter') {

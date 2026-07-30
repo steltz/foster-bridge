@@ -15,12 +15,14 @@ function make(chatHandler: (body: any) => any, fileHandlers: any = {}) {
   const extracts = fakeExtracts();
   const envelopes = new MoonshotEnvelopeBuilder(extracts);
   const events: any = { emitted: [] as any[], emit(name: string, p: any) { this.emitted.push({ name, p }); return true; } };
+  const creates: any[] = [];
+  const dels: string[] = [];
   const client = {
     chat: { completions: { create: async (b: any) => chatHandler(b) } },
     files: {
-      create: async (_a: any) => ({ id: fileHandlers.id ?? 'ms-file-1' }),
+      create: async (a: any) => { creates.push(a); return { id: fileHandlers.id ?? 'ms-file-1' }; },
       content: async (_id: string) => ({ text: async () => fileHandlers.text ?? 'EXTRACTED' }),
-      del: async (_id: string) => ({}),
+      del: async (id: string) => { dels.push(id); return {}; },
     },
   };
   const clientFactory = { get: () => client } as any;
@@ -28,7 +30,17 @@ function make(chatHandler: (body: any) => any, fileHandlers: any = {}) {
   const batchStore: any = {};
   const worker: any = { kick() {} };
   const svc = new MoonshotLlmProvider(clientFactory, config, events, envelopes, extracts, batchStore, worker);
-  return { svc, events, extracts };
+  return { svc, events, extracts, creates, dels };
+}
+
+/** Runs `fn`, returning the HTTP status and `error` string of the exception it throws. */
+async function statusOf(fn: () => Promise<unknown>): Promise<{ status: number; error?: string }> {
+  try {
+    await fn();
+    return { status: 0 };
+  } catch (e: any) {
+    return { status: e.getStatus?.() ?? e.status, error: e.getResponse?.()?.error };
+  }
 }
 
 describe('MoonshotLlmProvider – sync + upload', () => {
@@ -47,20 +59,35 @@ describe('MoonshotLlmProvider – sync + upload', () => {
   });
 
   it('uploadFile extracts, caches by hash, deletes remote, returns synthetic id', async () => {
-    const { svc, extracts } = make(() => ({}), { text: 'PDF CONTENT' });
+    const { svc, extracts, dels } = make(() => ({}), { text: 'PDF CONTENT' });
     const id = await svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf');
     expect(id.startsWith('moonshot-extract:')).toBe(true);
     expect(await extracts.getById(id)).toBe('PDF CONTENT');
+    // The remote copy must not survive the call — Moonshot caps an account at 1,000 files.
+    expect(dels).toEqual(['ms-file-1']);
+  });
+
+  it('uploadFile short-circuits on a cache hit without re-uploading', async () => {
+    const { svc, creates, dels } = make(() => ({}), { text: 'PDF CONTENT' });
+    const first = await svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf');
+    const second = await svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf');
+    expect(second).toBe(first);
+    expect(creates).toHaveLength(1);
+    expect(dels).toEqual(['ms-file-1']);
+  });
+
+  it('uploadFile still deletes the remote file when the extract store throws', async () => {
+    const { svc, dels, extracts } = make(() => ({}), { text: 'PDF CONTENT' });
+    extracts.put = async () => { throw new Error('firestore unavailable'); };
+    // A store failure after the upload must not leak the remote file: it is the
+    // only files.del caller, so a leaked file is leaked for good.
+    await expect(svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf')).rejects.toThrow('firestore unavailable');
+    expect(dels).toEqual(['ms-file-1']);
   });
 
   it('throws 422 on content_filter refusal', async () => {
     const { svc } = make(() => { throw Object.assign(new Error('filtered'), { status: 400, error: { type: 'content_filter' } }); });
-    let status = 0;
-    try {
-      await svc.messageStructured({ prompt: 'go' }, { operation: 'demo' });
-    } catch (e: any) {
-      status = e.getStatus?.() ?? e.status;
-    }
+    const { status } = await statusOf(() => svc.messageStructured({ prompt: 'go' }, { operation: 'demo' }));
     expect(status).toBe(422);
   });
 
@@ -72,14 +99,34 @@ describe('MoonshotLlmProvider – sync + upload', () => {
       choices: [{ message: { content: '' }, finish_reason: 'content_filter' }],
       usage: { prompt_tokens: 9, cached_tokens: 4, completion_tokens: 0 },
     }));
-    let status = 0;
-    try {
-      await svc.messageStructured({ prompt: 'go', schema: { type: 'object' } }, { operation: 'demo' });
-    } catch (e: any) {
-      status = e.getStatus?.() ?? e.status;
-    }
+    const { status, error } = await statusOf(() => svc.messageStructured({ prompt: 'go', schema: { type: 'object' } }, { operation: 'demo' }));
     expect(status).toBe(422);
+    expect(error).toBe('Structured message refused (content_filter)');
     expect(events.emitted).toHaveLength(1);
     expect(events.emitted[0].p.tokens).toEqual({ input: 5, cacheRead: 4, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 });
+  });
+
+  it('throws 502 on a truncated response (finish_reason=length), after emitting usage', async () => {
+    const { svc, events } = make(() => ({
+      choices: [{ message: { content: '{"a":' }, finish_reason: 'length' }],
+      usage: { prompt_tokens: 7, cached_tokens: 0, completion_tokens: 100 },
+    }));
+    const { status, error } = await statusOf(() => svc.messageStructured({ prompt: 'go' }, { operation: 'demo' }));
+    expect(status).toBe(502);
+    // Distinct from the parse failure below: truncation must not be reported as bad JSON.
+    expect(error).toBe('Structured output truncated (finish_reason=length)');
+    expect(events.emitted).toHaveLength(1);
+    expect(events.emitted[0].p.tokens.output).toBe(100);
+  });
+
+  it('throws 502 when the content is not valid JSON, after emitting usage', async () => {
+    const { svc, events } = make(() => ({
+      choices: [{ message: { content: 'I cannot help with that.' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 7, cached_tokens: 0, completion_tokens: 6 },
+    }));
+    const { status, error } = await statusOf(() => svc.messageStructured({ prompt: 'go' }, { operation: 'demo' }));
+    expect(status).toBe(502);
+    expect(error).toBe('Structured output was not valid JSON');
+    expect(events.emitted).toHaveLength(1);
   });
 });

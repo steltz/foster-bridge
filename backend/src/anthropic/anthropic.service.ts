@@ -14,7 +14,7 @@ import {
   AnthropicClientFactory,
   ONE_HOUR_CACHE_CONTROL,
 } from './anthropic.constants';
-import { Attribution, ServiceTier } from '../cost/cost.types';
+import { Attribution, ServiceTier, UsageEvent } from '../cost/cost.types';
 import { serviceTierFromUsage, tokensFromUsage } from './anthropic.usage';
 import { LlmProvider, LlmCapabilities } from '../llm/llm.provider';
 import {
@@ -351,7 +351,9 @@ export class AnthropicLlmProvider implements LlmProvider {
   private emitUsage(usage: unknown, modelId: string, attribution: Attribution): void {
     try {
       const tier: ServiceTier = serviceTierFromUsage(usage, 'standard');
-      this.events.emit('llm.usage', {
+      // Typed against UsageEvent so the payload can't drift from what CostService
+      // consumes.
+      const event: UsageEvent = {
         id: randomUUID(),
         timestamp: new Date().toISOString(),
         modelId,
@@ -359,9 +361,12 @@ export class AnthropicLlmProvider implements LlmProvider {
         attribution,
         tokens: tokensFromUsage(usage),
         source: 'sync',
-      });
-    } catch {
-      // Capture must never affect the request; swallow emit failures.
+      };
+      this.events.emit('llm.usage', event);
+    } catch (err) {
+      // Capture must never affect the request — but swallowing silently means cost
+      // tracking drops records with no trace, so log it.
+      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error).message}`);
     }
   }
 
