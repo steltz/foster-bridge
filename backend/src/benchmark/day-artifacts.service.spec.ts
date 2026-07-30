@@ -1,4 +1,6 @@
 import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { createHash } from 'node:crypto';
 import { DayArtifactsService } from './day-artifacts.service';
 import { BenchmarkRepository } from './benchmark.repository';
 import { LLM_PROVIDER } from '../llm/llm.constants';
@@ -29,7 +31,9 @@ function fakeBucket() {
   };
 }
 
-async function build() {
+// `provider` is what LLM_PROVIDER currently resolves to — undefined exercises the
+// same 'anthropic' default LlmModule applies when llm.provider is unset.
+async function build(provider?: string) {
   const bucket = fakeBucket();
   const upload = jest.fn().mockResolvedValue('file_new');
   const moduleRef = await Test.createTestingModule({
@@ -39,6 +43,7 @@ async function build() {
       { provide: FIRESTORE, useValue: fakeFirestore() },
       { provide: STORAGE_BUCKET, useValue: bucket },
       { provide: LLM_PROVIDER, useValue: { uploadFile: upload } },
+      { provide: ConfigService, useValue: { get: (k: string) => (k === 'llm.provider' ? provider : undefined) } },
     ],
   }).compile();
   return { svc: moduleRef.get(DayArtifactsService), bucket, upload, repo: moduleRef.get(BenchmarkRepository) };
@@ -92,7 +97,7 @@ describe('DayArtifactsService', () => {
   });
 
   it('reads a legacy anthropicFileId when providerFileId is absent', async () => {
-    const { svc, repo } = await build();
+    const { svc, repo, upload } = await build();
     await repo.saveDayArtifact('07012026', 'pdfFile', {
       contentHash: 'h',
       gcsPath: 'g',
@@ -101,6 +106,68 @@ describe('DayArtifactsService', () => {
     });
     const id = await svc.ensureFileId('07012026');
     expect(id).toBe('legacy_id');
+    // Regression guard for the existing Anthropic fleet: an untagged legacy doc
+    // read under Anthropic must NOT be mistaken for a foreign id and re-uploaded.
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('re-uploads and re-tags when the stored id was minted by a different provider', async () => {
+    // Every pre-existing day carries an Anthropic id with no fileProvider tag. Under
+    // LLM_PROVIDER=moonshot, returning it would hand Moonshot a meaningless
+    // `file_…` id -> every item of the day errors -> the reconciler writes nothing
+    // -> the next run re-submits identically, forever (the re-upload path below only
+    // fires on a MISSING id, so nothing ever self-heals).
+    const { svc, bucket, upload, repo } = await build('moonshot');
+    bucket.saved['g'] = Buffer.from('PDFBYTES');
+    await repo.saveDayArtifact('07012026', 'pdfFile', {
+      contentHash: 'h',
+      gcsPath: 'g',
+      providerFileId: 'file_anthropic',
+      uploadedAt: 't',
+    });
+    upload.mockResolvedValueOnce('moonshot-extract:abc');
+    expect(await svc.ensureFileId('07012026')).toBe('moonshot-extract:abc');
+    expect(bucket.downloads).toContain('g'); // re-uploaded from the durable origin
+    const stored = await repo.getDayArtifact('07012026', 'pdfFile');
+    expect(stored?.providerFileId).toBe('moonshot-extract:abc');
+    expect(stored?.fileProvider).toBe('moonshot'); // tagged, so the next read short-circuits
+  });
+
+  it('short-circuits a stored id that the active provider minted', async () => {
+    const { svc, upload, repo } = await build('moonshot');
+    await repo.saveDayArtifact('07012026', 'pdfFile', {
+      contentHash: 'h',
+      gcsPath: 'g',
+      providerFileId: 'moonshot-extract:abc',
+      fileProvider: 'moonshot',
+      uploadedAt: 't',
+    });
+    expect(await svc.ensureFileId('07012026')).toBe('moonshot-extract:abc');
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('ensurePdf re-uploads on a provider mismatch without re-writing GCS', async () => {
+    const { svc, bucket, upload, repo } = await build('moonshot');
+    bucket.saved[PDF_PATH] = Buffer.from('PDFBYTES');
+    await repo.saveDayArtifact('07012026', 'pdfFile', {
+      contentHash: createHash('sha256').update('PDFBYTES').digest('hex'), // hash MATCHES -> reuse arm
+      gcsPath: PDF_PATH,
+      providerFileId: 'file_anthropic',
+      uploadedAt: 't',
+    });
+    const savesBefore = bucket.saves.length;
+    upload.mockResolvedValueOnce('moonshot-extract:abc');
+    const res = await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
+    expect(res.providerFileId).toBe('moonshot-extract:abc');
+    expect(bucket.downloads).toContain(PDF_PATH);
+    expect(bucket.saves.length).toBe(savesBefore); // content is unchanged — GCS untouched
+    expect((await repo.getDayArtifact('07012026', 'pdfFile'))?.fileProvider).toBe('moonshot');
+  });
+
+  it('tags a fresh upload with the active provider', async () => {
+    const { svc, repo } = await build('moonshot');
+    await svc.ensurePdf('07012026', '07012026', Buffer.from('PDFBYTES'));
+    expect((await repo.getDayArtifact('07012026', 'pdfFile'))?.fileProvider).toBe('moonshot');
   });
 
   it('prefers providerFileId over a legacy anthropicFileId when both are present', async () => {

@@ -48,6 +48,12 @@ export interface DayArtifactDoc {
   providerFileId?: string; // pdfFile only (neutral provider file id)
   /** @deprecated legacy Anthropic-named field; read-compat only. */
   anthropicFileId?: string;
+  // Which llm.provider minted the stored file id. A file id is only meaningful to
+  // the provider that issued it (an Anthropic `file_…` id is meaningless to
+  // Moonshot and vice versa), so the id alone is not enough to know whether it is
+  // usable — see DayArtifactsService.usableFileId. Absent on docs written before
+  // this field existed; those are all Anthropic-era (see that method's comment).
+  fileProvider?: string;
   content?: string; // transcripts / keys inline copy
   uploadedAt: string;
   // Seven-keys ('keys') provenance (Plan 2). The KEYS markdown in `content` also
