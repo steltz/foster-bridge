@@ -365,8 +365,10 @@ export class AnthropicLlmProvider implements LlmProvider {
       this.events.emit('llm.usage', event);
     } catch (err) {
       // Capture must never affect the request — but swallowing silently means cost
-      // tracking drops records with no trace, so log it.
-      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error).message}`);
+      // tracking drops records with no trace, so log it. Optional chain for the same
+      // reason as rethrow's `?.status`: a thrown null/undefined must not turn this
+      // warn into a TypeError that escapes the catch it was meant to contain.
+      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error)?.message}`);
     }
   }
 
