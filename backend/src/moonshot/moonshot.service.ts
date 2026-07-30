@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/c
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID, createHash } from 'node:crypto';
+import type OpenAI from 'openai';
 import { toFile } from 'openai';
 import { Attribution, UsageEvent } from '../cost/cost.types';
 import { LlmProvider, LlmCapabilities } from '../llm/llm.provider';
@@ -14,7 +15,14 @@ import {
   BatchLifecycle,
   PromptEnvelope,
 } from '../llm/llm.types';
-import { MOONSHOT_CLIENT, MoonshotClientFactory, MOONSHOT_EXTRACT_ID_PREFIX, isBatchable } from './moonshot.constants';
+import {
+  MOONSHOT_CLIENT,
+  MoonshotClientFactory,
+  MOONSHOT_EXTRACT_ID_PREFIX,
+  DEFAULT_MAX_COMPLETION_TOKENS,
+  isBatchable,
+  numericConfig,
+} from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotExtractStore } from './moonshot.extract-store';
 import { MoonshotBatchStore } from './moonshot.batch-store';
@@ -22,11 +30,17 @@ import { MoonshotBatchWorker } from './moonshot.batch-worker';
 import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
 import { tokensFromUsage } from './moonshot.usage';
 
-const DEFAULT_MAX_COMPLETION_TOKENS = 32000;
 // D6: emulated batches expire this long after creation (mirrors configuration.ts).
 const DEFAULT_BATCH_MAX_AGE_MS = 10_800_000; // 3h
 /** Synthetic batch-id prefix for client-side emulated batches; nothing else parses it. */
 const EMULATED_BATCH_ID_PREFIX = 'msb_';
+
+/** One row of a native batch output/error JSONL file. */
+interface NativeResultRow {
+  custom_id: string;
+  response?: { status_code?: number; body?: any };
+  error?: { type?: string; message?: string } | null;
+}
 
 @Injectable()
 export class MoonshotLlmProvider implements LlmProvider {
@@ -54,18 +68,7 @@ export class MoonshotLlmProvider implements LlmProvider {
 
   /** Output ceiling applied when the caller passes no explicit maxTokens. */
   private get defaultMaxTokens(): number {
-    return this.positiveConfig('moonshot.maxTokens', DEFAULT_MAX_COMPLETION_TOKENS);
-  }
-
-  // Every numeric moonshot config value arrives via parseInt(process.env…), so an
-  // env var that is SET BUT EMPTY reads back as NaN (the same failure mode the
-  // worker's gcTtlMs guard exists for). A NaN max_completion_tokens would
-  // serialize into the request body as `null`, and `new Date(now + NaN)
-  // .toISOString()` throws RangeError — which would fail EVERY submitBatch. So
-  // anything non-finite or non-positive falls back to the compiled-in default.
-  private positiveConfig(key: string, fallback: number): number {
-    const configured = this.config.get<number>(key);
-    return typeof configured === 'number' && Number.isFinite(configured) && configured > 0 ? configured : fallback;
+    return numericConfig(this.config.get<number>('moonshot.maxTokens'), DEFAULT_MAX_COMPLETION_TOKENS);
   }
 
   async messageStructured<T = unknown>(req: StructuredRequest, attribution: Attribution): Promise<T> {
@@ -85,7 +88,7 @@ export class MoonshotLlmProvider implements LlmProvider {
         // the envelope has no stable prefix), and an explicit `prompt_cache_key:
         // undefined` key would still be an own property on the request body.
         ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
-        ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) as any } : {}),
+        ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) } : {}),
       };
       // Known cost, deliberately unmemoized: createChatWithFallback re-probes
       // strict json_schema on EVERY call, so a schema Moonshot permanently rejects
@@ -145,13 +148,9 @@ export class MoonshotLlmProvider implements LlmProvider {
         await this.extracts.put(hash, text, { filename, mediaType });
         return `${MOONSHOT_EXTRACT_ID_PREFIX}${hash}`;
       } finally {
-        try {
-          await (client.files as any).del(uploaded.id);
-        } catch (delErr) {
-          // "uploaded", not "extracted": this finally also runs when the content
-          // read itself failed, in which case nothing was ever extracted.
-          this.logger.warn(`Moonshot file ${uploaded.id} uploaded but not deleted: ${(delErr as Error)?.message}`);
-        }
+        // "uploaded", not "extracted": this finally also runs when the content read
+        // itself failed, in which case nothing was ever extracted.
+        await this.deleteFileQuietly(client, uploaded.id, 'uploaded but not deleted');
       }
     } catch (err) {
       this.rethrow(err);
@@ -169,6 +168,21 @@ export class MoonshotLlmProvider implements LlmProvider {
     envelope: PromptEnvelope | undefined,
     opts: BatchSubmitOptions,
   ): Promise<BatchHandle> {
+    // Both guards fail here rather than downstream, where the symptoms are opaque:
+    // an empty request list uploads a 0-byte JSONL file (upstream 400 with no
+    // context) or creates an emulated batch that is instantly "ended" with no
+    // results; a duplicate customId collapses two item docs into one while `total`
+    // still counts both, so the worker's total-mismatch check errors the WHOLE batch
+    // with a log that never names the real cause. Native results are matched by
+    // custom_id too, so duplicates are wrong on that path as well.
+    if (!requests.length) {
+      throw new HttpException({ statusCode: 400, error: 'submitBatch called with no requests' }, HttpStatus.BAD_REQUEST);
+    }
+    const customIds = requests.map((r, i) => r.customId ?? `request-${i}`);
+    const duplicate = customIds.find((id, i) => customIds.indexOf(id) !== i);
+    if (duplicate !== undefined) {
+      throw new HttpException({ statusCode: 400, error: `Duplicate batch customId "${duplicate}"` }, HttpStatus.BAD_REQUEST);
+    }
     const model = opts.model ?? this.defaultModel;
     return isBatchable(model)
       ? this.submitNativeBatch(requests, envelope, opts, model)
@@ -185,7 +199,7 @@ export class MoonshotLlmProvider implements LlmProvider {
   ): Promise<BatchHandle> {
     const batchId = `${EMULATED_BATCH_ID_PREFIX}${randomUUID()}`;
     const nowMs = Date.now();
-    const maxAge = this.positiveConfig('moonshot.batchMaxAgeMs', DEFAULT_BATCH_MAX_AGE_MS);
+    const maxAge = numericConfig(this.config.get<number>('moonshot.batchMaxAgeMs'), DEFAULT_BATCH_MAX_AGE_MS);
     const items = requests.map((r, i) => ({
       customId: r.customId ?? `request-${i}`,
       prompt: r.prompt,
@@ -242,17 +256,30 @@ export class MoonshotLlmProvider implements LlmProvider {
         };
         lines.push(JSON.stringify({ custom_id: r.customId ?? `request-${i}`, method: 'POST', url: '/v1/chat/completions', body }));
       }
-      const file = await toFile(Buffer.from(lines.join('\n'), 'utf8'), 'batch.jsonl', { type: 'application/jsonl' });
+      const payload = Buffer.from(lines.join('\n'), 'utf8');
+      const file = await toFile(payload, 'batch.jsonl', { type: 'application/jsonl' });
       const input = await client.files.create({ file, purpose: 'batch' });
-      const batch = await client.batches.create({
-        input_file_id: input.id,
-        endpoint: '/v1/chat/completions',
-        // The SDK types completion_window as the literal '24h' (OpenAI's only
-        // value); Moonshot takes its own windows ('1d' by default). Cast just this
-        // field so input_file_id/endpoint stay type-checked.
-        completion_window: window as '24h',
-      });
-      return { batchId: batch.id, status: this.toLifecycle(batch.status) };
+      // Logged because the batch input has hard upstream ceilings (50k requests /
+      // 100MB) and a benchmark batch grows with every cell — this is the only place
+      // the payload size is knowable before Moonshot rejects it.
+      this.logger.log(`Moonshot batch input ${input.id}: ${requests.length} requests, ${payload.byteLength} bytes`);
+      try {
+        const batch = await client.batches.create({
+          input_file_id: input.id,
+          endpoint: '/v1/chat/completions',
+          // The SDK types completion_window as the literal '24h' (OpenAI's only
+          // value); Moonshot takes its own windows ('1d' by default). Cast just this
+          // field so input_file_id/endpoint stay type-checked.
+          completion_window: window as '24h',
+        });
+        return { batchId: batch.id, status: this.toLifecycle(batch.status) };
+      } catch (createErr) {
+        // An input file with no batch referencing it is pure leak against Moonshot's
+        // 1,000-file account cap, and nothing else would ever collect it. Best
+        // effort, and never in place of the real error: rethrow what the caller needs.
+        await this.deleteFileQuietly(client, input.id, 'orphaned after batches.create failed');
+        throw createErr;
+      }
     } catch (err) {
       this.rethrow(err);
     }
@@ -310,23 +337,7 @@ export class MoonshotLlmProvider implements LlmProvider {
       if (batch.output_file_id) {
         const text = await (await client.files.content(batch.output_file_id)).text();
         for (const row of this.parseJsonlRows(text, `batch ${batchId} output file`)) {
-          const customId = row.custom_id;
-          const status = row.response?.status_code;
-          const body = row.response?.body;
-          if (status === 200 && body) {
-            const content = body.choices?.[0]?.message?.content ?? '';
-            const item: BatchItemResult = { customId, type: 'succeeded', text: content };
-            if (body.usage) {
-              item.usage = tokensFromUsage(body.usage);
-              item.cacheReadTokens = body.usage.cached_tokens ?? 0;
-            }
-            items.push(item);
-          } else if (row.error || body?.error) {
-            const type = body?.error?.type ?? row.error?.type;
-            items.push(type === 'content_filter' ? { customId, type: 'refusal' } : { customId, type: 'errored', error: JSON.stringify(row.error ?? body?.error) });
-          } else {
-            items.push({ customId, type: 'errored', error: `status ${status}` });
-          }
+          items.push(this.toItemResult(row));
         }
       }
       if (batch.error_file_id) {
@@ -335,9 +346,67 @@ export class MoonshotLlmProvider implements LlmProvider {
           items.push({ customId: row.custom_id, type: 'errored', error: JSON.stringify(row.error ?? row) });
         }
       }
+      // The input file has done its job once a TERMINAL batch's results are read,
+      // and nothing else in this codebase deletes batch files (1,000-file cap).
+      // Output/error files are left to Moonshot's own retention — and inputs of
+      // batches nobody ever reconciles (the cache warmer's, a crashed run's) still
+      // leak, so a sweeping GC over stale batch files is a ledgered follow-up.
+      const lifecycle = this.toLifecycle(batch.status);
+      if (batch.input_file_id && lifecycle !== 'in_progress' && lifecycle !== 'submitted') {
+        await this.deleteFileQuietly(client, batch.input_file_id, `left behind by terminal batch ${batchId}`);
+      }
       return items;
     } catch (err) {
       this.rethrow(err);
+    }
+  }
+
+  /**
+   * One output-file row → one item result. Ordering is deliberate: an in-band
+   * `error` is checked BEFORE the 200 arm, because a row can carry both a 200
+   * `status_code` and an error object, and testing the status first would record
+   * that row as a success with empty text.
+   */
+  private toItemResult(row: NativeResultRow): BatchItemResult {
+    const customId = row.custom_id;
+    const status = row.response?.status_code;
+    const body = row.response?.body;
+    const error = row.error ?? body?.error;
+    if (error) {
+      return error.type === 'content_filter'
+        ? { customId, type: 'refusal' }
+        : { customId, type: 'errored', error: JSON.stringify(error) };
+    }
+    // `status 200 with no response body` would otherwise read as a nonsense error.
+    if (status !== 200 || !body) return { customId, type: 'errored', error: `status ${status}${body ? '' : ' with no response body'}` };
+    // A 200 is not automatically a result. Batch rows carry the SAME in-band
+    // failures messageStructured maps on the sync path: finish_reason
+    // 'content_filter' (refused, empty content) or 'length' (truncated, so the JSON
+    // never parses). Calling either 'succeeded' makes the reconciler write a
+    // permanent INVALID cell — cells are write-once, so no top-up re-runs that slot.
+    const r = toChatResult(body);
+    // Only attach usage the row actually reported; the reconciler substitutes zeros.
+    const usage = body.usage ? { usage: r.usage, cacheReadTokens: r.usage.cacheRead } : {};
+    // A refusal is billed and IS a real result to the reconciler, so it keeps usage.
+    if (r.finishReason === 'content_filter') return { customId, type: 'refusal', ...usage };
+    // Truncation is 'errored' so the cell stays retryable. That forfeits this item's
+    // usage emit (the reconciler skips non-result items) — the same gap every errored
+    // item has, and far cheaper than baking a truncated setup into the benchmark
+    // permanently.
+    if (r.finishReason === 'length') return { customId, type: 'errored', error: 'output truncated (finish_reason=length)' };
+    return { customId, type: 'succeeded', text: r.text, ...usage };
+  }
+
+  /**
+   * Delete a remote file, swallowing failure. Moonshot caps an account at 1,000
+   * files so every file this provider creates must be collected, but a failed
+   * delete must never fail the operation that triggered it.
+   */
+  private async deleteFileQuietly(client: OpenAI, fileId: string, context: string): Promise<void> {
+    try {
+      await client.files.del(fileId);
+    } catch (err) {
+      this.logger.warn(`Moonshot file ${fileId} ${context}: ${(err as Error)?.message}`);
     }
   }
 
@@ -348,8 +417,8 @@ export class MoonshotLlmProvider implements LlmProvider {
   // results are matched by custom_id, so a placeholder matches no cell in the
   // reconciler's map and only produces noise, whereas an absent item leaves that
   // run-index MISSING, which is exactly what makes the next top-up re-submit it.
-  private parseJsonlRows(text: string, source: string): any[] {
-    const rows: any[] = [];
+  private parseJsonlRows(text: string, source: string): NativeResultRow[] {
+    const rows: NativeResultRow[] = [];
     for (const line of text.split('\n')) {
       if (!line.trim()) continue;
       try {

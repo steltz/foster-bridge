@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { createHash } from 'node:crypto';
-import { MOONSHOT_CLIENT, MoonshotClientFactory } from './moonshot.constants';
+import { MOONSHOT_CLIENT, MoonshotClientFactory, DEFAULT_MAX_COMPLETION_TOKENS, numericConfig } from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotBatchStore, EmulatedBatchItem, EmulatedBatchDoc, isUnfinished } from './moonshot.batch-store';
 import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
@@ -236,7 +236,10 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
       body = {
         model: batch.model,
         messages: built.messages,
-        max_completion_tokens: batch.opts.maxTokens ?? 32000,
+        // submitBatch resolves maxTokens (caller → moonshot.maxTokens config) into the
+        // batch doc, so this fallback only covers a doc written before that resolution
+        // existed — kept rather than dropped so an old in-flight doc still drains.
+        max_completion_tokens: batch.opts.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
         reasoning_effort: mapEffort(batch.opts.effort),
         // Optional field: an envelope with no stable prefix has nothing to key a
         // shared cache on, so omit it rather than send a meaningless key.
@@ -280,10 +283,10 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   private async runPool<T>(items: T[], fn: (item: T) => Promise<void>): Promise<void> {
     if (!items.length) return;
     // A misconfigured MOONSHOT_BATCH_CONCURRENCY ('' / 'abc' → parseInt NaN) must not
-    // silently stall the drain: Math.max(1, NaN) is NaN and Array.from({length: NaN})
-    // builds ZERO runners, so every item would be skipped with no error at all.
-    const configured = this.concurrency;
-    const limit = Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : DEFAULT_CONCURRENCY;
+    // silently stall the drain: Array.from({length: NaN}) builds ZERO runners, so
+    // every item would be skipped with no error at all. numericConfig's default
+    // min of 1 rejects anything below one runner; floor keeps a fractional value usable.
+    const limit = Math.floor(numericConfig(this.concurrency, DEFAULT_CONCURRENCY));
     let cursor = 0;
     const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
       while (cursor < items.length) {
@@ -321,10 +324,9 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
 
   // Guarded because a blank/garbage MOONSHOT_BATCH_GC_TTL_MS reaches config as
   // parseInt('') === NaN, and new Date(Date.now() - NaN).toISOString() throws
-  // RangeError — which would otherwise break every GC pass, forever.
+  // RangeError — which would otherwise break every GC pass, forever. min 0 because
+  // a TTL of 0 is a legitimate setting: collect as soon as a batch is terminal.
   private gcTtlMs(): number {
-    const configured = this.config.get<number>('moonshot.batchGcTtlMs');
-    if (typeof configured !== 'number' || !Number.isFinite(configured) || configured < 0) return GC_TTL_DEFAULT_MS;
-    return configured;
+    return numericConfig(this.config.get<number>('moonshot.batchGcTtlMs'), GC_TTL_DEFAULT_MS, 0);
   }
 }

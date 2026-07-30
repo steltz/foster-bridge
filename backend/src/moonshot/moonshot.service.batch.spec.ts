@@ -101,6 +101,24 @@ describe('MoonshotLlmProvider – batch (kimi-k3 → emulated)', () => {
     expect(created[0].items[0].customId).toBe('request-0');
   });
 
+  it('rejects a batch with duplicate customIds before persisting anything', async () => {
+    const { svc, created } = makeEmulated();
+    // Item docs are keyed by customId, so a duplicate would collapse two requests
+    // into one doc while `total` still counted both.
+    const { status, error } = await statusOf(() => svc.submitBatch([{ customId: 'c1', prompt: 'p1' }, { customId: 'c1', prompt: 'p2' }], undefined, {}));
+    expect(status).toBe(400);
+    expect(error).toContain('c1');
+    expect(created).toEqual([]);
+  });
+
+  it('rejects an empty batch', async () => {
+    const { svc, created, worker } = makeEmulated();
+    const { status } = await statusOf(() => svc.submitBatch([], undefined, {}));
+    expect(status).toBe(400);
+    expect(created).toEqual([]);
+    expect(worker.kicked).toEqual([]);
+  });
+
   it('falls back to the 3h expiry when moonshot.batchMaxAgeMs is not a finite number', async () => {
     // parseInt('') === NaN reaches config for an env var that is set but empty;
     // `new Date(now + NaN).toISOString()` throws, which would break every submit.
@@ -118,10 +136,12 @@ describe('MoonshotLlmProvider – batch (batchable model → native /v1/batches)
     extra: { errorText?: string; config?: Record<string, unknown> } = {},
   ) {
     const uploads: any[] = [];
+    const dels: string[] = [];
     const client = {
       files: {
         create: async (a: any) => { uploads.push(a); return { id: 'file-in' }; },
         content: async (id: string) => ({ text: async () => (id === retrieve?.error_file_id ? extra.errorText ?? '' : outputText) }),
+        del: async (id: string) => { dels.push(id); return { deleted: true }; },
       },
       batches: {
         create: async (b: any) => { (client as any)._created = b; return { id: 'bat-1', status: 'validating' }; },
@@ -131,7 +151,7 @@ describe('MoonshotLlmProvider – batch (batchable model → native /v1/batches)
     const values: Record<string, unknown> = { 'moonshot.completionWindow': '1d', ...extra.config };
     const config = { get: (k: string) => values[k] } as any;
     const svc = new MoonshotLlmProvider({ get: () => client } as any, config, { emit: () => true } as any, new MoonshotEnvelopeBuilder(extracts()), extracts(), {} as any, { kick() {} } as any);
-    return { svc, client, uploads };
+    return { svc, client, uploads, dels };
   }
 
   const okLine = (customId: string, content: string) =>
@@ -241,6 +261,63 @@ describe('MoonshotLlmProvider – batch (batchable model → native /v1/batches)
       { customId: 'ok', type: 'succeeded', text: '{}', usage: { input: 4, cacheRead: 2, cacheCreate5m: 0, cacheCreate1h: 0, output: 1 }, cacheReadTokens: 2 },
       { customId: 'bad-req', type: 'errored', error: JSON.stringify({ message: 'invalid body' }) },
     ]);
+  });
+
+  // A 200 row can still carry an in-band failure. Recording one as 'succeeded' makes
+  // the reconciler write a permanent INVALID cell — cells are write-once, so no
+  // top-up ever re-runs that slot.
+  it('maps an in-band content_filter finish_reason on a 200 row to a billed refusal', async () => {
+    const output = JSON.stringify({ custom_id: 'c1', response: { status_code: 200, body: { choices: [{ message: { content: '' }, finish_reason: 'content_filter' }], usage: { prompt_tokens: 6, cached_tokens: 2, completion_tokens: 0 } } } });
+    const { svc } = makeNative({ id: 'bat-1', status: 'completed', output_file_id: 'file-out' }, output);
+    // A refusal is billed and the reconciler emits usage for refusal items, so the
+    // usage must survive the mapping.
+    expect(await svc.getBatchResults('bat-1')).toEqual([
+      { customId: 'c1', type: 'refusal', usage: { input: 4, cacheRead: 2, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 }, cacheReadTokens: 2 },
+    ]);
+  });
+
+  it('maps a truncated 200 row (finish_reason=length) to a retryable errored item', async () => {
+    const output = JSON.stringify({ custom_id: 'c1', response: { status_code: 200, body: { choices: [{ message: { content: '{"y":' }, finish_reason: 'length' }], usage: { prompt_tokens: 6, cached_tokens: 0, completion_tokens: 9 } } } });
+    const { svc } = makeNative({ id: 'bat-1', status: 'completed', output_file_id: 'file-out' }, output);
+    expect(await svc.getBatchResults('bat-1')).toEqual([{ customId: 'c1', type: 'errored', error: 'output truncated (finish_reason=length)' }]);
+  });
+
+  it('treats an in-band error on a 200 row as errored rather than an empty success', async () => {
+    const output = JSON.stringify({ custom_id: 'c1', response: { status_code: 200, body: { error: { type: 'server_error', message: 'oops' }, choices: [] } } });
+    const { svc } = makeNative({ id: 'bat-1', status: 'completed', output_file_id: 'file-out' }, output);
+    expect(await svc.getBatchResults('bat-1')).toEqual([{ customId: 'c1', type: 'errored', error: JSON.stringify({ type: 'server_error', message: 'oops' }) }]);
+  });
+
+  it('deletes the orphaned input file when batches.create fails', async () => {
+    const { svc, client, dels } = makeNative({ id: 'bat-1', status: 'validating' }, '');
+    (client.batches as any).create = async () => { throw Object.assign(new Error('quota exceeded'), { status: 429 }); };
+    const { status, error } = await statusOf(() => svc.submitBatch([{ customId: 'c1', prompt: 'p1' }], undefined, { model: 'kimi-k2.6' }));
+    expect(status).toBe(429); // the original failure still reaches the caller
+    expect(error).toBe('quota exceeded');
+    expect(dels).toEqual(['file-in']); // an input file with no batch is pure leak against the 1,000-file cap
+  });
+
+  it('deletes the input file after reading a terminal batch, but not while it is in flight', async () => {
+    const done = makeNative({ id: 'bat-1', status: 'completed', input_file_id: 'file-in', output_file_id: 'file-out' }, okLine('c1', '{}'));
+    await done.svc.getBatchResults('bat-1');
+    expect(done.dels).toEqual(['file-in']);
+    const running = makeNative({ id: 'bat-1', status: 'in_progress', input_file_id: 'file-in', output_file_id: 'file-out' }, okLine('c1', '{}'));
+    await running.svc.getBatchResults('bat-1');
+    expect(running.dels).toEqual([]); // Moonshot still needs it
+  });
+
+  it('never fails a results read because the input-file delete failed', async () => {
+    const { svc, client } = makeNative({ id: 'bat-1', status: 'completed', input_file_id: 'file-in', output_file_id: 'file-out' }, okLine('c1', '{}'));
+    (client.files as any).del = async () => { throw new Error('file already gone'); };
+    expect((await svc.getBatchResults('bat-1')).map((r) => r.customId)).toEqual(['c1']);
+  });
+
+  it('rejects an empty batch before uploading anything', async () => {
+    const { svc, uploads } = makeNative({ id: 'bat-1', status: 'validating' }, '');
+    // A 0-byte JSONL file would come back as an opaque upstream 400.
+    const { status } = await statusOf(() => svc.submitBatch([], undefined, { model: 'kimi-k2.6' }));
+    expect(status).toBe(400);
+    expect(uploads).toEqual([]);
   });
 
   it('maps an SDK error from the native path through rethrow', async () => {
