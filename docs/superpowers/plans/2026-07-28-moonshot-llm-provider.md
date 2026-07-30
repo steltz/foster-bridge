@@ -19,6 +19,102 @@
 
 ---
 
+## As-built addendum (post-review)
+
+The branch executed all 13 tasks below, then went through two-stage review (per-task review during implementation, plus a final whole-branch review). **The per-task code blocks in this plan are the PRE-REVIEW versions** drafted before that review — a number of them were hardened or corrected afterward, and this plan was never rewritten to match. **The landed code is canonical, not the code blocks below.** Anyone re-executing a task from this plan must diff the task's files against HEAD first; do not copy a code block below into a fresh implementation without checking it against what's actually in `backend/src/moonshot/` (and the other touched files) today.
+
+Sanctioned deviations, task by task (source of truth: `git log --oneline b217d56..HEAD`):
+
+- **T1 — Dependency + Moonshot config:**
+  - `backend/package.json`: this repo uses pnpm, not npm — Step 1's `npm install` became a pnpm install, and `pnpm-lock.yaml` is the committed lockfile (there is no `package-lock.json`).
+  - `backend/src/config/configuration.spec.ts`: hardened beyond the plan's 3 cases — env isolation now explicitly resets `LLM_PROVIDER` between tests, and override coverage was added for the `MOONSHOT_*` vars, not just their defaults.
+
+- **T2 — Pricing:**
+  - `backend/src/cost/pricing.ts`: the flat `CACHE_READ` override read was replaced by a `cacheReadDiscountFactor(modelId, timestamp)` function plus a shared `findRate(modelId, timestamp)` lookup, so `priceUsage` and the discount-factor helper resolve a model's rate row through one code path instead of duplicating the `??` fallback.
+  - `backend/src/cost/pricing.spec.ts`: the kimi rate rows are pinned with absolute-dollar assertions (not just ratio checks), plus a priority-tier ordering pin.
+
+- **T3 — Provider-aware flagship model identity:**
+  - `backend/src/benchmark/seven-keys/seven-keys.service.ts`: `flagshipModel`/`flagshipAlias` resolve once through a single `resolveModel(...)` call (id + alias derived together) rather than two separate lookups, and an alias-form `BENCHMARK_MODEL=k3` normalizes to its canonical id.
+  - `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts`: added config-wiring tests and a pin on the lookback-agent's model site, in addition to the current-day sites the plan called out.
+
+- **T4 — Moonshot constants + usage parser:**
+  - `backend/src/moonshot/moonshot.constants.ts`: `kimi-k2.5` was removed from `BATCHABLE_MODELS` (the plan's Step 3 included it) — it has no `RATE_TABLE` row, no `MODEL_ALIASES` entry, and is sunset 2026-08-31; an unlisted model safely falls back to emulated batch, so dropping it loses no capability.
+  - `backend/src/moonshot/moonshot.constants.spec.ts`: added an invariant test that every batchable model has a priced rate row (batchable ⊆ priced), plus a whole-object clamp assertion on `tokensFromUsage`.
+
+- **T5 — Extract store:**
+  - `backend/src/moonshot/moonshot.extract-store.ts`: chunked writes now go chunks-first, parent-doc-last, so the parent doc's existence is the commit point — a crash mid-write can never leave a "complete" parent pointing at missing chunks.
+  - `backend/src/moonshot/moonshot.extract-store.ts`: `EXTRACT_CHUNK_SIZE` is `300_000` (code units, not the plan's `900_000`), sized against real UTF-8 byte math with a surrogate-pair back-off at chunk boundaries; the size may only ever decrease, since existing chunk docs assume the current bound.
+  - `backend/src/moonshot/moonshot.extract-store.ts`: a torn/short chunk read (chunk count mismatch, or a chunk doc missing its `text` field) now throws instead of the plan's implicit `''` fallback, which would have silently corrupted reassembled text.
+  - `backend/test/fake-firestore.ts`: the plan's inline per-spec Firestore fake was promoted to this shared fixture and extended with subcollection and `delete` support, reused by the extract-store and batch-store specs instead of forking a third inline copy.
+  - `backend/src/moonshot/moonshot.extract-store.ts`: LRU recency bump and overflow eviction hardened; `undefined` metadata fields are stripped before a doc is written.
+
+- **T6 — Chat helper + envelope builder:**
+  - `backend/src/moonshot/moonshot.chat.ts`: `mapEffort` now logs a one-time warning the first time it sees an unrecognized effort string, instead of silently defaulting every time.
+  - `backend/src/moonshot/moonshot.chat.ts`: `nullable()` appends `'null'` onto an existing `enum` array (the plan's version only handled `type`/`anyOf`), so enum-typed optional properties shape correctly under `strict:true`.
+  - `backend/src/moonshot/moonshot.chat.ts`: `isSchemaRejection` now excludes context-length/token-limit 400s (they share the `invalid_request_error` type with real schema rejections but aren't one) so the `json_object` fallback doesn't burn a retry on an already-too-large request.
+  - `backend/src/moonshot/moonshot.envelope.ts`: `promptCacheKey` is `undefined`, not a hash of an empty string, when there is no stable prefix to key on.
+  - `backend/src/moonshot/moonshot.chat.ts`: the chat client parameter is typed as a structural `MoonshotChatClient` (not `OpenAI` directly), and `ChatMessage` gained an optional `partial` field for the fallback's assistant-prefill message.
+  - `backend/src/moonshot/moonshot.chat.spec.ts`: the D8 schema-gate tests run against this repo's real seven-keys schemas (`SETUP_SCHEMA`, `CURRENT_SCHEMA`, `LOOKBACK_SCHEMA`, `SYNTH_SCHEMA`, `VERIFY_SCHEMA`), substituting for the design doc's `walle` CLI step, which does not exist in this repo.
+  - `docs/superpowers/plans/2026-07-28-moonshot-llm-provider.md` (this file), Task 6's `moonshot.envelope.ts` code block (the `messages.map(...).join('\n\x00\n')` line): had been corrupted from the `\x00` escape to a raw NUL byte; fixed in commit `e411e87` (noted here for history — no further action needed).
+
+- **T7 — Emulated-batch store:**
+  - `backend/src/moonshot/moonshot.batch-store.ts`: uses the shared `backend/test/fake-firestore.ts` fixture (see T5) instead of its own inline fake; `tx.set` is a full-overwrite, matching the existing market-data Firestore-fake idiom rather than a merge.
+  - `backend/src/moonshot/moonshot.batch-store.ts`: added a `stripUndefined` helper applied at the write boundary — recursive, restricted to plain-JSON-shaped values, and it bails out and writes a non-plain value as-is rather than attempting to strip inside it.
+  - `backend/src/moonshot/moonshot.batch-store.ts`: `claimItem`'s timestamps are read inside the transaction callback, not captured before it starts, so a retried transaction never reuses a stale `now`.
+  - `backend/src/moonshot/moonshot.batch-store.ts`: added a comment that the "items sum to `total`" invariant is enforced by the worker, not the store — the store never validates it itself.
+  - `backend/src/moonshot/moonshot.batch-store.spec.ts`: added a negative test for the GC `endedAt`-fallback path, plus edge-case tests for `deleteBatch`/`updateItem`/`claimItem`.
+
+- **T8 — Emulated-batch worker:**
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: the scheduled cron now runs `maintain()` — `resumeAll()` (re-drains any stalled `in_progress` batch, not only at boot) **and** `gc()` — instead of just GC.
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: `buildRequest(...)` was moved inside `runOne`'s try block, and `runPool` isolates each item's failure, so one poison item errors only that item instead of throwing out of the whole drain.
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: the cron and bootstrap-resume are gated on `benchmark.schedulerEnabled AND llm.provider === 'moonshot'` (the plan gated on provider alone).
+  - `backend/src/moonshot/moonshot.constants.ts`: added a `numericConfig` guard so an env var that is set-but-empty (`parseInt('') === NaN`) falls back to its default instead of propagating `NaN` into concurrency, lease math, or TTL comparisons.
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: `LEASE_MS` raised from the plan's 10 min to 30 min — worst case, one item can burn 4 attempts × 2 API calls each (the strict→`json_object` fallback) at high/max effort with a 32k-token ceiling, and a lease that lapses mid-flight lets another drainer double-run (and double-pay for) the same item. A fencing token compared transactionally at the terminal write would close this properly; deferred, and named as such in the code comment. 30 min is also deliberately the same interval as the maintenance cron tick, so a crashed claim-holder is caught within about one lease lifetime.
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: a batch past `expiresAt` that has already fully drained is marked `ended`, not `errored` — the plan's D6 check didn't distinguish "expired with unfinished items" from "expired but done".
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: a batch whose item count never converges to `total` is marked `errored` after a 60s grace period, rather than being polled forever.
+  - `backend/src/moonshot/moonshot.batch-store.ts` / `moonshot.batch-worker.ts`: an `isUnfinished(item)` predicate is exported from the store and shared by both, instead of the worker reimplementing the pending/running check.
+  - `backend/src/moonshot/moonshot.batch-worker.spec.ts`: added a test pinning that the configured `MOONSHOT_BATCH_CONCURRENCY` bound is actually respected under load.
+
+- **T9 — Provider messageStructured + uploadFile:**
+  - `backend/src/moonshot/moonshot.service.ts`: the remote-file delete in `uploadFile` moved into a `finally` block so it still fires when the content read or the extract-store `put` fails — the plan's happy-path-only delete would leak a file toward the 1,000-file account cap on either failure.
+  - `backend/src/moonshot/moonshot.service.ts`: `extracts.getByHash` was moved inside the same try/catch as the rest of `uploadFile`, so a store failure maps through the shared `rethrow` instead of escaping raw.
+  - `backend/src/moonshot/moonshot.service.ts`: a `200` response whose `finish_reason` is `content_filter` (an in-band refusal, not an HTTP error) now maps to a 422, matching the out-of-band `content_filter` 400 path.
+  - `backend/src/moonshot/moonshot.service.ts` and `backend/src/anthropic/anthropic.service.ts`: usage emits are now typed against a shared `UsageEvent` interface, and a swallowed emit failure logs a warning instead of vanishing silently — applied to both providers for consistency.
+  - `backend/src/moonshot/moonshot.service.ts`: error handling uses `?.status` (optional chaining) instead of assuming the thrown value is Error-shaped.
+  - `backend/src/moonshot/moonshot.service.spec.ts`: added a cache-hit short-circuit test (a re-`uploadFile` of already-hashed bytes skips the remote round-trip) and 502-path tests.
+
+- **T10 — Hybrid submitBatch/getBatch/getBatchResults:**
+  - `backend/src/config/configuration.ts`: added a `moonshot.maxTokens` config key (`MOONSHOT_MAX_TOKENS`, default `32000`) instead of the plan's inline `32000` literal at each call site.
+  - `backend/src/moonshot/moonshot.service.ts`: `getBatch` on an emulated batch still `in_progress` re-kicks the worker, self-healing a drain that died before a resume cycle caught it, rather than only reading status passively.
+  - `backend/src/moonshot/moonshot.service.ts`: a `toItemResult` helper maps in-band `content_filter`/`length` markers on native batch output rows to `refusal`/errored outcomes (the plan's native parser only handled the out-of-band `error`/`error_file_id` cases).
+  - `backend/src/moonshot/moonshot.service.ts`: native batch input files get hygiene beyond the plan — deleted on a `batches.create` failure and again after a terminal `getBatchResults` read, with a byte-count log line.
+  - `backend/src/moonshot/moonshot.constants.ts`: numeric config parsing factored into the shared `numericConfig` helper (see T8) instead of being repeated per key.
+  - `backend/src/moonshot/moonshot.service.ts`: native batch output rows are typed via a `NativeResultRow` interface instead of `any`.
+  - `backend/src/moonshot/moonshot.service.ts`: added guards against a duplicate `customId` within one batch and against submitting an empty batch.
+  - `backend/src/moonshot/moonshot.service.ts`: `completion_window: '1d'` is cast past the installed `openai` SDK's stale literal type (which only knows `'24h'`), rather than widening the call's type.
+  - `backend/src/moonshot/moonshot.service.ts`: unnecessary `as any` casts left over from the plan's draft were removed once the surrounding types were tightened.
+
+- **T11 — Module wiring + contract test:**
+  - `backend/src/moonshot/moonshot.module.spec.ts`: added a parity spec covering lazy client construction, the 401-when-keyless path, memoization, `baseURL` wiring, and a regression guard for an empty-string `MOONSHOT_BASE_URL`.
+  - `backend/src/moonshot/moonshot.module.ts`: declares its `FirebaseModule` import explicitly (the plan's module body omitted it).
+  - `backend/src/moonshot/moonshot.module.ts` **and** `backend/src/config/configuration.ts`: an empty-string `MOONSHOT_BASE_URL` is now treated as unset via `||` (not `??`) in **both** places. This is critical: `??` only catches `undefined`/`null`, so `MOONSHOT_BASE_URL=""` would otherwise fall through to the `openai` SDK's own `||` default, silently routing Moonshot-shaped requests to `api.openai.com`.
+  - `backend/src/moonshot/moonshot.batch-worker.ts`: worker log lines given consistent identity/levels; comments added documenting why `LEASE_MS` and the maintenance-cron tick interval are deliberately coupled.
+
+- **T12 — Activate the provider at the swap seam:**
+  - `backend/src/llm/llm.module.spec.ts`: switched from overriding just the `FIRESTORE` provider to `overrideModule(FirebaseModule)` — once `MoonshotModule` declares a real `FirebaseModule` import (T11), overriding a single token is no longer enough to satisfy the module graph in tests.
+  - `backend/src/llm/llm.module.ts`: added tests and matching behavior for the default provider (`LLM_PROVIDER` unset) and an explicitly unknown provider value.
+  - `backend/src/llm/llm.module.ts` and `backend/src/config/configuration.ts`: an empty-string `LLM_PROVIDER` now falls back to the default via `||` (both reads), and the "unknown provider" throw quotes the offending value.
+  - `backend/.env.example`: `LLM_PROVIDER` itself is now documented — the plan documented the `MOONSHOT_*` vars but never mentioned the switch variable that actually activates Moonshot.
+
+- **T13 — Full verification:**
+  - `backend/test/cost.e2e-spec.ts`: fixed a pre-existing bug unrelated to Moonshot — a leftover `anthropic.usage` event-name reference missed during the `anthropic.usage → llm.usage` rename in commit `77f76e6`, which predates this branch. Caught incidentally by this task's full-suite run.
+
+- **Post-review (final whole-branch review, after all 13 tasks landed):**
+  - `backend/src/moonshot/moonshot.batch-worker.ts` (commit `8d09c58`): the emulated worker was returning `succeeded` for every 200 response; it now maps in-band refusal (`finish_reason:'content_filter'`) to `refusal` and truncation (`finish_reason:'length'`) to `errored`, matching what the sync path and `toItemResult` already did — this was the only path serving kimi-k3 batches, so the gap meant a refused/truncated kimi-k3 batch item persisted as "succeeded" with unparseable content, and the reconciler wrote an invalid, unrecoverable cell.
+  - `backend/src/benchmark/benchmark.repository.ts` / `backend/src/benchmark/day-artifacts.service.ts` (commit `15706cb`): artifact file ids are now tagged with the `fileProvider` that minted them; a stored id from a different provider is treated as missing and re-uploaded (and re-tagged), so switching `LLM_PROVIDER` on a pre-existing day self-heals instead of handing the new provider a meaningless file id from the old one. Untagged legacy docs are inferred Anthropic.
+
+---
+
 ## Task 1: Dependency + Moonshot config
 
 **Files:**
@@ -2113,7 +2209,7 @@ describe('MoonshotLlmProvider satisfies the LlmProvider contract', () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `cd backend && npx jest src/moonshot/moonshot.contract.spec.ts`
-Expected: PASS at runtime is possible, but this step's purpose is to lock the constructor arg order. If it fails, it's a signature drift — fix the service constructor to match `(clientFactory, config, events, envelopes, extracts, batchStore, worker)`.
+Expected: PASS at runtime is possible, but this step's purpose is to lock the constructor arity and port surface (order is pinned by the typed sibling specs). If it fails, it's a signature drift — fix the service constructor to match `(clientFactory, config, events, envelopes, extracts, batchStore, worker)`.
 
 - [ ] **Step 3: Implement the module**
 

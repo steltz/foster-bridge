@@ -113,7 +113,7 @@ sets all four `true`.
 | File | Role |
 |---|---|
 | `moonshot.service.ts` | `MoonshotLlmProvider implements LlmProvider`; capabilities all `true`; constructor `(clientFactory @Inject(MOONSHOT_CLIENT), ConfigService, EventEmitter2, MoonshotBatchStore, MoonshotExtractStore)` |
-| `moonshot.usage.ts` | `tokensFromUsage(usage) → UsageTokens`; `serviceTierFromUsage` analogue |
+| `moonshot.usage.ts` | `tokensFromUsage(usage) → UsageTokens`; ~~`serviceTierFromUsage` analogue~~ **not implemented** — no such function exists in `moonshot.usage.ts`. `serviceTier` is instead derived structurally at the two emission sites: the sync path (`moonshot.service.ts`) hardcodes `'standard'`, and the batch reconciler hardcodes `'batch'` for every batch-sourced usage event (native or emulated) — see §6.5. |
 | `moonshot.constants.ts` | `MOONSHOT_CLIENT` token; `BATCHABLE_MODELS` set; `isBatchable(model)` |
 | `moonshot.module.ts` | `@Global`; lazy memoized `openai` client (baseURL, key from config, throws `UnauthorizedException` when key unset so app boots keyless); provides `MoonshotLlmProvider`, stores |
 | `moonshot.envelope.ts` | `buildRequest(envelope, prompt)` → OpenAI `messages[]` (stable tiers → leading `system` messages, file blocks resolved to extracted text, trailing prompt as final `user`) + derived `prompt_cache_key` |
@@ -142,7 +142,10 @@ Anthropic's `message()`/demo path is untouched.
 ### 6.1 `messageStructured` (sync; used by seven-keys)
 
 - Resolve `model` (`req.model ?? config moonshot.model`), `maxTokens` (`req.maxTokens ?? config`),
-  effort map (`low/high/max`, default `high`).
+  effort map (`low/high/max`, default `high`). **As landed:** the config key is `moonshot.maxTokens`
+  (env `MOONSHOT_MAX_TOKENS`, default `32000`) — it did not exist when this spec was written and
+  call sites inlined the `32000` literal; it was added in a later commit so the default lives in
+  one place instead of being repeated at every call site.
 - Build messages via `moonshot.envelope.buildRequest(req.envelope, req.prompt)`; if no envelope,
   a single `user` message with `req.prompt` (and `req.system` as a leading `system` message).
 - Request: `{model, messages, max_completion_tokens, reasoning_effort,
@@ -170,7 +173,13 @@ send would reject it on the very first K3 call. Mitigation, in order:
    keeps `strict:true` (highest reliability) while satisfying OpenAI-strict. Applied on **both** the
    sync (`messageStructured`) and batch (JSONL body / emulated item) paths so they share one shape.
 2. **`walle` CI validation** of the shaped schema before shipping (the docs provide this validator
-   for `strict=true`).
+   for `strict=true`). **As landed:** this repo has no `walle` CLI (it is a Moonshot-docs-provided
+   external tool, not part of this codebase's toolchain). In its place, `moonshot.chat.spec.ts` runs
+   `toMoonshotSchema` over this repo's real seven-keys schemas (`SETUP_SCHEMA`, `CURRENT_SCHEMA`,
+   `LOOKBACK_SCHEMA`, `SYNTH_SCHEMA`, `VERIFY_SCHEMA`) and asserts the shaped-schema invariants
+   (every property required, `additionalProperties:false`, optionals nullable) unconditionally —
+   functionally the same guarantee `walle` would provide, enforced as a committed test instead of an
+   external CI step.
 3. **Implemented fallback (not just named):** if a model/schema rejects strict json_schema, fall
    back to `response_format:{type:'json_object'}` + a trailing `{role:'assistant', content:'{',
    partial:true}` prefill to force a JSON object, then rely on the existing downstream `JSON.parse`
@@ -217,7 +226,12 @@ The synthetic id is opaque to the benchmark (day-artifacts persists whatever str
 
 `submitBatch` branches on `isBatchable(opts.model ?? default)`:
 
-**Native path (batchable: k2.6 / k2.7-code / k2.5):**
+**Native path (batchable: k2.6 / k2.7-code / ~~k2.5~~):** `kimi-k2.5` was dropped from
+`BATCHABLE_MODELS` as landed — it has no priced rate row and no `MODEL_ALIASES` entry, and is
+closed to new users with a full sunset of 2026-08-31, so real native-batch spend on it would record
+as unpriced $0. An unlisted model falls back to emulated batch, so this loses no capability; it only
+narrows the native path to the two models this repo actually prices.
+
 - Build JSONL: one line `{custom_id, method:"POST", url:"/v1/chat/completions", body}` per item,
   where `body = {model, messages(from per-item envelope ?? batch envelope), max_completion_tokens,
   reasoning_effort, response_format}`. **Strip `temperature`/`top_p`.** Enforce single `model`.
@@ -244,7 +258,13 @@ stuck-batch expiry (D6), and prefix-grouped cache priming (D7).
 - **Item claiming (D5 — multi-process safe):** the worker never runs a bare `pending` item. It
   claims each item in a **Firestore transaction**: read → if `status==='pending'`, or
   `status==='running'` with an expired `leaseUntil`, set `status:'running'`,
-  `leaseUntil = now + LEASE_MS` (10 min), `attempts += 1`; else skip (another process owns it).
+  `leaseUntil = now + LEASE_MS` (**30 min as landed, not 10** — worst case an item burns 4 attempts
+  × 2 API calls each, at high/max effort with a 32k-token ceiling, before terminating; a lease that
+  lapses mid-flight lets another drainer double-run and double-pay for the same item, so the lease
+  must comfortably outlast that worst case. 30 min is also deliberately the same interval as the
+  maintenance cron tick, bounding the detection gap for a crashed claim-holder to about one lease
+  lifetime. A fencing token compared transactionally at the terminal write would close the
+  double-pay risk properly; deferred), `attempts += 1`; else skip (another process owns it).
   Only the transaction winner issues the chat call. This makes `kick()` (from `submitBatch`, on
   whichever instance ran the benchmark) and `OnApplicationBootstrap` resume (on every booted
   instance) safe to run concurrently without ever double-spending on the same item — the
@@ -334,10 +354,19 @@ premiums stay moot.
   `LLM_PROVIDER==='moonshot' ? 'kimi-k3' : 'claude-fable-5'` (respecting an explicit
   `BENCHMARK_MODEL` override). Add `moonshot: {apiKey, baseUrl, model, batchConcurrency,
   completionWindow}`.
-- `benchmark.types.ts`: `MODEL_ALIASES` gains `k3→kimi-k3, k26→kimi-k2.6, 'k27-code'→kimi-k2.7-code`;
-  add a `flagship` alias resolved to the active provider's default model (via config), so
-  `resolveModel('flagship')` yields `claude-fable-5` or `kimi-k3`.
-- `seven-keys.service.ts`: replace the hard-pinned `claude-fable-5` literal with `flagship`.
+- `benchmark.types.ts`: `MODEL_ALIASES` gains `k3→kimi-k3, k26→kimi-k2.6, 'k27-code'→kimi-k2.7-code`.
+  **Superseded — the `flagship` pseudo-alias below was NOT implemented:**
+  ~~add a `flagship` alias resolved to the active provider's default model (via config), so
+  `resolveModel('flagship')` yields `claude-fable-5` or `kimi-k3`.~~ `resolveModel` resolves an
+  alias or a raw model id; a literal string `'flagship'` isn't either, so `resolveModel('flagship')`
+  would just pass the literal `'flagship'` straight through as an unrecognized id — it can't
+  special-case a magic string without the caller telling it to. As landed, the provider-aware
+  flagship instead lives in `seven-keys.service.ts` as a pair of getters
+  (`flagshipModel`/`flagshipAlias`) that read `config.get('benchmark.model')` and pass it through
+  `resolveModel(...)` to derive the id and alias together — see the addendum to the implementation
+  plan, Task 3.
+- `seven-keys.service.ts`: replace the hard-pinned `claude-fable-5` literal with the config-derived
+  `flagshipModel`/`flagshipAlias` getters described above (not a `flagship` alias resolution).
 
 Net operator experience: set `LLM_PROVIDER=moonshot` (+ `MOONSHOT_API_KEY`) and the whole
 benchmark + seven-keys run on `kimi-k3`.
@@ -355,12 +384,17 @@ benchmark + seven-keys run on `kimi-k3`.
 | `moonshot.batchGcTtlMs` | `MOONSHOT_BATCH_GC_TTL_MS` | `86400000` (24h) — terminal-batch GC, from `endedAt` |
 | `benchmark.model` (provider-aware) | `BENCHMARK_MODEL` | `kimi-k3` when `LLM_PROVIDER=moonshot`, else `claude-fable-5` |
 
-(`LEASE_MS`, the item-claim lease, is a fixed 10-min constant — not env-tunable.)
+(`LEASE_MS`, the item-claim lease, is a fixed constant — **30 min as landed, not 10** (see §6.4's
+worst-case-item rationale) — not env-tunable.)
 
 ## 8. Data model (Firestore, Moonshot-owned)
 
-- `moonshotExtracts/{sha256}` → `{ text, filename?, mediaType?, createdAt }` (+ optional
-  `chunks/{n}` subcollection for >~900 KB extracts).
+- `moonshotExtracts/{sha256}` → `{ text, filename?, mediaType?, ~~createdAt~~ }` (+ optional
+  `chunks/{n}` subcollection for >~900 KB extracts). **`createdAt` was not implemented** — the
+  landed `ExtractDoc` shape has no timestamp field, because no GC exists for this collection (unlike
+  `moonshotBatches`, extracts are never swept). If a GC is added later, it must delete the
+  `chunks/*` subcollection docs before (or atomically with) the parent doc — Firestore does not
+  cascade-delete subcollections, so deleting only the parent would orphan any chunk docs under it.
 - `moonshotBatches/{batchId}` → `{ batchId, model, opts, batchEnvelope?,
   status:'in_progress'|'ended'|'errored', total, createdAt, expiresAt, endedAt? }`.
 - `moonshotBatches/{batchId}/items/{customId}` → `{ customId, prompt, envelope?,
