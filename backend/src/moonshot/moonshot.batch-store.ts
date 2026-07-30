@@ -25,8 +25,8 @@ export interface EmulatedBatchItem {
   prompt: string;
   envelope?: PromptEnvelope; // per-item; overrides batchEnvelope
   status: EmulatedItemStatus;
-  attempts?: number; // D5: incremented on each claim. Observability only — no
-  // maxAttempts/retry-limit logic reads this (yet).
+  // D5: incremented on each claim. Observability only — no maxAttempts/retry-limit logic reads this (yet).
+  attempts?: number;
   leaseUntil?: string; // D5: ISO; a running item is reclaimable once this passes
   text?: string;
   error?: string;
@@ -38,12 +38,25 @@ export interface EmulatedBatchItem {
 // is not set on this app's Firestore instance — see moonshot.extract-store.ts),
 // so strip them recursively before every write. Object keys with an undefined
 // value are dropped; array elements are left in place (never filtered out, which
-// would shift indices) except that an object element is itself recursed into.
+// would shift indices, and null/0/other falsy elements are kept as-is) except
+// that an object element is itself recursed into.
+//
+// Contract: the input must be plain JSON-shaped data — objects, arrays,
+// strings, numbers, booleans, null. Anything else (a Date, a Buffer, a future
+// Firestore FieldValue sentinel such as FieldValue.increment()) is passed
+// through unchanged rather than recursed into; see the prototype check below.
 function stripUndefined<T>(value: T): T {
   if (Array.isArray(value)) {
     return value.map((v) => (v !== null && typeof v === 'object' ? stripUndefined(v) : v)) as unknown as T;
   }
   if (value !== null && typeof value === 'object') {
+    // Only recurse into plain objects (`{}` / `Object.create(null)`). A Date
+    // or Buffer has a different prototype and would otherwise be silently
+    // mangled by Object.entries — a Date into `{}`, a Buffer into a
+    // byte-index map — and a future FieldValue sentinel would lose whatever
+    // internal shape the SDK relies on.
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) return value;
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (v === undefined) continue;
@@ -70,6 +83,13 @@ export class MoonshotBatchStore {
   // enforcing the invariant: before marking a drained batch 'ended', verify
   // `(await listItems(batchId)).length === total` and mark 'errored' instead
   // on a mismatch.
+  //
+  // Only createBatch strips undefined fields (see stripUndefined above).
+  // updateItem/setBatchStatus deliberately don't: those patches are
+  // internally constructed by this store's own callers (never raw
+  // caller-supplied option bags), and stripping would recurse into and
+  // mangle a future Firestore FieldValue sentinel (e.g. FieldValue.delete()
+  // or .increment()) passed in a patch.
   async createBatch(doc: EmulatedBatchDoc, items: EmulatedBatchItem[]): Promise<void> {
     await this.batchRef(doc.batchId).set(stripUndefined(doc));
     for (const item of items) await this.itemRef(doc.batchId, item.customId).set(stripUndefined(item));

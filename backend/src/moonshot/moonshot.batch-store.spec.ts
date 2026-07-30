@@ -66,6 +66,12 @@ describe('MoonshotBatchStore', () => {
     expect(await store.listTerminalBatchesOlderThan('2026-01-01T00:00:00.000Z')).toEqual(['stuck']);
   });
 
+  it('GC does NOT list a recent errored batch with no endedAt (pins `?? doc.createdAt`, not `?? \'\'`)', async () => {
+    const store = new MoonshotBatchStore(fakeFirestore());
+    await store.createBatch(batch({ batchId: 'recent', status: 'errored', createdAt: '2026-07-29T00:00:00.000Z' }), []);
+    expect(await store.listTerminalBatchesOlderThan('2026-01-01T00:00:00.000Z')).toEqual([]);
+  });
+
   it('deleteBatch removes both item docs and the batch doc', async () => {
     const store = new MoonshotBatchStore(fakeFirestore());
     await store.createBatch(batch({ total: 2 }), [
@@ -101,5 +107,37 @@ describe('MoonshotBatchStore', () => {
     expect('text' in rawItem).toBe(false);
     expect('error' in rawItem).toBe(false);
     expect((await store.getBatch('b1'))!.opts.effort).toBe('high'); // still round-trips through the store
+  });
+
+  it('stripUndefined preserves array length and null elements, drops only undefined-valued keys, and keeps falsy-but-defined values (not a naive JSON round-trip)', async () => {
+    const db = fakeFirestore();
+    const store = new MoonshotBatchStore(db);
+    const someDate = new Date('2020-01-01T00:00:00.000Z');
+    await store.createBatch(
+      batch({
+        batchEnvelope: {
+          tiers: [{ blocks: [{ type: 'text', text: 'a', unused: undefined }, null] }],
+        },
+        zeroField: 0,
+        nullField: null,
+        someDate,
+      }),
+      [],
+    );
+    const raw = (await db.collection('moonshotBatches').doc('b1').get()).data();
+    const blocks = raw.batchEnvelope.tiers[0].blocks;
+    expect(blocks.length).toBe(2); // array length preserved — no element dropped
+    expect(blocks[1]).toBeNull(); // explicit null element kept, not stripped
+    expect('unused' in blocks[0]).toBe(false); // nested undefined-valued key dropped
+    expect(raw.zeroField).toBe(0); // falsy-but-defined survives
+    expect(raw.nullField).toBeNull();
+    // A JSON.parse(JSON.stringify(...)) implementation would pass every
+    // assertion above too (JSON already drops undefined keys and preserves
+    // null/0 fine) — it only diverges from a correct recursive stripper on a
+    // non-plain-object value like a Date, which JSON.stringify serializes via
+    // .toJSON() into a string. Pin that divergence so a JSON-round-trip
+    // "simplification" of stripUndefined can't silently regress this.
+    expect(raw.someDate).toBeInstanceOf(Date);
+    expect(raw.someDate.getTime()).toBe(someDate.getTime());
   });
 });
