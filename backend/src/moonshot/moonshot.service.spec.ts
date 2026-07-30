@@ -11,7 +11,7 @@ const fakeExtracts = () => {
   } as any;
 };
 
-function make(chatHandler: (body: any) => any, fileHandlers: any = {}) {
+function make(chatHandler: (body: any) => any, fileHandlers: any = {}, configValues: Record<string, unknown> = {}) {
   const extracts = fakeExtracts();
   const envelopes = new MoonshotEnvelopeBuilder(extracts);
   const events: any = { emitted: [] as any[], emit(name: string, p: any) { this.emitted.push({ name, p }); return true; } };
@@ -26,11 +26,14 @@ function make(chatHandler: (body: any) => any, fileHandlers: any = {}) {
     },
   };
   const clientFactory = { get: () => client } as any;
-  const config = { get: (k: string) => (k === 'moonshot.model' ? 'kimi-k3' : k === 'moonshot.completionWindow' ? '1d' : undefined) } as any;
+  // Mirrors ConfigService: an unset key reads back undefined, so a test names only
+  // the keys it cares about.
+  const values: Record<string, unknown> = { 'moonshot.model': 'kimi-k3', 'moonshot.completionWindow': '1d', ...configValues };
+  const config = { get: (k: string) => values[k] } as any;
   const batchStore: any = {};
   const worker: any = { kick() {} };
   const svc = new MoonshotLlmProvider(clientFactory, config, events, envelopes, extracts, batchStore, worker);
-  return { svc, events, extracts, creates, dels };
+  return { svc, events, extracts, creates, dels, client };
 }
 
 /** Runs `fn`, returning the HTTP status and `error` string of the exception it throws. */
@@ -73,6 +76,31 @@ describe('MoonshotLlmProvider – sync + upload', () => {
     const second = await svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf');
     expect(second).toBe(first);
     expect(creates).toHaveLength(1);
+    expect(dels).toEqual(['ms-file-1']);
+  });
+
+  it('messageStructured falls back to the configured max tokens, guarding a NaN config', async () => {
+    const bodies: any[] = [];
+    const respond = (body: any) => { bodies.push(body); return { choices: [{ message: { content: '{}' }, finish_reason: 'stop' }], usage: {} }; };
+    const configured = make(respond, {}, { 'moonshot.maxTokens': 12345 });
+    await configured.svc.messageStructured({ prompt: 'go' }, { operation: 'demo' });
+    expect(bodies[0].max_completion_tokens).toBe(12345);
+    // A blank MOONSHOT_MAX_TOKENS reaches config as parseInt('') === NaN, which would
+    // otherwise serialize into the request body as `max_completion_tokens: null`.
+    const broken = make(respond, {}, { 'moonshot.maxTokens': NaN });
+    await broken.svc.messageStructured({ prompt: 'go' }, { operation: 'demo' });
+    expect(bodies[1].max_completion_tokens).toBe(32000);
+    // An explicit caller value still wins over both.
+    await configured.svc.messageStructured({ prompt: 'go', maxTokens: 50 }, { operation: 'demo' });
+    expect(bodies[2].max_completion_tokens).toBe(50);
+  });
+
+  it('uploadFile still deletes the remote file when the content read throws', async () => {
+    const { svc, dels, client } = make(() => ({}));
+    client.files.content = async () => { throw new Error('extract unavailable'); };
+    // The finally-delete covers this arm too: nothing was extracted, but the remote
+    // file exists and files.del here is the only thing that ever removes it.
+    await expect(svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf')).rejects.toThrow('extract unavailable');
     expect(dels).toEqual(['ms-file-1']);
   });
 

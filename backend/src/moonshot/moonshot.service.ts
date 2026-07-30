@@ -11,9 +11,10 @@ import {
   BatchSubmitOptions,
   BatchHandle,
   BatchItemResult,
+  BatchLifecycle,
   PromptEnvelope,
 } from '../llm/llm.types';
-import { MOONSHOT_CLIENT, MoonshotClientFactory, MOONSHOT_EXTRACT_ID_PREFIX } from './moonshot.constants';
+import { MOONSHOT_CLIENT, MoonshotClientFactory, MOONSHOT_EXTRACT_ID_PREFIX, isBatchable } from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotExtractStore } from './moonshot.extract-store';
 import { MoonshotBatchStore } from './moonshot.batch-store';
@@ -22,6 +23,10 @@ import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChat
 import { tokensFromUsage } from './moonshot.usage';
 
 const DEFAULT_MAX_COMPLETION_TOKENS = 32000;
+// D6: emulated batches expire this long after creation (mirrors configuration.ts).
+const DEFAULT_BATCH_MAX_AGE_MS = 10_800_000; // 3h
+/** Synthetic batch-id prefix for client-side emulated batches; nothing else parses it. */
+const EMULATED_BATCH_ID_PREFIX = 'msb_';
 
 @Injectable()
 export class MoonshotLlmProvider implements LlmProvider {
@@ -47,6 +52,22 @@ export class MoonshotLlmProvider implements LlmProvider {
     return this.config.get<string>('moonshot.model') ?? 'kimi-k3';
   }
 
+  /** Output ceiling applied when the caller passes no explicit maxTokens. */
+  private get defaultMaxTokens(): number {
+    return this.positiveConfig('moonshot.maxTokens', DEFAULT_MAX_COMPLETION_TOKENS);
+  }
+
+  // Every numeric moonshot config value arrives via parseInt(process.env…), so an
+  // env var that is SET BUT EMPTY reads back as NaN (the same failure mode the
+  // worker's gcTtlMs guard exists for). A NaN max_completion_tokens would
+  // serialize into the request body as `null`, and `new Date(now + NaN)
+  // .toISOString()` throws RangeError — which would fail EVERY submitBatch. So
+  // anything non-finite or non-positive falls back to the compiled-in default.
+  private positiveConfig(key: string, fallback: number): number {
+    const configured = this.config.get<number>(key);
+    return typeof configured === 'number' && Number.isFinite(configured) && configured > 0 ? configured : fallback;
+  }
+
   async messageStructured<T = unknown>(req: StructuredRequest, attribution: Attribution): Promise<T> {
     const model = req.model ?? this.defaultModel;
     try {
@@ -58,7 +79,7 @@ export class MoonshotLlmProvider implements LlmProvider {
       const body: MoonshotChatBody = {
         model,
         messages: built.messages,
-        max_completion_tokens: req.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+        max_completion_tokens: req.maxTokens ?? this.defaultMaxTokens,
         reasoning_effort: mapEffort(req.effort),
         // Spread conditionally: promptCacheKey is `string | undefined` (undefined when
         // the envelope has no stable prefix), and an explicit `prompt_cache_key:
@@ -127,7 +148,9 @@ export class MoonshotLlmProvider implements LlmProvider {
         try {
           await (client.files as any).del(uploaded.id);
         } catch (delErr) {
-          this.logger.warn(`Moonshot file ${uploaded.id} extracted but not deleted: ${(delErr as Error).message}`);
+          // "uploaded", not "extracted": this finally also runs when the content
+          // read itself failed, in which case nothing was ever extracted.
+          this.logger.warn(`Moonshot file ${uploaded.id} uploaded but not deleted: ${(delErr as Error)?.message}`);
         }
       }
     } catch (err) {
@@ -136,19 +159,227 @@ export class MoonshotLlmProvider implements LlmProvider {
   }
 
   // ---- batch methods ----
-  // Throwing stubs so the class fully implements LlmProvider (and therefore
-  // type-checks) in this task. Task 10 replaces these three bodies with the real
-  // hybrid batch implementation.
-  async submitBatch(_requests: BatchItemRequest[], _envelope: PromptEnvelope | undefined, _opts: BatchSubmitOptions): Promise<BatchHandle> {
-    throw new Error('submitBatch: implemented in Task 10');
+  // Hybrid: a batchable model goes to Moonshot's native OpenAI-compatible Batch
+  // API; kimi-k3 (not batchable upstream) goes to durable client-side emulation.
+  // Which path a batch took is encoded in the id it returns — only emulated ids
+  // carry the msb_ prefix — so getBatch/getBatchResults route on the id alone and
+  // callers (the reconciler) never have to remember the model.
+  async submitBatch(
+    requests: BatchItemRequest[],
+    envelope: PromptEnvelope | undefined,
+    opts: BatchSubmitOptions,
+  ): Promise<BatchHandle> {
+    const model = opts.model ?? this.defaultModel;
+    return isBatchable(model)
+      ? this.submitNativeBatch(requests, envelope, opts, model)
+      : this.submitEmulatedBatch(requests, envelope, opts, model);
   }
 
-  async getBatch(_batchId: string): Promise<BatchHandle> {
-    throw new Error('getBatch: implemented in Task 10');
+  // kimi-k3: durable emulation. Persist batch + item docs, kick the worker, return
+  // immediately. The reconciler polls getBatch/getBatchResults across ticks.
+  private async submitEmulatedBatch(
+    requests: BatchItemRequest[],
+    envelope: PromptEnvelope | undefined,
+    opts: BatchSubmitOptions,
+    model: string,
+  ): Promise<BatchHandle> {
+    const batchId = `${EMULATED_BATCH_ID_PREFIX}${randomUUID()}`;
+    const nowMs = Date.now();
+    const maxAge = this.positiveConfig('moonshot.batchMaxAgeMs', DEFAULT_BATCH_MAX_AGE_MS);
+    const items = requests.map((r, i) => ({
+      customId: r.customId ?? `request-${i}`,
+      prompt: r.prompt,
+      ...(r.envelope ? { envelope: r.envelope } : {}),
+      status: 'pending' as const,
+      attempts: 0,
+    }));
+    await this.batchStore.createBatch(
+      {
+        batchId,
+        model,
+        // maxTokens is resolved HERE, not in the worker, so the drain uses the
+        // ceiling configured on the submitting instance. `schema`/`effort` may be
+        // undefined; the store's createBatch strips undefined fields before the
+        // Firestore write (which rejects them), so this doesn't strip its own.
+        opts: { schema: opts.schema, maxTokens: opts.maxTokens ?? this.defaultMaxTokens, effort: opts.effort },
+        ...(envelope ? { batchEnvelope: envelope } : {}),
+        status: 'in_progress',
+        total: items.length,
+        createdAt: new Date(nowMs).toISOString(),
+        expiresAt: new Date(nowMs + maxAge).toISOString(), // D6
+      },
+      items,
+    );
+    this.worker.kick(batchId);
+    return { batchId, status: 'submitted' };
   }
 
-  async getBatchResults(_batchId: string): Promise<BatchItemResult[]> {
-    throw new Error('getBatchResults: implemented in Task 10');
+  // batchable models: native OpenAI-compatible Batch API.
+  private async submitNativeBatch(
+    requests: BatchItemRequest[],
+    envelope: PromptEnvelope | undefined,
+    opts: BatchSubmitOptions,
+    model: string,
+  ): Promise<BatchHandle> {
+    const client = this.clientFactory.get();
+    const window = this.config.get<string>('moonshot.completionWindow') ?? '1d';
+    try {
+      const lines: string[] = [];
+      for (let i = 0; i < requests.length; i++) {
+        const r = requests[i];
+        const built = await this.envelopes.buildRequest(r.envelope ?? envelope, r.prompt);
+        // NOTE: no temperature/top_p — Moonshot fixes them and rejects batches that set them.
+        const body: MoonshotChatBody = {
+          model,
+          messages: built.messages,
+          max_completion_tokens: opts.maxTokens ?? this.defaultMaxTokens,
+          reasoning_effort: mapEffort(opts.effort),
+          // Spread conditionally for parity with the sync path: promptCacheKey is
+          // undefined when the envelope has no stable prefix, and an explicit
+          // `prompt_cache_key: undefined` would be an own property of the body.
+          ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
+          ...(opts.schema ? { response_format: jsonSchemaFormat(opts.schema) } : {}),
+        };
+        lines.push(JSON.stringify({ custom_id: r.customId ?? `request-${i}`, method: 'POST', url: '/v1/chat/completions', body }));
+      }
+      const file = await toFile(Buffer.from(lines.join('\n'), 'utf8'), 'batch.jsonl', { type: 'application/jsonl' });
+      const input = await client.files.create({ file, purpose: 'batch' });
+      const batch = await client.batches.create({
+        input_file_id: input.id,
+        endpoint: '/v1/chat/completions',
+        // The SDK types completion_window as the literal '24h' (OpenAI's only
+        // value); Moonshot takes its own windows ('1d' by default). Cast just this
+        // field so input_file_id/endpoint stay type-checked.
+        completion_window: window as '24h',
+      });
+      return { batchId: batch.id, status: this.toLifecycle(batch.status) };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async getBatch(batchId: string): Promise<BatchHandle> {
+    if (batchId.startsWith(EMULATED_BATCH_ID_PREFIX)) {
+      const doc = await this.batchStore.getBatch(batchId);
+      if (!doc) throw new HttpException({ statusCode: 404, error: `Unknown batch ${batchId}` }, HttpStatus.NOT_FOUND);
+      const status = doc.status === 'ended' ? 'ended' : doc.status === 'errored' ? 'errored' : 'in_progress';
+      // More than a status read: two concurrent drainers can each observe the
+      // OTHER's last item still 'running' and both return without marking the
+      // batch 'ended', leaving it in_progress with nothing scheduled to finish
+      // it. The reconciler polls getBatch every minute, so kicking here converges
+      // such a stranded batch within a minute instead of letting the 3h expiry
+      // (D6) discard results that were already paid for. kick() is
+      // fire-and-forget and drainBatch() no-ops on a batch already active in this
+      // process or no longer in_progress, so the extra call is cheap.
+      if (status === 'in_progress') this.worker.kick(batchId);
+      return { batchId, status };
+    }
+    try {
+      const batch = await this.clientFactory.get().batches.retrieve(batchId);
+      return { batchId: batch.id, status: this.toLifecycle(batch.status), requestCounts: batch.request_counts };
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  async getBatchResults(batchId: string): Promise<BatchItemResult[]> {
+    return batchId.startsWith(EMULATED_BATCH_ID_PREFIX)
+      ? this.emulatedResults(batchId)
+      : this.nativeResults(batchId);
+  }
+
+  private async emulatedResults(batchId: string): Promise<BatchItemResult[]> {
+    const items = await this.batchStore.listItems(batchId);
+    return items
+      .filter((i) => i.status !== 'pending' && i.status !== 'running') // terminal items only
+      .map((i) => ({
+        customId: i.customId,
+        type: i.status,
+        ...(i.text !== undefined ? { text: i.text } : {}),
+        ...(i.error !== undefined ? { error: i.error } : {}),
+        ...(i.usage !== undefined ? { usage: i.usage } : {}),
+        ...(i.cacheReadTokens !== undefined ? { cacheReadTokens: i.cacheReadTokens } : {}),
+      }));
+  }
+
+  private async nativeResults(batchId: string): Promise<BatchItemResult[]> {
+    const client = this.clientFactory.get();
+    try {
+      const batch = await client.batches.retrieve(batchId);
+      const items: BatchItemResult[] = [];
+      if (batch.output_file_id) {
+        const text = await (await client.files.content(batch.output_file_id)).text();
+        for (const row of this.parseJsonlRows(text, `batch ${batchId} output file`)) {
+          const customId = row.custom_id;
+          const status = row.response?.status_code;
+          const body = row.response?.body;
+          if (status === 200 && body) {
+            const content = body.choices?.[0]?.message?.content ?? '';
+            const item: BatchItemResult = { customId, type: 'succeeded', text: content };
+            if (body.usage) {
+              item.usage = tokensFromUsage(body.usage);
+              item.cacheReadTokens = body.usage.cached_tokens ?? 0;
+            }
+            items.push(item);
+          } else if (row.error || body?.error) {
+            const type = body?.error?.type ?? row.error?.type;
+            items.push(type === 'content_filter' ? { customId, type: 'refusal' } : { customId, type: 'errored', error: JSON.stringify(row.error ?? body?.error) });
+          } else {
+            items.push({ customId, type: 'errored', error: `status ${status}` });
+          }
+        }
+      }
+      if (batch.error_file_id) {
+        const text = await (await client.files.content(batch.error_file_id)).text();
+        for (const row of this.parseJsonlRows(text, `batch ${batchId} error file`)) {
+          items.push({ customId: row.custom_id, type: 'errored', error: JSON.stringify(row.error ?? row) });
+        }
+      }
+      return items;
+    } catch (err) {
+      this.rethrow(err);
+    }
+  }
+
+  // Parse a results JSONL blob line by line, DROPPING (with a log) any line that
+  // won't parse rather than rejecting the whole read: one truncated line would
+  // otherwise throw away every sibling result in the file, all of them paid for.
+  // A dropped line is preferable to a synthetic `{customId: 'unknown'}` row too —
+  // results are matched by custom_id, so a placeholder matches no cell in the
+  // reconciler's map and only produces noise, whereas an absent item leaves that
+  // run-index MISSING, which is exactly what makes the next top-up re-submit it.
+  private parseJsonlRows(text: string, source: string): any[] {
+    const rows: any[] = [];
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        rows.push(JSON.parse(line));
+      } catch (err) {
+        this.logger.error(`Skipping unparseable line in ${source}: ${(err as Error)?.message}`);
+      }
+    }
+    return rows;
+  }
+
+  // Map Moonshot native batch status → neutral lifecycle.
+  private toLifecycle(status: string): BatchLifecycle {
+    switch (status) {
+      case 'completed':
+        return 'ended';
+      case 'failed':
+        return 'errored';
+      case 'expired':
+        return 'expired';
+      case 'cancelling':
+      case 'cancelled':
+        return 'canceled';
+      case 'validating':
+      case 'in_progress':
+      case 'finalizing':
+        return 'in_progress';
+      default:
+        return 'submitted';
+    }
   }
 
   private emitUsage(rawUsage: unknown, modelId: string, attribution: Attribution): void {
@@ -168,8 +399,10 @@ export class MoonshotLlmProvider implements LlmProvider {
       this.events.emit('llm.usage', event);
     } catch (err) {
       // Capture must never affect the request path — but swallowing silently means
-      // cost tracking drops records with no trace, so log it.
-      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error).message}`);
+      // cost tracking drops records with no trace, so log it. Optional chain for the
+      // same reason as rethrow's `?.status`: a thrown null/undefined must not turn
+      // this warn into a TypeError that escapes the catch it was meant to contain.
+      this.logger.warn(`llm.usage emit failed for ${modelId}: ${(err as Error)?.message}`);
     }
   }
 
