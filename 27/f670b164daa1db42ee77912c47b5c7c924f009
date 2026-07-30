@@ -1,0 +1,27 @@
+backend/.env.example
+  s_2b4b60567393e1::t_adaaf9ef20ba46 15-17
+backend/src/config/configuration.ts
+  s_2b4b60567393e1::t_9a3620e749025e 70-74,81-84
+backend/src/llm/llm.module.ts
+  s_2b4b60567393e1::t_1fcf82ea009475 30-32
+backend/src/config/configuration.spec.ts
+  s_2b4b60567393e1::t_c515e08b6a17a5 183-192
+backend/src/llm/llm.module.spec.ts
+  s_2b4b60567393e1::t_6df2f563afdbb6 26-33,37-40,54,57-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "27f670b164daa1db42ee77912c47b5c7c924f009",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
