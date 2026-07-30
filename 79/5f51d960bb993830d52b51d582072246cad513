@@ -1,0 +1,25 @@
+backend/src/llm/llm.module.ts
+  s_2b4b60567393e1::t_34ffdb82d48f9c 5-6,13,17-22,27-28
+backend/src/llm/llm.module.spec.ts
+  s_2b4b60567393e1::t_fa51d69e7632eb 8-10,12-16,18,26-33,36-47
+  s_2b4b60567393e1::t_6ddd01fc41d26c 1-7,11,17,19-25,34-35
+backend/src/app.module.ts
+  s_2b4b60567393e1::t_71be66566f2af3 9
+  s_2b4b60567393e1::t_804c773c54fe08 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "795f51d960bb993830d52b51d582072246cad513",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
