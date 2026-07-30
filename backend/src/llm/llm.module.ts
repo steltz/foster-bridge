@@ -27,7 +27,9 @@ import { LlmProvider } from './llm.provider';
           case 'moonshot':
             return moonshot;
           default:
-            throw new Error(`Unknown llm.provider: ${provider}`);
+            // Quoted so a blank/whitespace value renders visibly instead of
+            // producing a message that looks truncated after the colon.
+            throw new Error(`Unknown llm.provider: "${provider}"`);
         }
       },
     },

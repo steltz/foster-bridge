@@ -67,14 +67,21 @@ export default (): AppConfig => ({
     batchGcTtlMs: parseInt(process.env.MOONSHOT_BATCH_GC_TTL_MS ?? '86400000', 10),
   },
   llm: {
-    provider: process.env.LLM_PROVIDER ?? 'anthropic',
+    // `||`, not `??`: a set-but-empty LLM_PROVIDER (a copied .env.example, a
+    // blanked-out deploy var) must also fall back, same convention as
+    // moonshot.baseUrl above — otherwise '' reaches llm.module.ts's switch and
+    // throws `Unknown llm.provider: ""` instead of booting Anthropic.
+    provider: process.env.LLM_PROVIDER || 'anthropic',
   },
   benchmark: {
     // Flagship benchmark model is provider-aware: Fable on Anthropic, Kimi K3 on
     // Moonshot. An explicit BENCHMARK_MODEL always wins.
     model:
       process.env.BENCHMARK_MODEL ??
-      ((process.env.LLM_PROVIDER ?? 'anthropic') === 'moonshot' ? 'kimi-k3' : 'claude-fable-5'),
+      // `||`, not `??`, on this LLM_PROVIDER read too — must agree with
+      // llm.provider above on a set-but-empty LLM_PROVIDER, or this resolves
+      // 'claude-fable-5' while the seam crashes on the unfallback-ed ''.
+      ((process.env.LLM_PROVIDER || 'anthropic') === 'moonshot' ? 'kimi-k3' : 'claude-fable-5'),
     // configuration.{ts,js} lives at backend/src/config (dist/config after build);
     // '../../..' lands on the repo root (parent of backend/) in both layouts.
     repoRoot: process.env.BENCHMARK_REPO_ROOT ?? resolve(__dirname, '..', '..', '..'),

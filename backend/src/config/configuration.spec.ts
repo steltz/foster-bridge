@@ -180,4 +180,14 @@ describe('configuration – moonshot', () => {
   it('keeps benchmark.model as claude-fable-5 for anthropic', () => {
     expect(configuration().benchmark.model).toBe('claude-fable-5');
   });
+
+  // A set-but-empty LLM_PROVIDER (copied .env.example, blanked deploy var)
+  // must fall back too — `||`, not `??` — same convention as
+  // MOONSHOT_BASE_URL above. Otherwise llm.provider and benchmark.model would
+  // disagree on '': the seam throws `Unknown llm.provider: ""` while
+  // benchmark.model quietly resolves to claude-fable-5.
+  it('treats a set-but-empty LLM_PROVIDER as unset', () => {
+    process.env.LLM_PROVIDER = '';
+    expect(configuration().llm.provider).toBe('anthropic');
+  });
 });

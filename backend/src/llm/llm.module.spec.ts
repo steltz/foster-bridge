@@ -23,11 +23,21 @@ import { FirebaseModule } from '../firebase/firebase.module';
 @Module({ providers: [{ provide: FIRESTORE, useValue: {} }], exports: [FIRESTORE] })
 class FakeFirebaseModule {}
 
-async function providerFor(llmProvider: string) {
+// undefined => `{}`, so llm.provider is genuinely ABSENT from config (not just
+// present-and-empty) — the only way to exercise llm.module.ts's own
+// `?? 'anthropic'` fallback rather than a value this stub happened to supply.
+// No `moonshot`/`anthropic` keys: verified unneeded — neither module's
+// constructor path touches its config block, only the lazily-invoked client
+// factories (never called by these tests), so stubbing them would only imply
+// a boot dependency that doesn't exist.
+async function providerFor(llmProvider?: string) {
   const moduleRef = await Test.createTestingModule({
     imports: [
       EventEmitterModule.forRoot(),
-      ConfigModule.forRoot({ isGlobal: true, load: [() => ({ llm: { provider: llmProvider }, moonshot: {}, anthropic: {} })] }),
+      ConfigModule.forRoot({
+        isGlobal: true,
+        load: [() => (llmProvider === undefined ? {} : { llm: { provider: llmProvider } })],
+      }),
       LlmModule,
     ],
   })
@@ -41,7 +51,13 @@ describe('LlmModule swap seam', () => {
   it('selects Moonshot when llm.provider=moonshot', async () => {
     expect(await providerFor('moonshot')).toBeInstanceOf(MoonshotLlmProvider);
   });
-  it('selects Anthropic by default', async () => {
+  it('selects Anthropic when llm.provider=anthropic', async () => {
     expect(await providerFor('anthropic')).toBeInstanceOf(AnthropicLlmProvider);
+  });
+  it('defaults to Anthropic when llm.provider is unset', async () => {
+    expect(await providerFor(undefined)).toBeInstanceOf(AnthropicLlmProvider);
+  });
+  it('throws on an unknown llm.provider', async () => {
+    await expect(providerFor('moonshoot')).rejects.toThrow('Unknown llm.provider: "moonshoot"');
   });
 });
