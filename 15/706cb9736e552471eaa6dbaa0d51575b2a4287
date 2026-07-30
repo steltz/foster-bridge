@@ -1,0 +1,32 @@
+backend/src/benchmark/day-artifacts.service.spec.ts
+  s_2b4b60567393e1::t_a7a5bd7dc6bcac 3
+  s_2b4b60567393e1::t_7beb0346924450 153
+  s_2b4b60567393e1::t_9a363fe4e89d1c 34-36,46
+  s_2b4b60567393e1::t_c45cb3411259b2 2
+  s_2b4b60567393e1::t_883777ab8a4ebb 100,109-152,154-170
+backend/src/benchmark/day-artifacts.service.ts
+  s_2b4b60567393e1::t_b2aa1c4d58398d 1-2,7
+  s_2b4b60567393e1::t_7aba99ad173fec 114-118,123,129
+  s_2b4b60567393e1::t_47343ee61a440d 27-28,33,40-65,67-74
+  s_2b4b60567393e1::t_65c4a54fee94a8 66
+  s_2b4b60567393e1::t_85f373315a4704 87,95,107
+  s_2b4b60567393e1::t_9d7cd9c3037ba3 75
+backend/src/benchmark/benchmark.repository.ts
+  s_2b4b60567393e1::t_6a3659bc1c850b 51-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "15706cb9736e552471eaa6dbaa0d51575b2a4287",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
