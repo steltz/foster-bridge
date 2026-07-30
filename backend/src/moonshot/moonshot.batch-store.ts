@@ -34,6 +34,16 @@ export interface EmulatedBatchItem {
   usage?: UsageTokens;
 }
 
+/**
+ * An item the batch still owes work on. Exported so the store's
+ * listUnfinishedItems and the worker's drain-completion check share ONE
+ * definition of "unfinished" — they must agree, or a drain could mark a batch
+ * ended while the store still hands out work for it.
+ */
+export function isUnfinished(item: EmulatedBatchItem): boolean {
+  return item.status === 'pending' || item.status === 'running';
+}
+
 // Firestore rejects explicit `undefined` field values (ignoreUndefinedProperties
 // is not set on this app's Firestore instance — see moonshot.extract-store.ts),
 // so strip them recursively before every write. Object keys with an undefined
@@ -108,7 +118,7 @@ export class MoonshotBatchStore {
   // Items not yet terminal (pending OR running) — the worker's work set.
   async listUnfinishedItems(batchId: string): Promise<EmulatedBatchItem[]> {
     const all = await this.listItems(batchId);
-    return all.filter((i) => i.status === 'pending' || i.status === 'running');
+    return all.filter(isUnfinished);
   }
 
   // D5: transactional claim. Flip pending→running, or reclaim a running item whose

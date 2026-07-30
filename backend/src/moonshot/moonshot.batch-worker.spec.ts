@@ -1,5 +1,5 @@
 import { MoonshotBatchWorker } from './moonshot.batch-worker';
-import { MoonshotBatchStore } from './moonshot.batch-store';
+import { MoonshotBatchStore, isUnfinished } from './moonshot.batch-store';
 
 // In-memory batch store double (only what the worker calls), including the D5
 // claim — atomic in-memory: no `await` before the mutation, so two concurrent
@@ -9,7 +9,7 @@ class MemBatchStore {
   items = new Map<string, any[]>();
   async getBatch(id: string) { return this.batches.get(id) ?? null; }
   async listItems(id: string) { return this.items.get(id) ?? []; }
-  async listUnfinishedItems(id: string) { return (this.items.get(id) ?? []).filter((i) => i.status === 'pending' || i.status === 'running'); }
+  async listUnfinishedItems(id: string) { return (this.items.get(id) ?? []).filter(isUnfinished); }
   async claimItem(id: string, cid: string, leaseMs: number) {
     const it = (this.items.get(id) ?? []).find((i) => i.customId === cid);
     if (!it) return false;
@@ -49,10 +49,22 @@ class FlakyUpdateStore extends MemBatchStore {
   }
 }
 
+// claimItem REJECTS (rather than returning false) for one item — an aborted transaction.
+class ClaimThrowStore extends MemBatchStore {
+  constructor(private badId: string) { super(); }
+  async claimItem(id: string, cid: string, leaseMs: number) {
+    if (cid === this.badId) throw new Error('transaction aborted');
+    return super.claimItem(id, cid, leaseMs);
+  }
+}
+
 const fakeEnvelopes = { async buildRequest() { return { messages: [{ role: 'user', content: 'x' }], promptCacheKey: 'k' }; } } as any;
+const echoEnvelopes = { async buildRequest(_e: any, prompt: string) { return { messages: [{ role: 'user', content: prompt }], promptCacheKey: 'k' }; } } as any;
 const cfg = (over: Record<string, unknown> = {}) =>
   ({ get: (k: string) => ({ 'moonshot.batchConcurrency': 2, ...over } as Record<string, unknown>)[k] }) as any;
 const fakeConfig = cfg();
+// Provider + scheduler both on — what a dedicated Moonshot worker instance sees.
+const scheduledConfig = cfg({ 'llm.provider': 'moonshot', 'benchmark.schedulerEnabled': true });
 const future = '2999-01-01T00:00:00.000Z';
 
 function clientFactory(handler: (body: any) => any) {
@@ -66,6 +78,9 @@ function makeWorker(client: any, envelopes: any, store: MemBatchStore, config: a
   (worker as any).sleep = async () => {};
   return worker;
 }
+
+const flush = async (ticks = 5) => { for (let i = 0; i < ticks; i++) await new Promise((r) => setImmediate(r)); };
+const waitFor = async (pred: () => boolean, ticks = 50) => { for (let i = 0; i < ticks && !pred(); i++) await new Promise((r) => setImmediate(r)); };
 
 describe('MoonshotBatchWorker', () => {
   it('drains all unfinished items to succeeded and ends the batch', async () => {
@@ -95,7 +110,6 @@ describe('MoonshotBatchWorker', () => {
       if (JSON.stringify(body.messages).includes('REFUSE')) throw Object.assign(new Error('filtered'), { status: 400, error: { type: 'content_filter' } });
       throw Object.assign(new Error('server'), { status: 500 });
     });
-    const echoEnvelopes = { async buildRequest(_e: any, prompt: string) { return { messages: [{ role: 'user', content: prompt }], promptCacheKey: 'k' }; } } as any;
     const worker = makeWorker(client, echoEnvelopes, store);
     await worker.drainBatch('b1');
     const items = await store.listItems('b1');
@@ -156,7 +170,6 @@ describe('MoonshotBatchWorker', () => {
       order.push(body.messages[body.messages.length - 1].content);
       return okResp('{}');
     });
-    const echoEnvelopes = { async buildRequest(env: any, prompt: string) { return { messages: [{ role: 'user', content: prompt }], promptCacheKey: env?.system }; } } as any;
     await makeWorker(client, echoEnvelopes, store).drainBatch('b1');
     expect(order.length).toBe(4);
     expect(order.slice(0, 2).sort()).toEqual(['a1', 'b1']); // one prime per group first
@@ -164,16 +177,106 @@ describe('MoonshotBatchWorker', () => {
     expect(store.batches.get('b1').status).toBe('ended');
   });
 
-  it('marks a fully-drained batch errored when the item count is short of `total` (torn createBatch)', async () => {
+  it('runs `batchConcurrency` items genuinely in flight at once', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 4, expiresAt: future });
+    // One prefix group → phase 1 primes 1 item, phase 2 fans out 3 with limit 2.
+    store.items.set('b1', ['c1', 'c2', 'c3', 'c4'].map((customId) => ({ customId, prompt: customId, status: 'pending' })));
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const releases: Array<() => void> = [];
+    const client = clientFactory(() => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      return new Promise((resolve) => releases.push(() => { inFlight--; resolve(okResp('{}')); }));
+    });
+    let done = false;
+    const drain = makeWorker(client, fakeEnvelopes, store).drainBatch('b1').then(() => { done = true; });
+    for (let i = 0; i < 40 && !done; i++) {
+      await new Promise((r) => setImmediate(r)); // let every runner reach its create() call
+      while (releases.length) releases.shift()!();
+    }
+    await drain;
+    // 2, not 1: a runPool that silently degraded to sequential passes every other test.
+    expect(maxInFlight).toBe(2);
+    expect((await store.listItems('b1')).every((i) => i.status === 'succeeded')).toBe(true);
+  });
+
+  it('falls back to the default concurrency when batchConcurrency is not a usable number', async () => {
     const store = new MemBatchStore();
     store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 3, expiresAt: future });
+    store.items.set('b1', ['c1', 'c2', 'c3'].map((customId) => ({ customId, prompt: customId, status: 'pending' })));
+    // parseInt('') → NaN: Math.min(NaN, n) runners would be ZERO, silently draining nothing.
+    await makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg({ 'moonshot.batchConcurrency': NaN })).drainBatch('b1');
+    expect((await store.listItems('b1')).every((i) => i.status === 'succeeded')).toBe(true);
+    expect(store.batches.get('b1').status).toBe('ended');
+  });
+
+  it('records a request-build failure as that item errored, without wedging its siblings', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 2, expiresAt: future });
+    store.items.set('b1', [
+      { customId: 'bad', prompt: 'bad', status: 'pending' },
+      { customId: 'good', prompt: 'good', status: 'pending' },
+    ]);
+    const throwingEnvelopes = {
+      async buildRequest(_e: any, prompt: string) {
+        if (prompt === 'bad') throw new Error('Moonshot: no extracted text for file id f1');
+        return { messages: [{ role: 'user', content: prompt }], promptCacheKey: 'k' };
+      },
+    } as any;
+    await makeWorker(clientFactory(() => okResp('{}')), throwingEnvelopes, store).drainBatch('b1');
+    const items = await store.listItems('b1');
+    const bad = items.find((i) => i.customId === 'bad')!;
+    expect(bad.status).toBe('errored');
+    expect(bad.error).toContain('no extracted text for file id f1');
+    expect(items.find((i) => i.customId === 'good')!.status).toBe('succeeded');
+    expect(store.batches.get('b1').status).toBe('ended');
+  });
+
+  it('isolates a rejected claimItem so the rest of the pool still drains', async () => {
+    const store = new ClaimThrowStore('c1');
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 2, expiresAt: future });
     store.items.set('b1', [
       { customId: 'c1', prompt: 'p1', status: 'pending' },
       { customId: 'c2', prompt: 'p2', status: 'pending' },
     ]);
+    let calls = 0;
+    await expect(makeWorker(clientFactory(() => { calls++; return okResp('{}'); }), fakeEnvelopes, store).drainBatch('b1')).resolves.toBeUndefined();
+    expect(calls).toBe(1);
+    const items = await store.listItems('b1');
+    expect(items.find((i) => i.customId === 'c2')!.status).toBe('succeeded');
+    expect(items.find((i) => i.customId === 'c1')!.status).toBe('pending'); // retried on a later pass
+    expect(store.batches.get('b1').status).toBe('in_progress');
+  });
+
+  it('marks a fully-drained batch errored when the item count is short of `total` (torn createBatch)', async () => {
+    const store = new MemBatchStore();
+    const items = () => [
+      { customId: 'c1', prompt: 'p1', status: 'pending' },
+      { customId: 'c2', prompt: 'p2', status: 'pending' },
+    ];
+    store.batches.set('old', { batchId: 'old', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 3, createdAt: '2026-07-01T00:00:00.000Z', expiresAt: future });
+    store.items.set('old', items());
+    store.batches.set('malformed', { batchId: 'malformed', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 3, expiresAt: future }); // no createdAt
+    store.items.set('malformed', items());
+    const worker = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store);
+    await worker.drainBatch('old');
+    await worker.drainBatch('malformed');
+    expect(store.batches.get('old').status).toBe('errored'); // 2 item docs !== total 3
+    expect(store.batches.get('malformed').status).toBe('errored'); // unparseable createdAt → enforce
+    expect((await store.listItems('old')).every((i) => i.status === 'succeeded')).toBe(true); // results still kept
+  });
+
+  it('leaves a just-created short batch alone (its item docs may still be landing)', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 3, createdAt: new Date().toISOString(), expiresAt: future });
+    store.items.set('b1', [{ customId: 'c1', prompt: 'p1', status: 'pending' }]);
     await makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store).drainBatch('b1');
-    expect(store.batches.get('b1').status).toBe('errored'); // 2 item docs !== total 3
-    expect((await store.listItems('b1')).every((i) => i.status === 'succeeded')).toBe(true); // results still kept
+    // Inside the grace window a mismatch is a race with createBatch, not a torn
+    // write — don't kill an in-flight batch; the next pass re-evaluates.
+    expect(store.batches.get('b1').status).toBe('in_progress');
+    expect(store.batches.get('b1').endedAt).toBeUndefined();
   });
 
   it('retries a transient updateItem failure so a paid result is not discarded', async () => {
@@ -205,35 +308,86 @@ describe('MoonshotBatchWorker', () => {
     expect(store.batches.get('b1').status).toBe('in_progress'); // not ended — reclaimed after the lease expires
   });
 
-  it('gc deletes terminal batches older than the TTL, and no-ops when Moonshot is not the provider', async () => {
+  it('gc core deletes terminal batches older than the TTL and keeps live ones', async () => {
     const store = new MemBatchStore();
     store.batches.set('old', { batchId: 'old', status: 'ended', endedAt: '2000-01-01T00:00:00.000Z' });
     store.batches.set('live', { batchId: 'live', status: 'in_progress', expiresAt: future });
-
-    const offWorker = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg()); // provider unset → anthropic
-    await offWorker.gc();
-    expect(store.batches.has('old')).toBe(true);
-
-    const onWorker = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg({ 'llm.provider': 'moonshot' }));
-    await onWorker.gc();
+    await makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store).gc();
     expect(store.batches.has('old')).toBe(false);
     expect(store.batches.has('live')).toBe(true);
   });
 
-  it('onApplicationBootstrap resumes in-progress batches only when Moonshot is the provider', async () => {
+  it('gc falls back to the default TTL when the configured TTL is not a usable number', async () => {
     const store = new MemBatchStore();
-    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
-    store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    store.batches.set('old', { batchId: 'old', status: 'ended', endedAt: '2000-01-01T00:00:00.000Z' });
+    const worker = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg({ 'moonshot.batchGcTtlMs': NaN }));
+    // Date.now() - NaN → new Date(NaN).toISOString() throws RangeError, which would
+    // otherwise break every GC pass, forever.
+    await expect(worker.gc()).resolves.toBeUndefined();
+    expect(store.batches.has('old')).toBe(false);
+  });
 
-    const off = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg());
-    off.onApplicationBootstrap();
-    await new Promise((r) => setImmediate(r));
-    expect(store.batches.get('b1').status).toBe('in_progress'); // never touched Firestore
+  it('gc keeps going after one batch fails to delete', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('bad', { batchId: 'bad', status: 'ended', endedAt: '2000-01-01T00:00:00.000Z' });
+    store.batches.set('good', { batchId: 'good', status: 'errored', endedAt: '2000-01-01T00:00:00.000Z' });
+    const orig = store.deleteBatch.bind(store);
+    store.deleteBatch = async (id: string) => {
+      if (id === 'bad') throw new Error('permission denied');
+      return orig(id);
+    };
+    await expect(makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store).gc()).resolves.toBeUndefined();
+    expect(store.batches.has('bad')).toBe(true);
+    expect(store.batches.has('good')).toBe(false);
+  });
 
-    const on = makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, store, cfg({ 'llm.provider': 'moonshot' }));
-    on.onApplicationBootstrap();
-    await new Promise((r) => setImmediate(r));
-    await new Promise((r) => setImmediate(r));
-    expect(store.batches.get('b1').status).toBe('ended');
+  it('the scheduled tick re-drains a stalled batch and GCs, only when provider + scheduler are on', async () => {
+    const seed = () => {
+      const store = new MemBatchStore();
+      store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+      store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+      store.batches.set('old', { batchId: 'old', status: 'ended', endedAt: '2000-01-01T00:00:00.000Z' });
+      return store;
+    };
+
+    // Provider on, scheduler off (jest / a non-worker instance) → nothing happens.
+    const offStore = seed();
+    makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, offStore, cfg({ 'llm.provider': 'moonshot' })).scheduledMaintenance();
+    await flush();
+    expect(offStore.batches.get('b1').status).toBe('in_progress');
+    expect(offStore.batches.has('old')).toBe(true);
+
+    // Scheduler on, but Anthropic is the provider → nothing happens.
+    const anthropicStore = seed();
+    makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, anthropicStore, cfg({ 'benchmark.schedulerEnabled': true })).scheduledMaintenance();
+    await flush();
+    expect(anthropicStore.batches.get('b1').status).toBe('in_progress');
+    expect(anthropicStore.batches.has('old')).toBe(true);
+
+    // Both on → the stalled batch drains (no kick was ever issued) and GC runs.
+    const onStore = seed();
+    makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, onStore, scheduledConfig).scheduledMaintenance();
+    await waitFor(() => onStore.batches.get('b1')?.status === 'ended' && !onStore.batches.has('old'));
+    expect(onStore.batches.get('b1').status).toBe('ended');
+    expect(onStore.batches.has('old')).toBe(false);
+  });
+
+  it('onApplicationBootstrap resumes in-progress batches only when provider + scheduler are on', async () => {
+    const seed = () => {
+      const store = new MemBatchStore();
+      store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+      store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+      return store;
+    };
+
+    const offStore = seed();
+    makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, offStore, cfg()).onApplicationBootstrap();
+    await flush();
+    expect(offStore.batches.get('b1').status).toBe('in_progress'); // never touched Firestore at boot
+
+    const onStore = seed();
+    makeWorker(clientFactory(() => okResp('{}')), fakeEnvelopes, onStore, scheduledConfig).onApplicationBootstrap();
+    await waitFor(() => onStore.batches.get('b1')?.status === 'ended');
+    expect(onStore.batches.get('b1').status).toBe('ended');
   });
 });

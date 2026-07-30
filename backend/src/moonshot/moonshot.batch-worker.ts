@@ -4,17 +4,29 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { createHash } from 'node:crypto';
 import { MOONSHOT_CLIENT, MoonshotClientFactory } from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
-import { MoonshotBatchStore, EmulatedBatchItem, EmulatedBatchDoc } from './moonshot.batch-store';
+import { MoonshotBatchStore, EmulatedBatchItem, EmulatedBatchDoc, isUnfinished } from './moonshot.batch-store';
 import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
 import { UsageTokens } from '../cost/cost.types';
 
 const MAX_ATTEMPTS = 4;
-const LEASE_MS = 10 * 60 * 1000; // D5: item-claim lease
+// D5 item-claim lease. Generous on purpose: one item can burn 4 attempts × up to 2
+// API calls each (the strict json_schema → json_object fallback) at high/max effort
+// with a 32k-token ceiling, and a lease that lapses mid-flight lets another drainer
+// reclaim and re-run the item — paying twice, with the two terminal writes racing
+// (last write wins; both results are valid, so no corruption, just waste). The real
+// fix is a fencing token issued by claimItem and compared transactionally at the
+// terminal write; that is a Task 7 store change and is deliberately deferred.
+const LEASE_MS = 30 * 60 * 1000;
 const GC_TTL_DEFAULT_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_CONCURRENCY = 8;
 // The result write happens AFTER a paid API call, so a transient Firestore throw
 // must never discard it — a few quick retries before giving up on the item.
 const PERSIST_ATTEMPTS = 3;
 const PERSIST_BACKOFF_MS = 100;
+// Grace period before the `total` invariant is enforced: createBatch writes the
+// batch doc first and its item docs after, so a batch observed seconds after
+// creation can legitimately have fewer item docs than `total`.
+const TOTAL_MISMATCH_GRACE_MS = 60 * 1000;
 
 interface RunOutcome {
   status: 'succeeded' | 'refusal' | 'errored';
@@ -36,20 +48,28 @@ interface RunOutcome {
 export class MoonshotBatchWorker implements OnApplicationBootstrap {
   private readonly logger = new Logger(MoonshotBatchWorker.name);
   private readonly active = new Set<string>(); // batchIds draining in THIS process
+  private readonly schedulerEnabled: boolean;
 
   constructor(
     @Inject(MOONSHOT_CLIENT) private readonly clientFactory: MoonshotClientFactory,
     private readonly envelopes: MoonshotEnvelopeBuilder,
     private readonly store: MoonshotBatchStore,
     private readonly config: ConfigService,
-  ) {}
-
-  private get concurrency(): number {
-    return this.config.get<number>('moonshot.batchConcurrency') ?? 8;
+  ) {
+    this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
   }
 
-  private get isMoonshotProvider(): boolean {
-    return (this.config.get<string>('llm.provider') ?? 'anthropic') === 'moonshot';
+  private get concurrency(): number {
+    return this.config.get<number>('moonshot.batchConcurrency') ?? DEFAULT_CONCURRENCY;
+  }
+
+  // Gates the SCHEDULED/BOOT entry points only. Two conditions: MoonshotModule is
+  // always imported but there is nothing to drain under Anthropic, and the repo's
+  // scheduler flag is OFF under jest (so specs never touch Firestore at boot) and
+  // per-instance in prod so only a dedicated worker runs crons. kick()/drainBatch()
+  // stay UNGATED — the instance that submitted a batch must always drain it.
+  private get schedulingEnabled(): boolean {
+    return this.schedulerEnabled && (this.config.get<string>('llm.provider') ?? 'anthropic') === 'moonshot';
   }
 
   // Fire-and-forget kick from submitBatch. Never throws to the caller.
@@ -58,10 +78,39 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   }
 
   onApplicationBootstrap(): void {
-    // MoonshotModule is always imported, but only resume/query Firestore when
-    // Moonshot is the active provider — under Anthropic there is nothing to drain.
-    if (!this.isMoonshotProvider) return;
+    if (!this.schedulingEnabled) return;
     void this.resumeAll().catch((e) => this.logger.error(`resume failed: ${e}`));
+  }
+
+  // Thin scheduled trigger — gated by config so only a dedicated worker runs the
+  // cron, and `void` + catch so a rejection never escapes the Nest scheduler. The
+  // maintain() core below stays public/ungated for tests + manual runs.
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  scheduledMaintenance(): void {
+    if (!this.schedulingEnabled) return;
+    void this.maintain().catch((e) => this.logger.error(`scheduled maintenance failed: ${e}`));
+  }
+
+  /**
+   * Periodic maintenance core. resumeAll() is the ONLY re-drain trigger for a batch
+   * that stalled without a live kick — a drainer that crashed, lost its claims to a
+   * lease, or raced another drainer such that neither observed the batch fully
+   * drained (each read while the other's last item was still 'running', so nobody
+   * ended it). Every 30 min gives a batch ~6 recovery passes before its 3h expiry
+   * force-terminates it. The two halves are isolated so a failing resume still lets
+   * GC run, and vice versa.
+   */
+  async maintain(): Promise<void> {
+    try {
+      await this.resumeAll();
+    } catch (err) {
+      this.logger.error(`resume failed: ${(err as Error).message}`);
+    }
+    try {
+      await this.gc();
+    } catch (err) {
+      this.logger.error(`gc failed: ${(err as Error).message}`);
+    }
   }
 
   async resumeAll(): Promise<void> {
@@ -77,7 +126,7 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
     try {
       const batch = await this.store.getBatch(batchId);
       if (!batch || batch.status !== 'in_progress') return;
-      const unfinished = (await this.store.listItems(batchId)).filter(isUnfinished);
+      const unfinished = await this.store.listUnfinishedItems(batchId);
       // D6: past the deadline with work left → force-terminate now, leaving the
       // items untouched so the reconciler re-queues them. An already-drained
       // expired batch falls through to the completion check below instead: its
@@ -87,6 +136,9 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         return;
       }
       const groups = this.groupByPrefix(unfinished, batch);
+      // The prime→fan-out barrier is INTRA-PROCESS only: a second drainer whose
+      // phase-1 claims all lost proceeds straight to its fan-out, so siblings can
+      // hit the API before the prefix is cached. Cost-only — results are unaffected.
       // Phase 1: prime one item per group (warms each distinct cell prefix).
       await this.runPool(groups.map((g) => g[0]), (item) => this.claimAndRun(batchId, item, batch));
       // Phase 2: fan out the remaining items of every group (siblings hit cache).
@@ -101,6 +153,11 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
       // such a batch would hand the reconciler a silently short result set; mark it
       // errored instead so the whole batch is re-queued (Task 7's stated contract).
       if (items.length !== batch.total) {
+        // …but only once createBatch has had time to finish: a resume that lands
+        // mid-create sees a short-but-growing item set, and erroring there would
+        // kill a legitimately in-flight batch. Inside the grace window leave the
+        // status alone; the next kick/cron pass re-evaluates.
+        if (!this.pastTotalGrace(batch)) return;
         this.logger.error(`batch ${batchId} has ${items.length} item docs but total=${batch.total} — marking errored`);
         await this.store.setBatchStatus(batchId, 'errored', new Date().toISOString());
         return;
@@ -109,6 +166,13 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
     } finally {
       this.active.delete(batchId);
     }
+  }
+
+  // A missing/unparseable createdAt cannot be inside the grace window — such a doc
+  // is malformed, and 'errored' (re-queue) is the right outcome for it anyway.
+  private pastTotalGrace(batch: EmulatedBatchDoc): boolean {
+    const createdMs = Date.parse(batch.createdAt ?? '');
+    return !Number.isFinite(createdMs) || Date.now() - createdMs > TOTAL_MISMATCH_GRACE_MS;
   }
 
   // D7: group by envelope hash, which approximates the prompt_cache_key partition
@@ -156,7 +220,7 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         return;
       } catch (err) {
         if (attempt === PERSIST_ATTEMPTS) {
-          this.logger.error(`persisting ${batchId}/${customId} failed after ${PERSIST_ATTEMPTS} attempts: ${err}`);
+          this.logger.error(`persisting ${batchId}/${customId} failed after ${PERSIST_ATTEMPTS} attempts: ${(err as Error).message}`);
           return;
         }
         await this.sleep(PERSIST_BACKOFF_MS * attempt);
@@ -165,19 +229,26 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   }
 
   // One item = one sync chat call (with the strict→json_object fallback).
-  async runOne(item: EmulatedBatchItem, batch: EmulatedBatchDoc): Promise<RunOutcome> {
-    const built = await this.envelopes.buildRequest(item.envelope ?? batch.batchEnvelope, item.prompt);
-    const body: MoonshotChatBody = {
-      model: batch.model,
-      messages: built.messages,
-      max_completion_tokens: batch.opts.maxTokens ?? 32000,
-      reasoning_effort: mapEffort(batch.opts.effort),
-      // Omit the key entirely when the envelope has no stable prefix to cache on —
-      // sending `undefined` would be rejected by Firestore-bound bodies and means
-      // nothing to the API.
-      ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
-      ...(batch.opts.schema ? { response_format: jsonSchemaFormat(batch.opts.schema) } : {}),
-    };
+  private async runOne(item: EmulatedBatchItem, batch: EmulatedBatchDoc): Promise<RunOutcome> {
+    let body: MoonshotChatBody;
+    try {
+      const built = await this.envelopes.buildRequest(item.envelope ?? batch.batchEnvelope, item.prompt);
+      body = {
+        model: batch.model,
+        messages: built.messages,
+        max_completion_tokens: batch.opts.maxTokens ?? 32000,
+        reasoning_effort: mapEffort(batch.opts.effort),
+        // Optional field: an envelope with no stable prefix has nothing to key a
+        // shared cache on, so omit it rather than send a meaningless key.
+        ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
+        ...(batch.opts.schema ? { response_format: jsonSchemaFormat(batch.opts.schema) } : {}),
+      };
+    } catch (err) {
+      // Rendering can fail permanently for ONE item (e.g. an envelope block whose
+      // extracted text is gone). Record it as that item's failure instead of
+      // rejecting — an escaping throw would wedge the drain for every sibling.
+      return { status: 'errored', error: `request build failed: ${(err as Error).message}` };
+    }
     let lastErr: unknown;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
@@ -208,25 +279,52 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   // caller (drainBatch); this just runs `items` at most `concurrency` at a time.
   private async runPool<T>(items: T[], fn: (item: T) => Promise<void>): Promise<void> {
     if (!items.length) return;
+    // A misconfigured MOONSHOT_BATCH_CONCURRENCY ('' / 'abc' → parseInt NaN) must not
+    // silently stall the drain: Math.max(1, NaN) is NaN and Array.from({length: NaN})
+    // builds ZERO runners, so every item would be skipped with no error at all.
+    const configured = this.concurrency;
+    const limit = Number.isFinite(configured) && configured >= 1 ? Math.floor(configured) : DEFAULT_CONCURRENCY;
     let cursor = 0;
-    const limit = Math.max(1, this.concurrency);
     const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (cursor < items.length) await fn(items[cursor++]);
+      while (cursor < items.length) {
+        const item = items[cursor++];
+        try {
+          await fn(item);
+        } catch (err) {
+          // Per-item isolation: one poisoned item (a rejected claim, an unexpected
+          // store throw) must not abort its runner and strand every item behind it.
+          this.logger.error(`batch item task failed: ${(err as Error).message}`);
+        }
+      }
     });
     await Promise.all(runners);
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  // Ungated GC core (the scheduled trigger above owns the gating): drop terminal
+  // batches whose results are older than the TTL.
   async gc(): Promise<void> {
-    if (!this.isMoonshotProvider) return;
-    const ttl = this.config.get<number>('moonshot.batchGcTtlMs') ?? GC_TTL_DEFAULT_MS;
-    const cutoff = new Date(Date.now() - ttl).toISOString();
+    const cutoff = new Date(Date.now() - this.gcTtlMs()).toISOString();
     const stale = await this.store.listTerminalBatchesOlderThan(cutoff);
-    for (const id of stale) await this.store.deleteBatch(id);
-    if (stale.length) this.logger.log(`GC removed ${stale.length} terminal emulated batches`);
+    let removed = 0;
+    for (const id of stale) {
+      try {
+        await this.store.deleteBatch(id);
+        removed++;
+      } catch (err) {
+        // Per-id isolation: a partially deleted batch is retried next pass (it stays
+        // terminal and older than the cutoff), and one failure never skips the rest.
+        this.logger.error(`GC of batch ${id} failed: ${(err as Error).message}`);
+      }
+    }
+    if (removed) this.logger.log(`GC removed ${removed} terminal emulated batches`);
   }
-}
 
-function isUnfinished(item: EmulatedBatchItem): boolean {
-  return item.status === 'pending' || item.status === 'running';
+  // Guarded because a blank/garbage MOONSHOT_BATCH_GC_TTL_MS reaches config as
+  // parseInt('') === NaN, and new Date(Date.now() - NaN).toISOString() throws
+  // RangeError — which would otherwise break every GC pass, forever.
+  private gcTtlMs(): number {
+    const configured = this.config.get<number>('moonshot.batchGcTtlMs');
+    if (typeof configured !== 'number' || !Number.isFinite(configured) || configured < 0) return GC_TTL_DEFAULT_MS;
+    return configured;
+  }
 }
