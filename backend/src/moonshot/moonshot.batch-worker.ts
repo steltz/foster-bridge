@@ -16,6 +16,18 @@ const MAX_ATTEMPTS = 4;
 // (last write wins; both results are valid, so no corruption, just waste). The real
 // fix is a fencing token issued by claimItem and compared transactionally at the
 // terminal write; that is a Task 7 store change and is deliberately deferred.
+//
+// COUPLED to the @Cron(EVERY_30_MINUTES) tick below — deliberately, not
+// coincidentally, the same 30 min. resumeAll() (run by that tick) is the only
+// thing that re-kicks a batch whose claim-holder died mid-lease, so a crashed
+// claim isn't noticed until BOTH this lease lapses AND the next maintenance
+// pass runs; matching the two intervals keeps that detection gap to about one
+// lease lifetime instead of stacking on top of it. Changing the tick interval
+// without changing this (or vice versa) silently changes the recovery budget:
+// maintain()'s docstring below counts on "~6 recovery passes" per batch before
+// its 3h expiry (D6) force-terminates it — doubling the tick to 60 min halves
+// that to ~3, giving a stuck batch far fewer chances to self-heal before it's
+// errored out and re-queued.
 const LEASE_MS = 30 * 60 * 1000;
 const GC_TTL_DEFAULT_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CONCURRENCY = 8;
@@ -85,6 +97,7 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   // Thin scheduled trigger — gated by config so only a dedicated worker runs the
   // cron, and `void` + catch so a rejection never escapes the Nest scheduler. The
   // maintain() core below stays public/ungated for tests + manual runs.
+  // COUPLED to LEASE_MS above (see that comment) — keep the two in sync.
   @Cron(CronExpression.EVERY_30_MINUTES)
   scheduledMaintenance(): void {
     if (!this.schedulingEnabled) return;
@@ -195,16 +208,27 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   // reclaim-a-stale-lease path fails open on a missing leaseUntil, which is only
   // safe while every 'running' item got there through a lease-granting claim.
   private async claimAndRun(batchId: string, item: EmulatedBatchItem, batch: EmulatedBatchDoc): Promise<void> {
-    const claimed = await this.store.claimItem(batchId, item.customId, LEASE_MS);
-    if (!claimed) return;
-    const outcome = await this.runOne(item, batch);
-    await this.persistOutcome(batchId, item.customId, {
-      status: outcome.status,
-      ...(outcome.text !== undefined ? { text: outcome.text } : {}),
-      ...(outcome.error !== undefined ? { error: outcome.error } : {}),
-      ...(outcome.usage !== undefined ? { usage: outcome.usage } : {}),
-      ...(outcome.cacheReadTokens !== undefined ? { cacheReadTokens: outcome.cacheReadTokens } : {}),
-    });
+    try {
+      const claimed = await this.store.claimItem(batchId, item.customId, LEASE_MS);
+      if (!claimed) return;
+      const outcome = await this.runOne(item, batch);
+      await this.persistOutcome(batchId, item.customId, {
+        status: outcome.status,
+        ...(outcome.text !== undefined ? { text: outcome.text } : {}),
+        ...(outcome.error !== undefined ? { error: outcome.error } : {}),
+        ...(outcome.usage !== undefined ? { usage: outcome.usage } : {}),
+        ...(outcome.cacheReadTokens !== undefined ? { cacheReadTokens: outcome.cacheReadTokens } : {}),
+      });
+    } catch (err) {
+      // Named context (which batch, which item) that runPool's generic catch
+      // below can't provide. warn, not error: a claim/store hiccup here
+      // self-heals — the item stays unclaimed (or its lease eventually lapses)
+      // and the next kick/resume picks it up — rather than losing a paid unit
+      // of work, matching batch-reconciler.ts's per-item isolation log level.
+      // Rethrown so runPool's per-item isolation still applies unchanged.
+      this.logger.warn(`batch ${batchId} item ${item.customId}: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   // Persist a terminal item result. This is a non-idempotent write that lands AFTER
@@ -296,7 +320,13 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         } catch (err) {
           // Per-item isolation: one poisoned item (a rejected claim, an unexpected
           // store throw) must not abort its runner and strand every item behind it.
-          this.logger.error(`batch item task failed: ${(err as Error).message}`);
+          // Bare backstop with no batch/item identity on purpose — claimAndRun
+          // already logged that context before rethrowing. warn, not error: this
+          // self-heals next pass rather than losing a paid unit of work (contrast
+          // persistOutcome's exhaustion log and drain()'s failure log, which stay
+          // error because those ARE failed units of work), matching
+          // batch-reconciler.ts's per-item isolation log level.
+          this.logger.warn(`batch item task failed: ${(err as Error).message}`);
         }
       }
     });
