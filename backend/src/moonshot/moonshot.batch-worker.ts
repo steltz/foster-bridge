@@ -320,13 +320,13 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         } catch (err) {
           // Per-item isolation: one poisoned item (a rejected claim, an unexpected
           // store throw) must not abort its runner and strand every item behind it.
-          // Bare backstop with no batch/item identity on purpose — claimAndRun
-          // already logged that context before rethrowing. warn, not error: this
-          // self-heals next pass rather than losing a paid unit of work (contrast
-          // persistOutcome's exhaustion log and drain()'s failure log, which stay
-          // error because those ARE failed units of work), matching
-          // batch-reconciler.ts's per-item isolation log level.
-          this.logger.warn(`batch item task failed: ${(err as Error).message}`);
+          // debug, not warn: on every path that exists today, `fn` is claimAndRun,
+          // which already logs this exact failure at warn WITH batch/item identity
+          // before rethrowing — logging it again here at the same level would just
+          // duplicate that line with less context. This stays as a backstop for a
+          // future `fn` that doesn't self-log, so it's never silent, just quieter
+          // than the identified log it currently shadows.
+          this.logger.debug(`batch item task failed: ${(err as Error).message}`);
         }
       }
     });

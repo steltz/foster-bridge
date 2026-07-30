@@ -52,7 +52,9 @@ export default (): AppConfig => ({
   },
   moonshot: {
     apiKey: process.env.MOONSHOT_API_KEY,
-    baseUrl: process.env.MOONSHOT_BASE_URL ?? 'https://api.moonshot.ai/v1',
+    // `||`, not `??`: a set-but-empty MOONSHOT_BASE_URL must fall back too (see
+    // moonshot.module.ts's client factory for why).
+    baseUrl: process.env.MOONSHOT_BASE_URL || 'https://api.moonshot.ai/v1',
     model: process.env.MOONSHOT_MODEL ?? 'kimi-k3',
     // Default output ceiling for sync + batch requests. Much larger than
     // ANTHROPIC_MAX_TOKENS because Kimi reasoning models spend tokens on
