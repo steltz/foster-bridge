@@ -131,6 +131,7 @@ describe('configuration – moonshot', () => {
     const cfg = configuration();
     expect(cfg.moonshot.baseUrl).toBe('https://api.moonshot.ai/v1');
     expect(cfg.moonshot.model).toBe('kimi-k3');
+    expect(cfg.moonshot.maxTokens).toBe(32000);
     expect(cfg.moonshot.batchConcurrency).toBe(8);
     expect(cfg.moonshot.completionWindow).toBe('1d');
     expect(cfg.moonshot.batchMaxAgeMs).toBe(10800000);
@@ -142,6 +143,7 @@ describe('configuration – moonshot', () => {
     process.env.MOONSHOT_API_KEY = 'sk-moon';
     process.env.MOONSHOT_BASE_URL = 'https://example.test/v1';
     process.env.MOONSHOT_MODEL = 'kimi-k2';
+    process.env.MOONSHOT_MAX_TOKENS = '5000';
     process.env.MOONSHOT_BATCH_CONCURRENCY = '2';
     process.env.MOONSHOT_COMPLETION_WINDOW = '24h';
     process.env.MOONSHOT_BATCH_MAX_AGE_MS = '600000';
@@ -151,6 +153,7 @@ describe('configuration – moonshot', () => {
       apiKey: 'sk-moon',
       baseUrl: 'https://example.test/v1',
       model: 'kimi-k2',
+      maxTokens: 5000,
       batchConcurrency: 2,
       completionWindow: '24h',
       batchMaxAgeMs: 600000,

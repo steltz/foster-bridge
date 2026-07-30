@@ -15,6 +15,7 @@ export interface AppConfig {
     apiKey?: string;
     baseUrl: string;
     model: string;
+    maxTokens: number;
     batchConcurrency: number;
     completionWindow: string;
     batchMaxAgeMs: number;
@@ -53,6 +54,10 @@ export default (): AppConfig => ({
     apiKey: process.env.MOONSHOT_API_KEY,
     baseUrl: process.env.MOONSHOT_BASE_URL ?? 'https://api.moonshot.ai/v1',
     model: process.env.MOONSHOT_MODEL ?? 'kimi-k3',
+    // Default output ceiling for sync + batch requests. Much larger than
+    // ANTHROPIC_MAX_TOKENS because Kimi reasoning models spend tokens on
+    // thinking before the JSON payload.
+    maxTokens: parseInt(process.env.MOONSHOT_MAX_TOKENS ?? '32000', 10),
     batchConcurrency: parseInt(process.env.MOONSHOT_BATCH_CONCURRENCY ?? '8', 10),
     completionWindow: process.env.MOONSHOT_COMPLETION_WINDOW ?? '1d',
     // D6: emulated-batch expiry (3h) and D5/D6 GC TTL from endedAt (24h).
