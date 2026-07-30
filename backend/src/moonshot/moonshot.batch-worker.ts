@@ -54,7 +54,10 @@ interface RunOutcome {
  * double-run an item; results persist durably so getBatch/getBatchResults work from
  * any process. Items are primed one-per-prefix-group before fanning out (D7). A
  * batch past its deadline is force-terminated (D6). content_filter → refusal
- * (permanent); 429/5xx/network → retry then errored (transient → reconciler re-queues).
+ * (permanent), whether it arrives as a thrown 400 or in-band as a 200 with
+ * finish_reason 'content_filter'; finish_reason 'length' → errored (truncated
+ * output would never parse); 429/5xx/network → retry then errored (transient →
+ * reconciler re-queues).
  */
 @Injectable()
 export class MoonshotBatchWorker implements OnApplicationBootstrap {
@@ -281,6 +284,21 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
       try {
         const resp = await createChatWithFallback(this.clientFactory.get(), body);
         const r = toChatResult(resp);
+        // MIRRORS moonshot.service.ts toItemResult (the native-batch path) — keep the
+        // two in sync. A 200 is not automatically a result: Moonshot delivers a
+        // refusal as 200 + finish_reason 'content_filter' (empty content) and a
+        // truncation as 200 + 'length'. This is the ONLY path that serves kimi-k3
+        // batches, so calling either 'succeeded' hands the reconciler unparseable
+        // text → a permanent write-once INVALID cell that no top-up can re-run.
+        // A refusal is billed and IS a real result to the reconciler (NO_SETUP), so
+        // it keeps usage — the emulated results mapper passes usage/cacheReadTokens
+        // straight through, exactly like the native path's row usage.
+        if (r.finishReason === 'content_filter') return { status: 'refusal', usage: r.usage, cacheReadTokens: r.usage.cacheRead };
+        // Truncation is 'errored' so the cell stays MISSING and retryable. That
+        // forfeits this item's usage emit (the reconciler skips non-result items) —
+        // the same trade the native path makes, and far cheaper than baking a
+        // truncated setup into the benchmark permanently.
+        if (r.finishReason === 'length') return { status: 'errored', error: 'output truncated (finish_reason=length)' };
         return { status: 'succeeded', text: r.text, usage: r.usage, cacheReadTokens: r.usage.cacheRead };
       } catch (err) {
         const status = (err as { status?: number }).status;

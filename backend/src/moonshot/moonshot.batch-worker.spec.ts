@@ -71,6 +71,12 @@ function clientFactory(handler: (body: any) => any) {
   return { get: () => ({ chat: { completions: { create: async (body: any) => handler(body) } } }) } as any;
 }
 const okResp = (content: string) => ({ choices: [{ message: { content }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, cached_tokens: 4, completion_tokens: 2 } });
+// A 200 carrying an IN-BAND failure: Moonshot signals a refusal as finish_reason
+// 'content_filter' (empty content) and a truncation as 'length', not as a throw.
+const inBandResp = (finish_reason: string, content = '') => ({
+  choices: [{ message: { content }, finish_reason }],
+  usage: { prompt_tokens: 10, cached_tokens: 4, completion_tokens: 2 },
+});
 
 // Worker with backoff removed so retry loops run instantly.
 function makeWorker(client: any, envelopes: any, store: MemBatchStore, config: any = fakeConfig) {
@@ -116,6 +122,39 @@ describe('MoonshotBatchWorker', () => {
     expect(items.find((i) => i.customId === 'refuse')!.status).toBe('refusal');
     expect(items.find((i) => i.customId === 'boom')!.status).toBe('errored');
     expect(store.batches.get('b1').status).toBe('ended');
+  });
+
+  it('maps an in-band 200 + finish_reason content_filter to refusal, keeping the billed usage', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+    store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    let calls = 0;
+    await makeWorker(clientFactory(() => { calls++; return inBandResp('content_filter'); }), fakeEnvelopes, store).drainBatch('b1');
+    const item = (await store.listItems('b1'))[0];
+    // A refusal is permanent — recorded, never retried against the API.
+    expect(calls).toBe(1);
+    expect(item.status).toBe('refusal');
+    // Billed: the reconciler treats a refusal as a real result (NO_SETUP) and emits
+    // its usage, so dropping it here would under-report spend we actually paid.
+    expect(item.usage).toEqual({ input: 6, cacheRead: 4, cacheCreate5m: 0, cacheCreate1h: 0, output: 2 });
+    expect(item.cacheReadTokens).toBe(4);
+    expect(store.batches.get('b1').status).toBe('ended'); // terminal item → batch still ends
+  });
+
+  it('maps an in-band 200 + finish_reason length to errored so the cell stays retryable', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+    store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    let calls = 0;
+    await makeWorker(clientFactory(() => { calls++; return inBandResp('length', '{"side":"lo'); }), fakeEnvelopes, store).drainBatch('b1');
+    const item = (await store.listItems('b1'))[0];
+    expect(calls).toBe(1); // in-band, not a thrown transient — no retry loop
+    // NOT 'succeeded': truncated JSON would reconcile into a permanent, write-once
+    // INVALID cell that no top-up can ever re-run.
+    expect(item.status).toBe('errored');
+    expect(item.error).toBe('output truncated (finish_reason=length)');
+    expect(item.text).toBeUndefined(); // the partial output is not persisted as a result
+    expect(store.batches.get('b1').status).toBe('ended'); // errored is terminal → batch ends
   });
 
   it('marks a batch past expiresAt as errored, leaving items untouched (D6)', async () => {
