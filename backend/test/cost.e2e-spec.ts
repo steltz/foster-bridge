@@ -47,8 +47,8 @@ describe('Cost (e2e)', () => {
     });
 
     // emitAsync awaits the @OnEvent listener so the write completes before we query.
-    await emitter.emitAsync('anthropic.usage', ev({ id: 'warm-1' }));
-    await emitter.emitAsync('anthropic.usage', ev({ id: 'setup-1', serviceTier: 'batch', attribution: { operation: 'setup', benchmark: { modelAlias: 'fable', day: '07222026' } } }));
+    await emitter.emitAsync('llm.usage', ev({ id: 'warm-1' }));
+    await emitter.emitAsync('llm.usage', ev({ id: 'setup-1', serviceTier: 'batch', attribution: { operation: 'setup', benchmark: { modelAlias: 'fable', day: '07222026' } } }));
 
     const summary = await request(app.getHttpServer()).get('/costs/summary?groupBy=operation').expect(200);
     expect(summary.body.totalRecords).toBe(2);
