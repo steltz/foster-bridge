@@ -244,7 +244,9 @@ describe('MoonshotLlmProvider – batch (batchable model → native /v1/batches)
 
   it('maps refusals, non-200 rows, and the error file to item results', async () => {
     const output = [
-      JSON.stringify({ custom_id: 'refused', response: { status_code: 400, body: { error: { type: 'content_filter' } } } }),
+      // Carries usage: a refusal reported as an error object is still billed, so the
+      // usage must reach the reconciler rather than being replaced with zeros.
+      JSON.stringify({ custom_id: 'refused', response: { status_code: 400, body: { error: { type: 'content_filter' }, usage: { prompt_tokens: 5, cached_tokens: 1, completion_tokens: 0 } } } }),
       JSON.stringify({ custom_id: 'boom', response: { status_code: 500, body: {} } }),
       okLine('ok', '{}'),
     ].join('\n');
@@ -256,7 +258,7 @@ describe('MoonshotLlmProvider – batch (batchable model → native /v1/batches)
     );
     const results = await svc.getBatchResults('bat-1');
     expect(results).toEqual([
-      { customId: 'refused', type: 'refusal' },
+      { customId: 'refused', type: 'refusal', usage: { input: 4, cacheRead: 1, cacheCreate5m: 0, cacheCreate1h: 0, output: 0 }, cacheReadTokens: 1 },
       { customId: 'boom', type: 'errored', error: 'status 500' },
       { customId: 'ok', type: 'succeeded', text: '{}', usage: { input: 4, cacheRead: 2, cacheCreate5m: 0, cacheCreate1h: 0, output: 1 }, cacheReadTokens: 2 },
       { customId: 'bad-req', type: 'errored', error: JSON.stringify({ message: 'invalid body' }) },

@@ -427,6 +427,22 @@ coupled to Firestore directly.
 - **Cache TTL is system-managed / unpublished** — the 55-min cache-warmer cadence is a
   reasonable heuristic; monitor `cached_tokens/prompt_tokens` as the real hit rate.
 - **`openai` SDK TS types** lack Moonshot fields → thin wrapper types + `as any` at call sites.
+- **Native batch input files are never swept:** the provider deletes an input file whose
+  `batches.create` failed, and deletes it again once `getBatchResults` reads a *terminal* batch —
+  but a batch nobody ever reconciles (the cache warmer's fire-and-forget submissions, a run whose
+  process died mid-flight) keeps its `purpose:'batch'` input file forever, against Moonshot's
+  1,000-file / 10GB account cap. Output/error files are left to Moonshot's own retention and are
+  not swept either. Trigger to fix: sustained native-batch warming of `k2.6`/`k2.7-code`, or a
+  `files.create` 400 "too many files" — then add a stale-batch-file sweep to
+  `MoonshotBatchWorker.maintain()` alongside the emulated GC. Bounded today because the native path
+  only engages when an operator explicitly benchmarks a batchable model (§11).
+- **A GC'd emulated batch the reconciler never terminalized:** the worker deletes terminal
+  `moonshotBatches` 24h after `endedAt` (§6.4), after which `getBatch` 404s for that `msb_` id — so
+  a `benchmarkBatch` doc still marked `in_progress` is polled, and logs an error, once a minute
+  indefinitely. It takes the reconciler being down or stalled for ~24h while the worker's GC keeps
+  running, which normally cannot happen (same process, so both stop together). Symptom: one
+  recurring per-minute error for a single `msb_` id; the fix is to terminalize a `benchmarkBatch`
+  whose provider batch has vanished.
 
 ## 11. Out of scope (YAGNI)
 

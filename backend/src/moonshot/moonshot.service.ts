@@ -259,9 +259,9 @@ export class MoonshotLlmProvider implements LlmProvider {
       const payload = Buffer.from(lines.join('\n'), 'utf8');
       const file = await toFile(payload, 'batch.jsonl', { type: 'application/jsonl' });
       const input = await client.files.create({ file, purpose: 'batch' });
-      // Logged because the batch input has hard upstream ceilings (50k requests /
-      // 100MB) and a benchmark batch grows with every cell — this is the only place
-      // the payload size is knowable before Moonshot rejects it.
+      // Logged because a batch input file has a hard 100MB upstream cap and a
+      // benchmark batch grows with every cell — this is the only place the payload
+      // size is knowable before Moonshot rejects it.
       this.logger.log(`Moonshot batch input ${input.id}: ${requests.length} requests, ${payload.byteLength} bytes`);
       try {
         const batch = await client.batches.create({
@@ -372,9 +372,17 @@ export class MoonshotLlmProvider implements LlmProvider {
     const status = row.response?.status_code;
     const body = row.response?.body;
     const error = row.error ?? body?.error;
+    // Computed above the error branch on purpose: a row that reports an error can
+    // still report usage, and a content_filter refusal IS billed — dropping its usage
+    // there would have the reconciler emit zeros for an item we paid for. Only what
+    // the row actually reported is attached; the reconciler substitutes zeros when
+    // usage is absent.
+    const usage = body?.usage
+      ? { usage: tokensFromUsage(body.usage), cacheReadTokens: body.usage.cached_tokens ?? 0 }
+      : {};
     if (error) {
       return error.type === 'content_filter'
-        ? { customId, type: 'refusal' }
+        ? { customId, type: 'refusal', ...usage }
         : { customId, type: 'errored', error: JSON.stringify(error) };
     }
     // `status 200 with no response body` would otherwise read as a nonsense error.
@@ -385,8 +393,6 @@ export class MoonshotLlmProvider implements LlmProvider {
     // never parses). Calling either 'succeeded' makes the reconciler write a
     // permanent INVALID cell — cells are write-once, so no top-up re-runs that slot.
     const r = toChatResult(body);
-    // Only attach usage the row actually reported; the reconciler substitutes zeros.
-    const usage = body.usage ? { usage: r.usage, cacheReadTokens: r.usage.cacheRead } : {};
     // A refusal is billed and IS a real result to the reconciler, so it keeps usage.
     if (r.finishReason === 'content_filter') return { customId, type: 'refusal', ...usage };
     // Truncation is 'errored' so the cell stays retryable. That forfeits this item's
