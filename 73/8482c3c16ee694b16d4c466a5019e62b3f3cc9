@@ -1,0 +1,22 @@
+backend/src/moonshot/moonshot.batch-worker.spec.ts
+  s_2b4b60567393e1::t_987bf8314f6245 1-118,131-239
+  s_2b4b60567393e1::t_b1efb63d32c040 119-130
+backend/src/moonshot/moonshot.batch-worker.ts
+  s_2b4b60567393e1::t_06be8940a35d16 1-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "738482c3c16ee694b16d4c466a5019e62b3f3cc9",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": null
+    }
+  }
+}
