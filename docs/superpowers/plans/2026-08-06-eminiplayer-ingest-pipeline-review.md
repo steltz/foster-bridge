@@ -1,5 +1,108 @@
 # Review: EminiPlayer Ingest Pipeline (spec + plan)
 
+> Two rounds. Round 1 reviewed the original 4-task pipeline (all 17 findings applied). Round 2, below the round-1 record, reviewed the docs after the verification system was added and the plan grew to 8 tasks.
+
+# Round 2 — 2026-08-06 (post-verification-design)
+
+**Reviewed at:** commit `49e21c6` (spec with Decision 6 verification layers; 8-task plan).
+**Method:** same four blind lenses, briefed on the round-1 outcome table to avoid re-reporting applied findings.
+
+## Scores
+
+- **Spec: 2/10** — three High design gaps in the new commit/audit machinery (short-circuit freeze, claim-release asymmetry, audit scale), two Mediums, one Low. Deductions: 3×2 + 2×1 + 0.5 = 8.5 → 1.5, rounded up.
+- **Plan: 1/10** — one High (a deterministic red test presented as passing), two Mediums, eleven Lows. Deductions: 2 + 2 + 5.5 = 9.5 → clamped.
+
+Context, which matters more than round 1: the surface under review roughly quadrupled, and the defect *density* dropped sharply — the grounding critic verified every new repo/dependency claim true (LLM seam, Firestore transaction API, `ignoreNotFound`, global fetch typing, all of it), the correctness critic mentally executed the full test suites and found one genuinely failing assertion out of ~60 tests, and there are zero Critical findings. The mechanical rubric sums finding counts, and eleven real-but-small Lows on a 2,400-line plan crush the number. Every finding below is a doc edit; the three Highs are the ones that would really hurt at multi-year volume.
+
+## High
+
+### R2-H1 (Spec + Plan) — Manifest short-circuit freezes a day committed with the wrong (older) recap; response references a nonexistent file
+
+**Location:** Spec Ingest flow step-5 paragraph + Decision 4 cross-reference; Plan Task 6 `run()` short-circuit branch. Found independently by two lenses.
+**Failure scenario:** Day D ingests before D−1's recap posts (and D−1's own group isn't yet committed, so no claim conflict intervenes — an unstated emergent dependency). Resolve legally picks D−2's recap; every check passes *honestly* (title, invariants, LLM weekday all validate against the resolved recapDate); the day commits with the wrong session's recap. When D−1's recap posts, every subsequent run resolves the newer recapDate, sees `manifest.exists()`, and short-circuits — reporting `recapDate` and a recap `storagePath` **that does not exist in the bucket**, while the manifest permanently references the older recap. Audit passes forever (the manifest is self-consistent). This is the exact backtest-poisoning the system exists to prevent, surviving *because* of the commit machinery. The round-1 fix (stale-recap cleanup) only covers *uncommitted* days — the short-circuit returns before cleanup runs.
+**Suggested fix:** In the short-circuit branch, download the manifest; build the response from the manifest's recorded recapDate/paths (never the fresh resolve); and when freshly-resolved `recapDate !== manifest.recapDate`, throw `IngestValidationError` ("committed recap is stale — rerun with force") instead of reporting all-skipped. Update the spec's step-5 paragraph and Decision 4 cross-reference to state this.
+
+### R2-H2 (Spec + Plan) — `force` deletes the manifest but never releases video-id claims; a stale claim can permanently 422-block a neighboring day
+
+**Location:** Spec Decision 6D / force semantics; Plan Task 5 `delete()`/`commit()`, Task 6 force branch.
+**Failure scenario:** Day D commits early with recap video X (really D−1's recap). Backfilling D−1 resolves X → claim conflict → 422 "claimed by D/recap". Operator force-reruns D; the manifest is deleted and D recommits with the correct video Y — but X's claim (owned by D) survives. Every retry of D−1 422s forever, with an error message ("claimed by D/recap") that no longer matches anything visible in D's manifest. Only manual Firestore surgery fixes it; the audit reports X as orphaned but orphan *cleanup* is explicitly out of scope — this isn't orphan cleanup, it's force's uncommit semantics leaking.
+**Suggested fix:** Make uncommit symmetric with commit: `EminiplayerManifestService.delete(date)` reads the manifest first and deletes both claim docs whose `claim.date === date` before removing the manifest. Add a test: force-rerun resolving different videos releases the old claims.
+
+### R2-H3 (Spec + Plan) — Audit is one synchronous GET doing serial full-corpus downloads; unusable at exactly the scale it's for
+
+**Location:** Spec Decision 6D audit description; Plan Task 8 `audit()`.
+**Failure scenario:** At 750+ manifested days: ~3,000+ sequential GCS round-trips, several MB per PDF — realistically 10–30 minutes inside one HTTP request. Server/client timeouts kill the connection; the operator gets nothing and a retry starts from zero. "Run it before any large backtest campaign" is precisely when the corpus is largest. Mocked tests can never catch this.
+**Suggested fix:** Accept `?from=&to=` range params; compare hashes via GCS object metadata (`md5Hash`/`crc32c` from `getFiles` metadata) instead of downloading content, reserving downloads for a `deep=true` mode; state the cost in the spec.
+
+### R2-H4 (Plan) — Task 6's gate test asserts `bucket.files.get(RECAP_PATH)?.save).toBeUndefined()` but the implementation materializes the file handle before the gate throws
+
+**Location:** Plan Task 6 Step 1 test "a failing transcript gate blocks upload and commit" vs Step 3 `produceTranscript`; Step 5 "Expected: PASS". Found independently by two lenses.
+**Failure scenario:** `produceTranscript` calls `this.bucket.file(storagePath)` before the exists check (it must — the exists check needs the handle), and the fake bucket memoizes the `FakeFile` on that call. When the gate throws, `files.get(RECAP_PATH)` returns a defined object with an uncalled `save` — `toBeUndefined()` fails deterministically. Step 5's "Expected: PASS" is false; the plan presents the test as the spec, inviting a wrong "fix" (restructuring the bucket access and breaking the reload flow). The sibling mid-run test uses the same idiom *validly* (that path genuinely never touches the PDF handle), making the broken one look intentional.
+**Suggested fix:** Change the assertion to `expect(bucket.files.get(RECAP_PATH)!.save).not.toHaveBeenCalled();` — keep the mid-run test as-is.
+
+## Medium
+
+### R2-M1 (Spec) — Spec's flow says upload-then-gate; the plan (correctly) gates before upload; the 422 row's "artifacts stay in place for diagnosis" is wrong for gate failures
+
+**Location:** Spec Ingest flow step 3.2–3.3 + 422 error-table row; Plan Task 6 ordering (locked in by tests).
+**Failure scenario:** A gate-tripping transcript produces a 422 whose documented contract says the artifact is in the bucket for diagnosis — but nothing was uploaded (the plan gates first, which is the safer order). An operator following the spec goes looking for an artifact that never existed.
+**Suggested fix:** Amend the spec: gates reject *before* upload; "artifacts stay in place" applies to post-upload failures (LLM verdict, uniqueness) and reloaded artifacts.
+
+### R2-M2 (Spec + Plan) — Coalescing silently drops the `force` flag
+
+**Location:** Plan Task 6 `ingest()`; Spec Decision 5b (silent on mixed flags). Found by three lenses.
+**Failure scenario:** An operator fires `force=true` to fix a known-bad day while a normal run (or timed-out retry) is in flight. The force call coalesces onto the non-force run — potentially the manifest short-circuit "all skipped" — and returns 200. The operator believes regeneration happened; nothing was regenerated, no error, no log.
+**Suggested fix:** When a `force=true` call finds a non-force run in flight, await it and then run the forced pass (or 409). Pin with a test; document in Decision 5b.
+
+### R2-M3 (Plan) — `assertOnPage` requires exact hostname equality; `assertOnArchivePage` deliberately tolerates `*.eminiplayer.net`
+
+**Location:** Plan Task 2 Step 4.
+**Failure scenario:** If the site 301-canonicalizes `www.` ↔ apex (the exact variance the archive assert was written to tolerate), every detail-page navigation throws `eminiplayer navigation failed` once selectors land — every date 502s at `resolve (recap)` while the archive half of the same pipeline works. Task 2's tests ship the strictness as "done".
+**Suggested fix:** Reuse the archive assert's hostname rule (apex or `*.eminiplayer.net`) in `assertOnPage`, keep the exact-pathname check, add a host-form-differs-accepted test.
+
+### R2-M4 (Spec) — The video-title format gate is a hard 422 built on a format never verified against a real YouTube title
+
+**Location:** Spec Decision 6B; Plan Task 3 `assertVideoTitle` / Task 6 (title check runs first, gating even resume paths).
+**Failure scenario:** If the channel's real titles use "6/30/26", spelled dates, or no date, **every day** 422s at the first check of every run and the pipeline is bricked until a code change. Loud and diagnosable, but a total stall at backfill volume, and the 422's meaning ("source data wrong") mislabels our-expectation-wrong.
+**Suggested fix:** Add to the `TODO(selectors)` follow-up checklist: capture 3–5 real oEmbed titles and encode observed forms before trusting the gate; distinguish "unparseable format" from "contradictory date" in the error message.
+
+## Low
+
+- **R2-L1 (Plan, Task 1/6):** oEmbed 404/401 (video deleted/private) maps to retryable 502 instead of 422 — permanent condition, infinite retry loop. Fix: map oEmbed 4xx to `IngestValidationError`, keep network/5xx as transport.
+- **R2-L2 (Plan, Task 8):** audit checks claims→manifest (orphans) but not manifest→claims; a manually-deleted claim leaves the uniqueness invariant unenforced undetected. Fix: inverse check, flag manifested ids without a matching `{date, slot}` claim.
+- **R2-L3 (Spec/Plan, manifest shape):** `checks` is seven write-only always-true booleans; audit docstring claims "verdict is recorded in each manifest" — it isn't. When a committed day is questioned, there's no evidence to inspect. Fix: record the two `TranscriptVerdict`s + verify model + the two oEmbed titles instead of booleans (also enables offline title re-audit).
+- **R2-L4 (Plan, Tasks 5/6/8):** storage-layout knowledge (`knowledge-base/es/<date>/`, filename templates, manifest name) duplicated across orchestrator, manifest service, and audit; audit regex drifting from the writer silently audits nothing and reports "clean". Fix: one shared `dayPaths(date, recapDate)` helper.
+- **R2-L5 (Plan, Task 4):** recaps routinely preview the next session ("tomorrow, Wednesday…"); a cheap classifier can latch onto the previewed weekday → systematic false 422s at volume. Fix: tighten the prompt ("the session this video primarily covers; ignore next/previous-session mentions").
+- **R2-L6 (Plan, Task 8):** no test exercises the gate-failure anomaly branch (the tamper fixture only trips the hash check). Fix: fixture whose manifest sha matches a stored-but-gate-failing artifact.
+- **R2-L7 (Plan, Task 6):** the stale-recap test never exercises the exclusion filter with the current recap present; an off-by-one deleting the run's own recap would pass. Fix: test with both stale and current recap pre-seeded.
+- **R2-L8 (Plan, Task 1):** byte-parity test uses a 3-segment fixture; spec requires a real-shaped knowledge-base fixture (dozens of lines, H:MM:SS boundary, entities). Fix: add it.
+- **R2-L9 (Plan, Task 3):** `assertVideoTitle` accept-fixtures carry calendar-wrong weekdays ("Monday 06/30/2026" — it's a Tuesday), teaching the wrong invariant in a plan built on weekday cross-checks. Fix: correct weekdays + a comment that weekday agreement is deliberately out of this function's scope.
+- **R2-L10 (Plan, Task 8):** the per-day try/catch labels any per-file transport error "manifest unreadable", misdirecting operators and double-reporting days. Fix: narrow the catch to manifest download+parse.
+- **R2-L11 (Plan, Task 8 Step 5):** wiring instructions omit the `AuditReport` import and show no code for the controller-spec `build` change. Fix: name the import, show the two-line diff.
+- **R2-L12 (Plan, Task 4):** `configuration.spec.ts` deletes only the four existing `EMINIPLAYER_*` env vars; an environment with `EMINIPLAYER_VERIFY_MODEL` exported makes its exact-shape `toEqual` fail — an environment-dependent full-suite red surfacing confusingly at Task 6. Fix: delete the new var in that spec's `beforeEach`.
+
+## Verified sound in round 2 (not scored)
+
+Every newly-introduced repo/dependency claim checked true: `LLM_PROVIDER`/`messageStructured`/`StructuredRequest`/`Attribution{operation:'other'}`, `LlmModule` and `FirebaseModule` both `@Global()`, Firestore transaction API against firebase-admin 12.7, `file.delete({ignoreNotFound})`/`download()`/`getFiles({prefix})`/`save()` against @google-cloud/storage 7.21, global fetch/Response typing under @types/node 20, all 2026 calendar fixtures (except R2-L9's titles), the 7 `build(page)` call sites, the coalescing test's determinism, the manifest-service transaction-order assertions, the audit tests' map/count math, the `FakeGlobalsModule` DI reasoning, and cross-task name consistency (zero drift across all 8 tasks). Crash-between-claim-and-manifest recovers via idempotent re-claim; Playwright cannot deadlock across dates; SSRF shape adequate.
+
+## Round 2 outcome tracking
+
+| # | Finding | Status |
+|---|---|---|
+| R2-H1 | Short-circuit freezes wrong-recap committed day | pending |
+| R2-H2 | Force never releases video-id claims | pending |
+| R2-H3 | Audit doesn't scale (serial full downloads, one GET) | pending |
+| R2-H4 | Gate test asserts on memoized file handle | pending |
+| R2-M1 | Spec upload-then-gate vs plan gate-then-upload | pending |
+| R2-M2 | Coalescing drops force flag | pending |
+| R2-M3 | assertOnPage exact-hostname strictness | pending |
+| R2-M4 | Title-format gate unverified against real titles | pending |
+| R2-L1..L12 | (as listed) | pending |
+
+---
+
+# Round 1 — 2026-08-06 (original 4-task pipeline)
+
 **Date:** 2026-08-06
 **Reviewed:** `docs/superpowers/specs/2026-08-06-eminiplayer-ingest-pipeline-design.md` + `docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline.md`
 **State at review:** docs only — no implementation built yet.
