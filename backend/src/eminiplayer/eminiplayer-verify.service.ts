@@ -83,7 +83,10 @@ export class EminiplayerVerifyService {
         `llm verification: transcript references ${verdict.referencedWeekday} but ${expected.date} is a ${expectedWeekday}`,
       );
     }
-    if (verdict.confidence === 'low') {
+    // Fails CLOSED on anything outside the enum: the moonshot json_object
+    // fallback can return an unconstrained string, and an `=== 'low'` test
+    // would wave "uncertain" through as if it were high confidence.
+    if (verdict.confidence !== 'high' && verdict.confidence !== 'medium') {
       throw new IngestValidationError('llm verification: low-confidence classification');
     }
     return verdict; // recorded as manifest evidence

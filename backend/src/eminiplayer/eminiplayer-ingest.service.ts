@@ -106,6 +106,16 @@ export class EminiplayerIngestService {
     );
     const recapDate = entries.recap.date;
     assertDayInvariants(date, recapDate);
+    // Consumer-side guard on the scraper contract: the trade-plan entry is the
+    // one thing resolution is asked for BY date, and every path below (paths,
+    // title gate, verification date) assumes it came back for `date`. A
+    // selector change that returned the neighbouring day would otherwise
+    // commit that day's plan under this date.
+    if (entries.tradePlan.date !== date) {
+      throw new IngestValidationError(
+        `archive returned a trade-plan entry dated ${entries.tradePlan.date} for ${date}`,
+      );
+    }
 
     const paths = dayPaths(date, recapDate);
 
@@ -310,7 +320,9 @@ export class EminiplayerIngestService {
       );
       for (const f of stale) {
         this.logger.warn(`removing stale recap ${f.name}`);
-        await f.delete();
+        // Listed-then-vanished (a concurrent run deleted it first) is the goal
+        // already achieved, not a 502.
+        await f.delete({ ignoreNotFound: true });
       }
       return stale.map((f) => f.name);
     });

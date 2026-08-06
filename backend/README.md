@@ -287,8 +287,10 @@ layered verification (structural gates, redundant date cross-checks against
 entry and video titles, an LLM content check), and uploads everything to
 Firebase Storage under `knowledge-base/es/<date>/`. The day only becomes
 visible to consumers when its `manifest.json` commits — after every check
-passes. Existing artifacts are reused without re-scraping (`force=true`
-regenerates), stale recaps from earlier runs are deleted and reported, and
+passes. Existing artifacts are reused without re-transcribing/re-downloading
+(the archive listing is always re-scraped to resolve the day, and reused
+artifacts are still re-verified); `force=true` regenerates. Stale recaps from
+earlier runs are deleted and reported, and
 concurrent requests for the same date share one run. Expect a request to take
 tens of seconds up to minutes: it drives a real browser plus transcript
 fetches, an LLM call, and a pdf download.

@@ -68,6 +68,13 @@ describe('EminiplayerVerifyService.verifyTranscript', () => {
     expect(err.message).toContain(messagePart);
   });
 
+  it('fails closed on an out-of-enum confidence (json_object fallback is unconstrained)', async () => {
+    const { service } = await build({ ...GOOD_VERDICT, confidence: 'uncertain' });
+    const err = await service.verifyTranscript(MARKDOWN, EXPECTED).catch((e) => e);
+    expect(err).toBeInstanceOf(IngestValidationError);
+    expect(err.message).toContain('low-confidence');
+  });
+
   it('lets transport errors propagate as plain Error', async () => {
     const { service, llm } = await build();
     llm.messageStructured.mockRejectedValue(new Error('api down'));

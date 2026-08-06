@@ -27,6 +27,24 @@ function fixtureMarkdown(lines: number, opts: { startSeconds?: number; stepSecon
   return `# Transcript\n\n${rows.join('\n')}\n`;
 }
 
+/**
+ * Same, but rendered the way the transcript formatter renders long videos:
+ * `**MM:SS**` below the hour and `**H:MM:SS**` at or past it.
+ */
+function hourCrossingMarkdown(lines: number, startSeconds: number, stepSeconds = 4): string {
+  const rows: string[] = [];
+  for (let i = 0; i < lines; i++) {
+    const t = startSeconds + i * stepSeconds;
+    const ss = String(t % 60).padStart(2, '0');
+    const stamp =
+      t < 3600
+        ? `${String(Math.floor(t / 60)).padStart(2, '0')}:${ss}`
+        : `${Math.floor(t / 3600)}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}:${ss}`;
+    rows.push(`**${stamp}** segment number ${i} with enough words to add up`);
+  }
+  return `# Transcript\n\n${rows.join('\n')}\n`;
+}
+
 /** Minimal buffer that satisfies every PDF heuristic. */
 function fixturePdf(): Buffer {
   return Buffer.concat([
@@ -196,6 +214,24 @@ describe('assertTranscriptMarkdown', () => {
   it('still reports a low line count when some lines DO parse', () => {
     expect(() => assertTranscriptMarkdown(fixtureMarkdown(5), 'recap')).toThrow(
       'timestamped lines',
+    );
+  });
+
+  // The H:MM:SS branch of TRANSCRIPT_LINE is what keeps a >1h video's lines
+  // visible to the gate at all. If it broke, post-hour lines would be skipped
+  // SILENTLY: the surviving MM:SS prefix could still look like a plausible
+  // ~59-minute transcript, so both directions are pinned here.
+  it('parses lines past the one-hour boundary (H:MM:SS)', () => {
+    // one **59:56** line, then 29 H:MM:SS lines — dropping the latter leaves
+    // a single parseable line and trips the line-count check instead
+    expect(() => assertTranscriptMarkdown(hourCrossingMarkdown(30, 3596), 'recap')).not.toThrow();
+  });
+
+  it('counts H:MM:SS offsets against the max duration bound', () => {
+    // starts at 2:59:56, so the parsed last offset lands past the 3h ceiling;
+    // a broken three-group branch parses nothing and reports format drift
+    expect(() => assertTranscriptMarkdown(hourCrossingMarkdown(30, 10796), 'recap')).toThrow(
+      'duration',
     );
   });
 

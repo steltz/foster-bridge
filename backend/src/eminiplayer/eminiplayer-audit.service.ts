@@ -134,66 +134,79 @@ export class EminiplayerAuditService {
         continue;
       }
 
-      // Valid JSON is not a valid manifest: without `files`/`sources` the
-      // walks below would throw and take the whole sweep down with them.
-      if (!manifest || typeof manifest !== 'object' || !manifest.files || !manifest.sources) {
-        anomalies.push({
-          date,
-          problem: 'manifest is structurally invalid — no files/sources to verify',
-        });
-        continue;
-      }
-
+      // The specific guards below produce better-worded anomalies and stay;
+      // this is the generic backstop. A manifest is stored data with no schema
+      // enforcement, so any shape the guards did not anticipate (e.g. a null
+      // file record whose `.storagePath` throws a TypeError) must degrade to
+      // one anomaly for this day — the sweep never aborts on one bad item.
       try {
-        assertDayInvariants(manifest.date, manifest.recapDate);
-      } catch (err) {
-        anomalies.push({ date, problem: `invariants: ${(err as Error).message}` });
-      }
-
-      for (const [artifact, record] of Object.entries(manifest.files)) {
-        const stored = dayFiles.get(record.storagePath);
-        if (!stored) {
-          anomalies.push({ date, problem: `${artifact} missing at ${record.storagePath}` });
-          continue;
-        }
-        // Shallow integrity: the GCS listing already carries md5Hash/size.
-        if (stored.metadata.md5Hash !== record.md5) {
+        // Valid JSON is not a valid manifest: without `files`/`sources` the
+        // walks below would throw and take the whole sweep down with them.
+        if (!manifest || typeof manifest !== 'object' || !manifest.files || !manifest.sources) {
           anomalies.push({
             date,
-            problem: `${artifact} md5 mismatch — stored object differs from manifest`,
+            problem: 'manifest is structurally invalid — no files/sources to verify',
           });
-        } else if (Number(stored.metadata.size) !== record.bytes) {
-          anomalies.push({ date, problem: `${artifact} size mismatch` });
-        }
-        if (!deep) continue;
-        let content: Buffer;
-        try {
-          [content] = await stored.download();
-        } catch (err) {
-          anomalies.push({ date, problem: `${artifact} unreadable: ${(err as Error).message}` });
           continue;
         }
-        if (sha256Hex(content) !== record.sha256) {
-          anomalies.push({ date, problem: `${artifact} sha256 mismatch` });
-        }
-        try {
-          if (artifact === 'tradePlanPdf') assertPdfBuffer(content, artifact);
-          else assertTranscriptMarkdown(content.toString('utf8'), artifact);
-        } catch (err) {
-          anomalies.push({ date, problem: `${artifact} fails its gate: ${(err as Error).message}` });
-        }
-      }
 
-      for (const [slot, videoId] of [
-        ['recap', manifest.sources.recapVideoId],
-        ['tradePlan', manifest.sources.tradePlanVideoId],
-      ] as const) {
-        const owner = videoOwners.get(videoId);
-        if (owner && owner !== date) {
-          anomalies.push({ date, problem: `video ${videoId} (${slot}) also used by ${owner}` });
+        try {
+          assertDayInvariants(manifest.date, manifest.recapDate);
+        } catch (err) {
+          anomalies.push({ date, problem: `invariants: ${(err as Error).message}` });
         }
-        videoOwners.set(videoId, date);
-        manifestedIds.set(videoId, { date, slot });
+
+        for (const [artifact, record] of Object.entries(manifest.files)) {
+          const stored = dayFiles.get(record.storagePath);
+          if (!stored) {
+            anomalies.push({ date, problem: `${artifact} missing at ${record.storagePath}` });
+            continue;
+          }
+          // Shallow integrity: the GCS listing already carries md5Hash/size.
+          if (stored.metadata.md5Hash !== record.md5) {
+            anomalies.push({
+              date,
+              problem: `${artifact} md5 mismatch — stored object differs from manifest`,
+            });
+          } else if (Number(stored.metadata.size) !== record.bytes) {
+            anomalies.push({ date, problem: `${artifact} size mismatch` });
+          }
+          if (!deep) continue;
+          let content: Buffer;
+          try {
+            [content] = await stored.download();
+          } catch (err) {
+            anomalies.push({ date, problem: `${artifact} unreadable: ${(err as Error).message}` });
+            continue;
+          }
+          if (sha256Hex(content) !== record.sha256) {
+            anomalies.push({ date, problem: `${artifact} sha256 mismatch` });
+          }
+          try {
+            if (artifact === 'tradePlanPdf') assertPdfBuffer(content, artifact);
+            else assertTranscriptMarkdown(content.toString('utf8'), artifact);
+          } catch (err) {
+            anomalies.push({
+              date,
+              problem: `${artifact} fails its gate: ${(err as Error).message}`,
+            });
+          }
+        }
+
+        for (const [slot, videoId] of [
+          ['recap', manifest.sources.recapVideoId],
+          ['tradePlan', manifest.sources.tradePlanVideoId],
+        ] as const) {
+          const owner = videoOwners.get(videoId);
+          if (owner && owner !== date) {
+            anomalies.push({ date, problem: `video ${videoId} (${slot}) also used by ${owner}` });
+          }
+          videoOwners.set(videoId, date);
+          manifestedIds.set(videoId, { date, slot });
+        }
+      } catch (err) {
+        anomalies.push({ date, problem: `day check aborted: ${(err as Error).message}` });
+        continue; // not counted ok — the day was only partially verified
       }
 
       if (anomalies.length === before) ok += 1;

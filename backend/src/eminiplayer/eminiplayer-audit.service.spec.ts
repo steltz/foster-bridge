@@ -315,6 +315,34 @@ describe('EminiplayerAuditService.audit', () => {
     ).toBe(true);
   });
 
+  it('reports an unanticipated manifest shape as a day-level abort and keeps sweeping', async () => {
+    // `files` is present (so the structural guard passes) but one record is
+    // null — reaching `record.storagePath` throws a raw TypeError. Without the
+    // generic backstop that escapes the sweep and 500s the whole endpoint with
+    // zero anomalies, contradicting "the audit never aborts on one bad item".
+    const objects = {
+      ...makeDay('07012026', '06302026', 'Vid0000001'),
+      ...makeDay('07022026', '07012026', 'Vid0000002'),
+    };
+    const badManifest = JSON.parse(
+      objects[manifestPath('07022026')].toString('utf8'),
+    ) as DayManifest;
+    (badManifest.files as unknown as Record<string, null>).recap = null;
+    objects[manifestPath('07022026')] = Buffer.from(JSON.stringify(badManifest));
+
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
+    const report = await service.audit(); // resolves; does not reject
+    expect(report.daysChecked).toBe(2);
+    expect(
+      report.anomalies.some(
+        (a) => a.date === '07022026' && a.problem.startsWith('day check aborted:'),
+      ),
+    ).toBe(true);
+    expect(report.ok).toBe(1); // the aborted day is not counted ok...
+    // ...and the OTHER day was still fully checked
+    expect(report.anomalies.some((a) => a.date === '07012026')).toBe(false);
+  });
+
   it('reports a structurally invalid manifest instead of aborting the sweep', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     // parses as JSON, but has no `files`/`sources` to walk

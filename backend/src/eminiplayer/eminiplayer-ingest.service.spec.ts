@@ -391,6 +391,48 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2);
   });
 
+  it('re-asserts the resolved trade-plan date against the requested date (422, no commit)', async () => {
+    // The scraper is contracted to return the TP entry FOR the requested date;
+    // a selector change that returned the neighbouring day would otherwise
+    // commit that day's plan under this date.
+    const { service, manifest } = await build({
+      entries: { ...ENTRIES, tradePlan: { ...ENTRIES.tradePlan, date: RECAP_DATE } },
+    });
+    const err = await service.ingest(DATE).catch((e) => e);
+    expect(err).toBeInstanceOf(IngestValidationError);
+    expect(err.message).toContain(RECAP_DATE);
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('a failed run does not poison the date: the next ingest runs again', async () => {
+    // The inflight entry must be cleared on REJECTION too. A `.finally` turned
+    // into a `.then` would leave the failed promise parked in the map and
+    // replay its rejection to every later caller, forever.
+    const { service, eminiplayer } = await build();
+    eminiplayer.findDayEntries.mockRejectedValueOnce(new Error('archive flaked'));
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestStageError);
+    await expect(service.ingest(DATE)).resolves.toBeDefined();
+    expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2);
+  });
+
+  it('a reloaded recap that fails its gate blocks the commit (skip production, never verification)', async () => {
+    const bucket = makeBucket({ [RECAP_PATH]: 'garbage' });
+    const { service, manifest } = await build({ bucket });
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('a reloaded pdf that fails its gate blocks the commit', async () => {
+    const bucket = makeBucket({
+      [RECAP_PATH]: plausibleMarkdown('recap'),
+      [TP_MD_PATH]: plausibleMarkdown('tp'),
+      [TP_PDF_PATH]: Buffer.from(`not a pdf at all${' '.repeat(12000)}`),
+    });
+    const { service, manifest } = await build({ bucket });
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
   it('force is never silently dropped: queued behind an in-flight non-force run, then actually runs', async () => {
     const { service, eminiplayer, manifest } = await build();
     const [normal, forced] = await Promise.all([
