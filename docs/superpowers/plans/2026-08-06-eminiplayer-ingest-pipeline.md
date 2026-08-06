@@ -18,7 +18,7 @@
 - All `EminiplayerService` page access runs inside `this.playwright.withPage(...)`; never hold the page across calls.
 - No live-site, live-YouTube, or live-bucket tests. Unit tests only, jest, collaborators mocked, `*.spec.ts` alongside sources.
 - Semantic commit messages; no AI attributions in commits.
-- Run tests with `pnpm test -- --testPathPattern=<pattern>` from `backend/`.
+- Run tests with `pnpm test --testPathPattern=<pattern>` from `backend/`.
 
 ---
 
@@ -125,7 +125,7 @@ describe('TranscriptService.toMarkdown', () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd backend && pnpm test -- --testPathPattern=transcript.service`
+Run: `cd backend && pnpm test --testPathPattern=transcript.service`
 Expected: FAIL — cannot find module `./transcript.service`.
 
 - [ ] **Step 4: Write the implementation**
@@ -173,9 +173,11 @@ export function transcriptToMarkdown(segments: TranscriptSegment[]): string {
   return `# Transcript\n\n${lines.join('\n')}\n`;
 }
 
-// youtube-transcript@1.3.1 returns offset and duration in MILLISECONDS; this
-// divisor normalizes to seconds at the fetch boundary (same convention as the
-// root package's src/transcript-command.js).
+// youtube-transcript@1.3.1 returns offset/duration in MILLISECONDS for srv3
+// captions (the common case; verified by live probe in the root package). Its
+// classic-XML fallback path returns SECONDS, which this unconditional divide
+// would compress 1000x — a known, accepted limitation shared with the root
+// package's src/transcript-command.js, kept identical for byte-parity.
 const OFFSET_DIVISOR = 1000;
 
 /**
@@ -216,7 +218,7 @@ export class TranscriptModule {}
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd backend && pnpm test -- --testPathPattern=transcript.service`
+Run: `cd backend && pnpm test --testPathPattern=transcript.service`
 Expected: PASS (all describes).
 
 - [ ] **Step 6: Run the full suite to check for regressions**
@@ -242,17 +244,49 @@ git commit -m "feat(transcript): port YouTube transcript-to-markdown into backen
 
 **Interfaces:**
 - Consumes: existing `PlaywrightService.withPage(fn)`, existing private login/goto helpers.
-- Produces (used by Task 3):
+- Produces (used by Tasks 3–4):
   - `interface ArchiveEntry { date: string; pageUrl: string; title: string }` (`date` is `MMDDYYYY`) — in `eminiplayer.constants.ts`
   - `interface DayEntries { tradePlan: ArchiveEntry; recap: ArchiveEntry }` — in `eminiplayer.constants.ts`
+  - `class ArchiveNotFoundError extends Error` and `const RECAP_LOOKBACK_DAYS = 14` — in `eminiplayer.constants.ts`. Not-found is the **scraper's** contract: once selectors land, `findDayEntries` throws `ArchiveNotFoundError` when the date has no TP entry or no recap within the lookback window; Task 3 passes it through untouched and Task 4 maps it to 404.
   - `EminiplayerService.findDayEntries(date: string): Promise<DayEntries>`
   - `EminiplayerService.getYoutubeUrl(pageUrl: string): Promise<string>`
   - `EminiplayerService.downloadTradePlanPdf(pageUrl: string): Promise<Buffer>`
-  - All three currently throw `Error('eminiplayer: <method> selectors not implemented yet')` after completing their auth/navigation skeleton.
+  - All three run inside `withPage`, re-assert the landed URL after navigating (`assertOnArchivePage` / `assertOnPage`), and currently throw `Error('eminiplayer: <method> selectors not implemented yet')` at the extraction point.
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Reshape the `build` helper, then write the failing tests**
 
-Append to `backend/src/eminiplayer/eminiplayer.service.spec.ts` (reuse the existing `makePage`/`build` helpers already in that file):
+**1a — mandatory helper refactor.** The existing `build` in `backend/src/eminiplayer/eminiplayer.service.spec.ts` returns `moduleRef.get(EminiplayerService)` directly, and its `withPage` mock is created inline where nothing can inspect it. The new tests need both the service and the playwright mock, so change the helper to hoist the mock and return an object:
+
+```ts
+async function build(
+  page: FakePage,
+  config: Record<string, unknown> = {
+    'eminiplayer.username': 'user@example.com',
+    'eminiplayer.password': 'secret',
+    'eminiplayer.screenshotDir': '/tmp/eminiplayer-shots',
+  },
+) {
+  // pass-through mutex: run the callback immediately with the fake page
+  const playwright = {
+    withPage: jest.fn((fn: (p: FakePage) => Promise<unknown>) => fn(page)),
+  };
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      EminiplayerService,
+      { provide: PlaywrightService, useValue: playwright },
+      {
+        provide: ConfigService,
+        useValue: { get: jest.fn((key: string) => config[key]) },
+      },
+    ],
+  }).compile();
+  return { service: moduleRef.get(EminiplayerService), playwright };
+}
+```
+
+Update **all existing call sites** in the file (currently 7) from `const service = await build(page)` to `const { service } = await build(page)`.
+
+**1b — new tests.** Append to the same file. The detail-page tests override `url()` to the detail URL because the stubs re-assert the landed URL (a `makePage` default of `ARCHIVE_URL` would trip that assertion):
 
 ```ts
 describe('scraper contract stubs', () => {
@@ -282,23 +316,42 @@ describe('scraper contract stubs', () => {
   });
 
   it('getYoutubeUrl navigates to the detail page authenticated, then throws not-implemented', async () => {
-    const page = makePage();
-    const { service } = await build(page);
     const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    const page = makePage({ url: jest.fn(() => detailUrl) });
+    const { service } = await build(page);
     await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
       'eminiplayer: getYoutubeUrl selectors not implemented yet',
     );
     expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
   });
 
-  it('downloadTradePlanPdf navigates to the detail page authenticated, then throws not-implemented', async () => {
-    const page = makePage();
+  it('getYoutubeUrl throws a navigation error when the site redirects off the detail page', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    // landed somewhere else (soft-404 / upsell / home) that is NOT logged-out
+    const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
     const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
+      'eminiplayer navigation failed',
+    );
+  });
+
+  it('downloadTradePlanPdf navigates to the detail page authenticated, then throws not-implemented', async () => {
     const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
+    const page = makePage({ url: jest.fn(() => detailUrl) });
+    const { service } = await build(page);
     await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
       'eminiplayer: downloadTradePlanPdf selectors not implemented yet',
     );
     expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
+  });
+
+  it('downloadTradePlanPdf throws a navigation error when the site redirects off the detail page', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
+    const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
+      'eminiplayer navigation failed',
+    );
   });
 
   it('each scraper method runs inside withPage (serialized page access)', async () => {
@@ -312,12 +365,10 @@ describe('scraper contract stubs', () => {
 });
 ```
 
-Note: if the existing `build` helper doesn't return the `playwright` mock, extend its return value to `{ service, playwright }` (adjusting existing destructuring call sites if needed).
+- [ ] **Step 2: Run tests to verify the expected red state**
 
-- [ ] **Step 2: Run tests to verify the new ones fail**
-
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer.service`
-Expected: new tests FAIL (`findDayEntries is not a function`); existing tests still PASS.
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer.service`
+Expected: the **whole `eminiplayer.service.spec.ts` file fails to compile** with TS2339 `Property 'findDayEntries' does not exist on type 'EminiplayerService'` (ts-jest type-checks the file, so the pre-existing tests in this file go red with it — that is the expected red state, not a runtime "is not a function").
 
 - [ ] **Step 3: Add types to `eminiplayer.constants.ts`**
 
@@ -339,6 +390,19 @@ export interface DayEntries {
   tradePlan: ArchiveEntry;
   recap: ArchiveEntry;
 }
+
+/**
+ * The archive doesn't have what was asked for: no TP entry for the date, or
+ * no recap entry within the recap search window before it (the recap scan is
+ * bounded to RECAP_LOOKBACK_DAYS calendar days so a bad historical date can't
+ * force a whole-archive walk inside one withPage callback). Owned by the
+ * scraper layer — findDayEntries throws it once selectors land; the ingest
+ * layer passes it through untouched and the controller maps it to HTTP 404.
+ */
+export class ArchiveNotFoundError extends Error {}
+
+/** Bound for the backwards recap scan in findDayEntries. */
+export const RECAP_LOOKBACK_DAYS = 14;
 ```
 
 - [ ] **Step 4: Refactor + implement the stubs in `eminiplayer.service.ts`**
@@ -379,6 +443,28 @@ async openArchivePage(): Promise<ArchivePageResult> {
 }
 ```
 
+Add a structural landed-URL assertion for detail pages, next to `assertOnArchivePage` (the module contract — see the class docstring — requires every method to re-assert its location rather than assume where the page was left; a WebForms auth bounce or soft-404 redirect must not reach an extraction point):
+
+```ts
+/**
+ * Structural check that the page landed where we asked. Same rationale as
+ * assertOnArchivePage: a redirect (login.aspx?ReturnUrl=..., soft-404, home
+ * page) must fail loudly here, not surface later as a selector mismatch.
+ */
+private assertOnPage(page: Page, expectedUrl: string): void {
+  const url = new URL(page.url());
+  const expected = new URL(expectedUrl);
+  const landed =
+    url.hostname === expected.hostname &&
+    url.pathname.toLowerCase() === expected.pathname.toLowerCase();
+  if (!landed) {
+    throw new Error(
+      `eminiplayer navigation failed: expected ${expectedUrl}, landed on ${page.url()}`,
+    );
+  }
+}
+```
+
 Then add the three contract methods (import `ArchiveEntry`, `DayEntries` from the constants file):
 
 ```ts
@@ -391,7 +477,12 @@ async findDayEntries(date: string): Promise<DayEntries> {
     await this.gotoAuthenticated(page, ARCHIVE_URL, 'navigating to archive.aspx');
     this.assertOnArchivePage(page);
     // TODO(selectors): parse the listing rows into ArchiveEntry[] and select
-    // the TP entry for `date` + the latest recap before it.
+    // the TP entry for `date` + the latest recap before it. Contract for the
+    // selector follow-up: throw ArchiveNotFoundError (eminiplayer.constants)
+    // when there is no TP entry for `date`, or no recap entry dated within
+    // RECAP_LOOKBACK_DAYS calendar days strictly before it — the controller
+    // maps that to 404, and the bound keeps the scan from walking the whole
+    // multi-year archive inside this withPage callback.
     throw new Error('eminiplayer: findDayEntries selectors not implemented yet');
   });
 }
@@ -400,6 +491,7 @@ async findDayEntries(date: string): Promise<DayEntries> {
 async getYoutubeUrl(pageUrl: string): Promise<string> {
   return this.playwright.withPage(async (page) => {
     await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
+    this.assertOnPage(page, pageUrl);
     // TODO(selectors): locate the embedded YouTube iframe/link on the page.
     throw new Error('eminiplayer: getYoutubeUrl selectors not implemented yet');
   });
@@ -409,6 +501,7 @@ async getYoutubeUrl(pageUrl: string): Promise<string> {
 async downloadTradePlanPdf(pageUrl: string): Promise<Buffer> {
   return this.playwright.withPage(async (page) => {
     await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
+    this.assertOnPage(page, pageUrl);
     // TODO(selectors): find the PDF link and capture the download as a Buffer.
     throw new Error('eminiplayer: downloadTradePlanPdf selectors not implemented yet');
   });
@@ -419,7 +512,7 @@ async downloadTradePlanPdf(pageUrl: string): Promise<Buffer> {
 
 - [ ] **Step 5: Run the eminiplayer tests**
 
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer`
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer`
 Expected: PASS — all new stub tests and every pre-existing `openArchivePage` test (the refactor must not change messages or call order).
 
 - [ ] **Step 6: Run the full suite**
@@ -450,33 +543,27 @@ git commit -m "feat(eminiplayer): add stubbed scraper contracts for day entries,
   - `TranscriptService.toMarkdown(urlOrId) → Promise<string>` (Task 1)
   - `STORAGE_BUCKET` provider (`Bucket` from `@google-cloud/storage`): `bucket.file(path).exists() → Promise<[boolean]>`, `bucket.file(path).save(data, { contentType }) → Promise<void>`
 - Produces (used by Task 4):
-  - `class IngestNotFoundError extends Error`
   - `class IngestStageError extends Error { readonly stage: string; readonly artifact: string }`
   - `interface IngestFileReport { storagePath: string; status: 'uploaded' | 'skipped' }`
-  - `interface IngestResult { date: string; recapDate: string; files: { recap: IngestFileReport; tradePlanMd: IngestFileReport; tradePlanPdf: IngestFileReport } }`
-  - `EminiplayerIngestService.ingest(date: string, force?: boolean): Promise<IngestResult>`
+  - `interface IngestResult { date: string; recapDate: string; staleRecapsRemoved: string[]; files: { recap: IngestFileReport; tradePlanMd: IngestFileReport; tradePlanPdf: IngestFileReport } }`
+  - `EminiplayerIngestService.ingest(date: string, force?: boolean): Promise<IngestResult>` — concurrent calls for the same date coalesce onto the in-flight run's promise; `ArchiveNotFoundError` (Task 2) passes through untouched for Task 4 to map to 404.
 
 - [ ] **Step 1: Write the errors file**
 
-`backend/src/eminiplayer/eminiplayer-ingest.errors.ts`:
+`backend/src/eminiplayer/eminiplayer-ingest.errors.ts` (the 404 not-found signal is NOT here — it's `ArchiveNotFoundError` in `eminiplayer.constants.ts`, owned by the scraper layer that is the only layer able to detect it; this file holds only the orchestrator's own error):
 
 ```ts
 /**
- * The archive doesn't have what the request asked for (no TP entry for the
- * date, or no recap before it). Maps to HTTP 404.
- * Thrown by the ingest orchestrator today; once findDayEntries' selectors are
- * implemented, the scraper throws it too.
- */
-export class IngestNotFoundError extends Error {}
-
-/**
- * A pipeline stage failed (scrape, transcript fetch, pdf download, upload).
- * Maps to HTTP 502. Already-uploaded artifacts remain in the bucket, so a
- * retry resumes via fill-and-skip.
+ * A pipeline stage failed. Maps to HTTP 502. Stages: 'plan' (storage
+ * existence checks / stale-recap cleanup), 'resolve' (scraping), 'transcribe'
+ * (YouTube transcript fetch), 'download' (pdf), 'upload' (bucket save).
+ * Already-uploaded artifacts remain in the bucket, so a retry resumes via
+ * fill-and-skip. ArchiveNotFoundError deliberately does NOT get wrapped into
+ * this — it passes through to the controller's 404 mapping.
  */
 export class IngestStageError extends Error {
   constructor(
-    readonly stage: 'resolve' | 'transcribe' | 'download' | 'upload',
+    readonly stage: 'plan' | 'resolve' | 'transcribe' | 'download' | 'upload',
     readonly artifact: 'archive' | 'recap' | 'tradePlanMd' | 'tradePlanPdf',
     cause: Error,
   ) {
@@ -495,8 +582,8 @@ import { EminiplayerIngestService } from './eminiplayer-ingest.service';
 import { EminiplayerService } from './eminiplayer.service';
 import { TranscriptService } from '../transcript/transcript.service';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
-import { IngestNotFoundError, IngestStageError } from './eminiplayer-ingest.errors';
-import type { DayEntries } from './eminiplayer.constants';
+import { IngestStageError } from './eminiplayer-ingest.errors';
+import { ArchiveNotFoundError, type DayEntries } from './eminiplayer.constants';
 
 const DATE = '07012026';
 const RECAP_DATE = '06302026';
@@ -518,21 +605,32 @@ const ENTRIES: DayEntries = {
   },
 };
 
-type FakeFile = { exists: jest.Mock; save: jest.Mock };
+type FakeFile = { name: string; exists: jest.Mock; save: jest.Mock; delete: jest.Mock };
 
 function makeBucket(existing: Record<string, boolean> = {}) {
   const files = new Map<string, FakeFile>();
+  const get = (path: string): FakeFile => {
+    if (!files.has(path)) {
+      files.set(path, {
+        name: path,
+        exists: jest.fn(() => Promise.resolve([existing[path] ?? false])),
+        save: jest.fn(() => Promise.resolve()),
+        delete: jest.fn(() => Promise.resolve()),
+      });
+    }
+    return files.get(path)!;
+  };
   return {
     files,
-    file: jest.fn((path: string) => {
-      if (!files.has(path)) {
-        files.set(path, {
-          exists: jest.fn(() => Promise.resolve([existing[path] ?? false])),
-          save: jest.fn(() => Promise.resolve()),
-        });
-      }
-      return files.get(path);
-    }),
+    file: jest.fn(get),
+    // getFiles({ prefix }) lists the objects marked existing under that prefix
+    getFiles: jest.fn(({ prefix }: { prefix: string }) =>
+      Promise.resolve([
+        Object.keys(existing)
+          .filter((p) => existing[p] && p.startsWith(prefix))
+          .map(get),
+      ]),
+    ),
   };
 }
 
@@ -574,6 +672,7 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(result).toEqual({
       date: DATE,
       recapDate: RECAP_DATE,
+      staleRecapsRemoved: [],
       files: {
         recap: { storagePath: RECAP_PATH, status: 'uploaded' },
         tradePlanMd: { storagePath: TP_MD_PATH, status: 'uploaded' },
@@ -634,12 +733,42 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(result.files.tradePlanPdf.status).toBe('skipped');
   });
 
-  it('propagates IngestNotFoundError from findDayEntries untouched', async () => {
+  it('propagates ArchiveNotFoundError from findDayEntries untouched (404 path)', async () => {
     const { service, eminiplayer } = await build();
     eminiplayer.findDayEntries.mockRejectedValue(
-      new IngestNotFoundError('no trade plan entry for 07012026'),
+      new ArchiveNotFoundError('no trade plan entry for 07012026'),
     );
-    await expect(service.ingest(DATE)).rejects.toThrow(IngestNotFoundError);
+    await expect(service.ingest(DATE)).rejects.toThrow(ArchiveNotFoundError);
+  });
+
+  it('removes stale recap files whose date no longer matches the resolved recap', async () => {
+    // an earlier run (before the 06/30 recap was posted) uploaded 06/29's
+    const stalePath = `${DIR}/06292026_ES_RECAP.md`;
+    const bucket = makeBucket({ [stalePath]: true });
+    const { service } = await build({ bucket });
+    const result = await service.ingest(DATE);
+    expect(result.staleRecapsRemoved).toEqual([stalePath]);
+    expect(bucket.files.get(stalePath)!.delete).toHaveBeenCalled();
+    expect(result.files.recap.status).toBe('uploaded'); // correct recap produced
+  });
+
+  it('does not treat the currently-resolved recap as stale', async () => {
+    const bucket = makeBucket({ [RECAP_PATH]: true });
+    const { service } = await build({ bucket });
+    const result = await service.ingest(DATE);
+    expect(result.staleRecapsRemoved).toEqual([]);
+    expect(bucket.files.get(RECAP_PATH)!.delete).not.toHaveBeenCalled();
+    expect(result.files.recap.status).toBe('skipped');
+  });
+
+  it('coalesces concurrent ingests for the same date onto one run', async () => {
+    const { service, eminiplayer } = await build();
+    const [a, b] = await Promise.all([service.ingest(DATE), service.ingest(DATE)]);
+    expect(a).toBe(b);
+    expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(1);
+    // once the run settles, a new request runs fresh
+    await service.ingest(DATE);
+    expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2);
   });
 
   it('wraps a resolve failure as IngestStageError(resolve, archive)', async () => {
@@ -680,7 +809,7 @@ describe('EminiplayerIngestService.ingest', () => {
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer-ingest`
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer-ingest`
 Expected: FAIL — cannot find module `./eminiplayer-ingest.service`.
 
 - [ ] **Step 4: Write the implementation**
@@ -693,7 +822,8 @@ import type { Bucket } from '@google-cloud/storage';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { TranscriptService } from '../transcript/transcript.service';
 import { EminiplayerService } from './eminiplayer.service';
-import { IngestNotFoundError, IngestStageError } from './eminiplayer-ingest.errors';
+import { ArchiveNotFoundError } from './eminiplayer.constants';
+import { IngestStageError } from './eminiplayer-ingest.errors';
 
 export interface IngestFileReport {
   storagePath: string;
@@ -703,6 +833,8 @@ export interface IngestFileReport {
 export interface IngestResult {
   date: string;
   recapDate: string;
+  /** Old *_ES_RECAP.md objects deleted because their date no longer matches. */
+  staleRecapsRemoved: string[];
   files: {
     recap: IngestFileReport;
     tradePlanMd: IngestFileReport;
@@ -711,17 +843,22 @@ export interface IngestResult {
 }
 
 type Artifact = 'recap' | 'tradePlanMd' | 'tradePlanPdf';
+type Stage = 'plan' | 'resolve' | 'transcribe' | 'download' | 'upload';
 
 /**
  * Orchestrates one day's document group: resolve archive entries, transcribe
  * the two videos, download the TP pdf, upload each artifact to Storage as soon
  * as it is produced (so a mid-run failure preserves progress and a retry
  * resumes via fill-and-skip). Storage layout mirrors the local
- * knowledge-base/es/<MMDDYYYY>/ folders exactly.
+ * knowledge-base/es/<MMDDYYYY>/ folders exactly. Concurrent requests for the
+ * same date coalesce onto one in-flight run — the realistic trigger is a
+ * client retrying after a timeout while the first run still holds the
+ * serialized browser page.
  */
 @Injectable()
 export class EminiplayerIngestService {
   private readonly logger = new Logger(EminiplayerIngestService.name);
+  private readonly inflight = new Map<string, Promise<IngestResult>>();
 
   constructor(
     private readonly eminiplayer: EminiplayerService,
@@ -730,6 +867,16 @@ export class EminiplayerIngestService {
   ) {}
 
   async ingest(date: string, force = false): Promise<IngestResult> {
+    // Same-date coalescing: a second request attaches to the in-flight run
+    // (its force setting is inherited) instead of re-scraping behind it.
+    const existing = this.inflight.get(date);
+    if (existing) return existing;
+    const run = this.run(date, force).finally(() => this.inflight.delete(date));
+    this.inflight.set(date, run);
+    return run;
+  }
+
+  private async run(date: string, force: boolean): Promise<IngestResult> {
     // Resolution always runs, even when every artifact exists: the recap
     // filename embeds the recap date, which only the archive listing knows.
     const entries = await this.stage('resolve', 'archive', () =>
@@ -742,6 +889,8 @@ export class EminiplayerIngestService {
       tradePlanMd: `${dir}/${date}_ES_TP.md`,
       tradePlanPdf: `${dir}/${date}_ES_TP.pdf`,
     };
+
+    const staleRecapsRemoved = await this.removeStaleRecaps(dir, paths.recap);
 
     const recap = await this.produce('recap', paths.recap, force, async () => ({
       data: await this.transcribe('recap', entries.recap.pageUrl),
@@ -758,7 +907,29 @@ export class EminiplayerIngestService {
       contentType: 'application/pdf',
     }));
 
-    return { date, recapDate, files: { recap, tradePlanMd, tradePlanPdf } };
+    return { date, recapDate, staleRecapsRemoved, files: { recap, tradePlanMd, tradePlanPdf } };
+  }
+
+  /**
+   * The recap filename embeds a date resolved fresh from the archive each
+   * run. A run that happened before the previous session's recap was posted
+   * resolved an older recap; its file is now stale, and fill-and-skip alone
+   * would let a retry add a second recap beside it. Delete any *_ES_RECAP.md
+   * in the day folder that isn't the currently-resolved path, so a day group
+   * can never accumulate two recaps.
+   */
+  private async removeStaleRecaps(dir: string, recapPath: string): Promise<string[]> {
+    return this.stage('plan', 'recap', async () => {
+      const [files] = await this.bucket.getFiles({ prefix: `${dir}/` });
+      const stale = files.filter(
+        (f) => f.name.endsWith('_ES_RECAP.md') && f.name !== recapPath,
+      );
+      for (const f of stale) {
+        this.logger.warn(`removing stale recap ${f.name}`);
+        await f.delete();
+      }
+      return stale.map((f) => f.name);
+    });
   }
 
   /** Scrape the page's YouTube url and convert it to transcript markdown. */
@@ -778,7 +949,9 @@ export class EminiplayerIngestService {
   ): Promise<IngestFileReport> {
     const file = this.bucket.file(storagePath);
     if (!force) {
-      const [exists] = await this.stage('upload', artifact, () => file.exists());
+      // 'plan' stage: a GCS failure here happened before anything was
+      // produced or uploaded — don't misreport it as an upload failure.
+      const [exists] = await this.stage('plan', artifact, () => file.exists());
       if (exists) {
         this.logger.log(`skip ${storagePath} (exists)`);
         return { storagePath, status: 'skipped' };
@@ -790,23 +963,23 @@ export class EminiplayerIngestService {
     return { storagePath, status: 'uploaded' };
   }
 
-  /** Wrap stage failures with context; IngestNotFoundError passes through. */
+  /** Wrap stage failures with context; ArchiveNotFoundError passes through. */
   private async stage<T>(
-    stage: 'resolve' | 'transcribe' | 'download' | 'upload',
+    stage: Stage,
     artifact: 'archive' | Artifact,
     fn: () => Promise<T>,
   ): Promise<T> {
     try {
       return await fn();
     } catch (err) {
-      if (err instanceof IngestNotFoundError) throw err;
+      if (err instanceof ArchiveNotFoundError) throw err;
       throw new IngestStageError(stage, artifact, err as Error);
     }
   }
 }
 ```
 
-Note the spec's error table maps *any* scrape/transcribe/download/upload failure to a `IngestStageError`; the `getYoutubeUrl` scrape uses stage `'resolve'` with the artifact name, which keeps the stage vocabulary at four values.
+The `getYoutubeUrl` scrape uses stage `'resolve'` with the artifact name; `'plan'` covers pre-production storage work (existence checks, stale-recap cleanup) so those failures aren't misattributed to `'upload'`.
 
 - [ ] **Step 5: Wire the module**
 
@@ -833,13 +1006,29 @@ export class EminiplayerModule {}
 
 - [ ] **Step 6: Run the ingest tests**
 
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer-ingest`
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer-ingest`
 Expected: PASS.
 
-- [ ] **Step 7: Run the full suite (module wiring can break `eminiplayer.module.spec.ts`)**
+- [ ] **Step 7: Fix `eminiplayer.module.spec.ts`, then run the full suite**
+
+The existing `eminiplayer.module.spec.ts` compiles `EminiplayerModule` in a testing module whose only other import is `ConfigModule`. Now that the module provides `EminiplayerIngestService` (which injects `STORAGE_BUCKET`), `.compile()` **will fail** with `Nest can't resolve dependencies of the EminiplayerIngestService (EminiplayerService, TranscriptService, ?)` — `FirebaseModule`'s `@Global()` providers only exist when that module is somewhere in the compiled graph, and in this spec it isn't. Do NOT import the real `FirebaseModule` (its factory calls `getStorage(app).bucket()` — a live-bucket dependency the constraints forbid). Instead add a stub global module to that spec's testing-module imports:
+
+```ts
+import { Global, Module } from '@nestjs/common';
+import { STORAGE_BUCKET } from '../firebase/firebase.constants';
+
+@Global()
+@Module({
+  providers: [{ provide: STORAGE_BUCKET, useValue: {} }],
+  exports: [STORAGE_BUCKET],
+})
+class FakeFirebaseModule {}
+```
+
+and include `FakeFirebaseModule` in the `imports` array of the testing module alongside `ConfigModule`. (A root-level provider would not work — providers passed to `Test.createTestingModule` aren't visible inside `EminiplayerModule`'s own DI context; a global module's exports are.)
 
 Run: `cd backend && pnpm test`
-Expected: PASS. If `eminiplayer.module.spec.ts` asserts the module's provider/export lists, update it to include `EminiplayerIngestService` and the new imports.
+Expected: PASS.
 
 - [ ] **Step 8: Commit**
 
@@ -859,8 +1048,8 @@ git commit -m "feat(eminiplayer): ingest orchestrator with fill-and-skip storage
 - Modify: `backend/README.md` (document the endpoint)
 
 **Interfaces:**
-- Consumes: `EminiplayerIngestService.ingest(date, force) → Promise<IngestResult>`, `IngestNotFoundError`, `IngestStageError` (Task 3).
-- Produces: `POST /eminiplayer/ingest?date=MMDDYYYY&force=true|false` → 200 `IngestResult` | 400 | 404 | 502.
+- Consumes: `EminiplayerIngestService.ingest(date, force) → Promise<IngestResult>` and `IngestStageError` (Task 3); `ArchiveNotFoundError` from `eminiplayer.constants.ts` (Task 2).
+- Produces: `POST /eminiplayer/ingest?date=MMDDYYYY&force=true|false` → 200 `IngestResult` | 400 | 404 | 502. (200, not Nest's POST-default 201 — the handler carries `@HttpCode(200)`.)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -871,11 +1060,13 @@ import { BadGatewayException, BadRequestException, NotFoundException } from '@ne
 import { Test } from '@nestjs/testing';
 import { EminiplayerController } from './eminiplayer.controller';
 import { EminiplayerIngestService } from './eminiplayer-ingest.service';
-import { IngestNotFoundError, IngestStageError } from './eminiplayer-ingest.errors';
+import { IngestStageError } from './eminiplayer-ingest.errors';
+import { ArchiveNotFoundError } from './eminiplayer.constants';
 
 const RESULT = {
   date: '07012026',
   recapDate: '06302026',
+  staleRecapsRemoved: [],
   files: {
     recap: { storagePath: 'knowledge-base/es/07012026/06302026_ES_RECAP.md', status: 'uploaded' },
     tradePlanMd: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.md', status: 'uploaded' },
@@ -919,9 +1110,9 @@ describe('POST /eminiplayer/ingest', () => {
     expect(ingest.ingest).not.toHaveBeenCalled();
   });
 
-  it('maps IngestNotFoundError to 404', async () => {
+  it('maps ArchiveNotFoundError to 404', async () => {
     const { controller, ingest } = await build();
-    ingest.ingest.mockRejectedValue(new IngestNotFoundError('no TP for 07012026'));
+    ingest.ingest.mockRejectedValue(new ArchiveNotFoundError('no TP for 07012026'));
     await expect(controller.ingest('07012026', undefined)).rejects.toThrow(NotFoundException);
   });
 
@@ -943,7 +1134,7 @@ describe('POST /eminiplayer/ingest', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer.controller`
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer.controller`
 Expected: FAIL — cannot find module `./eminiplayer.controller`.
 
 - [ ] **Step 3: Write the controller**
@@ -955,12 +1146,14 @@ import {
   BadGatewayException,
   BadRequestException,
   Controller,
+  HttpCode,
   NotFoundException,
   Post,
   Query,
 } from '@nestjs/common';
 import { EminiplayerIngestService, IngestResult } from './eminiplayer-ingest.service';
-import { IngestNotFoundError, IngestStageError } from './eminiplayer-ingest.errors';
+import { IngestStageError } from './eminiplayer-ingest.errors';
+import { ArchiveNotFoundError } from './eminiplayer.constants';
 
 /** MMDDYYYY, and a real calendar date (rejects 13012026 and 02302026). */
 function isValidMmddyyyy(date: string): boolean {
@@ -981,6 +1174,7 @@ export class EminiplayerController {
   constructor(private readonly ingestService: EminiplayerIngestService) {}
 
   @Post('ingest')
+  @HttpCode(200) // idempotent-ish operator action, not resource creation
   async ingest(
     @Query('date') date: string | undefined,
     @Query('force') force: string | undefined,
@@ -991,7 +1185,7 @@ export class EminiplayerController {
     try {
       return await this.ingestService.ingest(date, force === 'true');
     } catch (err) {
-      if (err instanceof IngestNotFoundError) throw new NotFoundException(err.message);
+      if (err instanceof ArchiveNotFoundError) throw new NotFoundException(err.message);
       if (err instanceof IngestStageError) throw new BadGatewayException(err.message);
       throw err;
     }
@@ -1001,7 +1195,7 @@ export class EminiplayerController {
 
 - [ ] **Step 4: Run the controller tests**
 
-Run: `cd backend && pnpm test -- --testPathPattern=eminiplayer.controller`
+Run: `cd backend && pnpm test --testPathPattern=eminiplayer.controller`
 Expected: PASS.
 
 - [ ] **Step 5: Register in AppModule**
@@ -1016,9 +1210,9 @@ and append `EminiplayerController` to the existing `controllers: [...]` array (r
 
 - [ ] **Step 6: Document the endpoint**
 
-In `backend/README.md`, extend the "EminiPlayer scraper (Playwright)" section with:
+In `backend/README.md`, extend the "EminiPlayer scraper (Playwright)" section with (note the four-backtick outer fence so the inner bash fence survives rendering):
 
-```markdown
+````markdown
 ### Ingest a day's document group
 
 ```bash
@@ -1032,30 +1226,36 @@ entry before it, transcribes both YouTube videos, downloads the TP pdf, and
 uploads all three to Firebase Storage under `knowledge-base/es/<date>/`
 (mirroring the local knowledge-base layout). Artifacts already in Storage are
 skipped unless `force=true`; each artifact uploads as soon as it's produced,
-so a failed run resumes where it left off.
+so a failed run resumes where it left off. Stale recap files from earlier
+runs (a recap resolved before the latest one was posted) are deleted and
+reported in `staleRecapsRemoved`. Concurrent requests for the same date
+share one run. Expect a request to take tens of seconds up to minutes: it
+drives a real browser plus two transcript fetches and a pdf download.
 
 **Current status:** the scraper's selector internals are stubbed — the
-endpoint returns `502 ... selectors not implemented yet` until the follow-up
-selector work lands. Errors: `400` bad date, `404` no matching archive entry,
-`502` scrape/transcribe/download/upload failure.
-```
+endpoint returns a `502` naming the failing stage (`resolve (archive)`)
+until the follow-up selector work lands. Errors: `400` bad date, `404` no
+matching archive entry, `502` scrape/transcribe/download/upload failure.
+````
 
 - [ ] **Step 7: Run the full suite**
 
 Run: `cd backend && pnpm test`
 Expected: PASS.
 
-- [ ] **Step 8: Boot smoke test (no live scraping — expect a clean 502)**
+- [ ] **Step 8: Boot smoke test (validation path only)**
+
+The ingest happy path is NOT smoke-tested here: even the stubbed pipeline performs real Playwright navigation (and a login attempt) against live eminiplayer.net before reaching its `selectors not implemented yet` throw, and its 502 body varies with credentials/network — exercising it would violate the no-live-site constraint. Smoke only boot + controller wiring via the 400 path:
 
 ```bash
 cd backend && BENCHMARK_SCHEDULER=false pnpm start:dev &
 sleep 8
-curl -s -X POST "localhost:3000/eminiplayer/ingest?date=07012026" | head -c 400; echo
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "localhost:3000/eminiplayer/ingest?date=bad"
 curl -s -X POST "localhost:3000/eminiplayer/ingest?date=bad" | head -c 400; echo
 kill %1
 ```
 
-Expected: first call → JSON 502 body mentioning `selectors not implemented yet`; second call → JSON 400 body mentioning `MMDDYYYY`.
+Expected: `400`, and a JSON body mentioning `MMDDYYYY`. (If you *choose* to hit a real date locally with credentials configured, expect a 502 whose message names the `resolve (archive)` stage — the exact text depends on credentials/network, and the call does scrape the live site.)
 
 - [ ] **Step 9: Commit**
 
