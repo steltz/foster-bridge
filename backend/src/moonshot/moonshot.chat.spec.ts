@@ -3,6 +3,7 @@ import {
   toMoonshotSchema,
   jsonSchemaFormat,
   createChatWithFallback,
+  clearSchemaRejectionLatch,
   mapEffort,
   isSchemaRejection,
   toChatResult,
@@ -234,6 +235,8 @@ describe('isSchemaRejection', () => {
 });
 
 describe('createChatWithFallback (D8)', () => {
+  beforeEach(() => clearSchemaRejectionLatch());
+
   it('falls back to json_object + brace repair when strict json_schema is rejected', async () => {
     let call = 0;
     const client = { chat: { completions: { create: async (body: any) => {
@@ -251,6 +254,54 @@ describe('createChatWithFallback (D8)', () => {
   it('rethrows a non-schema error unchanged', async () => {
     const client: MoonshotChatClient = { chat: { completions: { create: async () => { throw Object.assign(new Error('boom'), { status: 500 }); } } } };
     await expect(createChatWithFallback(client, { model: 'k', messages: [], max_completion_tokens: 1, reasoning_effort: 'high', response_format: { type: 'json_schema' } as any })).rejects.toThrow('boom');
+  });
+
+  it('latches a schema rejection so identical (model, schema) calls skip the strict probe', async () => {
+    const bodies: any[] = [];
+    const client = { chat: { completions: { create: async (body: any) => {
+      bodies.push(body);
+      if (body.response_format?.type === 'json_schema') {
+        throw Object.assign(new Error('bad schema'), { status: 400, error: { type: 'invalid_request_error' } });
+      }
+      return { choices: [{ message: { content: '"a":1}' }, finish_reason: 'stop' }] };
+    } } } };
+    const body = () => ({
+      model: 'kimi-k3',
+      messages: [{ role: 'user' as const, content: 'x' }],
+      max_completion_tokens: 10,
+      reasoning_effort: 'high',
+      response_format: jsonSchemaFormat({ type: 'object', properties: { a: { type: 'number' } }, required: ['a'] }) as any,
+    });
+    const first = await createChatWithFallback(client as any, body());
+    const second = await createChatWithFallback(client as any, body());
+    // One wasted strict probe total, not one per request.
+    expect(bodies.filter((b) => b.response_format?.type === 'json_schema')).toHaveLength(1);
+    expect(bodies.filter((b) => b.response_format?.type === 'json_object')).toHaveLength(2);
+    // The latched path still applies the '{' prefill + brace repair.
+    expect(first.choices[0].message.content).toBe('{"a":1}');
+    expect(second.choices[0].message.content).toBe('{"a":1}');
+  });
+
+  it('a different schema on the same model still probes strict json_schema first', async () => {
+    const bodies: any[] = [];
+    const client = { chat: { completions: { create: async (body: any) => {
+      bodies.push(body);
+      if (body.response_format?.type === 'json_schema') {
+        throw Object.assign(new Error('bad schema'), { status: 400, error: { type: 'invalid_request_error' } });
+      }
+      return { choices: [{ message: { content: '"a":1}' }, finish_reason: 'stop' }] };
+    } } } };
+    const mk = (props: any) => ({
+      model: 'kimi-k3',
+      messages: [{ role: 'user' as const, content: 'x' }],
+      max_completion_tokens: 10,
+      reasoning_effort: 'high',
+      response_format: jsonSchemaFormat({ type: 'object', properties: props, required: Object.keys(props) }) as any,
+    });
+    await createChatWithFallback(client as any, mk({ a: { type: 'number' } }));
+    await createChatWithFallback(client as any, mk({ b: { type: 'string' } }));
+    // The latch keys on the schema, so a fresh schema gets its own strict probe.
+    expect(bodies.filter((b) => b.response_format?.type === 'json_schema')).toHaveLength(2);
   });
 
   it('does not double the leading brace when the json_object fallback response already starts with {', async () => {

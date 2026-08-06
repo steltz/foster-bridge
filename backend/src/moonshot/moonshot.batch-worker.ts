@@ -52,7 +52,8 @@ interface RunOutcome {
  * Drains kimi-k3 emulated batches. Each item is a synchronous chat call, claimed
  * transactionally (D5) so concurrent kick()/bootstrap-resume across processes never
  * double-run an item; results persist durably so getBatch/getBatchResults work from
- * any process. Items are primed one-per-prefix-group before fanning out (D7). A
+ * any process. One global item is primed first (shared cross-group prefix), then
+ * one item per prefix group, before fanning out (D7). A
  * batch past its deadline is force-terminated (D6). content_filter → refusal
  * (permanent), whether it arrives as a thrown 400 or in-band as a 200 with
  * finish_reason 'content_filter'; finish_reason 'length' → errored (truncated
@@ -152,11 +153,20 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         return;
       }
       const groups = this.groupByPrefix(unfinished, batch);
-      // The prime→fan-out barrier is INTRA-PROCESS only: a second drainer whose
-      // phase-1 claims all lost proceeds straight to its fan-out, so siblings can
-      // hit the API before the prefix is cached. Cost-only — results are unaffected.
-      // Phase 1: prime one item per group (warms each distinct cell prefix).
-      await this.runPool(groups.map((g) => g[0]), (item) => this.claimAndRun(batchId, item, batch));
+      // The prime→fan-out barriers are INTRA-PROCESS only: a second drainer whose
+      // early-phase claims all lost proceeds straight to its fan-out, so siblings
+      // can hit the API before the prefix is cached. Cost-only — results are
+      // unaffected.
+      const heads = groups.map((g) => g[0]);
+      // Phase 0: ONE global prime. Distinct groups still share the bulk of their
+      // rendered prefix (general docs + day bundle differ only from the persona
+      // tier on), and Moonshot caches by byte prefix — so heads run concurrently
+      // would each pay a full miss on that shared portion. One item completing
+      // first writes it once; the other heads then hit cache for it. When groups
+      // share nothing the cost is one item's latency of serialization, not money.
+      await this.runPool(heads.slice(0, 1), (item) => this.claimAndRun(batchId, item, batch));
+      // Phase 1: prime the remaining group heads (warms each distinct cell prefix).
+      await this.runPool(heads.slice(1), (item) => this.claimAndRun(batchId, item, batch));
       // Phase 2: fan out the remaining items of every group (siblings hit cache).
       await this.runPool(groups.flatMap((g) => g.slice(1)), (item) => this.claimAndRun(batchId, item, batch));
       const items = await this.store.listItems(batchId);

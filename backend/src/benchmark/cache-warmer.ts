@@ -39,6 +39,14 @@ export class CacheWarmer {
   }
 
   async warm(): Promise<void> {
+    // Moonshot needs no warming: its implicit cache has no write surcharge and
+    // no fixed TTL to beat, so a warm pre-pays the exact miss the first real
+    // request would pay anyway — while the throwaway completion still reasons
+    // at full output price (kimi-k3 cannot disable thinking), untracked by cost
+    // capture. Concurrent same-prefix misses are already prevented by the batch
+    // worker's prime phases. The 55-min interval below is tuned to Anthropic's
+    // 1h ephemeral TTL and is meaningless for Moonshot's system-managed cache.
+    if ((this.config.get<string>('llm.provider') ?? 'anthropic') === 'moonshot') return;
     requireCapabilities(this.llm, ['batch', 'fileUpload']);
     const batches = await this.repo.nonTerminalBatches();
     if (!batches.length) return;

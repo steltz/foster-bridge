@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { UsageTokens } from '../cost/cost.types';
 import { tokensFromUsage } from './moonshot.usage';
 
@@ -40,6 +41,18 @@ const logger = new Logger('MoonshotChat');
 // caller (e.g. a benchmark variant passing 'medium') logs once per distinct
 // value rather than once per request.
 const warnedEfforts = new Set<string>();
+
+// Opt-in dump of the exact outgoing chat body (messages, including any file
+// text folded in by MoonshotEnvelopeBuilder, plus the schema/response_format)
+// right before it's handed to the SDK. Off by default: a real body can carry
+// an entire uploaded document's extracted text, which is too large/sensitive
+// to log unconditionally. Read directly from process.env rather than
+// ConfigService since this module has no DI container to draw one from.
+function logPayloadIfDebug(body: unknown): void {
+  if (process.env.MOONSHOT_DEBUG_PAYLOAD !== 'true') return;
+  const model = (body as { model?: string })?.model;
+  logger.log(`Moonshot request payload (model=${model}):\n${JSON.stringify(body, null, 2)}`);
+}
 
 // Map benchmark/seven-keys effort strings onto Moonshot's low|high|max set.
 // Anything else silently upgrades to 'high' — but only after a one-time warning
@@ -127,27 +140,58 @@ export function isSchemaRejection(err: any): boolean {
   return type === 'invalid_request_error' || /schema|response_format|json_schema/i.test(blob);
 }
 
-// D8 fallback: issue a chat call; if a strict json_schema body is rejected, retry
-// once in json_object mode with a '{' partial prefill and repair the leading brace.
+// Latch of (model, schema-hash) pairs whose strict json_schema body Moonshot has
+// already rejected: re-probing them burns one wasted 400 on EVERY request, since
+// a validator rejection is deterministic for identical input. Unbounded on
+// purpose — it can only hold as many entries as there are distinct (model,
+// schema) pairs in the process, a handful in practice. Process-local, so a
+// restart re-probes once; that is the desired behavior when Moonshot's
+// validator changes.
+const schemaRejectionLatch = new Set<string>();
+
+/** Test seam: resets the process-local schema-rejection latch. */
+export function clearSchemaRejectionLatch(): void {
+  schemaRejectionLatch.clear();
+}
+
+function latchKey(body: MoonshotChatBody): string {
+  return `${body.model}::${createHash('sha256').update(JSON.stringify(body.response_format)).digest('hex')}`;
+}
+
+// The D8 fallback call: json_object mode with a '{' partial prefill, repairing
+// the leading brace the partial mode does not echo.
+async function createJsonObjectFallback(client: MoonshotChatClient, body: MoonshotChatBody): Promise<any> {
+  const fallback = {
+    ...body,
+    response_format: { type: 'json_object' },
+    messages: [...body.messages, { role: 'assistant', content: '{', partial: true }],
+  };
+  logPayloadIfDebug(fallback);
+  const resp = await client.chat.completions.create(fallback);
+  const content = resp?.choices?.[0]?.message?.content ?? '';
+  // A json_object response that ignored the prefill already leads with '{', so
+  // guard on it rather than doubling the brace.
+  if (resp?.choices?.[0]?.message && !content.trimStart().startsWith('{')) {
+    resp.choices[0].message.content = '{' + content;
+  }
+  return resp;
+}
+
+// D8 fallback: issue a chat call; if a strict json_schema body is rejected, latch
+// that (model, schema) pair and retry in json_object mode. A latched pair skips
+// the strict probe entirely on later calls — no wasted 400 per request.
 export async function createChatWithFallback(client: MoonshotChatClient, body: MoonshotChatBody): Promise<any> {
+  const isJsonSchema = (body.response_format as any)?.type === 'json_schema';
+  if (isJsonSchema && schemaRejectionLatch.has(latchKey(body))) {
+    return createJsonObjectFallback(client, body);
+  }
   try {
+    logPayloadIfDebug(body);
     return await client.chat.completions.create(body);
   } catch (err) {
-    const isJsonSchema = (body.response_format as any)?.type === 'json_schema';
     if (!isJsonSchema || !isSchemaRejection(err)) throw err;
-    const fallback = {
-      ...body,
-      response_format: { type: 'json_object' },
-      messages: [...body.messages, { role: 'assistant', content: '{', partial: true }],
-    };
-    const resp = await client.chat.completions.create(fallback);
-    const content = resp?.choices?.[0]?.message?.content ?? '';
-    // Partial mode does not echo the '{' prefill; repair it. A json_object response
-    // that ignored the prefill already leads with '{', so guard on it.
-    if (resp?.choices?.[0]?.message && !content.trimStart().startsWith('{')) {
-      resp.choices[0].message.content = '{' + content;
-    }
-    return resp;
+    schemaRejectionLatch.add(latchKey(body));
+    return createJsonObjectFallback(client, body);
   }
 }
 

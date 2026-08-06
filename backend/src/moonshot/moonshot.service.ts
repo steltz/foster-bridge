@@ -90,10 +90,9 @@ export class MoonshotLlmProvider implements LlmProvider {
         ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
         ...(req.schema ? { response_format: jsonSchemaFormat(req.schema) } : {}),
       };
-      // Known cost, deliberately unmemoized: createChatWithFallback re-probes
-      // strict json_schema on EVERY call, so a schema Moonshot permanently rejects
-      // burns one wasted 400 per request. If that shows up in practice, the fix is
-      // a per-(model, schema-hash) latch that skips straight to json_object.
+      // A schema Moonshot permanently rejects costs ONE wasted 400 per process,
+      // not per request: createChatWithFallback latches the (model, schema-hash)
+      // pair on first rejection and skips straight to json_object afterwards.
       const resp = await createChatWithFallback(this.clientFactory.get(), body);
       const r = toChatResult(resp);
       // Capture usage BEFORE any refusal/parse throw — a refusal is still billed.
@@ -254,6 +253,12 @@ export class MoonshotLlmProvider implements LlmProvider {
           ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),
           ...(opts.schema ? { response_format: jsonSchemaFormat(opts.schema) } : {}),
         };
+        // Same opt-in dump as the sync/emulated paths (see moonshot.chat.ts's
+        // logPayloadIfDebug) — native batch never calls createChatWithFallback, so
+        // it needs its own guard right where each item's body is assembled.
+        if (process.env.MOONSHOT_DEBUG_PAYLOAD === 'true') {
+          this.logger.log(`Moonshot batch item ${r.customId ?? `request-${i}`} payload:\n${JSON.stringify(body, null, 2)}`);
+        }
         lines.push(JSON.stringify({ custom_id: r.customId ?? `request-${i}`, method: 'POST', url: '/v1/chat/completions', body }));
       }
       const payload = Buffer.from(lines.join('\n'), 'utf8');
