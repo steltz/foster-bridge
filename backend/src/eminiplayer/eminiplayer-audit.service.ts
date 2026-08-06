@@ -8,6 +8,7 @@ import {
   assertPdfBuffer,
   assertTranscriptMarkdown,
   ES_STORAGE_PREFIX,
+  manifestPath,
   parseMmddyyyy,
   sha256Hex,
 } from './eminiplayer-validation';
@@ -111,7 +112,11 @@ export class EminiplayerAuditService {
     let ok = 0;
 
     for (const [date, dayFiles] of [...byDay.entries()].sort()) {
-      const manifestFile = dayFiles.get(`${ES_STORAGE_PREFIX}${date}/manifest.json`);
+      // Via the helper, never a re-derived literal: the writer and the auditor
+      // must rename together. An audit that missed the manifest would file
+      // every committed day as uncommitted and report zero anomalies while
+      // verifying nothing at all.
+      const manifestFile = dayFiles.get(manifestPath(date));
       if (!manifestFile) {
         uncommittedDays.push(date);
         continue;

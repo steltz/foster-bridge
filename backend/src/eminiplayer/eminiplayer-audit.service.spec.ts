@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { STORAGE_BUCKET, FIRESTORE } from '../firebase/firebase.constants';
 import { EminiplayerAuditService } from './eminiplayer-audit.service';
-import { md5Base64, sha256Hex } from './eminiplayer-validation';
+import { dayPaths, manifestPath, md5Base64, sha256Hex } from './eminiplayer-validation';
 import type { DayManifest } from './eminiplayer-manifest.service';
 import type { TranscriptVerdict } from './eminiplayer-verify.service';
 
@@ -32,9 +32,16 @@ const VERDICT: TranscriptVerdict = {
  * A complete, self-consistent day. `objects` maps path -> content; metadata
  * (md5/size) is derived from content, mirroring what GCS reports. Individual
  * tests corrupt content or metadata to trip specific checks.
+ *
+ * Paths come from `dayPaths`/`manifestPath` — the same helpers the writer and
+ * the audit use — NOT from literals. That is deliberate: it keeps the fixture
+ * and the service in lockstep across a layout rename, so a service that
+ * re-derived a path inline would disagree with the fixture and fail loudly
+ * here. The literal strings those helpers produce are pinned once, in
+ * eminiplayer-validation.spec.ts.
  */
 function makeDay(date: string, recapDate: string, videoSuffix: string) {
-  const dir = `knowledge-base/es/${date}`;
+  const paths = dayPaths(date, recapDate);
   const recapMd = plausibleMarkdown('recap');
   const tpMd = plausibleMarkdown('tp');
   const pdf = plausiblePdf();
@@ -58,9 +65,9 @@ function makeDay(date: string, recapDate: string, videoSuffix: string) {
       tradePlanVideoId: `tp${videoSuffix}`,
     },
     files: {
-      recap: record(`${dir}/${recapDate}_ES_RECAP.md`, recapBuf),
-      tradePlanMd: record(`${dir}/${date}_ES_TP.md`, tpBuf),
-      tradePlanPdf: record(`${dir}/${date}_ES_TP.pdf`, pdf),
+      recap: record(paths.recap, recapBuf),
+      tradePlanMd: record(paths.tradePlanMd, tpBuf),
+      tradePlanPdf: record(paths.tradePlanPdf, pdf),
     },
     evidence: {
       recapVideoTitle: 't1', tradePlanVideoTitle: 't2',
@@ -69,10 +76,10 @@ function makeDay(date: string, recapDate: string, videoSuffix: string) {
     },
   };
   return {
-    [`${dir}/manifest.json`]: Buffer.from(JSON.stringify(manifest)),
-    [`${dir}/${recapDate}_ES_RECAP.md`]: recapBuf,
-    [`${dir}/${date}_ES_TP.md`]: tpBuf,
-    [`${dir}/${date}_ES_TP.pdf`]: pdf,
+    [paths.manifest]: Buffer.from(JSON.stringify(manifest)),
+    [paths.recap]: recapBuf,
+    [paths.tradePlanMd]: tpBuf,
+    [paths.tradePlanPdf]: pdf,
   };
 }
 
@@ -148,12 +155,12 @@ describe('EminiplayerAuditService.audit', () => {
     const downloaded = [...bucket.files.entries()]
       .filter(([, f]) => f.download.mock.calls.length > 0)
       .map(([p]) => p);
-    expect(downloaded).toEqual(['knowledge-base/es/07012026/manifest.json']);
+    expect(downloaded).toEqual([manifestPath('07012026')]);
   });
 
   it('flags a metadata hash mismatch without downloading (stored object changed after commit)', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
-    objects['knowledge-base/es/07012026/07012026_ES_TP.md'] = Buffer.from(plausibleMarkdown('tampered'));
+    objects[dayPaths('07012026', '06302026').tradePlanMd] = Buffer.from(plausibleMarkdown('tampered'));
     const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.ok).toBe(0);
@@ -164,7 +171,7 @@ describe('EminiplayerAuditService.audit', () => {
 
   it('flags a missing file referenced by a manifest', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
-    delete objects['knowledge-base/es/07012026/07012026_ES_TP.pdf'];
+    delete objects[dayPaths('07012026', '06302026').tradePlanPdf];
     const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.anomalies.some((a) => a.problem.includes('missing'))).toBe(true);
@@ -175,14 +182,14 @@ describe('EminiplayerAuditService.audit', () => {
     // corrupt the CONTENT and rewrite the manifest records to match it, so
     // every hash/size check passes and only the structural gate can object
     const bad = Buffer.from('# Transcript\n\n**00:00** way too short\n');
-    const dir = 'knowledge-base/es/07012026';
-    const manifest = JSON.parse(objects[`${dir}/manifest.json`].toString('utf8')) as DayManifest;
+    const paths = dayPaths('07012026', '06302026');
+    const manifest = JSON.parse(objects[paths.manifest].toString('utf8')) as DayManifest;
     manifest.files.tradePlanMd = {
-      storagePath: `${dir}/07012026_ES_TP.md`,
+      storagePath: paths.tradePlanMd,
       sha256: sha256Hex(bad), md5: md5Base64(bad), bytes: bad.length,
     };
-    objects[`${dir}/07012026_ES_TP.md`] = bad;
-    objects[`${dir}/manifest.json`] = Buffer.from(JSON.stringify(manifest));
+    objects[paths.tradePlanMd] = bad;
+    objects[paths.manifest] = Buffer.from(JSON.stringify(manifest));
     const claims = claimsFor('07012026', 'Vid0000001');
 
     const { service: shallow } = await build({ ...objects }, claims);
@@ -197,7 +204,7 @@ describe('EminiplayerAuditService.audit', () => {
   it('deep mode attributes a per-file transport failure to the artifact, not the manifest', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     const { service, bucket } = await build(objects, claimsFor('07012026', 'Vid0000001'));
-    bucket.file('knowledge-base/es/07012026/07012026_ES_TP.pdf').download.mockRejectedValue(
+    bucket.file(dayPaths('07012026', '06302026').tradePlanPdf).download.mockRejectedValue(
       new Error('socket hang up'),
     );
     const report = await service.audit({ deep: true });
@@ -217,7 +224,7 @@ describe('EminiplayerAuditService.audit', () => {
 
   it('lists unmanifested day folders without failing them', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
-    objects['knowledge-base/es/07022026/07022026_ES_TP.md'] = Buffer.from(plausibleMarkdown('tp'));
+    objects[dayPaths('07022026', '07012026').tradePlanMd] = Buffer.from(plausibleMarkdown('tp'));
     const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.uncommittedDays).toEqual(['07022026']);
@@ -257,6 +264,24 @@ describe('EminiplayerAuditService.audit', () => {
     expect(report.anomalies).toEqual([]); // day 07012026's claims are out of range, not orphans
   });
 
+  it('locates a committed manifest via the manifestPath helper, not a re-derived literal', async () => {
+    // Drift guard for the storage-layout constraint. The fixture keys its
+    // manifest with manifestPath(), so a rename inside that helper moves the
+    // fixture and the service together — but a service that re-derived the
+    // path inline would keep looking at the OLD path, miss the manifest, and
+    // silently file the day as uncommitted. That failure is invisible in
+    // production (the report is a clean `anomalies: []` having verified
+    // nothing), so it has to be caught here.
+    const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
+    expect(Object.keys(objects)).toContain(manifestPath('07012026'));
+
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
+    const report = await service.audit();
+    expect(report.uncommittedDays).toEqual([]); // the tell: a missed manifest lands here
+    expect(report.daysChecked).toBe(1);
+    expect(report.ok).toBe(1);
+  });
+
   // ---- hardening: untrusted dates must never abort the whole sweep ----
   // Folder names and Firestore claim dates are inputs the audit does not
   // control; `\d{8}` guards the SHAPE but not calendar validity, and
@@ -265,7 +290,7 @@ describe('EminiplayerAuditService.audit', () => {
   it('reports a folder whose name is not a real calendar date instead of aborting', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     // 8 digits, so it passes the day regex, but month 13 does not exist
-    objects['knowledge-base/es/13012026/manifest.json'] = Buffer.from('{}');
+    objects[manifestPath('13012026')] = Buffer.from('{}');
     const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.daysChecked).toBe(1);
@@ -293,7 +318,7 @@ describe('EminiplayerAuditService.audit', () => {
   it('reports a structurally invalid manifest instead of aborting the sweep', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     // parses as JSON, but has no `files`/`sources` to walk
-    objects['knowledge-base/es/07022026/manifest.json'] = Buffer.from('{"version":1}');
+    objects[manifestPath('07022026')] = Buffer.from('{"version":1}');
     const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.daysChecked).toBe(2);
