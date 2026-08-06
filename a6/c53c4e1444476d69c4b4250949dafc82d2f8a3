@@ -1,0 +1,22 @@
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline.md
+  s_52f359e82ac2c6::t_cfad8ff97f18b2 1-822,824-831,833-1065
+  s_52f359e82ac2c6::t_1fb532972b9504 823,832
+docs/superpowers/specs/2026-08-06-eminiplayer-ingest-pipeline-design.md
+  s_52f359e82ac2c6::t_caea9a38d1ea0a 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a6c53c4e1444476d69c4b4250949dafc82d2f8a3",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
