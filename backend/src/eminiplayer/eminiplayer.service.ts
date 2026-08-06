@@ -9,6 +9,7 @@ import {
   LOGIN_URL,
   SELECTORS,
   ArchivePageResult,
+  DayEntries,
 } from './eminiplayer.constants';
 
 /**
@@ -30,27 +31,89 @@ export class EminiplayerService {
 
   async openArchivePage(): Promise<ArchivePageResult> {
     return this.playwright.withPage(async (page) => {
-      await this.goto(page, ARCHIVE_URL, 'navigating to archive.aspx');
-
-      if (await this.isLoggedOut(page)) {
-        this.logger.log('Not authenticated; logging in');
-        await this.login(page);
-        await this.goto(
-          page,
-          ARCHIVE_URL,
-          're-navigating to archive.aspx after login',
-        );
-        if (await this.isLoggedOut(page)) {
-          throw new Error(
-            'eminiplayer login failed: login link still present after signing in (check credentials)',
-          );
-        }
-      }
-
+      await this.gotoAuthenticated(
+        page,
+        ARCHIVE_URL,
+        'navigating to archive.aspx',
+      );
       this.assertOnArchivePage(page);
       const screenshotPath = await this.screenshot(page);
       return { url: page.url(), title: await page.title(), screenshotPath };
     });
+  }
+
+  /**
+   * Scan the archive listing for the trade-plan entry dated `date` (MMDDYYYY)
+   * and the most recent recap entry dated strictly before it.
+   */
+  async findDayEntries(date: string): Promise<DayEntries> {
+    return this.playwright.withPage(async (page) => {
+      await this.gotoAuthenticated(
+        page,
+        ARCHIVE_URL,
+        'navigating to archive.aspx',
+      );
+      this.assertOnArchivePage(page);
+      // TODO(selectors): parse the listing rows into ArchiveEntry[] and select
+      // the TP entry for `date` + the latest recap before it. Contract for the
+      // selector follow-up:
+      //  - THREE-WAY DATE AGREEMENT: only return an entry when the row's date,
+      //    the date printed in the entry title ("...for Tuesday 04/10/2018"),
+      //    and the title's printed weekday (vs what that calendar date actually
+      //    falls on) all agree — an off-by-one-row parse must fail loudly, not
+      //    file a document under the wrong day.
+      //  - throw ArchiveNotFoundError (eminiplayer.constants) when there is no
+      //    TP entry for `date`, or no recap entry dated within
+      //    RECAP_LOOKBACK_DAYS calendar days strictly before it — the
+      //    controller maps that to 404, and the bound keeps the scan from
+      //    walking the whole multi-year archive inside this withPage callback.
+      throw new Error('eminiplayer: findDayEntries selectors not implemented yet');
+    });
+  }
+
+  /** Extract the embedded YouTube URL from an archive detail page. */
+  async getYoutubeUrl(pageUrl: string): Promise<string> {
+    return this.playwright.withPage(async (page) => {
+      await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
+      this.assertOnPage(page, pageUrl);
+      // TODO(selectors): locate the embedded YouTube iframe/link on the page.
+      throw new Error('eminiplayer: getYoutubeUrl selectors not implemented yet');
+    });
+  }
+
+  /** Download the trade-plan PDF linked from a TP detail page. */
+  async downloadTradePlanPdf(pageUrl: string): Promise<Buffer> {
+    return this.playwright.withPage(async (page) => {
+      await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
+      this.assertOnPage(page, pageUrl);
+      // TODO(selectors): find the PDF link and capture the download as a Buffer.
+      throw new Error(
+        'eminiplayer: downloadTradePlanPdf selectors not implemented yet',
+      );
+    });
+  }
+
+  /**
+   * Navigate to `url`, logging in (and re-navigating) when the site shows its
+   * logged-out state. Shared by every public method; must be called inside a
+   * withPage() callback.
+   */
+  private async gotoAuthenticated(
+    page: Page,
+    url: string,
+    step: string,
+  ): Promise<void> {
+    await this.goto(page, url, step);
+    if (await this.isLoggedOut(page)) {
+      this.logger.log('Not authenticated; logging in');
+      await this.login(page);
+      await this.goto(page, url, `re-${step} after login`);
+      if (await this.isLoggedOut(page)) {
+        throw new Error(
+          'eminiplayer login failed: login link still present after signing in (check credentials)',
+        );
+      }
+    }
   }
 
   /**
@@ -76,6 +139,28 @@ export class EminiplayerService {
     if (!onArchive) {
       throw new Error(
         `eminiplayer navigation failed: expected archive.aspx, landed on ${page.url()}`,
+      );
+    }
+  }
+
+  /**
+   * Structural check that the page landed where we asked. Same rationale as
+   * assertOnArchivePage: a redirect (login.aspx?ReturnUrl=..., soft-404, home
+   * page) must fail loudly here, not surface later as a selector mismatch.
+   * Hostname comparison tolerates www. <-> apex canonicalization — the same
+   * host variance assertOnArchivePage deliberately accepts — while keeping the
+   * pathname check exact.
+   */
+  private assertOnPage(page: Page, expectedUrl: string): void {
+    const url = new URL(page.url());
+    const expected = new URL(expectedUrl);
+    const normalizeHost = (h: string) => h.replace(/^www\./, '');
+    const landed =
+      normalizeHost(url.hostname) === normalizeHost(expected.hostname) &&
+      url.pathname.toLowerCase() === expected.pathname.toLowerCase();
+    if (!landed) {
+      throw new Error(
+        `eminiplayer navigation failed: expected ${expectedUrl}, landed on ${page.url()}`,
       );
     }
   }

@@ -21,3 +21,35 @@ export interface ArchivePageResult {
   title: string;
   screenshotPath: string;
 }
+
+/** One row of the archive listing, date normalized to MMDDYYYY. */
+export interface ArchiveEntry {
+  date: string;
+  pageUrl: string;
+  title: string;
+}
+
+/**
+ * The two archive entries an ingest run needs: the trade plan for the
+ * requested date and the most recent recap dated strictly before it.
+ */
+export interface DayEntries {
+  tradePlan: ArchiveEntry;
+  recap: ArchiveEntry;
+}
+
+/**
+ * The archive doesn't have what was asked for: no TP entry for the date, or
+ * no recap entry within the recap search window before it (the recap scan is
+ * bounded to RECAP_LOOKBACK_DAYS calendar days so a bad historical date can't
+ * force a whole-archive walk inside one withPage callback). Owned by the
+ * scraper layer — findDayEntries throws it once selectors land; the ingest
+ * layer passes it through untouched and the controller maps it to HTTP 404.
+ */
+export class ArchiveNotFoundError extends Error {}
+
+/** Bound for the backwards recap scan in findDayEntries. */
+export const RECAP_LOOKBACK_DAYS = 14;
+
+/** Stamped into every manifest; bump when pipeline behavior changes. */
+export const INGEST_PIPELINE_VERSION = 1;

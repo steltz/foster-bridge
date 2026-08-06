@@ -43,23 +43,21 @@ async function build(
     'eminiplayer.screenshotDir': '/tmp/eminiplayer-shots',
   },
 ) {
+  // pass-through mutex: run the callback immediately with the fake page
+  const playwright = {
+    withPage: jest.fn((fn: (p: FakePage) => Promise<unknown>) => fn(page)),
+  };
   const moduleRef = await Test.createTestingModule({
     providers: [
       EminiplayerService,
-      {
-        provide: PlaywrightService,
-        // pass-through mutex: run the callback immediately with the fake page
-        useValue: {
-          withPage: jest.fn((fn: (p: FakePage) => Promise<unknown>) => fn(page)),
-        },
-      },
+      { provide: PlaywrightService, useValue: playwright },
       {
         provide: ConfigService,
         useValue: { get: jest.fn((key: string) => config[key]) },
       },
     ],
   }).compile();
-  return moduleRef.get(EminiplayerService);
+  return { service: moduleRef.get(EminiplayerService), playwright };
 }
 
 describe('EminiplayerService.openArchivePage', () => {
@@ -69,7 +67,7 @@ describe('EminiplayerService.openArchivePage', () => {
 
   it('returns metadata and screenshot path when already logged in', async () => {
     const page = makePage();
-    const service = await build(page);
+    const { service } = await build(page);
     const result = await service.openArchivePage();
     expect(page.goto).toHaveBeenCalledWith(ARCHIVE_URL, {
       waitUntil: 'domcontentloaded',
@@ -97,7 +95,7 @@ describe('EminiplayerService.openArchivePage', () => {
         .mockResolvedValueOnce({}) // archive.aspx shows login link
         .mockResolvedValue(null), // after login: link gone
     });
-    const service = await build(page);
+    const { service } = await build(page);
     const result = await service.openArchivePage();
     expect(page.goto).toHaveBeenNthCalledWith(1, ARCHIVE_URL, {
       waitUntil: 'domcontentloaded',
@@ -119,7 +117,7 @@ describe('EminiplayerService.openArchivePage', () => {
     const page = makePage({
       $: jest.fn().mockResolvedValue({}), // login link never goes away
     });
-    const service = await build(page);
+    const { service } = await build(page);
     await expect(service.openArchivePage()).rejects.toThrow(
       /login failed: login link still present/,
     );
@@ -128,7 +126,7 @@ describe('EminiplayerService.openArchivePage', () => {
 
   it('throws when login is required but credentials are missing', async () => {
     const page = makePage({ $: jest.fn().mockResolvedValue({}) });
-    const service = await build(page, {
+    const { service } = await build(page, {
       'eminiplayer.screenshotDir': '/tmp/eminiplayer-shots',
     });
     await expect(service.openArchivePage()).rejects.toThrow(
@@ -141,7 +139,7 @@ describe('EminiplayerService.openArchivePage', () => {
     const page = makePage({
       url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx'),
     });
-    const service = await build(page);
+    const { service } = await build(page);
     await expect(service.openArchivePage()).rejects.toThrow(
       /expected archive\.aspx/,
     );
@@ -153,7 +151,7 @@ describe('EminiplayerService.openArchivePage', () => {
         () => 'https://www.eminiplayer.net/login.aspx?ReturnUrl=%2farchive.aspx',
       ),
     });
-    const service = await build(page);
+    const { service } = await build(page);
     await expect(service.openArchivePage()).rejects.toThrow(
       /expected archive\.aspx/,
     );
@@ -163,9 +161,95 @@ describe('EminiplayerService.openArchivePage', () => {
     const page = makePage({
       goto: jest.fn(() => Promise.reject(new Error('Timeout 30000ms exceeded'))),
     });
-    const service = await build(page);
+    const { service } = await build(page);
     await expect(service.openArchivePage()).rejects.toThrow(
       /eminiplayer: navigating to archive\.aspx failed: Timeout 30000ms exceeded/,
     );
+  });
+});
+
+describe('scraper contract stubs', () => {
+  it('findDayEntries navigates to the archive authenticated, then throws not-implemented', async () => {
+    const page = makePage(); // default: logged in, url() === ARCHIVE_URL
+    const { service } = await build(page);
+    await expect(service.findDayEntries('07012026')).rejects.toThrow(
+      'eminiplayer: findDayEntries selectors not implemented yet',
+    );
+    expect(page.goto).toHaveBeenCalledWith(ARCHIVE_URL, expect.anything());
+  });
+
+  it('findDayEntries logs in first when logged out', async () => {
+    const page = makePage({
+      // 1st check (archive): logged out; 2nd check (after login): logged in
+      $: jest
+        .fn()
+        .mockResolvedValueOnce({})
+        .mockResolvedValue(null),
+    });
+    const { service } = await build(page);
+    await expect(service.findDayEntries('07012026')).rejects.toThrow(
+      'selectors not implemented',
+    );
+    expect(page.fill).toHaveBeenCalledWith(SELECTORS.username, 'user@example.com');
+    expect(page.click).toHaveBeenCalledWith(SELECTORS.submit);
+  });
+
+  it('getYoutubeUrl navigates to the detail page authenticated, then throws not-implemented', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    const page = makePage({ url: jest.fn(() => detailUrl) });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
+      'eminiplayer: getYoutubeUrl selectors not implemented yet',
+    );
+    expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
+  });
+
+  it('getYoutubeUrl throws a navigation error when the site redirects off the detail page', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    // landed somewhere else (soft-404 / upsell / home) that is NOT logged-out
+    const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
+      'eminiplayer navigation failed',
+    );
+  });
+
+  it('getYoutubeUrl accepts www <-> apex host canonicalization (same path)', async () => {
+    // requested www, landed on apex — the host variance assertOnArchivePage
+    // already tolerates; must reach the extraction point, not a nav error
+    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    const page = makePage({ url: jest.fn(() => 'https://eminiplayer.net/post/some-entry.aspx') });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
+      'eminiplayer: getYoutubeUrl selectors not implemented yet',
+    );
+  });
+
+  it('downloadTradePlanPdf navigates to the detail page authenticated, then throws not-implemented', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
+    const page = makePage({ url: jest.fn(() => detailUrl) });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
+      'eminiplayer: downloadTradePlanPdf selectors not implemented yet',
+    );
+    expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
+  });
+
+  it('downloadTradePlanPdf throws a navigation error when the site redirects off the detail page', async () => {
+    const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
+    const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
+      'eminiplayer navigation failed',
+    );
+  });
+
+  it('each scraper method runs inside withPage (serialized page access)', async () => {
+    const page = makePage();
+    const { service, playwright } = await build(page);
+    await service.findDayEntries('07012026').catch(() => undefined);
+    await service.getYoutubeUrl('https://www.eminiplayer.net/x').catch(() => undefined);
+    await service.downloadTradePlanPdf('https://www.eminiplayer.net/x').catch(() => undefined);
+    expect((playwright.withPage as jest.Mock).mock.calls.length).toBe(3);
   });
 });
