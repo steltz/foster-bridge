@@ -2,12 +2,14 @@ import {
   BadGatewayException,
   BadRequestException,
   Controller,
+  Get,
   HttpCode,
   NotFoundException,
   Post,
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { AuditReport, EminiplayerAuditService } from './eminiplayer-audit.service';
 import { EminiplayerIngestService, IngestResult } from './eminiplayer-ingest.service';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 import { ArchiveNotFoundError } from './eminiplayer.constants';
@@ -26,7 +28,10 @@ function isValidMmddyyyy(date: string): boolean {
 
 @Controller('eminiplayer')
 export class EminiplayerController {
-  constructor(private readonly ingestService: EminiplayerIngestService) {}
+  constructor(
+    private readonly ingestService: EminiplayerIngestService,
+    private readonly auditService: EminiplayerAuditService,
+  ) {}
 
   @Post('ingest')
   @HttpCode(200) // idempotent-ish operator action, not resource creation
@@ -45,5 +50,19 @@ export class EminiplayerController {
       if (err instanceof IngestStageError) throw new BadGatewayException(err.message);
       throw err;
     }
+  }
+
+  @Get('audit')
+  async audit(
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Query('deep') deep: string | undefined,
+  ): Promise<AuditReport> {
+    for (const [name, value] of [['from', from], ['to', to]] as const) {
+      if (value !== undefined && !isValidMmddyyyy(value)) {
+        throw new BadRequestException(`Query param "${name}" must be MMDDYYYY when present`);
+      }
+    }
+    return this.auditService.audit({ from, to, deep: deep === 'true' });
   }
 }

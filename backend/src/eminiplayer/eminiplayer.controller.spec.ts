@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { EminiplayerController } from './eminiplayer.controller';
+import { EminiplayerAuditService } from './eminiplayer-audit.service';
 import { EminiplayerIngestService } from './eminiplayer-ingest.service';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 import { ArchiveNotFoundError } from './eminiplayer.constants';
@@ -24,11 +25,19 @@ const RESULT = {
 
 async function build() {
   const ingest = { ingest: jest.fn((_date: string, _force: boolean) => Promise.resolve(RESULT)) };
+  const audit = {
+    audit: jest.fn(() =>
+      Promise.resolve({ daysChecked: 0, ok: 0, deep: false, anomalies: [], uncommittedDays: [] }),
+    ),
+  };
   const moduleRef = await Test.createTestingModule({
     controllers: [EminiplayerController],
-    providers: [{ provide: EminiplayerIngestService, useValue: ingest }],
+    providers: [
+      { provide: EminiplayerIngestService, useValue: ingest },
+      { provide: EminiplayerAuditService, useValue: audit },
+    ],
   }).compile();
-  return { controller: moduleRef.get(EminiplayerController), ingest };
+  return { controller: moduleRef.get(EminiplayerController), ingest, audit };
 }
 
 describe('POST /eminiplayer/ingest', () => {
@@ -84,5 +93,23 @@ describe('POST /eminiplayer/ingest', () => {
     const { controller, ingest } = await build();
     ingest.ingest.mockRejectedValue(new TypeError('bug'));
     await expect(controller.ingest('07012026', undefined)).rejects.toThrow(TypeError);
+  });
+});
+
+describe('GET /eminiplayer/audit', () => {
+  it('returns the audit report, passing parsed options', async () => {
+    const { controller, audit } = await build();
+    await expect(controller.audit('07012026', '07312026', 'true')).resolves.toEqual({
+      daysChecked: 0, ok: 0, deep: false, anomalies: [], uncommittedDays: [],
+    });
+    expect(audit.audit).toHaveBeenCalledWith({ from: '07012026', to: '07312026', deep: true });
+  });
+
+  it('rejects a malformed range param with 400', async () => {
+    const { controller, audit } = await build();
+    await expect(controller.audit('2026-07-01', undefined, undefined)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(audit.audit).not.toHaveBeenCalled();
   });
 });

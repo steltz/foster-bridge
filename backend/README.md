@@ -248,7 +248,10 @@ yet to special-case these dates.
 drives a Playwright Chromium browser to https://www.eminiplayer.net/archive.aspx,
 logging in first when the site shows its login link. It returns
 `{ url, title, screenshotPath }` and saves a full-page screenshot under
-`artifacts/eminiplayer/` (git-ignored). No content parsing yet.
+`artifacts/eminiplayer/` (git-ignored). The scraping contracts, the day-group
+ingest pipeline, and the corpus audit are all in place on top of it; only the
+archive/post selector internals are still stubbed (see **Current status**
+below).
 
 Setup:
 
@@ -297,3 +300,25 @@ stage failed (retry resumes where it left off).
 **Current status:** the scraper's selector internals are stubbed — the
 endpoint returns a `502` naming the failing stage (`resolve (archive)`)
 until the follow-up selector work lands.
+
+### Audit the corpus
+
+```bash
+# shallow (default): metadata-only integrity — fast even on the full corpus
+curl localhost:3000/eminiplayer/audit
+# date-range + deep: downloads content, re-computes sha256, re-runs gates
+curl "localhost:3000/eminiplayer/audit?from=07012026&to=07312026&deep=true"
+```
+
+Re-verifies committed days against what is actually stored: per-file
+md5/size via GCS listing metadata (shallow) or full content sha256 +
+structural gates (`deep=true`), date invariants, cross-day video-id
+uniqueness, claim↔manifest agreement in both directions, and unmanifested
+day folders. Returns `{ daysChecked, ok, deep, anomalies, uncommittedDays }`.
+Run a shallow full-corpus audit before any large backtest campaign (use
+ranges for deep runs); a non-empty `anomalies` list means a human should
+look before trusting the data.
+
+The audit never aborts on one bad item: a day folder whose name is not a real
+calendar date, a structurally invalid manifest, or a video-id claim with an
+unparseable date each become a single anomaly and the sweep continues.
