@@ -32,6 +32,12 @@ export interface AppConfig {
     effort: string;
     schedulerEnabled: boolean;
   };
+  eminiplayer: {
+    username?: string;
+    password?: string;
+    headless: boolean;
+    screenshotDir: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -99,5 +105,23 @@ export default (): AppConfig => ({
     // unrelated specs never hit real Firestore at boot, and per-instance in prod
     // (BENCHMARK_SCHEDULER='false') so only a dedicated worker runs the crons.
     schedulerEnabled: process.env.BENCHMARK_SCHEDULER !== 'false' && process.env.NODE_ENV !== 'test',
+  },
+  eminiplayer: {
+    // `|| undefined`, not a bare read: .env.example ships these keys empty, so
+    // the usual copy-to-.env flow sets them to ''. An empty string must read as
+    // "not configured" rather than as a present-but-blank credential — same
+    // convention as llm.provider / moonshot.baseUrl above.
+    username: process.env.EMINIPLAYER_USERNAME || undefined,
+    password: process.env.EMINIPLAYER_PASSWORD || undefined,
+    // Headed mode is opt-in for local debugging: EMINIPLAYER_HEADLESS=false.
+    headless: process.env.EMINIPLAYER_HEADLESS !== 'false',
+    // Anchored to the module location like benchmark.repoRoot above — NOT cwd,
+    // so screenshots of authenticated content can never land outside backend/
+    // (src/config and dist/config are both two levels below backend/).
+    // `||`, not `??`: a copied .env.example sets this to '', and '' would
+    // otherwise survive as the screenshot dir and void that guarantee.
+    screenshotDir:
+      process.env.EMINIPLAYER_SCREENSHOT_DIR ||
+      resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
   },
 });

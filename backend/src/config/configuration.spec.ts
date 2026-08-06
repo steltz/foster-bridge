@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import configuration from './configuration';
 
 describe('configuration (anthropic)', () => {
@@ -189,5 +191,57 @@ describe('configuration – moonshot', () => {
   it('treats a set-but-empty LLM_PROVIDER as unset', () => {
     process.env.LLM_PROVIDER = '';
     expect(configuration().llm.provider).toBe('anthropic');
+  });
+});
+
+describe('configuration (eminiplayer)', () => {
+  const OLD_ENV = process.env;
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    delete process.env.EMINIPLAYER_USERNAME;
+    delete process.env.EMINIPLAYER_PASSWORD;
+    delete process.env.EMINIPLAYER_HEADLESS;
+    delete process.env.EMINIPLAYER_SCREENSHOT_DIR;
+  });
+  afterAll(() => {
+    process.env = OLD_ENV;
+  });
+
+  it('defaults: creds undefined, headless true, screenshotDir anchored to backend/', () => {
+    const cfg = configuration();
+    expect(cfg.eminiplayer.username).toBeUndefined();
+    expect(cfg.eminiplayer.password).toBeUndefined();
+    expect(cfg.eminiplayer.headless).toBe(true);
+    // Both this spec and configuration.ts live in src/config, so __dirname
+    // resolves identically: backend/artifacts/eminiplayer.
+    expect(cfg.eminiplayer.screenshotDir).toBe(
+      resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
+    );
+  });
+
+  it('reads env overrides and EMINIPLAYER_HEADLESS=false', () => {
+    process.env.EMINIPLAYER_USERNAME = 'user@example.com';
+    process.env.EMINIPLAYER_PASSWORD = 'secret';
+    process.env.EMINIPLAYER_HEADLESS = 'false';
+    process.env.EMINIPLAYER_SCREENSHOT_DIR = '/tmp/shots';
+    const cfg = configuration();
+    expect(cfg.eminiplayer).toEqual({
+      username: 'user@example.com',
+      password: 'secret',
+      headless: false,
+      screenshotDir: '/tmp/shots',
+    });
+  });
+
+  it('treats set-but-empty values as unset (copied .env.example)', () => {
+    process.env.EMINIPLAYER_USERNAME = '';
+    process.env.EMINIPLAYER_PASSWORD = '';
+    process.env.EMINIPLAYER_SCREENSHOT_DIR = '';
+    const cfg = configuration();
+    expect(cfg.eminiplayer.username).toBeUndefined();
+    expect(cfg.eminiplayer.password).toBeUndefined();
+    expect(cfg.eminiplayer.screenshotDir).toBe(
+      resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
+    );
   });
 });

@@ -13,6 +13,7 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { ExecutionModule } from './execution/execution.module';
 import { BenchmarkModule } from './benchmark/benchmark.module';
 import { CostModule } from './cost/cost.module';
+import { EminiplayerModule } from './eminiplayer/eminiplayer.module';
 import { GoogleErrorFilter } from './common/google-error.filter';
 import { HealthController } from './health/health.controller';
 import { FirestoreDemoController } from './demo/firestore-demo.controller';
@@ -36,6 +37,7 @@ import { BenchmarkController } from './benchmark/benchmark.controller';
     ExecutionModule,
     BenchmarkModule,
     CostModule,
+    EminiplayerModule,
   ],
   controllers: [
     HealthController,
