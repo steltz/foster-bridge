@@ -1,0 +1,34 @@
+backend/src/moonshot/moonshot.service.ts
+  s_2b4b60567393e1::t_9a631505a18dc9 55-70
+  s_2b4b60567393e1::t_fd2ad9bcfff74a 402-405
+  s_2b4b60567393e1::t_a05f757bfb3af1 162-163,167-175,178-214,217-382
+  s_2b4b60567393e1::t_6cfb405d3e49c3 151-153
+  s_2b4b60567393e1::t_ef667aad6a7504 26-29
+  s_2b4b60567393e1::t_3a5862d640501c 82
+  s_2b4b60567393e1::t_944878aac01432 164-166
+  s_2b4b60567393e1::t_f2a393d9fc4e83 14,17
+backend/src/moonshot/moonshot.service.spec.ts
+  s_2b4b60567393e1::t_6274bc36b68f5f 82-103,105
+  s_2b4b60567393e1::t_c4219a1ac27bd6 14
+  s_2b4b60567393e1::t_76a90220929715 29-32,36
+  s_2b4b60567393e1::t_0db35c01146f6a 104
+  s_2b4b60567393e1::t_ba73bc6ea464d1 106
+backend/src/moonshot/moonshot.service.batch.spec.ts
+  s_2b4b60567393e1::t_3f954626621b1f 1-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "cdf4d9481d07c4417a52c57be57beb4e7e5baad3",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

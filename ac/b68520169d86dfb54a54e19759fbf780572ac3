@@ -1,0 +1,40 @@
+src/session.js
+  s_f0fa624977dd61::t_a145f091d749a7 55-62
+test/cli.test.js
+  s_f0fa624977dd61::t_fe29eb73e3a231 97
+  s_f0fa624977dd61::t_5b17cea32408ab 66-69
+  s_f0fa624977dd61::t_e8aff4d01b632a 36,44-45,53-54,70-94
+  s_f0fa624977dd61::t_3825478ba9df38 9-10
+  s_f0fa624977dd61::t_2dc3ae218cfb15 124
+  s_f0fa624977dd61::t_c2d3dd47fabcf6 16-18,20
+  s_f0fa624977dd61::t_6eb95641111f4d 95
+test/session.test.js
+  s_f0fa624977dd61::t_1ec9a9e5d3b600 3-9
+  s_f0fa624977dd61::t_f5684f23e6079e 27-35
+test/fixtures/orders-rth.json
+  s_f0fa624977dd61::t_be5773d9afd464 1-3
+src/run-command.js
+  s_f0fa624977dd61::t_16ad4155781f75 5,12,17-21
+  s_f0fa624977dd61::t_aedcb7e4fc09e1 58,77-88
+  s_f0fa624977dd61::t_2ad3a61210041d 44,56-57
+  s_f0fa624977dd61::t_2ebbb386270afa 22
+test/fixtures/chart-rth.csv
+  s_f0fa624977dd61::t_01fcd1623b3458 2-3
+  s_f0fa624977dd61::t_bcc4c188efa8df 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "acb68520169d86dfb54a54e19759fbf780572ac3",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

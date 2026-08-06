@@ -1,0 +1,23 @@
+traders/support-buyer.md
+  s_7c17fe270248b3::t_cabb04d1217500 1-23
+traders/breakout-trader.md
+  s_7c17fe270248b3::t_261f91d83daeb3 1-23
+traders/fade-the-move.md
+  s_7c17fe270248b3::t_b5d6bf03719fc8 1-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3e84ed1885220538b650eae94037ff91c7b5f23e",
+  "prompts": {},
+  "sessions": {
+    "s_7c17fe270248b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8aa8cc3-c947-4eb4-8da2-65815dd5e31c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

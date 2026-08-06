@@ -1,0 +1,25 @@
+docs/superpowers/plans/2026-07-18-two-new-traders.md
+  s_f298537be0bbf7::t_b65b9f7147d371 73-76
+  s_f298537be0bbf7::t_769bb7d6eaeb10 65-67
+  s_f298537be0bbf7::t_816a7b1cde7b5c 40
+traders/basehit-trader.md
+  s_f298537be0bbf7::t_3d442ff51e2727 41-43
+  s_f298537be0bbf7::t_17661d85d7ae79 49-53
+  s_f298537be0bbf7::t_4e6a9facf65eb2 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bcfc1bf49327b1d5ff616cffbb5814c929729473",
+  "prompts": {},
+  "sessions": {
+    "s_f298537be0bbf7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d7713bd-e370-42f1-9e07-02f5e427c1f7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

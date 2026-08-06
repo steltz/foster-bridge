@@ -1,0 +1,22 @@
+docs/superpowers/plans/2026-07-25-anthropic-client-module.md
+  s_c543c1cadaca90::t_471162b44a3c14 599,602
+  s_c543c1cadaca90::t_22ff0bf633e43e 1-349,353,357-360,374-393,395-478,481-598,600-601,603-1180
+  s_c543c1cadaca90::t_032d6431f994d7 350-352,354-356,361-373,394
+  s_c543c1cadaca90::t_86f939598f8321 479-480
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fa11629ba384b37297f998058b3bad3198434627",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

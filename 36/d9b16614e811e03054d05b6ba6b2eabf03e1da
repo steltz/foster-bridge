@@ -1,0 +1,22 @@
+docs/backtest-scenarios.md
+  s_89ce1b8b7d8acc::t_b20d6af25a0768 39,50-67
+docs/superpowers/specs/2026-07-17-backtest-cli-design.md
+  s_89ce1b8b7d8acc::t_de08fa56d177af 84-89
+  s_89ce1b8b7d8acc::t_3efe9f0879680b 150-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "36d9b16614e811e03054d05b6ba6b2eabf03e1da",
+  "prompts": {},
+  "sessions": {
+    "s_89ce1b8b7d8acc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "17fa770f-4517-4b17-9268-3eb48b3ead6f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

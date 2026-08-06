@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-17-backtest-cli-design.md
+  s_ef9323a47291a6::t_b768c051dc3b4a 100-103,118-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "617d2138ca2ca9c0e9d9fcb2f32d84fa1ebbd7e5",
+  "prompts": {},
+  "sessions": {
+    "s_ef9323a47291a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec53e83f-353d-4e0a-8de4-a6e3ff045e39",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

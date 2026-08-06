@@ -1,0 +1,21 @@
+traders/breakout-trader.md
+  s_7c17fe270248b3::t_7e745119faccc4 12-16
+docs/superpowers/plans/2026-07-17-trader-panel-skill.md
+  s_7c17fe270248b3::t_e753f7330322ef 66-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b813cd3c6c46bfc753a0108b8b97d6d94db9db92",
+  "prompts": {},
+  "sessions": {
+    "s_7c17fe270248b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8aa8cc3-c947-4eb4-8da2-65815dd5e31c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

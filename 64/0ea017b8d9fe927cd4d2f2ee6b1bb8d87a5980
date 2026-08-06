@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-25-anthropic-prompt-caching.md
+  s_2ce69020bf0dc6::t_956fdc3ed0db44 1-590
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "640ea017b8d9fe927cd4d2f2ee6b1bb8d87a5980",
+  "prompts": {},
+  "sessions": {
+    "s_2ce69020bf0dc6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0a93dcba-1eaa-44a5-92a7-7ab55ccf4da4",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

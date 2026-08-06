@@ -1,0 +1,25 @@
+docs/superpowers/specs/2026-07-28-moonshot-llm-provider-design.md
+  s_2b4b60567393e1::t_c52bd78444e8b1 430-445
+backend/src/moonshot/moonshot.service.batch.spec.ts
+  s_2b4b60567393e1::t_b8efdcf713124f 261
+  s_2b4b60567393e1::t_a1dd90094a813b 247-249
+backend/src/moonshot/moonshot.service.ts
+  s_2b4b60567393e1::t_57a6dd9fcdee73 262-264
+  s_2b4b60567393e1::t_c861c2a41d2d3b 375-382,385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "f2c96a7383bb788be5b0042123dc15a575ce8e62",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

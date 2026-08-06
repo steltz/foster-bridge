@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-08-05-eminiplayer-playwright-module.md
+  s_006eebfa7fedbf::t_5d80bf66993a23 1-767
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8d382535d17b29c83b45c52220a8779ee498e6ee",
+  "prompts": {},
+  "sessions": {
+    "s_006eebfa7fedbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "877a2820-15c0-47a1-bcd0-d68d026984e1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

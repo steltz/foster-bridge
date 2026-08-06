@@ -1,0 +1,23 @@
+docs/superpowers/plans/2026-07-18-trader-bench.md
+  s_39d8a295b14029::t_613d8e42a6f716 796
+  s_39d8a295b14029::t_9b2b3a54b3636c 792
+  s_39d8a295b14029::t_f9146b8b04779f 836
+.claude/skills/trader-bench/SKILL.md
+  s_39d8a295b14029::t_6e603af8a53bca 140,144,184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7bf560f724c7329a8bd69d7ff9af32a482258c14",
+  "prompts": {},
+  "sessions": {
+    "s_39d8a295b14029": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cab2d95e-b67f-4ef7-aeec-e304b2dd5724",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

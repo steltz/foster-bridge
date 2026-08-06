@@ -1,0 +1,79 @@
+runs/context-trader/fable/07172026/base/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/placement-trader/fable/07172026/seven-keys-scorecard/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/context-trader/fable/07172026/seven-keys-method/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/context-trader/fable/07172026/seven-keys-scorecard/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/placement-trader/fable/07172026/base/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/context-trader/fable/07172026/seven-keys-scorecard/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/placement-trader/fable/07172026/base/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/placement-trader/fable/07172026/seven-keys-scorecard/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/context-trader/fable/07172026/seven-keys-method/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/context-trader/fable/07172026/seven-keys-method/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/placement-trader/fable/07172026/seven-keys-method/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/placement-trader/fable/07172026/seven-keys-method/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/context-trader/fable/07172026/base/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/placement-trader/fable/07172026/seven-keys-method/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/placement-trader/fable/07172026/seven-keys-scorecard/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/placement-trader/fable/07172026/seven-keys-method/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/context-trader/fable/07172026/seven-keys-method/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/context-trader/fable/07172026/seven-keys-scorecard/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/context-trader/fable/07172026/seven-keys-method/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/placement-trader/fable/07172026/base/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/context-trader/fable/07172026/seven-keys-scorecard/run-3.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/placement-trader/fable/07172026/base/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/placement-trader/fable/07172026/base/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/context-trader/fable/07172026/base/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/placement-trader/fable/07172026/seven-keys-method/run-2.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-30
+runs/placement-trader/fable/07172026/seven-keys-scorecard/run-1.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/placement-trader/fable/07172026/seven-keys-scorecard/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/context-trader/fable/07172026/base/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/context-trader/fable/07172026/seven-keys-scorecard/run-5.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-31
+runs/context-trader/fable/07172026/base/run-4.json
+  s_197c3997da6101::t_f31275d1d8f91d 1-28
+runs/SCOREBOARD.md
+  s_197c3997da6101::t_30f27d0cd5a809 3,9,11-12,15-19,30,32,35,40,42,45,50-51,58-62,64,80,121-125,143,153-157,175,247-251,253,269,306-337,369-400,436-447
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "a5b2951ce6586e7c85785f5f95dda874e426eced",
+  "prompts": {},
+  "sessions": {
+    "s_197c3997da6101": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac7c2c3d-c280-4978-9571-7331150c872c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

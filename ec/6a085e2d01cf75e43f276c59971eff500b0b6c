@@ -1,0 +1,19 @@
+knowledge-base/es/07132026/07132026_ES_KEYS.md
+  s_e36e6d6bd558a0::t_28e775848dc1e8 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ec6a085e2d01cf75e43f276c59971eff500b0b6c",
+  "prompts": {},
+  "sessions": {
+    "s_e36e6d6bd558a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbe40adc-7ccc-49cd-811f-28651a289de6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

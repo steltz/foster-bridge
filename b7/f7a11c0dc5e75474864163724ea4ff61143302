@@ -1,0 +1,24 @@
+backend/src/benchmark/envelope.builder.spec.ts
+  s_d590fbd24c631b::t_9b17e179a09796 107-139
+  s_d590fbd24c631b::t_949e491cf04b9b 71-106
+backend/src/benchmark/envelope.builder.ts
+  s_d590fbd24c631b::t_602913bcc5543c 17
+  s_d590fbd24c631b::t_8eee6d522ea00b 89,91-95,106,110-115
+  s_d590fbd24c631b::t_f0fdda2f6d0ac3 90,96-105,107-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b7f7a11c0dc5e75474864163724ea4ff61143302",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    }
+  }
+}

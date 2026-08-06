@@ -1,0 +1,22 @@
+backend/src/common/google-error.filter.ts
+  s_c543c1cadaca90::t_2a44c23827fe4a 41-44,46-47,55-57
+backend/src/common/google-error.filter.spec.ts
+  s_c543c1cadaca90::t_cc455f8bf83f72 41-42,45-59
+  s_c543c1cadaca90::t_5abf1bfb334a65 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "2c1eaa8b35631035eff687138f70b863c0a6cf91",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

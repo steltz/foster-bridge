@@ -1,0 +1,45 @@
+knowledge-base/es/07012026/06302026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_3761db27b292bd 1-854
+knowledge-base/es/07132026/07132026_ES_TP.md
+  s_7ec8b00f3c3e85::t_9b27439bc38685 1-115
+knowledge-base/es/07072026/07062026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_cc6f844fa667b5 1-467
+knowledge-base/es/07062026/07022026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_dec03fe8a00e29 1-895
+knowledge-base/es/07082026/07082026_ES_TP.md
+  s_7ec8b00f3c3e85::t_415caf92ac844f 1-100
+knowledge-base/es/07092026/07082026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_8e02f953a7957b 1-658
+knowledge-base/es/07072026/07072026_ES_TP.md
+  s_7ec8b00f3c3e85::t_cc6f844fa667b5 1-110
+knowledge-base/es/07022026/07012026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_50fe13f2aef659 1-674
+knowledge-base/es/07062026/07062026_ES_TP.md
+  s_7ec8b00f3c3e85::t_dec03fe8a00e29 1-95
+knowledge-base/es/07082026/07072026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_415caf92ac844f 1-530
+knowledge-base/es/07022026/07022026_ES_TP.md
+  s_7ec8b00f3c3e85::t_50fe13f2aef659 1-92
+knowledge-base/es/07012026/07012026_ES_TP.md
+  s_7ec8b00f3c3e85::t_3761db27b292bd 1-116
+knowledge-base/es/07092026/07092026_ES_TP.md
+  s_7ec8b00f3c3e85::t_8e02f953a7957b 1-74
+knowledge-base/es/07132026/07102026_ES_RECAP.md
+  s_7ec8b00f3c3e85::t_9b27439bc38685 1-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "27ea34ab257c049d634d7ee11670711ef98cce1c",
+  "prompts": {},
+  "sessions": {
+    "s_7ec8b00f3c3e85": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05a78f3b-df5e-4dcd-803d-fbbe64a1af97",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

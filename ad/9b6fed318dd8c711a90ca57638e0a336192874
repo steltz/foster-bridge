@@ -1,0 +1,29 @@
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_3d0b66e48071be::t_b3d9e8fce4746e 82
+  s_3d0b66e48071be::t_9a74e810ad6920 109
+  s_3d0b66e48071be::t_9256b510ed0d67 90
+  s_3d0b66e48071be::t_dd6b0a117fcc06 101
+backend/src/demo/anthropic-demo.controller.spec.ts
+  s_3d0b66e48071be::t_f83e325638b367 56
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_3d0b66e48071be::t_f3d87d34a3c586 35,74,80-82,98,116,130-131,139,156,171
+backend/src/demo/anthropic-demo.controller.ts
+  s_3d0b66e48071be::t_4e1e0c889ace05 30
+  s_3d0b66e48071be::t_67c05dd4112a55 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ad9b6fed318dd8c711a90ca57638e0a336192874",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

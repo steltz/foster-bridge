@@ -1,0 +1,19 @@
+.claude/skills/seven-keys/SKILL.md
+  s_197c3997da6101::t_6ee55d95b9d1f4 55-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "958d591e4603c0901bda44af5a1de4dcb972d423",
+  "prompts": {},
+  "sessions": {
+    "s_197c3997da6101": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac7c2c3d-c280-4978-9571-7331150c872c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

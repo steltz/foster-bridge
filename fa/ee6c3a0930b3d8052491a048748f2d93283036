@@ -1,0 +1,27 @@
+backend/src/app.module.ts
+  s_4aa6f7a9791a45::t_b411ca740422eb 8,14,22,29
+backend/src/market-data/market-data.controller.ts
+  s_4aa6f7a9791a45::t_58052363a4fed5 1-39
+backend/src/market-data/market-data.module.ts
+  s_4aa6f7a9791a45::t_7edcfe5311cdf5 1-8
+backend/package.json
+  s_4aa6f7a9791a45::t_0f3bfdc765afe9 34
+backend/pnpm-lock.yaml
+  s_4aa6f7a9791a45::t_cc282bf97b6cd6 54-56,702-704,3803-3806
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "faee6c3a0930b3d8052491a048748f2d93283036",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

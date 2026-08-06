@@ -1,0 +1,37 @@
+knowledge-base/es/07082026/07082026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+knowledge-base/es/07132026/07132026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,12-13
+knowledge-base/es/07012026/07012026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,12-13
+knowledge-base/es/07062026/07062026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,12-13
+knowledge-base/es/07142026/07142026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+knowledge-base/es/07152026/07152026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+knowledge-base/es/07022026/07022026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+knowledge-base/es/07162026/07162026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,12-13
+knowledge-base/es/07072026/07072026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+knowledge-base/es/07092026/07092026_ES_PANEL.md
+  s_d39c86dd0dba3d::t_058b52c166c804 5-6,8,12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "977da526f0602aa0744f0117ac5301b0c89bcc75",
+  "prompts": {},
+  "sessions": {
+    "s_d39c86dd0dba3d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "076c7ca7-f15a-4e47-8586-71bbb2ffc221",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

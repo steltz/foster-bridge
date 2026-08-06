@@ -1,0 +1,21 @@
+backend/src/cost/cost.service.spec.ts
+  s_3d0b66e48071be::t_43644815068d12 1-87
+backend/src/cost/cost.service.ts
+  s_3d0b66e48071be::t_1ead5bcc995d33 1-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "937af8d6b699be4d9e20bcb31bc12abf5846c421",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

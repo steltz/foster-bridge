@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-18-trader-lineage.md
+  s_64999805f7ff1b::t_c3badbaa241964 628-632
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "62df3d7c3a118f939a8108339ddc15841219aa9c",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

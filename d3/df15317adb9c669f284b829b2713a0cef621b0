@@ -1,0 +1,23 @@
+backend/src/moonshot/moonshot.batch-store.spec.ts
+  s_2b4b60567393e1::t_99abbb337766c4 62-104
+backend/src/moonshot/moonshot.batch-store.ts
+  s_2b4b60567393e1::t_c115758444f310 108-115,125,131,135
+  s_2b4b60567393e1::t_0bc4c0db1428d5 28-29,37-56,65-72,74-75
+  s_2b4b60567393e1::t_b81bd642ef825b 152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "d3df15317adb9c669f284b829b2713a0cef621b0",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

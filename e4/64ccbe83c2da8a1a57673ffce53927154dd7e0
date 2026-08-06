@@ -1,0 +1,23 @@
+src/scoreboard.js
+  s_197c3997da6101::t_20350a2d419ebf 147,157-158,160-169,172-174,176,178,183,185,187,192-206,210-215
+  s_197c3997da6101::t_306a3abe34c3e1 285
+  s_197c3997da6101::t_6416016017798b 317-337
+test/scoreboard.test.js
+  s_197c3997da6101::t_22e50228356521 440-525
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e464ccbe83c2da8a1a57673ffce53927154dd7e0",
+  "prompts": {},
+  "sessions": {
+    "s_197c3997da6101": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac7c2c3d-c280-4978-9571-7331150c872c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

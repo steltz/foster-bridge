@@ -1,0 +1,27 @@
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_2b4b60567393e1::t_1ab373fc4d35a1 97,107,123-132
+  s_2b4b60567393e1::t_c558b0cb26db13 74-78,86
+  s_2b4b60567393e1::t_270d6a5b3960c4 133-134
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_2b4b60567393e1::t_553038945a63b8 115
+  s_2b4b60567393e1::t_59bcd1380e2d8b 282
+  s_2b4b60567393e1::t_1091e99a462630 48-50
+  s_2b4b60567393e1::t_c23b2ec0f1e89e 51-54,56,60
+  s_2b4b60567393e1::t_5ce2849959574a 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0e6d7c8d886b20ab4b4684f3a84f7db546c250b4",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

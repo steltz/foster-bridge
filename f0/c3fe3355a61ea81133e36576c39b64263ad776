@@ -1,0 +1,27 @@
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_ce3a098bcc8e14::t_8280bddd76a479 61,63,65
+  s_ce3a098bcc8e14::t_5f6ab726c00722 105,107,109,112,114,119-126,135-142,148-156
+  s_ce3a098bcc8e14::t_9eb39c10c89927 32
+  s_ce3a098bcc8e14::t_791f0e72c91d86 1,5-7
+  s_ce3a098bcc8e14::t_74321816725e3e 51-52
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_ce3a098bcc8e14::t_bfdb705a3f4c82 144-147
+  s_ce3a098bcc8e14::t_d8809ad9d6dbb7 170,174,176,188,193,204,209
+  s_ce3a098bcc8e14::t_b260d2dada2275 11-12,24-30,33-36,40-56,58,71,78,95,98,103-108,114,125-126,132,156,159-161,163,169,171,187,189,203,205,218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "f0c3fe3355a61ea81133e36576c39b64263ad776",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

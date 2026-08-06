@@ -1,0 +1,31 @@
+backend/src/anthropic/anthropic.service.spec.ts
+  s_c543c1cadaca90::t_d8f7a657c172d3 136-140,143,153-157
+docs/superpowers/plans/2026-07-25-anthropic-client-module.md
+  s_c543c1cadaca90::t_576b6cf124b9d7 1079-1087
+  s_c543c1cadaca90::t_8ca627048f9a87 503-509
+  s_c543c1cadaca90::t_4d80d12f05218a 468-472,475,485-489
+  s_c543c1cadaca90::t_8f5def588cd300 587-595
+  s_c543c1cadaca90::t_db515736647d38 532-533
+backend/src/anthropic/anthropic.service.ts
+  s_c543c1cadaca90::t_b90d0a080b6879 1-7
+  s_c543c1cadaca90::t_4331309307f7b7 48-49
+  s_c543c1cadaca90::t_23bf92b66d1ee6 169-177
+backend/test/anthropic-ready.e2e-spec.ts
+  s_c543c1cadaca90::t_50dda715c349cd 28-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9854ba31f720cd214d0d5cc2e120f9dc1230e739",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

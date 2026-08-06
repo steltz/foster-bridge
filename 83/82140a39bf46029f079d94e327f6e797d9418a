@@ -1,0 +1,23 @@
+batch-service/src/batches/anthropic-client.provider.ts
+  s_02dcfeb5026a6d::t_861131b702311f 1-20
+batch-service/src/batches/anthropic-batches.service.ts
+  s_02dcfeb5026a6d::t_0c4c458015bef3 1-49
+batch-service/src/batches/anthropic-batches.service.spec.ts
+  s_02dcfeb5026a6d::t_fe5a994a54bce4 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "8382140a39bf46029f079d94e327f6e797d9418a",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

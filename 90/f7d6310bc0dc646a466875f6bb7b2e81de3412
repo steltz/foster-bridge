@@ -1,0 +1,55 @@
+backend/src/anthropic/anthropic.service.ts
+  s_3d0b66e48071be::t_02c18f80768ee2 357,361
+  s_3d0b66e48071be::t_d6c94641fad37b 31
+  s_3d0b66e48071be::t_d5bae869ce2c04 160
+  s_3d0b66e48071be::t_343a7f956f7a3a 450,459
+  s_3d0b66e48071be::t_4f2e9953a67a11 9-10,17
+  s_3d0b66e48071be::t_749fe9a21fdbc1 108
+  s_3d0b66e48071be::t_13e28600d59497 199
+  s_3d0b66e48071be::t_ee3625b38a491a 139-140
+  s_3d0b66e48071be::t_9404b9d5786b60 322
+  s_3d0b66e48071be::t_8a729073b3b714 482-500
+  s_3d0b66e48071be::t_5db36e9f4fb2d0 96-97
+backend/src/anthropic/anthropic.service.spec.ts
+  s_3d0b66e48071be::t_e851b23edfadc9 713,726
+  s_3d0b66e48071be::t_f5bf0dbd972ec1 768-801
+  s_3d0b66e48071be::t_87797f830c118f 294
+  s_3d0b66e48071be::t_7ad82459a40d33 674
+  s_3d0b66e48071be::t_0d9883846d0a3f 22
+  s_3d0b66e48071be::t_7615fd64ebe1dc 314
+  s_3d0b66e48071be::t_f16af51969c284 596
+  s_3d0b66e48071be::t_1a61eaf27615ad 398
+  s_3d0b66e48071be::t_b13251d9b0003d 346
+  s_3d0b66e48071be::t_6a812355a6ddda 472-478
+  s_3d0b66e48071be::t_336df322aa78a5 104
+  s_3d0b66e48071be::t_03cd9b319a3933 383
+  s_3d0b66e48071be::t_307a9070948fed 546
+  s_3d0b66e48071be::t_53701258fccd5b 579
+  s_3d0b66e48071be::t_2a69578be7c8e5 150
+  s_3d0b66e48071be::t_e37e1fd2b7968f 132
+  s_3d0b66e48071be::t_4992f3a83e6ec0 160,178
+  s_3d0b66e48071be::t_93cd5adf324264 364
+  s_3d0b66e48071be::t_7c36eaf4355bab 76
+  s_3d0b66e48071be::t_480388455ae897 519
+  s_3d0b66e48071be::t_7aadd60f94f2f8 694
+  s_3d0b66e48071be::t_879801cc77a231 563
+  s_3d0b66e48071be::t_cdf39a064c16f7 742
+  s_3d0b66e48071be::t_69f26b64d846f2 335
+  s_3d0b66e48071be::t_5ae4fc83504f5b 758
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "90f7d6310bc0dc646a466875f6bb7b2e81de3412",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

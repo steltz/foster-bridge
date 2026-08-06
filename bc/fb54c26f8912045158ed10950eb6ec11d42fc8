@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-07-18-seven-keys-design.md
+  s_e36e6d6bd558a0::t_e97650cc28c363 53-54
+  s_e36e6d6bd558a0::t_5fdd6e70a51572 1-52,55-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bcfb54c26f8912045158ed10950eb6ec11d42fc8",
+  "prompts": {},
+  "sessions": {
+    "s_e36e6d6bd558a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbe40adc-7ccc-49cd-811f-28651a289de6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

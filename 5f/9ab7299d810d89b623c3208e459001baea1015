@@ -1,0 +1,24 @@
+batch-service/src/app.module.ts
+  s_02dcfeb5026a6d::t_6854aff6971839 3-7,10-12
+batch-service/src/batches/batches.service.ts
+  s_02dcfeb5026a6d::t_b1e4e01cf68fdd 146-149
+  s_02dcfeb5026a6d::t_b2e594557ae311 1-145,150-167
+batch-service/src/batches/batches.service.spec.ts
+  s_02dcfeb5026a6d::t_8a945f54b88529 1-277
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "5f9ab7299d810d89b623c3208e459001baea1015",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

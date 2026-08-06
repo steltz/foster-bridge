@@ -1,0 +1,34 @@
+src/session.js
+  s_f0fa624977dd61::t_125c2d6dadc426 18-34,40-46
+  s_f0fa624977dd61::t_acd475dc41bc89 47
+test/session.test.js
+  s_f0fa624977dd61::t_760a8be888f469 15-20
+  s_f0fa624977dd61::t_873bc9bf88978e 3
+test/engine.test.js
+  s_f0fa624977dd61::t_0c456bfd31f6d8 83-116
+test/cli.test.js
+  s_f0fa624977dd61::t_9894a9842a4d0e 14-15,17,33,40-61
+  s_f0fa624977dd61::t_0dfd2c93f474cd 62
+src/engine.js
+  s_f0fa624977dd61::t_94fa1a62cadb49 1-2,8-13,15,20-22
+  s_f0fa624977dd61::t_ab43e835b69c77 42,44
+src/run-command.js
+  s_f0fa624977dd61::t_8e99a1d4ecf2b4 67-70
+  s_f0fa624977dd61::t_955bee5fc50d74 11-27,38,49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "cff1f9a4c3f022d0d31b01cd6fb3db6c54fe6420",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

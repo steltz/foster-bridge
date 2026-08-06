@@ -1,0 +1,20 @@
+backend/README.md
+  s_4aa6f7a9791a45::t_2792393e05e5c6 86
+  s_4aa6f7a9791a45::t_6073de8ebe06e3 140-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1fb41ac2ff97cf7f9f5a9b0c0257feed424f57d2",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

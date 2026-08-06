@@ -1,0 +1,20 @@
+docs/superpowers/plans/2026-07-25-nestjs-firebase-backend.md
+  s_c543c1cadaca90::t_98ec492b30790f 87
+  s_c543c1cadaca90::t_8d74dc99d288c8 623-629
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d4fefbb343c71aad835556df3310d8aae9c79333",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

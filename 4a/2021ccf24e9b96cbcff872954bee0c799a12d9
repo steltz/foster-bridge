@@ -1,0 +1,24 @@
+backend/src/app.module.ts
+  s_3d0b66e48071be::t_7bd4956ef761af 4
+  s_3d0b66e48071be::t_08ea496e18a0f1 24
+backend/package.json
+  s_3d0b66e48071be::t_9916d26d8aa8dd 23
+backend/pnpm-lock.yaml
+  s_3d0b66e48071be::t_1818e53b9e1dce 26-28,524-529,1386-1388,3616-3621,4543-4544
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4a2021ccf24e9b96cbcff872954bee0c799a12d9",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

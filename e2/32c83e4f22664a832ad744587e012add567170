@@ -1,0 +1,22 @@
+batch-service/src/batches/batch-domain.ts
+  s_02dcfeb5026a6d::t_847e0d55aa789f 98
+  s_02dcfeb5026a6d::t_85185ff45217ef 1-97,99-108
+batch-service/src/batches/batch-domain.spec.ts
+  s_02dcfeb5026a6d::t_6ff2f863e494b5 1-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e232c83e4f22664a832ad744587e012add567170",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

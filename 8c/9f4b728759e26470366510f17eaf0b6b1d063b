@@ -1,0 +1,22 @@
+backend/src/eminiplayer/playwright.service.spec.ts
+  s_006eebfa7fedbf::t_a47037e86c2ba9 1-134
+backend/src/eminiplayer/playwright.service.ts
+  s_006eebfa7fedbf::t_bbe863821012a8 1-26,31-73
+  s_006eebfa7fedbf::t_1dbd72d5cad3ac 27-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8c9f4b728759e26470366510f17eaf0b6b1d063b",
+  "prompts": {},
+  "sessions": {
+    "s_006eebfa7fedbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "877a2820-15c0-47a1-bcd0-d68d026984e1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

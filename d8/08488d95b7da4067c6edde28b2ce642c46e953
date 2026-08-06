@@ -1,0 +1,21 @@
+backend/src/benchmark/envelope.builder.ts
+  s_e4554598cea289::t_336d8b4c7f0b3f 92-100
+backend/src/benchmark/envelope.builder.spec.ts
+  s_e4554598cea289::t_84382a6107a5bc 49-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d808488d95b7da4067c6edde28b2ce642c46e953",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

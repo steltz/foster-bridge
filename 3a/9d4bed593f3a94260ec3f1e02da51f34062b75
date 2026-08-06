@@ -1,0 +1,20 @@
+docs/superpowers/plans/2026-07-26-trader-bench-backend-port-core-pipeline.md
+  s_e4554598cea289::t_955f7c4471b6e1 90,95-96,177-178,1310,1317,1346,1351-1352,2183,2206-2207,2210,2346-2347,2923,2952,3015
+  s_e4554598cea289::t_54cbc7c56a4232 171-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3a9d4bed593f3a94260ec3f1e02da51f34062b75",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

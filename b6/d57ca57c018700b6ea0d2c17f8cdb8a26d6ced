@@ -1,0 +1,23 @@
+knowledge-base/es/07202026/07202026_ES_KEYS.fable.md
+  s_8feee8b29102a3::t_98db60c98d24cd 1-54
+knowledge-base/es/07222026/07222026_ES_KEYS.fable.md
+  s_8feee8b29102a3::t_98db60c98d24cd 1-49
+knowledge-base/es/07212026/07212026_ES_KEYS.fable.md
+  s_8feee8b29102a3::t_98db60c98d24cd 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b6d57ca57c018700b6ea0d2c17f8cdb8a26d6ced",
+  "prompts": {},
+  "sessions": {
+    "s_8feee8b29102a3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6024e629-943f-43b7-9a88-a423a705682d",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

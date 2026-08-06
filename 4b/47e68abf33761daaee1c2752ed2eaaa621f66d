@@ -1,0 +1,36 @@
+batch-service/src/main.ts
+  s_02dcfeb5026a6d::t_80bff1e4012559 1-11
+batch-service/tsconfig.json
+  s_02dcfeb5026a6d::t_fe29646cafa1a3 1-22
+batch-service/nest-cli.json
+  s_02dcfeb5026a6d::t_42cc65766fa2c0 1-5
+batch-service/src/app.module.ts
+  s_02dcfeb5026a6d::t_64f43c905b9114 1-7
+batch-service/package.json
+  s_02dcfeb5026a6d::t_df1f996eba029c 29-39,51
+  s_02dcfeb5026a6d::t_080190e2219bd0 1-2,7,26-28,52
+  s_02dcfeb5026a6d::t_37abc7cdfd9e2c 15-19,22-24
+  s_02dcfeb5026a6d::t_83de79ae57e283 3-6,8-14,20-21,25
+  s_02dcfeb5026a6d::t_de685fb422e012 40-49
+  s_02dcfeb5026a6d::t_bc2dd22a7555e4 50
+.gitignore
+  s_02dcfeb5026a6d::t_8c3482b682856a 3-5
+batch-service/package-lock.json
+  s_02dcfeb5026a6d::t_d51ea214e29f10 1-15098
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4b47e68abf33761daaee1c2752ed2eaaa621f66d",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

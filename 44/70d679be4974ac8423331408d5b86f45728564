@@ -1,0 +1,21 @@
+backend/test/market-data.e2e-spec.ts
+  s_4aa6f7a9791a45::t_d847965cf3bab3 1-43
+backend/test/fake-firestore.ts
+  s_4aa6f7a9791a45::t_c6013c525014c5 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4470d679be4974ac8423331408d5b86f45728564",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

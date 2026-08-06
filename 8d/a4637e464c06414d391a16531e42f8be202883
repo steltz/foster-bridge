@@ -1,0 +1,48 @@
+docs/superpowers/specs/2026-07-18-bench-feature-matrix-design.md
+  s_862f8fdc339070::t_dfde7432e2a284 98-104
+  s_862f8fdc339070::t_c06c6f8b36735f 276-283,286-296
+  s_862f8fdc339070::t_4611209585f4e2 181-185
+  s_862f8fdc339070::t_5912e44c887cce 251-256
+  s_862f8fdc339070::t_96027c07cd5815 348-363
+  s_862f8fdc339070::t_b6865aedf91937 383-384
+  s_862f8fdc339070::t_289bf3998a75b2 235-236
+  s_862f8fdc339070::t_0356855b139796 397-399,402-406,410-411
+  s_862f8fdc339070::t_7a640696a9edff 189,191-198
+docs/superpowers/plans/2026-07-18-bench-feature-matrix.md
+  s_862f8fdc339070::t_58aa7ec103d844 803-818,820-823,837-849
+  s_862f8fdc339070::t_0dc5f5c8ca2297 23
+  s_862f8fdc339070::t_9229ec829a4ea7 778-780
+  s_862f8fdc339070::t_85f547504a912f 1454-1461
+  s_862f8fdc339070::t_b29fdf24d2c134 1693
+  s_862f8fdc339070::t_590aae9d7ea7a3 497-498,503-518,528-533,536
+  s_862f8fdc339070::t_b8cd2424e6b87b 1531-1534
+  s_862f8fdc339070::t_4f3c24d539af9d 1659-1665
+  s_862f8fdc339070::t_c75cfb14caea10 1493-1497
+  s_862f8fdc339070::t_f3de5555e00241 153-154,160-161,176-198,201,211,218-219
+  s_862f8fdc339070::t_f8fbf579287a96 100-137
+  s_862f8fdc339070::t_cbf7c764fd0d07 226
+  s_862f8fdc339070::t_c52690317400de 1563-1574
+  s_862f8fdc339070::t_5d0e432c7aa703 266
+  s_862f8fdc339070::t_ded4e34bc8c377 550
+  s_862f8fdc339070::t_5db28626c8f14e 925-932
+  s_862f8fdc339070::t_4d755439a07fed 938-939,942
+  s_862f8fdc339070::t_e85f91ec4fd2da 1776-1779,1781-1782,1785
+  s_862f8fdc339070::t_0375483c5611a2 534-535
+  s_862f8fdc339070::t_70863868b93590 537
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "8da4637e464c06414d391a16531e42f8be202883",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

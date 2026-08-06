@@ -1,0 +1,30 @@
+backend/src/anthropic/anthropic.service.spec.ts
+  s_ce3a098bcc8e14::t_259971f82fc9fe 784
+  s_ce3a098bcc8e14::t_3a8ca794232acd 787,799,806
+backend/src/anthropic/anthropic.service.ts
+  s_ce3a098bcc8e14::t_67a7501f2657fb 667
+backend/src/cost/cost.service.ts
+  s_ce3a098bcc8e14::t_8db0c41aac1893 44
+backend/src/cost/cost.types.ts
+  s_ce3a098bcc8e14::t_f68af733e9f09a 27
+backend/src/benchmark/batch-reconciler.spec.ts
+  s_ce3a098bcc8e14::t_3a8ca794232acd 292
+backend/src/benchmark/batch-reconciler.ts
+  s_ce3a098bcc8e14::t_fb5aa2e4b5ab59 119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "77f76e62247a7bed8e498d393aff212b7397ba1b",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

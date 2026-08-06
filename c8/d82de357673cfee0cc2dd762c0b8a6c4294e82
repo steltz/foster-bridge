@@ -1,0 +1,22 @@
+test/scoreboard-command.test.js
+  s_64999805f7ff1b::t_60a9fcdba8bc3a 81-115
+src/scoreboard-command.js
+  s_64999805f7ff1b::t_c53a1db78dc815 5
+  s_64999805f7ff1b::t_e863d94f445802 42-45,48,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c8d82de357673cfee0cc2dd762c0b8a6c4294e82",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

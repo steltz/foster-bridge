@@ -1,0 +1,21 @@
+src/engine.js
+  s_ef9323a47291a6::t_1fa95a790fdfae 30-41,51-52,55-70,82-85,104-109,114-115,117-118,122-126,129
+test/engine.test.js
+  s_ef9323a47291a6::t_a1cf33c2a55e18 15-16,27-28,39-40,80-81,92-93,104-105,116-117,126-130,143-144,200-201,262-281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8e6e99f8f84f35cad0a2d0e1022493384bcef2cf",
+  "prompts": {},
+  "sessions": {
+    "s_ef9323a47291a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec53e83f-353d-4e0a-8de4-a6e3ff045e39",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

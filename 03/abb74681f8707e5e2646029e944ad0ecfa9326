@@ -1,0 +1,21 @@
+features/seven-keys-method.md
+  s_862f8fdc339070::t_8fa9880af2be4e 1-8
+features/seven-keys-scorecard.md
+  s_862f8fdc339070::t_92c35426fd7fe1 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "03abb74681f8707e5e2646029e944ad0ecfa9326",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

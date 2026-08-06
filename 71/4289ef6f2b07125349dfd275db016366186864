@@ -1,0 +1,27 @@
+backend/src/benchmark/seven-keys/seven-keys.spec.ts
+  s_d590fbd24c631b::t_ad3f8a77eb0a40 1-43,56-81
+  s_d590fbd24c631b::t_ea1a3e604181e6 44-55
+backend/src/benchmark/seven-keys/schemas.ts
+  s_d590fbd24c631b::t_c369e0480d898d 1-67
+backend/src/benchmark/seven-keys/prompts.ts
+  s_d590fbd24c631b::t_9a5c62a8439946 11
+  s_d590fbd24c631b::t_c4c0525d0e3734 33
+  s_d590fbd24c631b::t_29dd28f319c9ba 1-10,12-32,34-82,84,86-111
+  s_d590fbd24c631b::t_b9baf00203c357 83,85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "714289ef6f2b07125349dfd275db016366186864",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    }
+  }
+}

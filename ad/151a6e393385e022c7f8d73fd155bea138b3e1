@@ -1,0 +1,23 @@
+.claude/skills/trader-panel/SKILL.md
+  s_f0fa624977dd61::t_de7b5498ecb745 81-85
+  s_f0fa624977dd61::t_50e1d763944775 63-65,67
+  s_f0fa624977dd61::t_ea1c5c538d9d3e 102-105,109
+  s_f0fa624977dd61::t_1ac6b4d85b67c8 54-58
+  s_f0fa624977dd61::t_323a45eac4a6de 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ad151a6e393385e022c7f8d73fd155bea138b3e1",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

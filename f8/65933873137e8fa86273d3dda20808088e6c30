@@ -1,0 +1,21 @@
+knowledge-base/es/07212026/07202026_ES_RECAP.md
+  s_ef9323a47291a6::t_5b9aca15f3a1cc 1-676
+knowledge-base/es/07212026/07212026_ES_TP.md
+  s_ef9323a47291a6::t_915fcd507b73f1 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f865933873137e8fa86273d3dda20808088e6c30",
+  "prompts": {},
+  "sessions": {
+    "s_ef9323a47291a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec53e83f-353d-4e0a-8de4-a6e3ff045e39",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

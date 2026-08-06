@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-07-18-bench-feature-matrix-design.md
+  s_862f8fdc339070::t_ea6c6398629675 366
+  s_862f8fdc339070::t_2533608f862083 379-399
+  s_862f8fdc339070::t_547f71d708389f 434-438
+docs/superpowers/plans/2026-07-18-bench-feature-matrix.md
+  s_862f8fdc339070::t_8ec3d76d1d7554 535-536
+  s_862f8fdc339070::t_3e630976b790a7 1053-1054,1057-1058
+  s_862f8fdc339070::t_f41e77808a6664 1042-1045
+  s_862f8fdc339070::t_e407435b83abf8 641
+  s_862f8fdc339070::t_bc06a379b8a462 894-895,897-899,902-912,918-924,926-930,933,942,946-948,953-957,962-964
+  s_862f8fdc339070::t_d215b0b3d811c0 553
+  s_862f8fdc339070::t_19c6d87e8dec8c 580-632
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0d910b8db1c241f2dfe76822cef592d6f62a6ef1",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

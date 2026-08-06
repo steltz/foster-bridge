@@ -1,0 +1,28 @@
+batch-service/src/batches/batch-domain.spec.ts
+  s_02dcfeb5026a6d::t_2aa1511154469a 54-68
+  s_02dcfeb5026a6d::t_634e030fe3f9b4 123-178
+  s_02dcfeb5026a6d::t_8d2d7329dba006 107-114
+batch-service/src/batches/batch-domain.ts
+  s_02dcfeb5026a6d::t_3523a52d790f9e 128
+  s_02dcfeb5026a6d::t_d46d2680803d03 135-142
+  s_02dcfeb5026a6d::t_c7ef1023befa77 56-63
+  s_02dcfeb5026a6d::t_5e1cebfe2c5d73 104-123
+  s_02dcfeb5026a6d::t_128d6d2dd3c898 29-30,35-38
+  s_02dcfeb5026a6d::t_7fae01ba67dda5 39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "f53416b236d3f65386a1e930e9f004f8b1fce02e",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

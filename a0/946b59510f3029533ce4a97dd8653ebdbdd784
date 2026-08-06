@@ -1,0 +1,23 @@
+backend/src/common/google-error.filter.ts
+  s_c543c1cadaca90::t_2e8b6a5e4bbe84 1-58
+backend/src/common/google-error.filter.spec.ts
+  s_c543c1cadaca90::t_8fed873fd801a0 1-42
+backend/src/main.ts
+  s_c543c1cadaca90::t_11c73dd79aa48a 4,8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "a0946b59510f3029533ce4a97dd8653ebdbdd784",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
