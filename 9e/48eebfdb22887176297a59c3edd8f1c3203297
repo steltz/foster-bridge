@@ -1,0 +1,50 @@
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline.md
+  s_52f359e82ac2c6::t_36d52b78d29a5e 247,250,254
+  s_52f359e82ac2c6::t_127892bf1bf57e 675
+  s_52f359e82ac2c6::t_8d147afb6cc633 553,557-562,566
+  s_52f359e82ac2c6::t_5c57d1d43258f5 825-826,836-837,846,853-856,861,870-879,893-894,910-932,952-954,966,968,975,982
+  s_52f359e82ac2c6::t_e2607e47f13693 1246-1248,1253,1258
+  s_52f359e82ac2c6::t_d90d45ca7c9417 1213,1215,1229-1233,1236-1239
+  s_52f359e82ac2c6::t_041afb6efa43c6 1051-1052
+  s_52f359e82ac2c6::t_51eda1b523e747 176-180
+  s_52f359e82ac2c6::t_29be0f21002c6c 1063-1064,1069
+  s_52f359e82ac2c6::t_2f657d99fe2f66 1113,1115
+  s_52f359e82ac2c6::t_9ab36fe5ce60d0 1177,1188
+  s_52f359e82ac2c6::t_ec76ad288435ba 446-467,480-485,494,504
+  s_52f359e82ac2c6::t_76f30e06e46407 21,128,221,370,515,812,1009,1137,1198
+  s_52f359e82ac2c6::t_51e7f665882354 736,739,741-771
+  s_52f359e82ac2c6::t_4b21ca05b74dd2 393-405
+  s_52f359e82ac2c6::t_b05de8208bdc82 608,612-622,625-633
+  s_52f359e82ac2c6::t_5b5081ea73bddb 1149,1155-1156
+  s_52f359e82ac2c6::t_b7feab7f99131b 585-586
+  s_52f359e82ac2c6::t_b4743f513b8b80 1012-1028,1031
+  s_52f359e82ac2c6::t_5fbb5aec5496f3 256-287,289,320-321,328-331,333-338,340-341,348-356,368,371
+  s_52f359e82ac2c6::t_eef9a578b58a87 548-549
+docs/superpowers/specs/2026-08-06-eminiplayer-ingest-pipeline-design.md
+  s_52f359e82ac2c6::t_7f499fe6d75bcb 39-40,42
+  s_52f359e82ac2c6::t_2e96071ef33105 23-25
+  s_52f359e82ac2c6::t_cb33700bd8edb3 94-96,99-101
+  s_52f359e82ac2c6::t_c2cb9b4410eacf 113-115,117
+  s_52f359e82ac2c6::t_d43c237cb2a452 48-50
+  s_52f359e82ac2c6::t_57c96cb87938e2 61,63,74,85-87
+  s_52f359e82ac2c6::t_61620f6adac0fc 88
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline-review.md
+  s_52f359e82ac2c6::t_2aecad94dc9c2f 122-142
+  s_52f359e82ac2c6::t_3a79734bd24e47 1-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9e48eebfdb22887176297a59c3edd8f1c3203297",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
