@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline-followups.md
+  s_52f359e82ac2c6::t_553d7732cb05cf 1-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f52e72fa060c3f0d9fd0966c6e1cf7bf0f3e96ed",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
