@@ -1,0 +1,19 @@
+runs/SCOREBOARD.md
+  s_41ad3f432c0081::t_4e2703399dbd01 3,11,23,30,36-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bdd573758806c1a0d2d7fa6b9658a7f61631212b",
+  "prompts": {},
+  "sessions": {
+    "s_41ad3f432c0081": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0e7bf711-92c7-45fd-8e83-1c8eb9310c54",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

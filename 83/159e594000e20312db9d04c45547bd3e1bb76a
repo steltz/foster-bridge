@@ -1,0 +1,21 @@
+.claude/skills/trader-panel/SKILL.md
+  s_7c17fe270248b3::t_2736c6cd2a993f 145
+docs/superpowers/plans/2026-07-17-trader-panel-skill.md
+  s_7c17fe270248b3::t_ab53e978ee3780 275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "83159e594000e20312db9d04c45547bd3e1bb76a",
+  "prompts": {},
+  "sessions": {
+    "s_7c17fe270248b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8aa8cc3-c947-4eb4-8da2-65815dd5e31c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

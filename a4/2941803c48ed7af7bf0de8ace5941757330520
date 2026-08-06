@@ -1,0 +1,32 @@
+backend/src/benchmark/batch-reconciler.ts
+  s_ce3a098bcc8e14::t_a11cddf64f6648 52
+  s_ce3a098bcc8e14::t_af8eb9863603dc 8
+backend/src/benchmark/benchmark.service.ts
+  s_ce3a098bcc8e14::t_6e394abd4bb22d 10
+  s_ce3a098bcc8e14::t_223097c9452a74 59
+backend/src/benchmark/benchmark.service.spec.ts
+  s_ce3a098bcc8e14::t_0f75f6f6639848 298-304
+backend/src/llm/fake-llm.provider.ts
+  s_ce3a098bcc8e14::t_0370073bacf1c2 26
+backend/src/benchmark/cache-warmer.ts
+  s_ce3a098bcc8e14::t_b799285d13aaf2 10
+  s_ce3a098bcc8e14::t_eb9a0e9ac442f8 42
+backend/src/llm/require-capabilities.ts
+  s_ce3a098bcc8e14::t_8db75906f9568c 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "a42941803c48ed7af7bf0de8ace5941757330520",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

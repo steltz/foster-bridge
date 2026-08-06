@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-18-bench-feature-matrix-design.md
+  s_a6a323e8a84be8::t_e668b052167592 64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "2fa107be0d392d314064c3ee4d49bde54460e22f",
+  "prompts": {},
+  "sessions": {
+    "s_a6a323e8a84be8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84d75916-d3f5-4407-afe0-ffcf1a4aa052",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

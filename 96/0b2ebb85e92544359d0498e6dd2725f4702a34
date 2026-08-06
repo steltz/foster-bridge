@@ -1,0 +1,24 @@
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_d590fbd24c631b::t_2fd2272b91cda9 200-219,232-321
+  s_d590fbd24c631b::t_157418240dbef0 220-231
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_d590fbd24c631b::t_a5e32d74bb2dca 187
+  s_d590fbd24c631b::t_c9625830eb64c0 113-120,122-124,135-186,188-204
+  s_d590fbd24c631b::t_3b5d9a8057cad3 121,125-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "960b2ebb85e92544359d0498e6dd2725f4702a34",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    }
+  }
+}

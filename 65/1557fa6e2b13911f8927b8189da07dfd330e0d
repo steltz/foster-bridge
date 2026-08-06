@@ -1,0 +1,22 @@
+batch-service/src/firestore/firestore.service.ts
+  s_02dcfeb5026a6d::t_8f340e49c878c9 1-54
+batch-service/src/firestore/firestore.service.spec.ts
+  s_02dcfeb5026a6d::t_e7bb6acb982543 1-5,9-14,29-58
+  s_02dcfeb5026a6d::t_7433b619228ca8 6-8,15-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "651557fa6e2b13911f8927b8189da07dfd330e0d",
+  "prompts": {},
+  "sessions": {
+    "s_02dcfeb5026a6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f5ceb874-b562-4c99-adcc-9ba9ffc4143c",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

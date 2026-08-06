@@ -1,0 +1,26 @@
+backend/test/fake-firestore.ts
+  s_e4554598cea289::t_b488dc259c2ffc 23-28
+  s_e4554598cea289::t_0fb071d2a6b4f3 2
+backend/src/benchmark/benchmark.repository.spec.ts
+  s_e4554598cea289::t_b2aa7921a2b5d9 82-106
+backend/test/fake-firestore.e2e-spec.ts
+  s_e4554598cea289::t_e955d6896f9f4c 35-53
+backend/src/benchmark/benchmark.repository.ts
+  s_e4554598cea289::t_55d1d92dcf3a9c 110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d0b6dd6140962e099afedb3e7891c5f4870913f3",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

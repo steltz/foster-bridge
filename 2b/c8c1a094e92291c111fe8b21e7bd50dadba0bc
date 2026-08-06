@@ -1,0 +1,23 @@
+backend/src/cost/pricing.ts
+  s_2b4b60567393e1::t_3abf14c4d19503 10-13
+  s_2b4b60567393e1::t_bdcaf96b12ff2b 66,70
+  s_2b4b60567393e1::t_495cb8a8bb00ea 37-43
+backend/src/cost/pricing.spec.ts
+  s_2b4b60567393e1::t_a386cbc7113554 72-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "2bc8c1a094e92291c111fe8b21e7bd50dadba0bc",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

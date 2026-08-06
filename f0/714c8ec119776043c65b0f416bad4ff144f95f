@@ -1,0 +1,23 @@
+knowledge-base/es/07162026/07162026_ES_PANEL.md
+  s_c6e256e469c79b::t_76fa3211377157 5-6,12-13,17
+knowledge-base/es/07152026/07152026_ES_PANEL.md
+  s_c6e256e469c79b::t_07b92cc23af3da 6,8,12-13,17
+knowledge-base/es/07142026/07142026_ES_PANEL.md
+  s_c6e256e469c79b::t_32baff1f167b9a 6,8,12-13,17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f0714c8ec119776043c65b0f416bad4ff144f95f",
+  "prompts": {},
+  "sessions": {
+    "s_c6e256e469c79b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cae07491-54cb-4119-a064-e43b78f9eb20",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

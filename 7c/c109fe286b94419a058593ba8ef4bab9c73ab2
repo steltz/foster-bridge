@@ -1,0 +1,29 @@
+.claude/skills/seven-keys/SKILL.md
+  s_e36e6d6bd558a0::t_d76cadd16da238 267
+  s_e36e6d6bd558a0::t_b08c8d3dd6ad11 47-56
+  s_e36e6d6bd558a0::t_17be2d107c247e 196
+  s_e36e6d6bd558a0::t_fddb14cb4c3383 250-251
+  s_e36e6d6bd558a0::t_34d14f9933a17f 25-28
+docs/superpowers/plans/2026-07-18-seven-keys.md
+  s_e36e6d6bd558a0::t_791c2c9662ecdd 305
+  s_e36e6d6bd558a0::t_5f8a094071b561 63-66
+  s_e36e6d6bd558a0::t_8caa03e13cb2d2 288-289
+  s_e36e6d6bd558a0::t_5dd0d0d5daa5e0 85-94
+  s_e36e6d6bd558a0::t_ba5b3e01697587 234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7cc109fe286b94419a058593ba8ef4bab9c73ab2",
+  "prompts": {},
+  "sessions": {
+    "s_e36e6d6bd558a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bbe40adc-7ccc-49cd-811f-28651a289de6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

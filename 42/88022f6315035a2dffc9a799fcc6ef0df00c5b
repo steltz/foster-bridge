@@ -1,0 +1,32 @@
+backend/src/moonshot/moonshot.service.ts
+  s_2b4b60567393e1::t_46d9d04d56b9eb 115-121,123-131
+  s_2b4b60567393e1::t_8f30f817695ac6 6
+  s_2b4b60567393e1::t_f1767a59830745 179-181
+  s_2b4b60567393e1::t_d23afe8e9bfc98 53-68
+  s_2b4b60567393e1::t_327cc8ad6bb1b7 156-159,167-172
+backend/src/anthropic/anthropic.service.ts
+  s_2b4b60567393e1::t_8ace783b06c8f6 354-356,364-369
+  s_2b4b60567393e1::t_1c90a36f25614f 17
+backend/src/moonshot/moonshot.service.spec.ts
+  s_2b4b60567393e1::t_d362be92938bb3 102,104,108-131
+  s_2b4b60567393e1::t_37609ba7caffbf 82-84
+  s_2b4b60567393e1::t_4ab065abdb8525 90
+  s_2b4b60567393e1::t_fda4ab9ede7f7d 18-19,23,25,33-43
+  s_2b4b60567393e1::t_f489fa73c5409b 62,66-81,85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "4288022f6315035a2dffc9a799fcc6ef0df00c5b",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

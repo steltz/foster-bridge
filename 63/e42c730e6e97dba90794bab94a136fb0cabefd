@@ -1,0 +1,22 @@
+test/engine.test.js
+  s_ef9323a47291a6::t_324a32cfdb4ebb 285-289
+  s_ef9323a47291a6::t_cbfa607bbcb9fc 282-284,290-293
+src/engine.js
+  s_ef9323a47291a6::t_c6f57a8afe2af7 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "63e42c730e6e97dba90794bab94a136fb0cabefd",
+  "prompts": {},
+  "sessions": {
+    "s_ef9323a47291a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec53e83f-353d-4e0a-8de4-a6e3ff045e39",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

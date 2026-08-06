@@ -1,0 +1,31 @@
+docs/superpowers/plans/2026-07-26-market-data-trade-execution-modules.md
+  s_4aa6f7a9791a45::t_650bb34e431361 623-627
+  s_4aa6f7a9791a45::t_44454b0d526f07 1891
+  s_4aa6f7a9791a45::t_8640150588221c 577-581
+  s_4aa6f7a9791a45::t_0f34294482ff29 928-939
+  s_4aa6f7a9791a45::t_90e9d3e1afda36 869-877
+  s_4aa6f7a9791a45::t_52a1778b666bad 1700-1702
+  s_4aa6f7a9791a45::t_6898051c939f3d 1908-1911
+  s_4aa6f7a9791a45::t_f439ad9b18c4cd 378-381
+docs/superpowers/specs/2026-07-26-market-data-trade-execution-modules-design.md
+  s_4aa6f7a9791a45::t_567eb3e83c4a22 130-134
+  s_4aa6f7a9791a45::t_d123effb19f29b 153-159
+  s_4aa6f7a9791a45::t_4a81931f0701bc 250,252-257
+  s_4aa6f7a9791a45::t_c0a8a9b5abfd75 197-200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d89ea4cfb28bbbe564ae64d00ec4eb2e4420c117",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

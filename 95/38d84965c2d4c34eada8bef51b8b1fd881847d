@@ -1,0 +1,19 @@
+.claude/skills/trader-spawn/SKILL.md
+  s_64999805f7ff1b::t_6eb47f6334332a 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "9538d84965c2d4c34eada8bef51b8b1fd881847d",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

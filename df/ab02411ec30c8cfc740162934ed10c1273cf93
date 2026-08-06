@@ -1,0 +1,21 @@
+backend/test/fake-firestore.ts
+  s_e4554598cea289::t_c879d4240c3846 1-6,16-22,31-44,48-49,51
+backend/test/fake-firestore.e2e-spec.ts
+  s_e4554598cea289::t_72b79ed9c0e199 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "dfab02411ec30c8cfc740162934ed10c1273cf93",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

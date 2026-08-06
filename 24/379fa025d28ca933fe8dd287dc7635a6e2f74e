@@ -1,0 +1,19 @@
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_2b4b60567393e1::t_41697a63e0ed58 123,125-129,132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "24379fa025d28ca933fe8dd287dc7635a6e2f74e",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

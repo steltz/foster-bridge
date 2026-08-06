@@ -1,0 +1,21 @@
+backend/src/anthropic/anthropic.service.ts
+  s_c543c1cadaca90::t_b69f61b640b6de 16-19
+docs/superpowers/plans/2026-07-25-anthropic-client-module.md
+  s_c543c1cadaca90::t_b13b7881c4a472 508-511
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "8f36f2c9e98eac1c6ab1abc9f8a2404999509397",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

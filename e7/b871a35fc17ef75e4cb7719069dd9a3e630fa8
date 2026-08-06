@@ -1,0 +1,22 @@
+src/lineage.js
+  s_64999805f7ff1b::t_6c6321a14e5a3f 39
+  s_64999805f7ff1b::t_88eb5b8868a8bb 1-38,40-69
+test/lineage.test.js
+  s_64999805f7ff1b::t_02ba7a97522fb7 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e7b871a35fc17ef75e4cb7719069dd9a3e630fa8",
+  "prompts": {},
+  "sessions": {
+    "s_64999805f7ff1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68676647-710e-45bb-8de8-87b5cc36f4b6",
+        "model": "claude-fable-5"
+      },
+      "human_author": null
+    }
+  }
+}

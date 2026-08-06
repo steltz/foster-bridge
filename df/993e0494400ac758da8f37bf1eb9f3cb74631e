@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-18-two-new-traders-design.md
+  s_f298537be0bbf7::t_1aa45c1298e527 1-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "df993e0494400ac758da8f37bf1eb9f3cb74631e",
+  "prompts": {},
+  "sessions": {
+    "s_f298537be0bbf7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d7713bd-e370-42f1-9e07-02f5e427c1f7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

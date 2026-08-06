@@ -1,0 +1,27 @@
+backend/src/anthropic/anthropic.usage.spec.ts
+  s_ce3a098bcc8e14::t_38301965c9699d 1-38
+backend/src/anthropic/anthropic.usage.ts
+  s_ce3a098bcc8e14::t_88d89243947207 1-25
+backend/src/anthropic/anthropic.service.ts
+  s_ce3a098bcc8e14::t_d63e5feacdca35 17-18,120-133,135-140,142-143,145-147,151-153,161-162,290,293,301-303,306-307,314-316,325-326,330
+backend/src/llm/llm.contract.spec.ts
+  s_ce3a098bcc8e14::t_693cddb6903005 1-22
+backend/src/anthropic/anthropic.service.spec.ts
+  s_ce3a098bcc8e14::t_597064cf1ac649 27-29,31-33,195-214,216-222,224-227,230-246,249-260,263-271,275-287,292-308,310-312,314,317-327,330-339,341,343-353,356,361-366,379-380,391,398,400,402-403,405,415-474,476-483,495,502,509,514,521-522,526-538,579
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0953e7fbaa17e98398478ec93318752802e8cfb3",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

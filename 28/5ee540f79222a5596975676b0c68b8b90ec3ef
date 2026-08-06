@@ -1,0 +1,24 @@
+backend/test/fake-firestore.ts
+  s_2b4b60567393e1::t_ccb275b61d9650 3,31-34
+  s_2b4b60567393e1::t_5bedc6d953488a 30
+backend/src/moonshot/moonshot.extract-store.spec.ts
+  s_2b4b60567393e1::t_a69862a033d45b 1-7,18-23,34-111
+backend/src/moonshot/moonshot.extract-store.ts
+  s_2b4b60567393e1::t_1ea2215ff7d033 7-11,21-43,65,67-70,75-77,79,82-89,93-94,102-103,108-114,116-125,127-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "285ee540f79222a5596975676b0c68b8b90ec3ef",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

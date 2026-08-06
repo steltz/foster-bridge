@@ -1,0 +1,23 @@
+backend/src/demo/storage-demo.controller.spec.ts
+  s_c543c1cadaca90::t_49a3618c497b58 1-54
+backend/src/demo/storage-demo.controller.ts
+  s_c543c1cadaca90::t_382eda137005c3 1-41
+backend/src/app.module.ts
+  s_c543c1cadaca90::t_41eec0b84e2786 7,14-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9f9cff2e7277c3c5d8b0c9eb43e368016df83163",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

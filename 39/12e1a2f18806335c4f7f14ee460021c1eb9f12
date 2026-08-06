@@ -1,0 +1,27 @@
+backend/src/benchmark/scoreboard/lineage.ts
+  s_e4554598cea289::t_aceddacafc8dff 1-46
+backend/src/benchmark/scoreboard/scoreboard.ts
+  s_e4554598cea289::t_18a621c12e1be0 1-381
+backend/src/benchmark/scoreboard.service.spec.ts
+  s_e4554598cea289::t_83ceabf2eb70e0 1-42
+backend/src/benchmark/scoreboard.service.ts
+  s_e4554598cea289::t_b2a35c546199b5 1-25
+backend/src/benchmark/scoreboard/scoreboard.spec.ts
+  s_e4554598cea289::t_ec0670b5a21202 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3912e1a2f18806335c4f7f14ee460021c1eb9f12",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

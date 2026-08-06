@@ -1,0 +1,21 @@
+backend/src/eminiplayer/eminiplayer.service.spec.ts
+  s_006eebfa7fedbf::t_c2b0d0f450a1fc 77
+backend/src/eminiplayer/eminiplayer.service.ts
+  s_006eebfa7fedbf::t_d871c9c7e874e9 56-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "79c54968d691cbdd37da3cafbfc2fb86e7708f25",
+  "prompts": {},
+  "sessions": {
+    "s_006eebfa7fedbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "877a2820-15c0-47a1-bcd0-d68d026984e1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

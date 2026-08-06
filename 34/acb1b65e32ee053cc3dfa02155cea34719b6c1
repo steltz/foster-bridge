@@ -1,0 +1,24 @@
+docs/superpowers/plans/2026-07-19-ingest-ticker-data.md
+  s_9f6dd26db71b2e::t_0f48f92f2a18ef 357,359-361,363,365-367,370-374,376,378-379,381,410,413,415,418-419,424
+  s_9f6dd26db71b2e::t_d3cfff38e86ef2 145,149
+  s_9f6dd26db71b2e::t_b277189dc5a9cd 483
+  s_9f6dd26db71b2e::t_71a680f4ec5f6f 232,234,236
+  s_9f6dd26db71b2e::t_e3a2b8b7be6330 537
+  s_9f6dd26db71b2e::t_8b6305105eca1c 1-144,146-148,150-231,233,235,237-356,358,362,364,368-369,375,377,380,382-409,411-412,414,416-417,420-423,425-482,484-536,538-625
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "34acb1b65e32ee053cc3dfa02155cea34719b6c1",
+  "prompts": {},
+  "sessions": {
+    "s_9f6dd26db71b2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bed48cfd-4798-41dc-a563-9f884f8debb9",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

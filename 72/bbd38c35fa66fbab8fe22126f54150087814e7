@@ -1,0 +1,30 @@
+backend/src/cost/cost.module.ts
+  s_3d0b66e48071be::t_baaf97b89370f0 1-13
+backend/src/cost/cost.controller.ts
+  s_3d0b66e48071be::t_ed52819f8972a9 51
+  s_3d0b66e48071be::t_15e75a1534c108 12
+  s_3d0b66e48071be::t_5be1b5bfe3abf9 1-11,13-50,52-53
+backend/src/cost/report-builder.provider.ts
+  s_3d0b66e48071be::t_b49f50a79a3e61 1-10
+backend/src/app.module.ts
+  s_3d0b66e48071be::t_3ee0674c0f9fbf 13
+  s_3d0b66e48071be::t_7cd1e9734d8eed 34
+backend/src/cost/cost.controller.spec.ts
+  s_3d0b66e48071be::t_dfa3a44fc4cc4d 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "72bbd38c35fa66fbab8fe22126f54150087814e7",
+  "prompts": {},
+  "sessions": {
+    "s_3d0b66e48071be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61097439-094c-4024-b328-16a231d8440e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+knowledge-base/es/07152026/07152026_ES_TP.md
+  s_f0fa624977dd61::t_1a46aaae369fd0 1-82
+knowledge-base/es/07152026/07142026_ES_RECAP.md
+  s_f0fa624977dd61::t_e16255379a1f8b 1-567
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6d0ec4c5bb8198ddb91aba3ff4b96ee5029c28ee",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

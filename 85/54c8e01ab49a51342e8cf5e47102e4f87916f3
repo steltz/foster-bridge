@@ -1,0 +1,83 @@
+backend/src/anthropic/anthropic.service.spec.ts
+  s_ce3a098bcc8e14::t_f98e38ab85858b 672,692,713,726,740,756,805
+  s_ce3a098bcc8e14::t_37c65d58f2cca5 767,769
+  s_ce3a098bcc8e14::t_a480f78f0f276d 260,278,470,655
+  s_ce3a098bcc8e14::t_c911fe19cc589c 233,652
+  s_ce3a098bcc8e14::t_3acd865ca67ef6 90
+  s_ce3a098bcc8e14::t_905d16431dc371 39
+  s_ce3a098bcc8e14::t_bf69507ef962f6 29
+  s_ce3a098bcc8e14::t_59022e2a96c75c 24
+  s_ce3a098bcc8e14::t_f06466c227ff77 780
+  s_ce3a098bcc8e14::t_b1fb7af04a3e99 812-865
+  s_ce3a098bcc8e14::t_ff9fc292d278a0 74
+backend/src/anthropic/anthropic.service.ts
+  s_ce3a098bcc8e14::t_71a2081be733bb 175
+  s_ce3a098bcc8e14::t_56b2df172da985 18-28
+  s_ce3a098bcc8e14::t_ae7cabf19aed06 613
+  s_ce3a098bcc8e14::t_be07156053fd9f 112-119
+  s_ce3a098bcc8e14::t_6c1b071c713ef7 629
+  s_ce3a098bcc8e14::t_f7c8edbac44c7d 311-483
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_ce3a098bcc8e14::t_d44d8ae706bfee 5
+  s_ce3a098bcc8e14::t_9a61ccfc429147 30
+  s_ce3a098bcc8e14::t_a5db80d4b88253 103,118,129,137
+backend/src/benchmark/benchmark.service.ts
+  s_ce3a098bcc8e14::t_d61887158e5571 8
+  s_ce3a098bcc8e14::t_c08e75c05fc15a 47
+backend/src/benchmark/cache-warmer.ts
+  s_ce3a098bcc8e14::t_16487b6f1a7396 8
+  s_ce3a098bcc8e14::t_f9cb4119ee52f7 25
+backend/src/benchmark/batch-reconciler.ts
+  s_ce3a098bcc8e14::t_11453065c1fd64 96
+  s_ce3a098bcc8e14::t_3f63dc758efc58 23
+  s_ce3a098bcc8e14::t_f8ff73aa43cd35 6
+  s_ce3a098bcc8e14::t_b87fbb22093ff0 83
+backend/src/benchmark/batch-reconciler.spec.ts
+  s_ce3a098bcc8e14::t_6a3a1c00037ed0 35,80,148,158,270
+  s_ce3a098bcc8e14::t_eb780a5bdca055 7
+  s_ce3a098bcc8e14::t_e009cbc623aff3 56
+  s_ce3a098bcc8e14::t_1eebb30f28a4a5 36,81,127,151,161,167,181,193,237,271
+backend/src/anthropic/anthropic.module.ts
+  s_ce3a098bcc8e14::t_c7925e92949a71 10
+  s_ce3a098bcc8e14::t_aca65284c40214 47-48
+backend/src/demo/anthropic-demo.controller.ts
+  s_ce3a098bcc8e14::t_11828779282374 11,14,19
+  s_ce3a098bcc8e14::t_5c4fc3b39deae9 34-39,50,52
+backend/src/demo/anthropic-demo.controller.spec.ts
+  s_ce3a098bcc8e14::t_7aa7030f2f6e11 23,42
+  s_ce3a098bcc8e14::t_9c072cd219dc3e 11
+  s_ce3a098bcc8e14::t_37094761c622bb 5
+  s_ce3a098bcc8e14::t_09c9eac0bb7c5a 59-60,62,64,68,74,81
+backend/src/benchmark/cache-warmer.spec.ts
+  s_ce3a098bcc8e14::t_000b43d96e5244 9
+  s_ce3a098bcc8e14::t_f0b0f0cfcfbab9 60
+backend/src/benchmark/day-artifacts.service.spec.ts
+  s_ce3a098bcc8e14::t_aeff57a066c7b5 4
+  s_ce3a098bcc8e14::t_37621ac661418f 41
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_ce3a098bcc8e14::t_ec3a1826e228a0 11
+  s_ce3a098bcc8e14::t_9010b60c69f1a5 23,35,74,80,98,116,129,139,156,171
+  s_ce3a098bcc8e14::t_31f9432e4daf46 55
+backend/src/benchmark/day-artifacts.service.ts
+  s_ce3a098bcc8e14::t_f2daa89ce29962 4
+  s_ce3a098bcc8e14::t_805174ceb6c4d0 27
+backend/src/benchmark/benchmark.service.spec.ts
+  s_ce3a098bcc8e14::t_1eaa5abb9df96a 10
+  s_ce3a098bcc8e14::t_08c8ecd2c7c784 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "8554c8e01ab49a51342e8cf5e47102e4f87916f3",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

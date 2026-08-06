@@ -1,0 +1,21 @@
+backend/src/benchmark/benchmark.module.ts
+  s_e4554598cea289::t_e14862abf1b26e 1-33
+backend/src/app.module.ts
+  s_e4554598cea289::t_a97075fc88fcc3 11,19,30,39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "86e990d91e589db5ef038d885ac3017a6b3405ec",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

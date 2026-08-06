@@ -1,0 +1,27 @@
+backend/src/benchmark/cache-warmer.spec.ts
+  s_36b5e77d69bfe4::t_467841fa497e8f 68,73,76-81,88,97,102,104,108
+  s_36b5e77d69bfe4::t_0a466c1cab5dd3 37-41
+backend/src/benchmark/benchmark.service.ts
+  s_36b5e77d69bfe4::t_c966a48dced62b 214-222
+backend/src/benchmark/cache-warmer.ts
+  s_36b5e77d69bfe4::t_df10f972c02877 82-96
+backend/src/benchmark/benchmark.service.spec.ts
+  s_36b5e77d69bfe4::t_0a8b93b5d6296f 44-46
+  s_36b5e77d69bfe4::t_f842a2895bf1e7 246,251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "95f00d4063478ad6164dd9b4db68ac36b5bd9430",
+  "prompts": {},
+  "sessions": {
+    "s_36b5e77d69bfe4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5235e3a6-6357-4634-9bb0-3dc01555cc88",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

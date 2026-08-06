@@ -1,0 +1,25 @@
+backend/src/llm/llm.constants.ts
+  s_ce3a098bcc8e14::t_7da3e70618c70a 1-2
+backend/src/llm/llm.types.spec.ts
+  s_ce3a098bcc8e14::t_c6af10b0154c0d 1-56
+backend/src/llm/llm.types.ts
+  s_ce3a098bcc8e14::t_44624c1da1865c 1-83
+backend/src/llm/llm.provider.ts
+  s_ce3a098bcc8e14::t_2571c2d3c6818f 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "c2ac3d57998a965b4099e5c2139084b880449908",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

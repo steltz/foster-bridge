@@ -1,0 +1,20 @@
+docs/superpowers/plans/2026-07-22-run-enrichment.md
+  s_ef9323a47291a6::t_77f9b3aa103b5d 1-812,815-881
+  s_ef9323a47291a6::t_465d8aa43ccea7 813-814
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0aa8ded4fe9ac8ee730d47a2843774fc5b611b09",
+  "prompts": {},
+  "sessions": {
+    "s_ef9323a47291a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec53e83f-353d-4e0a-8de4-a6e3ff045e39",
+        "model": "unknown"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

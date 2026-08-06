@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-27-trader-bench-seven-keys-scorecard-design.md
+  s_e4554598cea289::t_0397d29ef05eb0 1-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "961e3b527a886209b929fb68afde610f64f2c03b",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

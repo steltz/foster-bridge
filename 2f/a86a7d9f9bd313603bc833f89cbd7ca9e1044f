@@ -1,0 +1,35 @@
+backend/src/anthropic/anthropic.service.spec.ts
+  s_e4554598cea289::t_f2e9cb40bccf0d 494-619
+  s_e4554598cea289::t_a24a0e0afad868 12-17
+  s_e4554598cea289::t_3b71eea7e802d3 33-37,45-49,59-68
+  s_e4554598cea289::t_3719467dac0957 69
+backend/src/anthropic/anthropic.service.ts
+  s_e4554598cea289::t_3cdd177334174f 63-64
+  s_e4554598cea289::t_2ba2922a4eccb8 154-156,162,171
+  s_e4554598cea289::t_f0d243aaaebb6e 80-81
+  s_e4554598cea289::t_7c2bfa70fb01f8 230,232,234,240,242-251,253,256
+  s_e4554598cea289::t_6423c811b4d23c 205-210
+  s_e4554598cea289::t_7d10c063b93702 43-47,49
+  s_e4554598cea289::t_2bc8d546a5135a 39-42,48
+  s_e4554598cea289::t_2db14f3d7373ce 9,16
+  s_e4554598cea289::t_8f355dde02ea09 175-182
+  s_e4554598cea289::t_ce4d4431cad6b8 277,283-288,290,292-294,302,306-309,316,319-321,332,336-339,343-347,349,355
+  s_e4554598cea289::t_7b803102ef08b0 133-144,146-147,159,163-170,172-174,183-200
+  s_e4554598cea289::t_32d1cc3c8e9d29 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "2fa86a7d9f9bd313603bc833f89cbd7ca9e1044f",
+  "prompts": {},
+  "sessions": {
+    "s_e4554598cea289": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d51281a-9a56-48a7-9684-24e7c6402d5f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

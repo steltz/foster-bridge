@@ -1,0 +1,27 @@
+docs/superpowers/plans/2026-08-05-eminiplayer-playwright-module-review.md
+  s_006eebfa7fedbf::t_cd032fc5d439b1 1-6,9-92
+  s_006eebfa7fedbf::t_b13126cb1e8af3 7-8
+docs/superpowers/plans/2026-08-05-eminiplayer-playwright-module.md
+  s_006eebfa7fedbf::t_a54179db59ce92 7,16,61,66-67,69,98,121-123,125-126,175,199,228,232-233,237-238,240-243,248-280,284,286,290-298,302,335-342,349,353-378,406,426,475,488,509-512,571,606-627,657-660,672-673,676-683,686-708,715-720,731,734-750,767,789,793,811-815,842-843,855,862,864-865,886-889,891,901,903-904
+docs/superpowers/specs/2026-08-05-eminiplayer-playwright-module-design.md
+  s_006eebfa7fedbf::t_ec665bf95b973a 44
+  s_006eebfa7fedbf::t_73a7abd1e2fc99 70-72,74-77
+  s_006eebfa7fedbf::t_dc2109fc44459d 25-26,28
+  s_006eebfa7fedbf::t_587326d3756199 50-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "1a30ee6f035f29c5541d360a66a991b9a0d5b3c5",
+  "prompts": {},
+  "sessions": {
+    "s_006eebfa7fedbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "877a2820-15c0-47a1-bcd0-d68d026984e1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

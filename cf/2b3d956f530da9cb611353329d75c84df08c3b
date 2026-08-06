@@ -1,0 +1,20 @@
+backend/test/benchmark-scorecard.e2e-spec.ts
+  s_d590fbd24c631b::t_5a3dbe06325205 1-165,167-182
+  s_d590fbd24c631b::t_925e2e4828ba62 166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "cf2b3d956f530da9cb611353329d75c84df08c3b",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

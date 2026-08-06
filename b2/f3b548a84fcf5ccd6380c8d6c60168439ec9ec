@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-26-market-data-trade-execution-modules-design.md
+  s_4aa6f7a9791a45::t_3c9e9ad7a924ea 1-310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b2f3b548a84fcf5ccd6380c8d6c60168439ec9ec",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

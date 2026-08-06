@@ -1,0 +1,26 @@
+backend/src/app.module.ts
+  s_c543c1cadaca90::t_fb22ddfb389cf1 4,10
+backend/src/firebase/firebase.module.ts
+  s_c543c1cadaca90::t_615da71d4285af 1-44
+backend/src/firebase/firebase.module.spec.ts
+  s_c543c1cadaca90::t_83f49facc43b09 2-59
+  s_c543c1cadaca90::t_65a5da5a5f6e1e 1
+backend/src/firebase/firebase.constants.ts
+  s_c543c1cadaca90::t_8680ca874c0627 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "33290267fd9d28554982b9618e796db058f9df58",
+  "prompts": {},
+  "sessions": {
+    "s_c543c1cadaca90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b0a1324-fa8d-4b3c-83ae-328a35dfe71f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

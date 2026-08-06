@@ -1,0 +1,19 @@
+knowledge-base/es/07132026/07132026_ES_KEYS.md
+  s_2f0b4afb0875c0::t_515a577cbe449f 3,10-11,19-45,49,53,55-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fd2093ab83ad8b80fa5277a90cf92a5b09f921c5",
+  "prompts": {},
+  "sessions": {
+    "s_2f0b4afb0875c0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b869d1b-f4f9-4cd9-afa0-18f8ab5d3711",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

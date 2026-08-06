@@ -1,0 +1,26 @@
+backend/src/moonshot/moonshot.chat.spec.ts
+  s_2b4b60567393e1::t_a2d119651a4e2a 1-45
+backend/src/moonshot/moonshot.chat.ts
+  s_2b4b60567393e1::t_af000391853949 1-106
+backend/src/moonshot/moonshot.envelope.ts
+  s_2b4b60567393e1::t_6c6b6ac8667960 45
+  s_2b4b60567393e1::t_b11f2dd1bd4c86 1-44,46-50
+backend/src/moonshot/moonshot.envelope.spec.ts
+  s_2b4b60567393e1::t_3ff19ff6edefaa 1-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "fe3bff994769695f8a0369cf57084bba7e37e035",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

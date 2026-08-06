@@ -1,0 +1,22 @@
+backend/src/anthropic/anthropic.module.ts
+  s_20f13903302942::t_c15372845617b5 12-20
+  s_20f13903302942::t_11ce5e6b4038d3 37
+backend/src/anthropic/anthropic.module.spec.ts
+  s_20f13903302942::t_ff41d3518d27af 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "64e3452b3c6fa2afd56aa0f5821b0f9fde87f376",
+  "prompts": {},
+  "sessions": {
+    "s_20f13903302942": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "63d59469-ae1d-4a5d-8649-4f41afe29102",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

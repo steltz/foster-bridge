@@ -1,0 +1,21 @@
+backend/src/llm/fake-llm.provider.ts
+  s_ce3a098bcc8e14::t_000c2ecb86b5f2 1-72
+backend/src/llm/fake-llm.provider.spec.ts
+  s_ce3a098bcc8e14::t_8698bcbd8c7d30 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "33373d068b5e0d6bc934e7f2611e04afe4f267c0",
+  "prompts": {},
+  "sessions": {
+    "s_ce3a098bcc8e14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ec2c233-8241-438f-93a8-1cbf88b2904f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

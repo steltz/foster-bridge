@@ -1,0 +1,33 @@
+docs/superpowers/plans/2026-07-27-trader-bench-seven-keys-scorecard.md
+  s_d590fbd24c631b::t_7956b5b8430102 1189
+  s_d590fbd24c631b::t_7cc4d672591ce4 888
+  s_d590fbd24c631b::t_cfc93d59a841a8 736
+  s_d590fbd24c631b::t_c628cf4dc7d7f7 758
+  s_d590fbd24c631b::t_6a449dee69d005 1365,1367-1383
+  s_d590fbd24c631b::t_6d6283be73c8bd 1455-1456
+  s_d590fbd24c631b::t_078cc36f1db4ce 1544,1550-1559,1561-1563
+  s_d590fbd24c631b::t_96e03de52cc2e3 2216-2224
+  s_d590fbd24c631b::t_4f056ca18551c1 1785-1801
+  s_d590fbd24c631b::t_683085c2e9177d 2171
+  s_d590fbd24c631b::t_2d672b77214131 1208-1209
+  s_d590fbd24c631b::t_ade5cbfc4e9973 808,810
+  s_d590fbd24c631b::t_a8b9de2985f643 1861-1862
+  s_d590fbd24c631b::t_9db3860b53f257 1436
+  s_d590fbd24c631b::t_d86cfe262d6c9b 1582-1583
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b08d75c3f6c4b0353b55cca45406a7abbbeb897c",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

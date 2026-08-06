@@ -1,0 +1,19 @@
+ticker-data/MES/min-5/mes_july.csv
+  s_98058d468cfc0d::t_abb41ccd143dbe 2761
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "982d9a0049dd80a0ebc1bb4351037ac679be1689",
+  "prompts": {},
+  "sessions": {
+    "s_98058d468cfc0d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3432465a-343b-4e2e-873f-df501b3549b6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

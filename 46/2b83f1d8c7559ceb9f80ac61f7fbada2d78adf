@@ -1,0 +1,21 @@
+test/scoreboard-command.test.js
+  s_862f8fdc339070::t_1a9f75509d6c37 15-16,23,33,36-39,41,43,46-48,54-55,57,77-78,80,98-99,101,105,112,114,120,133-134,142-176
+src/scoreboard-command.js
+  s_862f8fdc339070::t_832f098147024e 6,8,15-26,48,53,55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "462b83f1d8c7559ceb9f80ac61f7fbada2d78adf",
+  "prompts": {},
+  "sessions": {
+    "s_862f8fdc339070": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39442a5a-2c0b-4b3f-9b07-f06af6f3097d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

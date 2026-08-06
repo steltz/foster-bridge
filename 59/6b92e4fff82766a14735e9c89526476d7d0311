@@ -1,0 +1,28 @@
+backend/src/benchmark/seven-keys/schemas.ts
+  s_a243b3ac0da265::t_90e113af2e5a02 19,25
+backend/src/benchmark/benchmark.types.ts
+  s_a243b3ac0da265::t_49a0d7ff3de7f7 28
+backend/src/moonshot/moonshot.chat.ts
+  s_a243b3ac0da265::t_83dbf628f9f279 74-75
+  s_a243b3ac0da265::t_b3b2198bbb13fa 80-95
+backend/src/moonshot/moonshot.chat.spec.ts
+  s_a243b3ac0da265::t_518293b8083871 124-127,132-147
+  s_a243b3ac0da265::t_38e8a89808a7df 54-64,70-79,82-93
+  s_a243b3ac0da265::t_8e5aaea255273e 148-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "596b92e4fff82766a14735e9c89526476d7d0311",
+  "prompts": {},
+  "sessions": {
+    "s_a243b3ac0da265": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ad71681c-9dc9-4281-b783-f02870884649",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

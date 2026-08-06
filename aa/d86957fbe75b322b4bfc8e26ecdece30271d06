@@ -1,0 +1,21 @@
+backend/src/moonshot/moonshot.service.ts
+  s_2b4b60567393e1::t_667d46692bbc2e 1-173
+backend/src/moonshot/moonshot.service.spec.ts
+  s_2b4b60567393e1::t_e96227af3d7a8f 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.17",
+  "base_commit_sha": "aad86957fbe75b322b4bfc8e26ecdece30271d06",
+  "prompts": {},
+  "sessions": {
+    "s_2b4b60567393e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3be62199-cbc5-47c2-bdf0-e85a941c084f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

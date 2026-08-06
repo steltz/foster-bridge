@@ -1,0 +1,23 @@
+backend/src/anthropic/anthropic.service.spec.ts
+  s_d590fbd24c631b::t_bb3e6a7c0ab05f 621-690,723
+  s_d590fbd24c631b::t_2acf4cca4e85d5 691-722
+backend/src/anthropic/anthropic.service.ts
+  s_d590fbd24c631b::t_b0f60a43ff5261 138-169,171-200
+  s_d590fbd24c631b::t_ef601f920e46b0 170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "140262ff21a73bcd754619b476b7ffdd89472349",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    }
+  }
+}

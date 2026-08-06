@@ -1,0 +1,21 @@
+test/engine.test.js
+  s_f0fa624977dd61::t_5a549a1db2d048 109-149
+src/engine.js
+  s_f0fa624977dd61::t_b0e5661228a3cf 14-20,25,35-44,46-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3db74f40c233af20b799a044d5b73d69e8405462",
+  "prompts": {},
+  "sessions": {
+    "s_f0fa624977dd61": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f20c31c9-81c2-4a99-867f-7b0456d00523",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

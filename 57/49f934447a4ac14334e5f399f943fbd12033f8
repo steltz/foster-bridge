@@ -1,0 +1,44 @@
+docs/superpowers/plans/2026-07-27-trader-bench-seven-keys-scorecard.md
+  s_d590fbd24c631b::t_610ad24fbe4af5 32,34
+  s_d590fbd24c631b::t_64895e7b78c976 1363,1365-1373,1386-1392,1403,1405,1411-1421
+  s_d590fbd24c631b::t_7c092a3183f2a3 7
+  s_d590fbd24c631b::t_d26d12d7ade582 49-51
+  s_d590fbd24c631b::t_d57acfce630813 868
+  s_d590fbd24c631b::t_dffd3ee2c01c7d 19
+  s_d590fbd24c631b::t_e5413662be5f22 1063
+  s_d590fbd24c631b::t_bf899dc0d0762b 900-904
+  s_d590fbd24c631b::t_32576119a704c7 947
+  s_d590fbd24c631b::t_9d3b5ac7b64aae 1670-1676
+  s_d590fbd24c631b::t_175ace25ab653e 1713-1726
+  s_d590fbd24c631b::t_1e81e3472be7af 176-182,186-205
+  s_d590fbd24c631b::t_9f6534d30bae01 104-114,117
+  s_d590fbd24c631b::t_ecdbc26cfb69ab 206,1422,1793-1817
+  s_d590fbd24c631b::t_99fa1b0ba8eb92 1958
+  s_d590fbd24c631b::t_622ffae10b3aba 1755-1758
+  s_d590fbd24c631b::t_a992595ccd1ca6 2103,2106
+  s_d590fbd24c631b::t_55a21a0d3267ba 1235-1241,1245-1255,1257-1259,1261-1271,1273-1286,1289,1297,1310,1314-1324,1328
+  s_d590fbd24c631b::t_5ab1a601a44f19 2000-2006
+  s_d590fbd24c631b::t_2ae26559cc9a95 1084
+  s_d590fbd24c631b::t_e01c9ce2080958 2119-2120,2122-2123,2127-2128,2130-2131,2135-2140
+  s_d590fbd24c631b::t_5d7fb43dd0d827 1117-1120,1122,1127,1137-1145,1148-1152,1158-1162,1165-1169,1172-1201
+  s_d590fbd24c631b::t_59b7890f37dab1 2168-2169
+  s_d590fbd24c631b::t_4a5bbafbf4a261 999-1047
+  s_d590fbd24c631b::t_171a54645deee6 207
+  s_d590fbd24c631b::t_32b7d7a9ca796f 1423
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "5749f934447a4ac14334e5f399f943fbd12033f8",
+  "prompts": {},
+  "sessions": {
+    "s_d590fbd24c631b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec8b1ad3-1e3a-4f4f-8529-52240688fbe3",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}

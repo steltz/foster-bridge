@@ -1,0 +1,22 @@
+backend/src/market-data/coverage.spec.ts
+  s_4aa6f7a9791a45::t_e31e938a2e00f1 58-79
+backend/src/market-data/coverage.ts
+  s_4aa6f7a9791a45::t_7c09cc2a74429f 30-32
+  s_4aa6f7a9791a45::t_0c4d6c7240562a 53-57,59,62-64,69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3cc8329afb1c8be6a11241d48fe6d756e7537c0b",
+  "prompts": {},
+  "sessions": {
+    "s_4aa6f7a9791a45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d764b97-93dd-4e78-8552-a0815f3b1b1a",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
