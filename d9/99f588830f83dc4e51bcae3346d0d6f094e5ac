@@ -1,0 +1,37 @@
+backend/src/eminiplayer/eminiplayer-audit.service.spec.ts
+  s_52f359e82ac2c6::t_a50c767442c2d7 333
+  s_52f359e82ac2c6::t_9e5eb4e9756b6d 318-332,334-345
+backend/src/eminiplayer/eminiplayer-ingest.service.ts
+  s_52f359e82ac2c6::t_6233cc4b5d6e6c 109-118
+  s_52f359e82ac2c6::t_dccfa08f755b27 323-324
+  s_52f359e82ac2c6::t_76db57c996808d 325
+backend/src/eminiplayer/eminiplayer-audit.service.ts
+  s_52f359e82ac2c6::t_6f60ae26073e86 137-141,143-145,148,152,154,156-193,196-205,207-209
+backend/src/eminiplayer/eminiplayer-validation.spec.ts
+  s_52f359e82ac2c6::t_6794df284e42e6 220-237
+  s_52f359e82ac2c6::t_8f900982d34539 30-47
+backend/src/eminiplayer/eminiplayer-verify.service.spec.ts
+  s_52f359e82ac2c6::t_a0289d74875f24 71-77
+backend/src/eminiplayer/eminiplayer-ingest.service.spec.ts
+  s_52f359e82ac2c6::t_30eebcddafc64e 394-435
+backend/README.md
+  s_52f359e82ac2c6::t_94541b0e4c4a31 290-293
+backend/src/eminiplayer/eminiplayer-verify.service.ts
+  s_52f359e82ac2c6::t_c5bee56ee9df32 86-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d999f588830f83dc4e51bcae3346d0d6f094e5ac",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
