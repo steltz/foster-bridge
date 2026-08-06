@@ -1,0 +1,75 @@
+backend/src/config/configuration.spec.ts
+  s_006eebfa7fedbf::t_c44a8ccf3db96e 196-234,247
+  s_006eebfa7fedbf::t_0409a82b8f9a4d 1-2
+  s_006eebfa7fedbf::t_23dd1def435c71 235-246
+backend/.env.example
+  s_006eebfa7fedbf::t_1f5a93f2bd3ab1 39-48
+backend/pnpm-lock.yaml
+  s_006eebfa7fedbf::t_fffa38220e461e 41-43,1540-1544,2365-2374,4845-4847,5859-5866
+docs/superpowers/plans/2026-08-05-eminiplayer-playwright-module-review.md
+  s_006eebfa7fedbf::t_b13126cb1e8af3 7-8
+  s_006eebfa7fedbf::t_cd032fc5d439b1 1-6,9-92
+backend/src/eminiplayer/eminiplayer.module.spec.ts
+  s_006eebfa7fedbf::t_47d4d47c1255c9 1-28
+docs/superpowers/specs/2026-08-05-eminiplayer-playwright-module-design.md
+  s_006eebfa7fedbf::t_73a7abd1e2fc99 70-72,74-77
+  s_006eebfa7fedbf::t_e30d964a442c33 50
+  s_006eebfa7fedbf::t_587326d3756199 51-57
+  s_006eebfa7fedbf::t_dc2109fc44459d 25-26,28
+  s_006eebfa7fedbf::t_bbfc71835daa33 1-24,27,29-43,45-49,58-69,73,78-84
+  s_006eebfa7fedbf::t_ec665bf95b973a 44
+docs/superpowers/plans/2026-08-05-eminiplayer-playwright-module.md
+  s_006eebfa7fedbf::t_6245b165fe318d 19
+  s_006eebfa7fedbf::t_55a43652770b09 453-460,462
+  s_006eebfa7fedbf::t_48aba723d39f6b 713-717
+  s_006eebfa7fedbf::t_5d80bf66993a23 1-6,8-15,17-18,20-60,62-65,68,70-85,98-109,111-128,134-135,140,143-190,192-214,216-243,245-247,250-252,255,260-263,297-299,301,303-305,315-317,319-350,359-364,366-368,395-421,423-441,443-452,461,463-495,497-508,510-529,534-591,593-626,649-677,682-692,695-696,705-706,734-739,746-755,757-758,776-791,793-813,815-817,819-835,841-866,869-879,881-886,888,891-910,915,917-925,927,930-937
+  s_006eebfa7fedbf::t_a54179db59ce92 7,16,61,66-67,69,110,142,191,215,244,248-249,253-254,256-259,264-296,300,302,306-314,318,351-358,365,369-394,422,442,496,509,530-533,592,627-648,678-681,693-694,697-704,707-712,718-733,740-745,756,759-775,792,814,818,836-840,867-868,880,887,889-890,911-914,916,926,928-929
+  s_006eebfa7fedbf::t_ff958846c9a5bb 86-97
+  s_006eebfa7fedbf::t_c606bca2370be9 129-133,136-139,141
+backend/src/eminiplayer/playwright.service.spec.ts
+  s_006eebfa7fedbf::t_a47037e86c2ba9 1-134
+backend/src/eminiplayer/eminiplayer.constants.ts
+  s_006eebfa7fedbf::t_07439f39dc9932 1-3,12,14-23
+  s_006eebfa7fedbf::t_f79123d0616eb5 4,6
+  s_006eebfa7fedbf::t_4accb32927516d 5,7-11,13
+backend/README.md
+  s_006eebfa7fedbf::t_74e76224a5f459 244-271
+backend/.gitignore
+  s_006eebfa7fedbf::t_8493577db40e5f 5
+backend/package.json
+  s_006eebfa7fedbf::t_22fc3341d5a5e0 28
+backend/src/eminiplayer/eminiplayer.service.ts
+  s_006eebfa7fedbf::t_d871c9c7e874e9 56-60
+  s_006eebfa7fedbf::t_d4393ec46136fd 1-55,61-128
+backend/src/eminiplayer/eminiplayer.service.spec.ts
+  s_006eebfa7fedbf::t_7f61bbe1e4af01 1-76,78-171
+  s_006eebfa7fedbf::t_c2b0d0f450a1fc 77
+backend/src/eminiplayer/playwright.service.ts
+  s_006eebfa7fedbf::t_bbe863821012a8 1-26,31-73
+  s_006eebfa7fedbf::t_1dbd72d5cad3ac 27-30
+backend/src/config/configuration.ts
+  s_006eebfa7fedbf::t_19dc4eec9fa2b8 109,116-120,123,125-126
+  s_006eebfa7fedbf::t_d3fbe25f0f0112 110-115,121-122,124
+  s_006eebfa7fedbf::t_b6efbcd2de1f10 35-40
+backend/src/eminiplayer/eminiplayer.module.ts
+  s_006eebfa7fedbf::t_b9e610fcdd27ad 1-11
+backend/src/app.module.ts
+  s_006eebfa7fedbf::t_033dfb153bb5b7 40
+  s_006eebfa7fedbf::t_2ad7a9bdcfd5db 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5a5804b037f487bab422fb973c1a986bd2a82f32",
+  "prompts": {},
+  "sessions": {
+    "s_006eebfa7fedbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "877a2820-15c0-47a1-bcd0-d68d026984e1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
