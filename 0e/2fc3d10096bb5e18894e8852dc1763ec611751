@@ -1,0 +1,24 @@
+backend/src/moonshot/moonshot.service.ts
+  s_c80048c5b416fa::t_9e719a13c02a48 256-261
+backend/src/moonshot/moonshot.chat.ts
+  s_c80048c5b416fa::t_60ef47fb374069 189
+  s_c80048c5b416fa::t_ec795d3063f144 45-50,52,55-56
+  s_c80048c5b416fa::t_406dd9c629c7b6 51,53-54
+  s_c80048c5b416fa::t_0f859c81abb698 169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "0e2fc3d10096bb5e18894e8852dc1763ec611751",
+  "prompts": {},
+  "sessions": {
+    "s_c80048c5b416fa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eabdc213-e6ee-45c4-9a2e-0354e6be250c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
