@@ -1,0 +1,60 @@
+backend/src/moonshot/moonshot.batch-worker.spec.ts
+  s_04dc32ba1565bc::t_b8292e8e965927 219-250
+backend/src/benchmark/cache-warmer.spec.ts
+  s_04dc32ba1565bc::t_da94aa4ef7940c 94-106
+backend/src/moonshot/moonshot.chat.ts
+  s_c80048c5b416fa::t_60ef47fb374069 189
+  s_c80048c5b416fa::t_406dd9c629c7b6 51,53-54
+  s_04dc32ba1565bc::t_bb63ea4aad8590 143-168,170-182,184-187,193-194
+  s_04dc32ba1565bc::t_5449ffa84800bb 2
+  s_c80048c5b416fa::t_ec795d3063f144 45-50,52,55-56
+  s_c80048c5b416fa::t_0f859c81abb698 169
+backend/src/moonshot/moonshot.batch-worker.ts
+  s_04dc32ba1565bc::t_3bce57ff917480 55-56
+  s_04dc32ba1565bc::t_aa95f51420d834 156-169
+backend/src/moonshot/moonshot.envelope.ts
+  s_04dc32ba1565bc::t_ae0e6e633fdd38 54-58,61
+  s_04dc32ba1565bc::t_ad1556a0e51d5c 17-27
+docs/superpowers/specs/2026-07-28-moonshot-llm-provider-design.md
+  s_04dc32ba1565bc::t_75af456e9ee256 200-205
+  s_04dc32ba1565bc::t_c2e112f98c6b2c 277-288
+  s_04dc32ba1565bc::t_907544e03bf2eb 316-324
+  s_04dc32ba1565bc::t_2317850e578b56 34
+backend/src/benchmark/cache-warmer.ts
+  s_04dc32ba1565bc::t_c115ac843078ac 42-49
+docs/superpowers/plans/2026-07-28-moonshot-llm-provider.md
+  s_04dc32ba1565bc::t_bfaeda49862159 116-121
+backend/src/moonshot/moonshot.chat.spec.ts
+  s_04dc32ba1565bc::t_43ec8d45108069 6
+  s_04dc32ba1565bc::t_adee30226a0908 238-239
+  s_04dc32ba1565bc::t_9435b45ed32947 259-306
+backend/src/moonshot/moonshot.envelope.spec.ts
+  s_04dc32ba1565bc::t_6158aa1d828918 34-56
+backend/src/moonshot/moonshot.service.ts
+  s_c80048c5b416fa::t_9e719a13c02a48 256-261
+  s_04dc32ba1565bc::t_8ad27d586dfeed 93-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4ad50494839361ef71a091ad0673b296b431fde8",
+  "prompts": {},
+  "sessions": {
+    "s_04dc32ba1565bc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4ee21195-cb58-4e83-839a-a06417d703fa",
+        "model": "unknown"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    },
+    "s_c80048c5b416fa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eabdc213-e6ee-45c4-9a2e-0354e6be250c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
