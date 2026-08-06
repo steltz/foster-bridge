@@ -25,6 +25,7 @@
     "@nestjs/schedule": "^4.1.0",
     "firebase-admin": "^12.3.0",
     "openai": "^4.104.0",
+    "playwright": "^1.62.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

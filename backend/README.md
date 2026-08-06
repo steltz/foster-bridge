@@ -241,3 +241,31 @@ today they're always flagged `complete: false` and are excluded from
 backtesting under the default `'rth'` session gate (use `allowIncomplete:
 true` or `session: 'full'` to work around it). There is no half-day calendar
 yet to special-case these dates.
+
+## EminiPlayer scraper (Playwright)
+
+`src/eminiplayer/` provides `EminiplayerService.openArchivePage()`, which
+drives a Playwright Chromium browser to https://www.eminiplayer.net/archive.aspx,
+logging in first when the site shows its login link. It returns
+`{ url, title, screenshotPath }` and saves a full-page screenshot under
+`artifacts/eminiplayer/` (git-ignored). No content parsing yet.
+
+Setup:
+
+1. `pnpm exec playwright install chromium` (one-time browser download)
+2. Set `EMINIPLAYER_USERNAME` / `EMINIPLAYER_PASSWORD` in `.env`
+   (see `.env.example`; `EMINIPLAYER_HEADLESS=false` shows the browser)
+
+Manual smoke test — hits the live site. Prerequisites: credentials in `.env`
+and working GCP ADC (booting the app context initializes the Firebase
+module). `BENCHMARK_SCHEDULER=false` keeps the benchmark reconciler/crons
+from touching Firestore as a side effect:
+
+    BENCHMARK_SCHEDULER=false pnpm exec ts-node -e "const { NestFactory } = require('@nestjs/core'); \
+    const { AppModule } = require('./src/app.module'); \
+    const { EminiplayerService } = require('./src/eminiplayer/eminiplayer.service'); \
+    (async () => { \
+      const app = await NestFactory.createApplicationContext(AppModule); \
+      console.log(await app.get(EminiplayerService).openArchivePage()); \
+      await app.close(); \
+    })();"
