@@ -216,6 +216,38 @@ describe('MoonshotBatchWorker', () => {
     expect(store.batches.get('b1').status).toBe('ended');
   });
 
+  it('runs ONE global prime to completion before any other group head hits the API (phase 0)', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 4, expiresAt: future });
+    store.items.set('b1', [
+      { customId: 'a1', prompt: 'a1', envelope: { system: 'A' }, status: 'pending' },
+      { customId: 'a2', prompt: 'a2', envelope: { system: 'A' }, status: 'pending' },
+      { customId: 'b1', prompt: 'b1', envelope: { system: 'B' }, status: 'pending' },
+      { customId: 'b2', prompt: 'b2', envelope: { system: 'B' }, status: 'pending' },
+    ]);
+    // Distinct groups still share the bulk of their rendered prefix in real
+    // benchmark batches (general docs + day bundle), so heads run concurrently
+    // would EACH pay a full miss on that shared portion. Exactly one item must
+    // complete before the other group's head is allowed to start.
+    const arrivals: string[] = [];
+    let releaseFirst: (() => void) | undefined;
+    const client = clientFactory((body: any) => {
+      arrivals.push(body.messages[body.messages.length - 1].content);
+      if (arrivals.length === 1) {
+        return new Promise((resolve) => { releaseFirst = () => resolve(okResp('{}')); });
+      }
+      return okResp('{}');
+    });
+    const drain = makeWorker(client, echoEnvelopes, store).drainBatch('b1');
+    await flush(20);
+    expect(arrivals).toHaveLength(1); // only the global prime is in flight
+    releaseFirst!();
+    await drain;
+    expect(arrivals).toHaveLength(4);
+    expect(arrivals.slice(0, 2).sort()).toEqual(['a1', 'b1']); // heads before any sibling
+    expect(store.batches.get('b1').status).toBe('ended');
+  });
+
   it('runs `batchConcurrency` items genuinely in flight at once', async () => {
     const store = new MemBatchStore();
     store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 4, expiresAt: future });

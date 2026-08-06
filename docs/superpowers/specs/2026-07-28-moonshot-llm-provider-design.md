@@ -31,7 +31,7 @@ OpenAI-compatible (`openai` Node SDK via `baseURL` swap).
 | D4 | Emulated-batch execution model | **Durable worker + restart recovery** (Firestore-persisted, `OnApplicationBootstrap` resume) |
 | D5 | Emulated multi-process safety | **Transactional item claiming** (`pending → running` with a lease) so `kick()` and bootstrap-resume never double-run an item across instances |
 | D6 | Emulated stuck-batch handling | **Batch `expiresAt`** → past deadline with non-terminal items, mark the batch terminal `errored`; the reconciler re-queues those run-indices |
-| D7 | Emulated cache priming | **Prefix-grouped fan-out** — group items by `prompt_cache_key`, prime one call per group before fanning it out (a single global prime warms only one of many cell prefixes) |
+| D7 | Emulated cache priming | **Prefix-grouped fan-out** — group items by `prompt_cache_key`, prime one call per group before fanning it out (a single global prime warms only one of many cell prefixes). **As landed (2026-08-05):** a phase-0 single global prime was ADDED in front of the per-group primes — groups of one day share the bulk of their rendered prefix (general docs + day bundle), so one completed item warms that shared portion before the heads fan out; both layers now run |
 | D8 | Structured-output strict mode | **Provider-aware schema shaping** (`toMoonshotSchema` — all properties required, optionals nullable) + `walle` validation + a `json_object`/`partial` fallback |
 
 *D5–D8 are a hardening pass over D3/D4's emulated path (the novel, highest-risk component); they change no external interface — only the Moonshot adapter's internals, data model, and config.*
@@ -197,8 +197,12 @@ no 4-breakpoint budget** (all Anthropic-specific). Instead:
   never sets `system` — everything is in tiers — but support it for `messageStructured` callers.)
 - Append the variable per-request `prompt` (e.g. `TRAILING_PROMPT`) as the final `user` message,
   uncached.
-- `prompt_cache_key = sha256(renderedStablePrefix)` — identical across all `runIndex` of a
-  `(trader, day, variant, model)` cell, matching how the cache-warmer dedups.
+- ~~`prompt_cache_key = sha256(renderedStablePrefix)`~~ **As landed (2026-08-05):**
+  `prompt_cache_key = sha256(sharedPrefix)` — the system message plus at most the FIRST TWO tier
+  messages (general docs + day bundle), not the full stable prefix. The key is a routing hint only
+  (matching stays byte-prefix-based), so the coarser key routes every persona/feature variant of a
+  day into one cache bucket, making cross-variant hits on the shared tiers possible where
+  per-full-prefix keys could shard them apart. Still identical across all `runIndex` of a cell.
 - Warm and real calls must carry identical `model`/`reasoning_effort`/`response_format` so they
   land the same implicit cache. (The cache-warmer already passes the same `schema`+`effort`.)
 
@@ -270,13 +274,18 @@ stuck-batch expiry (D6), and prefix-grouped cache priming (D7).
   instance) safe to run concurrently without ever double-spending on the same item — the
   in-process guard alone cannot span processes.
 - **Prefix-grouped fan-out (D7 — real cache benefit):** group claimable items by their envelope
-  hash (`sha256(JSON.stringify(item.envelope ?? batchEnvelope))`, 1:1 with `prompt_cache_key`). For
-  each group, run ONE item first and await it (primes that prefix's implicit cache), then fan the
-  group's remaining items out under bounded concurrency (`MOONSHOT_BATCH_CONCURRENCY`, default 8),
-  with the same bound applied across groups. A single global prime warms only one of many distinct
-  cell prefixes in a benchmark batch — each cell's prefix must be primed once for its sibling
-  `runIndex`es to land cache hits. This is what makes the ~90% caching benefit in §6.6 actually hold
-  for the emulated path.
+  hash (`sha256(JSON.stringify(item.envelope ?? batchEnvelope))`, ~~1:1 with `prompt_cache_key`~~
+  — **as landed (2026-08-05)** no longer 1:1: the cache key is coarser (shared-prefix level, see
+  §prompt_cache_key above) while the group hash stays per-full-envelope, which is the granularity
+  priming needs). For each group, run ONE item first and await it (primes that prefix's implicit
+  cache), then fan the group's remaining items out under bounded concurrency
+  (`MOONSHOT_BATCH_CONCURRENCY`, default 8), with the same bound applied across groups. A single
+  global prime warms only one of many distinct cell prefixes in a benchmark batch — each cell's
+  prefix must be primed once for its sibling `runIndex`es to land cache hits. **As landed
+  (2026-08-05):** a phase-0 global prime now ALSO runs before the group heads — one item completes
+  first so the cross-group shared portion (general docs + day bundle) is written once instead of
+  every head paying a full miss on it concurrently. This is what makes the ~90% caching benefit in
+  §6.6 actually hold for the emulated path.
 - Each claimed item → sync `chat/completions`; on completion persist the terminal item state
   `{status:'succeeded'|'refusal'|'errored', text?, usage?, cacheReadTokens?, error?}` (which clears
   the lease). Classify: `content_filter` → `refusal` (permanent, recorded); `429`/`5xx`/network →
@@ -304,9 +313,15 @@ re-queues everything else; it hardcodes `serviceTier:'batch'` on emitted usage
 ### 6.4.1 Cache-warmer mapping
 
 `cache-warmer.ts` calls `this.llm.submitBatch([{prompt:'Cache warm…'}], envelope, {model, effort,
-schema})` fire-and-forget. For Moonshot this becomes a 1-item emulated batch → one prime-the-prefix
-sync call → warms the single implicit cache. No tier-scoped cache pools exist on Moonshot (K3 is
-sync-only), so the Anthropic concern about standard-vs-batch cache visibility does not apply.
+schema})` fire-and-forget. ~~For Moonshot this becomes a 1-item emulated batch → one
+prime-the-prefix sync call → warms the single implicit cache.~~ **As landed (2026-08-05):**
+`warm()` now no-ops entirely when `llm.provider` is `moonshot`. Moonshot's implicit cache has no
+write surcharge and no fixed TTL to beat, so a warm pre-pays exactly the miss the first real
+request would pay anyway — while its throwaway completion still reasons at full output price
+(kimi-k3 cannot disable thinking) as spend invisible to cost capture (the warm batch is never
+reconciled). Concurrent same-prefix misses are already prevented by the worker's prime phases.
+No tier-scoped cache pools exist on Moonshot (K3 is sync-only), so the Anthropic concern about
+standard-vs-batch cache visibility does not apply either way.
 
 ### 6.5 Usage mapping (`moonshot.usage.ts`)
 

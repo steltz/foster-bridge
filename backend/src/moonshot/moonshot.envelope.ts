@@ -14,11 +14,17 @@ export interface BuiltRequest {
  * Moonshot caches implicitly on a byte-identical prefix, so there are no cache
  * breakpoints: stable tiers become leading `system` messages (file blocks
  * resolved to their extracted text), and the variable per-request prompt is the
- * final `user` message. prompt_cache_key = sha256 of the stable prefix, so all
- * runs sharing a prefix route to the same cache. When there is no stable prefix
- * at all (no system, no tiers), there is nothing to key a shared cache on, so
- * promptCacheKey is left undefined rather than sending sha256('') — which would
- * otherwise route every envelope-less request into one shared cache bucket.
+ * final `user` message. prompt_cache_key = sha256 of the SHARED prefix — the
+ * system message plus at most the first two tiers (general docs + day bundle in
+ * benchmark envelopes), NOT the full prefix. The key is only a routing hint;
+ * matching stays byte-prefix-based, so a coarser key cannot cause a wrong hit —
+ * it groups every persona/feature variant of the same day into one cache
+ * bucket, making cross-variant hits on the shared tiers possible where
+ * per-full-prefix keys could route them to different cache shards. When there
+ * is no stable prefix at all (no system, no tiers), there is nothing to key a
+ * shared cache on, so promptCacheKey is left undefined rather than sending
+ * sha256('') — which would otherwise route every envelope-less request into one
+ * shared cache bucket.
  */
 @Injectable()
 export class MoonshotEnvelopeBuilder {
@@ -45,10 +51,14 @@ export class MoonshotEnvelopeBuilder {
       messages.push({ role: 'system', content: parts.join('\n') });
     }
 
-    const promptCacheKey = messages.length === 0
+    // System message (0 or 1) + at most the first two tier messages — the
+    // shared-prefix boundary described in the class docstring.
+    const systemCount = messages.length - (envelope?.tiers?.length ?? 0);
+    const keyed = messages.slice(0, systemCount + 2);
+    const promptCacheKey = keyed.length === 0
       ? undefined
       : createHash('sha256')
-          .update(messages.map((m) => `${m.role}\n${m.content}`).join('\n\x00\n'))
+          .update(keyed.map((m) => `${m.role}\n${m.content}`).join('\n\x00\n'))
           .digest('hex');
     messages.push({ role: 'user', content: prompt });
     return { messages, promptCacheKey };

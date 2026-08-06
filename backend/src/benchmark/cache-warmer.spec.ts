@@ -91,6 +91,19 @@ describe('CacheWarmer.warm', () => {
     expect(tierCounts).toEqual([3, 4]);
   });
 
+  it('skips warming entirely under the Moonshot provider', async () => {
+    const deps = makeDeps();
+    const baseGet = deps.config.get;
+    deps.config.get = (k: string): any => (k === 'llm.provider' ? 'moonshot' : baseGet(k));
+    const warmer = await build(deps);
+    await warmer.warm();
+    // Moonshot's implicit cache has no write surcharge and no fixed TTL to beat:
+    // a warm pre-pays the exact miss the first real request would pay anyway,
+    // while its throwaway completion still reasons at full output price.
+    expect(deps.fake.submittedBatches).toHaveLength(0);
+    expect(deps.repo.nonTerminalBatches).not.toHaveBeenCalled();
+  });
+
   it('no-ops when there are no in-flight batches', async () => {
     const deps = makeDeps();
     deps.repo.nonTerminalBatches.mockResolvedValue([]);

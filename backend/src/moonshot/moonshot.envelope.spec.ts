@@ -31,6 +31,29 @@ describe('MoonshotEnvelopeBuilder.buildRequest', () => {
     expect(a.promptCacheKey).toBe(c.promptCacheKey);
   });
 
+  it('shares the cache key across envelopes that differ only after the second tier', async () => {
+    const b = new MoonshotEnvelopeBuilder(fakeExtractStore({}));
+    const shared = [
+      { blocks: [{ type: 'text' as const, text: 'GENERAL' }] },
+      { blocks: [{ type: 'text' as const, text: 'DAY BUNDLE' }] },
+    ];
+    const a = await b.buildRequest({ tiers: [...shared, { blocks: [{ type: 'text', text: 'PERSONA A' }] }] }, 'q');
+    const c = await b.buildRequest({ tiers: [...shared, { blocks: [{ type: 'text', text: 'PERSONA B' }] }] }, 'q');
+    // prompt_cache_key is a ROUTING hint, not the match criterion (matching is
+    // byte-prefix-based) — keying at the shared day-bundle level routes every
+    // persona/feature variant of a day into one cache bucket, so cross-variant
+    // prefix hits on the shared tiers become possible.
+    expect(a.promptCacheKey).toBe(c.promptCacheKey);
+  });
+
+  it('produces different cache keys when the second (day) tier differs', async () => {
+    const b = new MoonshotEnvelopeBuilder(fakeExtractStore({}));
+    const general = { blocks: [{ type: 'text' as const, text: 'GENERAL' }] };
+    const a = await b.buildRequest({ tiers: [general, { blocks: [{ type: 'text', text: 'DAY 1' }] }] }, 'q');
+    const c = await b.buildRequest({ tiers: [general, { blocks: [{ type: 'text', text: 'DAY 2' }] }] }, 'q');
+    expect(a.promptCacheKey).not.toBe(c.promptCacheKey);
+  });
+
   it('throws when a file block references an unknown extract id', async () => {
     const b = new MoonshotEnvelopeBuilder(fakeExtractStore({}));
     const env: PromptEnvelope = { tiers: [{ blocks: [{ type: 'file', fileId: 'moonshot-extract:missing' }] }] };
