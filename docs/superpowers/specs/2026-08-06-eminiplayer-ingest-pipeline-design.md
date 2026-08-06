@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** Approved
-**Scope:** An HTTP-triggered pipeline that, for a given trading date, scrapes eminiplayer.net for the day's Trade Plan (TP) YouTube video + PDF and the previous day's Recap YouTube video, transcribes both videos to markdown, and uploads all three documents to Firebase Storage. Scraper selector/navigation details are explicitly deferred — this design defines their contracts and ships them as structured stubs.
+**Scope:** An HTTP-triggered pipeline that, for a given trading date, scrapes eminiplayer.net for the day's Trade Plan (TP) YouTube video + PDF and the previous day's Recap YouTube video, transcribes both videos to markdown, and uploads all three documents to Firebase Storage — plus a **defense-in-depth verification system** (deterministic gates, redundant date cross-checks, LLM content verification, manifest-committed day groups, global audit) sized for multi-year unattended volume where bad data poisons strategy backtests and no human spot-checks each day. Scraper selector/navigation details are explicitly deferred — this design defines their contracts and ships them as structured stubs.
 
 ## Goal
 
@@ -13,8 +13,9 @@ Reproduce the `knowledge-base/es/MMDDYYYY/` document-group shape in Firebase Sto
 | `<recapDate>_ES_RECAP.md` | Transcript markdown of the **previous** day's recap video | YouTube transcript |
 | `<date>_ES_TP.md` | Transcript markdown of the day's trade-plan video | YouTube transcript |
 | `<date>_ES_TP.pdf` | The day's trade-plan PDF | Direct download |
+| `manifest.json` | Commit record: sources, video ids, sha256 hashes, check results, pipeline version | Written last, only after every check passes |
 
-Dates are `MMDDYYYY`, matching the existing local folders. Storage paths mirror the local layout exactly — `knowledge-base/es/<date>/<file>` — so a future local-sync step is trivial.
+Dates are `MMDDYYYY`, matching the existing local folders. Storage paths mirror the local layout exactly — `knowledge-base/es/<date>/<file>` — so a future local-sync step is trivial. **The manifest is the trust gate: a day group without `manifest.json` does not exist to consumers**, no matter how many artifact files are present.
 
 ## Decisions (locked during brainstorming)
 
@@ -22,7 +23,12 @@ Dates are `MMDDYYYY`, matching the existing local folders. Storage paths mirror 
 2. **Destination:** Firebase Storage only. No local `knowledge-base/` writes.
 3. **Transcription:** port the root package's ~50-line transcript logic (`src/transcript.js` + the ms→s normalization in `src/transcript-command.js`) into a backend `TranscriptService` using the same `youtube-transcript@1.3.1` dependency. Output must be byte-identical in format (`# Transcript` header, `**MM:SS** text` lines). Known shared limitation: the ÷1000 normalization is correct for srv3 captions (the common case); the library's classic-XML fallback returns seconds, which would be compressed 1000× — identical behavior to the root CLI, kept for parity.
 4. **Previous-day resolution:** from the archive listing itself — the most recent recap entry dated *strictly before* the requested TP date, bounded to a 14-calendar-day lookback (`RECAP_LOOKBACK_DAYS`); no recap in that window is a not-found. No trading calendar. **This resolution is time-sensitive:** run before the previous session's recap is posted, it resolves an older recap — see the stale-recap cleanup in Decision 5.
-5. **Idempotency:** fill-and-skip. Existing Storage objects are skipped; `force=true` regenerates everything. Each artifact uploads as soon as it's produced, so a mid-run failure preserves progress and a retry resumes. Two corollaries: (a) **stale-recap cleanup** — because the recap filename embeds a freshly-resolved date, every run deletes any `*_ES_RECAP.md` in the day folder that isn't the currently-resolved path (reported as `staleRecapsRemoved`), so a day group can never accumulate two recaps; (b) **same-date coalescing** — concurrent ingest requests for one date share the in-flight run's promise (the realistic trigger is a client retry after timeout), since fill-and-skip only dedupes *completed* work. Single-node in-process coalescing suffices: the shared Playwright page already makes this a one-instance system.
+5. **Idempotency:** fill-and-skip. Existing Storage objects are skipped; `force=true` regenerates everything (deleting the day's manifest first, so the day is uncommitted while regeneration runs). Each artifact uploads as soon as it's produced, so a mid-run failure preserves progress and a retry resumes. **Skip means skip *production* (scraping the transcript / downloading the pdf), never skip *verification*** — a resumed run reloads skipped artifacts from the bucket and runs every gate and check on them before committing, because the previous run may have died between upload and verification. Two corollaries: (a) **stale-recap cleanup** — because the recap filename embeds a freshly-resolved date, every run deletes any `*_ES_RECAP.md` in the day folder that isn't the currently-resolved path (reported as `staleRecapsRemoved`), so a day group can never accumulate two recaps; (b) **same-date coalescing** — concurrent ingest requests for one date share the in-flight run's promise (the realistic trigger is a client retry after timeout), since fill-and-skip only dedupes *completed* work. Single-node in-process coalescing suffices: the shared Playwright page already makes this a one-instance system.
+6. **Verification (all four layers approved 2026-08-06):** the pipeline is built for multi-year unattended volume feeding real-money strategy decisions, so every day group is self-validating at write time and auditable after the fact:
+   - **A. Deterministic artifact gates** — transcript markdown must have ≥ minimum timestamped lines and characters, strictly non-decreasing timestamps, and a final timestamp in a plausible range (catches the known ms-vs-seconds caption bug from Decision 3 as hard rejection instead of silent corruption); PDFs must have `%PDF-` magic bytes, an `%%EOF` trailer, a minimum size, and at least one page marker. Gate failure = artifact rejected, run fails with the reason.
+   - **B. Redundant date cross-checks** — the archive row date, the entry title's printed date, and the entry title's printed weekday must all agree (`findDayEntries` contract); the YouTube video's own title (via the keyless oEmbed endpoint) must contain the expected date and the right flavor (recap vs trade plan); structural invariants: `recapDate < date`, gap ≤ `RECAP_LOOKBACK_DAYS`, both weekdays.
+   - **C. LLM content verification** — a structured-output classification call per transcript through the existing `LLM_PROVIDER` seam: `{docType, isEsContent, referencedWeekday, confidence}`; any mismatch with the expected slot fails verification. **Blocking:** no manifest until it passes — an LLM outage merely delays commitment and a retry resumes. Model via `EMINIPLAYER_VERIFY_MODEL` (unset = provider default).
+   - **D. Manifest-committed day groups + audit** — `manifest.json` written only after all checks pass; a Firestore collection (`eminiplayer-video-ids/{videoId} → {date, slot}`) claims each YouTube video id transactionally at commit so the same video can never serve two day groups; `GET /eminiplayer/audit` re-verifies every manifested day (hash match, gates, invariants, uniqueness, orphaned claims, unmanifested folders) and returns an anomaly report.
 
 ## Architecture
 
@@ -31,26 +37,34 @@ Extends `backend/src/eminiplayer/`, plus one new shared module:
 ```
 backend/src/transcript/
   transcript.module.ts           # TranscriptModule — exports TranscriptService
-  transcript.service.ts          # YouTube → markdown (port of root src/transcript.js)
+  transcript.service.ts          # YouTube segments + oEmbed title fetch + pure markdown formatting (port of root src/transcript.js)
   transcript.service.spec.ts
 
 backend/src/eminiplayer/
-  eminiplayer.controller.ts      # POST /eminiplayer/ingest — validation + delegation
-  eminiplayer-ingest.service.ts  # Orchestration: scrape → transcribe → upload (+ IngestResult types)
-  eminiplayer-ingest.errors.ts   # IngestStageError (502)
-  eminiplayer.service.ts         # + findDayEntries / getYoutubeUrl / downloadTradePlanPdf
-  eminiplayer.constants.ts       # + ArchiveEntry/DayEntries types, ArchiveNotFoundError (404), RECAP_LOOKBACK_DAYS
+  eminiplayer.controller.ts        # POST /eminiplayer/ingest + GET /eminiplayer/audit — validation + delegation
+  eminiplayer-ingest.service.ts    # Orchestration: scrape → gate → transcribe → verify → upload → commit (+ IngestResult types)
+  eminiplayer-ingest.errors.ts     # IngestStageError (502), IngestValidationError (422)
+  eminiplayer-validation.ts        # Pure gates & cross-checks: transcript/pdf gates, date invariants, video-id extraction, title checks, sha256
+  eminiplayer-verify.service.ts    # LLM content verification via the LLM_PROVIDER seam
+  eminiplayer-manifest.service.ts  # Manifest build/write + Firestore video-id uniqueness claims
+  eminiplayer-audit.service.ts     # GET /eminiplayer/audit — re-verify all manifested days
+  eminiplayer.service.ts           # + findDayEntries / getYoutubeUrl / downloadTradePlanPdf
+  eminiplayer.constants.ts         # + ArchiveEntry/DayEntries types, ArchiveNotFoundError (404), RECAP_LOOKBACK_DAYS, INGEST_PIPELINE_VERSION
   *.spec.ts
 ```
 
-- **`TranscriptService`** — one public method, `toMarkdown(youtubeUrlOrId): Promise<string>`. Fetches via `youtube-transcript`, divides `offset`/`duration` by 1000 (the library returns milliseconds), formats with the ported `transcriptToMarkdown`. Its own module because it is site-agnostic and reusable.
+- **`TranscriptService`** — site-agnostic YouTube access, two public methods: `fetchSegments(urlOrId): Promise<TranscriptSegment[]>` (fetches via `youtube-transcript`, divides `offset` by 1000 — see Decision 3's caveat) and `fetchVideoTitle(videoId): Promise<string>` (YouTube's public oEmbed endpoint, no API key, via global `fetch`). The ported pure functions (`decodeEntities`, `formatOffset`, `transcriptToMarkdown`) are exported for the orchestrator to compose — segments stay available for gating before formatting. Its own module because it is site-agnostic and reusable.
 - **`EminiplayerService`** (extended) — three new scraper methods, each a `withPage()` callback that re-asserts its location rather than assuming where the page was left (per the module's existing concurrency contract):
-  - `findDayEntries(date): Promise<{ tradePlan: ArchiveEntry; recap: ArchiveEntry }>` — scans the archive listing; `ArchiveEntry = { date: string; pageUrl: string; title: string }` with `date` normalized to `MMDDYYYY` regardless of how the site renders it. The recap is the most recent entry dated strictly before `date`, within the `RECAP_LOOKBACK_DAYS` (14-day) window — the bound keeps a bad historical date from forcing a whole-archive walk inside one `withPage` callback. **Not-found is this method's contract:** it throws `ArchiveNotFoundError` (defined in `eminiplayer.constants.ts`, owned by the scraper layer — the only layer that can detect it) when the date has no TP entry or no recap in the window; the ingest layer passes it through untouched and the controller maps it to 404.
+  - `findDayEntries(date): Promise<{ tradePlan: ArchiveEntry; recap: ArchiveEntry }>` — scans the archive listing; `ArchiveEntry = { date: string; pageUrl: string; title: string }` with `date` normalized to `MMDDYYYY` regardless of how the site renders it. The recap is the most recent entry dated strictly before `date`, within the `RECAP_LOOKBACK_DAYS` (14-day) window — the bound keeps a bad historical date from forcing a whole-archive walk inside one `withPage` callback. **Three-way date agreement is this method's contract:** an entry is only returned if the listing row's date, the date printed in the entry title (e.g. "…for Tuesday 04/10/2018"), and the title's printed weekday (checked against what that calendar date actually falls on) all agree — an off-by-one-row parser fails loudly here instead of filing a document under the wrong day. **Not-found is also this method's contract:** it throws `ArchiveNotFoundError` (defined in `eminiplayer.constants.ts`, owned by the scraper layer — the only layer that can detect it) when the date has no TP entry or no recap in the window; the ingest layer passes it through untouched and the controller maps it to 404.
   - `getYoutubeUrl(pageUrl): Promise<string>` — opens an archive detail page, re-asserts the landed URL structurally (`assertOnPage`), extracts the embedded YouTube URL.
   - `downloadTradePlanPdf(pageUrl): Promise<Buffer>` — opens the TP detail page, re-asserts the landed URL, downloads the PDF.
   - **Stub policy:** each method ships with its navigation/auth skeleton in place (goto inside `withPage`, login reuse) but throws `Error('eminiplayer: <method> selectors not implemented yet')` at the extraction point, marked `TODO(selectors)`. Zeroing in on live markup is follow-up work.
-- **`EminiplayerIngestService`** — pure orchestration; injects `EminiplayerService`, `TranscriptService`, and the existing `STORAGE_BUCKET` provider. No Playwright, no HTTP types.
-- **`EminiplayerController`** — validates `date` (`MMDDYYYY`, real calendar date), parses `force` (boolean, default false), maps orchestrator errors to HTTP statuses.
+- **`eminiplayer-validation.ts`** — pure, dependency-free check functions (no classes, no DI): `assertTranscriptMarkdown` (parses the `**MM:SS**` lines back out of markdown so the same gate covers both freshly-generated and bucket-reloaded transcripts), `assertPdfBuffer`, `assertDayInvariants`, `assertVideoTitle`, `extractYoutubeVideoId`, `parseMmddyyyy`, `sha256Hex`. All throw `IngestValidationError` with a named reason. Thresholds are exported constants.
+- **`EminiplayerVerifyService`** — injects `LLM_PROVIDER` (`LlmProvider.messageStructured` with a JSON schema, attribution `{ operation: 'other' }`); one method `verifyTranscript(markdown, { flavor, date })`. Verdict mismatch throws `IngestValidationError`; transport failure throws a plain `Error` for the orchestrator to wrap as a `'verify'` stage error.
+- **`EminiplayerManifestService`** — builds and writes `manifest.json` (last step of a run), claims video ids in the `eminiplayer-video-ids` Firestore collection via transaction (idempotent re-claim for the same `{date, slot}`; conflict throws `IngestValidationError`), deletes the manifest on `force` before regeneration, answers `exists(date)`.
+- **`EminiplayerIngestService`** — pure orchestration; injects `EminiplayerService`, `TranscriptService`, `EminiplayerVerifyService`, `EminiplayerManifestService`, and the existing `STORAGE_BUCKET` provider. No Playwright, no HTTP types.
+- **`EminiplayerAuditService`** — read-only re-verification of every manifested day: downloads each file, compares sha256 to the manifest, re-runs gates and invariants, checks cross-day video-id uniqueness, flags Firestore claims with no matching manifest and day folders with no manifest. Returns `{ daysChecked, ok, anomalies: [{date, problem}], uncommittedDays }`.
+- **`EminiplayerController`** — `POST /eminiplayer/ingest`: validates `date` (`MMDDYYYY`, real calendar date), parses `force` (boolean, default false), maps errors (`ArchiveNotFoundError`→404, `IngestValidationError`→422, `IngestStageError`→502). `GET /eminiplayer/audit`: delegates to the audit service.
 
 `EminiplayerModule` imports `TranscriptModule` and keeps `PlaywrightService` module-private; the controller is declared on `AppModule`'s `controllers` array, matching the repo convention (`MarketDataController`, `BenchmarkController`, …). `FirebaseModule` is `@Global()`, so `STORAGE_BUCKET` injects without an import.
 
@@ -59,19 +73,23 @@ backend/src/eminiplayer/
 `POST /eminiplayer/ingest?date=MMDDYYYY&force=false`
 
 0. **Coalesce** — if an ingest for this date is already in flight, return its promise (Decision 5b).
-1. **Resolve** — `findDayEntries(date)`. The scrape happens once, up front; entry page URLs are reused across steps.
-2. **Plan** — compute the three storage paths; delete stale `*_ES_RECAP.md` objects in the day folder (Decision 5a); `bucket.file(path).exists()` for each path; anything present and not `force` is marked `skipped` without touching the site.
-3. **Produce & upload** each missing artifact, in order, uploading immediately after producing:
-   1. Recap markdown: `getYoutubeUrl(recap.pageUrl)` → `toMarkdown(url)` → upload (`contentType: text/markdown`).
-   2. TP markdown: same via `tradePlan.pageUrl`.
-   3. TP PDF: `downloadTradePlanPdf(tradePlan.pageUrl)` → upload (`contentType: application/pdf`).
-4. **Respond:**
+1. **Resolve** — `findDayEntries(date)` (three-way date agreement inside; see scraper contract). Then `assertDayInvariants(date, recapDate)`. The scrape happens once, up front; entry page URLs are reused across steps.
+2. **Plan** — compute the three storage paths; on `force`, delete the day's manifest first (uncommit); delete stale `*_ES_RECAP.md` objects in the day folder (Decision 5a).
+3. **Produce or reload, gate, verify, upload** — per transcript artifact (recap with `recapDate`, TP with `date`):
+   1. `getYoutubeUrl(pageUrl)` → `extractYoutubeVideoId` → `fetchVideoTitle(videoId)` → `assertVideoTitle(title, expectedDate, flavor)`.
+   2. If the object exists and not `force`: download it (`status: skipped` — production skipped, verification never skipped). Otherwise `fetchSegments` → `transcriptToMarkdown` → upload (`contentType: text/markdown`, `status: uploaded`).
+   3. `assertTranscriptMarkdown(markdown)` then `verifyTranscript(markdown, { flavor, date: expectedDate })` (LLM, blocking).
+   4. Record `{videoId, sha256, bytes}` for the manifest.
+   For the PDF: produce-or-reload via `downloadTradePlanPdf` (`contentType: application/pdf`), `assertPdfBuffer`, record hash/bytes.
+4. **Commit** — build the manifest (sources, video ids, hashes, check booleans, `INGEST_PIPELINE_VERSION`, timestamps); claim both video ids in Firestore (conflict = validation failure); write `manifest.json`. Only now is the day visible to consumers.
+5. **Respond:**
 
 ```json
 {
   "date": "07012026",
   "recapDate": "06302026",
   "staleRecapsRemoved": [],
+  "manifestPath": "knowledge-base/es/07012026/manifest.json",
   "files": {
     "recap":       { "storagePath": "knowledge-base/es/07012026/06302026_ES_RECAP.md", "status": "uploaded" },
     "tradePlanMd": { "storagePath": "knowledge-base/es/07012026/07012026_ES_TP.md",   "status": "uploaded" },
@@ -80,11 +98,11 @@ backend/src/eminiplayer/
 }
 ```
 
-`status` is `"uploaded"` or `"skipped"`. When everything is skipped, step 1's scrape is still needed to learn the recap date — unless all three paths can be derived without it; they cannot (the recap filename embeds the recap date), so resolve always runs. This is acceptable: resolution is one listing-page scan.
+`status` is `"uploaded"` or `"skipped"`. Resolve always runs even when every artifact exists (the recap filename embeds the recap date, which only the archive listing knows), and verification always runs even on fully-skipped days whose manifest is missing — a run that ends without writing a manifest left an unverified day, and only re-verification can commit it. A day whose manifest already exists and `force=false` short-circuits after resolve: everything is verified-and-committed, so the run reports all-skipped without re-downloading.
 
 **Duration:** a full run drives a real browser (navigation + possible login), two transcript fetches, a PDF download, and three uploads — expect tens of seconds to minutes, serialized behind any other in-flight page work. The endpoint is synchronous by design (operator tool, low concurrency); clients should set generous timeouts, and a timed-out retry coalesces onto the still-running ingest rather than restacking it.
 
-**Completeness contract:** a day group is complete exactly when all three files exist at their computed paths. Upload-as-you-go means partial folders are a normal transient state after a failed run; consumers (e.g. the future local-sync step) must treat "fewer than three files" as incomplete, and the stale-recap cleanup guarantees there is never more than one `*_ES_RECAP.md` to count.
+**Completeness contract:** a day group is complete exactly when `manifest.json` exists — the manifest is only written after every artifact is present, gated, cross-checked, and LLM-verified, so manifest presence subsumes any file-counting heuristic. Upload-as-you-go means partial, unmanifested folders are a normal transient state after a failed run; consumers (e.g. the future local-sync step) must read only manifested days. The stale-recap cleanup guarantees a committed day never contains a second `*_ES_RECAP.md`.
 
 ## Error handling
 
@@ -93,10 +111,19 @@ backend/src/eminiplayer/
 | Malformed/invalid `date` | 400 | Controller validation, before any scraping |
 | Archive has no TP entry for `date` | 404 | `ArchiveNotFoundError` thrown by `findDayEntries` (scraper layer); message names the date |
 | Archive has no recap entry within the lookback window before `date` | 404 | Same error; covers the first-ever-day and recap-not-posted-yet cases |
-| Storage pre-check / scrape / transcript-fetch / PDF-download / upload failure | 502 | `IngestStageError` names the failing stage (`plan`/`resolve`/`transcribe`/`download`/`upload`) and artifact; already-uploaded artifacts remain (resume via fill-and-skip) |
+| Any verification failure — gate, date cross-check, invariant, LLM verdict mismatch, video-id uniqueness conflict | 422 | `IngestValidationError` with the named reason. **We got data and refuse to trust it** — no manifest is written, the day stays invisible to consumers, artifacts stay in place for diagnosis |
+| Storage pre-check / scrape / transcript-fetch / PDF-download / oEmbed or LLM transport failure / upload / commit failure | 502 | `IngestStageError` names the failing stage (`plan`/`resolve`/`transcribe`/`download`/`verify`/`upload`/`commit`) and artifact; already-uploaded artifacts remain (resume via fill-and-skip) |
 | Selectors not yet implemented (current stub state) | 502 | Same path as scrape failure — the endpoint is honest about being unwired |
 
-Error ownership: `ArchiveNotFoundError` lives in `eminiplayer.constants.ts` and is thrown by the scraper — the only layer that can detect not-found; the orchestrator passes it through untouched and wraps everything else into `IngestStageError` (`eminiplayer-ingest.errors.ts`) with `{ stage, artifact }` context. The controller maps the former to 404 and the latter to 502.
+Error ownership: `ArchiveNotFoundError` lives in `eminiplayer.constants.ts` and is thrown by the scraper — the only layer that can detect not-found. `IngestValidationError` lives in `eminiplayer-ingest.errors.ts` and is thrown by the pure validation functions, the verify service (verdict mismatch), and the manifest service (uniqueness conflict). The orchestrator passes both through untouched and wraps everything else into `IngestStageError` with `{ stage, artifact }` context. The controller maps 404 / 422 / 502 respectively. The distinction matters operationally: a 502 is retryable as-is; a 422 means the source data or our expectations are wrong and a human must look before that day can ever commit.
+
+## Configuration
+
+One new key in the `eminiplayer` config namespace (`backend/src/config/configuration.ts` + `.env.example`):
+
+| Key | Env var | Default |
+|---|---|---|
+| `verifyModel` | `EMINIPLAYER_VERIFY_MODEL` | unset (`\|\| undefined` convention) — provider's default model. Set to a cheap classifier model (e.g. Haiku) to cut verification cost; classification needs no frontier model |
 
 **Trust boundary:** the endpoint is unauthenticated and each call can drive a credentialed login to eminiplayer.net, so it is an operator-only tool — the backend is assumed to bind to localhost or a trusted network, same as every other endpoint in this app. If the backend is ever exposed beyond that, this controller needs a guard (shared-secret header at minimum) before anything else does: unlike the read-only demo endpoints, abuse here loops logins against a third-party membership account.
 
@@ -104,15 +131,21 @@ Error ownership: `ArchiveNotFoundError` lives in `eminiplayer.constants.ts` and 
 
 Unit tests only, matching existing backend spec style (jest, collaborators mocked):
 
-- **`TranscriptService`** — fixture segments → exact markdown output (assert byte-identical formatting vs a fixture copied from a real knowledge-base file's shape); ms→s normalization; fetch failure wrapped with context.
+- **`TranscriptService`** — fixture segments → exact markdown output (assert byte-identical formatting vs a fixture copied from a real knowledge-base file's shape); ms→s normalization; fetch failure wrapped with context; oEmbed title fetch (global `fetch` mocked): success, HTTP error, missing title.
+- **`eminiplayer-validation.ts`** — table-driven pure tests: transcript gate accepts a realistic fixture and rejects too-short / non-monotonic / implausible-duration (including a 1000×-compressed fixture) inputs; PDF gate accepts a minimal valid PDF buffer and rejects HTML-error-page / truncated / tiny buffers; invariants (recap ≥ date, gap > lookback, weekend dates); video-id extraction across `youtu.be` / `watch?v=` / `embed/` forms and rejection of non-YouTube URLs; title checks (date forms with and without leading zeros, flavor mismatch).
+- **`EminiplayerVerifyService`** — `LLM_PROVIDER` mocked: passing verdict; each mismatch dimension (`docType`, `isEsContent`, weekday, low confidence) → `IngestValidationError`; transport failure → plain `Error`.
+- **`EminiplayerManifestService`** — bucket + Firestore transaction mocked: manifest written last with correct shape; idempotent re-claim for same `{date, slot}`; conflict → `IngestValidationError`; force-delete of manifest.
+- **`EminiplayerAuditService`** — mocked bucket/Firestore: clean audit; hash mismatch, gate failure, duplicate video id across manifests, orphaned claim, unmanifested folder each produce a named anomaly.
 - **`EminiplayerIngestService`** — all three collaborators mocked:
   - happy path: three uploads, correct paths and contentTypes, response shape
   - fill-and-skip: existing objects skipped, missing ones produced
   - `force=true`: everything regenerated
   - partial failure: recap uploads, TP transcript throws → stage error surfaces, recap upload already happened (resume semantics)
-  - `ArchiveNotFoundError` from `findDayEntries` passes through unwrapped
+  - `ArchiveNotFoundError` from `findDayEntries` passes through unwrapped; `IngestValidationError` from any gate/check passes through unwrapped
   - stale-recap cleanup: mismatched `*_ES_RECAP.md` deleted and reported; the currently-resolved recap is never treated as stale
   - same-date coalescing: concurrent calls share one run; a later call runs fresh
+  - manifest short-circuit: committed day + `force=false` reports all-skipped without re-verification; missing manifest with existing artifacts → artifacts reloaded and fully re-verified before commit
+  - no manifest written when any gate, title check, LLM verdict, or uniqueness claim fails; artifacts remain
 - **`EminiplayerController`** — date validation (format + calendar validity), force parsing, error→status mapping.
 - **`EminiplayerService` new methods** — with mocked Playwright page: each runs inside `withPage`, performs its navigation skeleton (including the landed-URL re-assert; a redirected detail page throws a navigation error), and throws the not-implemented error at the extraction point.
 - No live-site or live-bucket tests.
@@ -122,4 +155,6 @@ Unit tests only, matching existing backend spec style (jest, collaborators mocke
 - Actual archive/detail-page selectors and PDF-link discovery (`TODO(selectors)` follow-up).
 - Scheduling/cron, retries, backfill loops over date ranges.
 - Syncing Storage back to the local `knowledge-base/` folder.
-- Any parsing of the PDF or transcript content.
+- Semantic parsing of PDF/transcript content beyond the verification checks above (no zone extraction, no PDF text extraction — the PDF gate is structural only).
+- Alerting/notification channels for failed or anomalous days (the audit report and 4xx/5xx responses are the signal; wiring them to email/Slack is follow-up).
+- Automated cleanup of orphaned Firestore video-id claims (audit flags them; cleanup is manual for now).
