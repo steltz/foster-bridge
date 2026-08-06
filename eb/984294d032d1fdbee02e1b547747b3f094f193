@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline-review.md
+  s_52f359e82ac2c6::t_afa3faa69d6bc9 3-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "eb984294d032d1fdbee02e1b547747b3f094f193",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
