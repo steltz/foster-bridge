@@ -51,17 +51,46 @@ describe('toMoonshotSchema (D8) — nullable enums', () => {
   });
 });
 
-describe('toMoonshotSchema (D8) — anyOf branch + additionalProperties injection', () => {
-  it('wraps an optional enum-only property (no type field) in anyOf with a null alternative', () => {
+describe('toMoonshotSchema (D8) — enum type inference', () => {
+  it('infers `type` for a required enum-only property from its enum values', () => {
+    const shaped = toMoonshotSchema({
+      type: 'object',
+      required: ['side'],
+      properties: { side: { enum: ['long', 'short'] } },
+    }) as any;
+    expect(shaped.properties.side).toEqual({ type: 'string', enum: ['long', 'short'] });
+  });
+
+  it('infers `type` for an optional enum-only property, then nullifies it (no bare enum survives)', () => {
     const shaped = toMoonshotSchema({
       type: 'object',
       required: [],
       properties: { side: { enum: ['long', 'short'] } },
     }) as any;
-    expect(shaped.properties.side).toEqual({ anyOf: [{ enum: ['long', 'short'] }, { type: 'null' }] });
+    expect(shaped.properties.side).toEqual({ type: ['string', 'null'], enum: ['long', 'short', null] });
   });
 
-  it('wraps an optional $ref-style property (no type field) in anyOf with a null alternative', () => {
+  it('infers a numeric `type` from a numeric enum', () => {
+    const shaped = toMoonshotSchema({
+      type: 'object',
+      required: ['grade'],
+      properties: { grade: { enum: [1, 2, 3] } },
+    }) as any;
+    expect(shaped.properties.grade).toEqual({ type: 'number', enum: [1, 2, 3] });
+  });
+
+  it('leaves a typed enum property unchanged', () => {
+    const shaped = toMoonshotSchema({
+      type: 'object',
+      required: ['side'],
+      properties: { side: { type: 'string', enum: ['long', 'short'] } },
+    }) as any;
+    expect(shaped.properties.side).toEqual({ type: 'string', enum: ['long', 'short'] });
+  });
+});
+
+describe('toMoonshotSchema (D8) — anyOf branch + additionalProperties injection', () => {
+  it('wraps an optional $ref-style property (no type field, no enum) in anyOf with a null alternative', () => {
     const shaped = toMoonshotSchema({
       type: 'object',
       required: [],
@@ -92,9 +121,30 @@ function assertStrictSchema(shaped: any, path = '$'): void {
     const keys = Object.keys(shaped.properties);
     expect({ path, required: [...(shaped.required ?? [])].sort() }).toEqual({ path, required: [...keys].sort() });
     expect({ path, addl: shaped.additionalProperties }).toEqual({ path, addl: false });
-    for (const key of keys) assertStrictSchema(shaped.properties[key], `${path}.${key}`);
+    for (const key of keys) {
+      assertHasType(shaped.properties[key], `${path}.${key}`);
+      assertStrictSchema(shaped.properties[key], `${path}.${key}`);
+    }
   }
   if (shaped.items) assertStrictSchema(shaped.items, `${path}[]`);
+}
+
+// MFJS (Moonshot's schema dialect) rejects any property schema lacking an
+// explicit `type` — including a bare `{enum: [...]}` — with a hard 400
+// ("type is not defined"). That rejection is a schema-rejection 400, so
+// createChatWithFallback silently swallows it and retries in unconstrained
+// json_object mode: the request "succeeds" but the schema is never enforced.
+// This is the exact bug that shipped undetected (SETUP_SCHEMA.side, plus
+// seven-keys' zone `side`/`grade`) — assert every leaf property (or every
+// anyOf alternative, recursively) declares `type` so it fails loudly instead.
+function assertHasType(def: any, path: string): void {
+  if (!def || typeof def !== 'object') return;
+  if (Array.isArray(def.anyOf)) {
+    def.anyOf.forEach((alt: any, i: number) => assertHasType(alt, `${path}(anyOf[${i}])`));
+    return;
+  }
+  if (def.properties || def.items) return; // nested containers: checked by assertStrictSchema's own recursion
+  expect({ path, type: def.type }).toEqual({ path, type: expect.anything() });
 }
 
 describe('toMoonshotSchema schema gate (real schemas)', () => {

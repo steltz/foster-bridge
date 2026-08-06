@@ -71,9 +71,26 @@ export function toMoonshotSchema(schema: any): any {
   const required = new Set<string>(schema.required ?? []);
   const shaped: Record<string, any> = {};
   for (const [key, def] of Object.entries(props)) {
-    shaped[key] = required.has(key) ? def : nullable(def);
+    const typed = withEnumType(def);
+    shaped[key] = required.has(key) ? typed : nullable(typed);
   }
   return { ...schema, properties: shaped, required: Object.keys(props), additionalProperties: false };
+}
+
+// Moonshot's MFJS validator rejects any property whose schema has no `type`
+// — including a bare `{enum: [...]}` — with a hard 400 ("type is not
+// defined"). Unlike OpenAI's/Anthropic's validators, which tolerate an
+// enum-only property, MFJS does not; the request then fails, and
+// createChatWithFallback silently retries in unconstrained json_object mode,
+// so the schema stops being enforced at all with no visible error. Infer
+// `type` from the enum's own values so a schema author forgetting to repeat
+// it can't quietly degrade every request this way.
+function withEnumType(def: any): any {
+  if (!def || def.type !== undefined || !Array.isArray(def.enum)) return def;
+  const sample = def.enum.find((v: any) => v !== null);
+  const type = typeof sample;
+  if (type !== 'string' && type !== 'number' && type !== 'boolean') return def;
+  return { ...def, type };
 }
 
 function nullable(def: any): any {

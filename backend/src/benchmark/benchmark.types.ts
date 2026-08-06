@@ -25,7 +25,7 @@ export const SETUP_SCHEMA = {
   type: 'object',
   required: ['side', 'entry', 'stopLoss', 'takeProfit', 'rationale', 'primaryZone', 'confidence'],
   properties: {
-    side: { enum: ['long', 'short'] },
+    side: { type: 'string', enum: ['long', 'short'] },
     entry: { type: 'number' },
     stopLoss: { type: 'number' },
     takeProfit: { type: 'number' },
