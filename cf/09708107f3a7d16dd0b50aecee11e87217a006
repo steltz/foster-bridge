@@ -1,0 +1,27 @@
+backend/src/transcript/transcript.service.spec.ts
+  s_52f359e82ac2c6::t_028834f6eb3803 1-156
+backend/src/transcript/transcript.module.ts
+  s_52f359e82ac2c6::t_08c7b1c4d5fd73 1-8
+backend/src/transcript/transcript.service.ts
+  s_52f359e82ac2c6::t_52864f10ee6efc 1-99
+backend/package.json
+  s_52f359e82ac2c6::t_d25b2b3859779e 30-31
+backend/pnpm-lock.yaml
+  s_52f359e82ac2c6::t_fdd5712ddb71c7 50-52,3048-3051,6531-6532
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "cf09708107f3a7d16dd0b50aecee11e87217a006",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
