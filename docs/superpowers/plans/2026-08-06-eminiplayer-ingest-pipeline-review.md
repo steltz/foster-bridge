@@ -87,17 +87,30 @@ Every newly-introduced repo/dependency claim checked true: `LLM_PROVIDER`/`messa
 
 ## Round 2 outcome tracking
 
-| # | Finding | Status |
-|---|---|---|
-| R2-H1 | Short-circuit freezes wrong-recap committed day | pending |
-| R2-H2 | Force never releases video-id claims | pending |
-| R2-H3 | Audit doesn't scale (serial full downloads, one GET) | pending |
-| R2-H4 | Gate test asserts on memoized file handle | pending |
-| R2-M1 | Spec upload-then-gate vs plan gate-then-upload | pending |
-| R2-M2 | Coalescing drops force flag | pending |
-| R2-M3 | assertOnPage exact-hostname strictness | pending |
-| R2-M4 | Title-format gate unverified against real titles | pending |
-| R2-L1..L12 | (as listed) | pending |
+All 20 findings applied 2026-08-06 (user: "all").
+
+| # | Finding | Status | How |
+|---|---|---|---|
+| R2-H1 | Short-circuit freezes wrong-recap committed day | applied | Short-circuit now reads the manifest (`manifest.read`), builds the response from it, and throws `IngestValidationError` on recapDate drift; spec flow + Decision 4 updated; two tests |
+| R2-H2 | Force never releases video-id claims | applied | `EminiplayerManifestService.delete` reads the manifest and releases day-owned claims (transactional, never foreign) before removing it; three tests |
+| R2-H3 | Audit doesn't scale | applied | `AuditOptions {from,to,deep}`; shallow default compares GCS listing `md5Hash`/`size` (no content downloads, `md5` added to `FileRecord` + `md5Base64` helper); `deep=true` downloads + sha256 + gates; controller query params; tests incl. shallow-downloads-only-manifest |
+| R2-H4 | Gate test asserts on memoized file handle | applied | Assertion changed to `.not.toHaveBeenCalled()` with an explanatory comment; mid-run test's valid `toBeUndefined()` kept |
+| R2-M1 | Spec upload-then-gate contradiction | applied | Spec flow step 3 + 422 row now state gate-before-upload and scope "artifacts stay in place" |
+| R2-M2 | Coalescing drops force flag | applied | Inflight map stores `{force, run}`; force finding a non-force run awaits it then runs forced; spec Decision 5b; test |
+| R2-M3 | assertOnPage exact-hostname strictness | applied | Hostname compared modulo leading `www.`; acceptance test added |
+| R2-M4 | Title-format gate unverified | applied | Spec Decision 6B caveat + `TODO(selectors follow-up)` comment; `assertVideoTitle` distinguishes contradictory-date from no-recognizable-date |
+| R2-L1 | oEmbed 4xx → 502 misclassification | applied | `VideoUnavailableError` in TranscriptService (4xx vs 5xx tests); orchestrator maps it to `IngestValidationError` |
+| R2-L2 | Missing manifest→claims inverse check | applied | Audit checks both directions (`no video-id claim matching …`); test |
+| R2-L3 | Write-only `checks` booleans | applied | `DayManifest.checks` replaced by `evidence` (both titles + both `TranscriptVerdict`s); `verifyTranscript` returns the verdict; happy-path assertions |
+| R2-L4 | Storage-layout duplication | applied | `ES_STORAGE_PREFIX`/`manifestPath`/`dayPaths` in validation module; orchestrator, manifest service, audit all consume them; test |
+| R2-L5 | referencedWeekday false 422s | applied | SYSTEM prompt: primary-session rule, ignore next/previous-session mentions |
+| R2-L6 | Audit gate-anomaly branch untested | applied | Deep-mode test with hash-consistent, gate-failing artifact |
+| R2-L7 | Stale-recap exclusion filter untested | applied | Test seeds stale + current recap; asserts exactly one deleted |
+| R2-L8 | Byte-parity fixture too small | applied | Real-shaped 42-line fixture with entities + H:MM:SS boundary |
+| R2-L9 | Wrong-weekday accept fixtures | applied | Calendar-correct weekdays + scope comment |
+| R2-L10 | Audit catch misattribution | applied | Catch narrowed to manifest download+parse; per-file failures → `<artifact> unreadable`; test |
+| R2-L11 | Missing AuditReport import / build diff | applied | Full import lines, constructor, route with validation, and the spec `build` helper shown |
+| R2-L12 | configuration.spec env leak | applied | Task 4 adds `delete process.env.EMINIPLAYER_VERIFY_MODEL` + shape/override test |
 
 ---
 

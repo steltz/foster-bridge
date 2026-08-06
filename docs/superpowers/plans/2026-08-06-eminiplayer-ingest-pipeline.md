@@ -34,7 +34,7 @@
 
 **Interfaces:**
 - Consumes: nothing from other tasks.
-- Produces: `TranscriptModule` (exports `TranscriptService`); `TranscriptService.fetchSegments(urlOrId: string): Promise<TranscriptSegment[]>`; `TranscriptService.fetchVideoTitle(videoId: string): Promise<string>`; pure exports `decodeEntities(text: string): string`, `formatOffset(seconds: number): string`, `transcriptToMarkdown(segments: TranscriptSegment[]): string`, `interface TranscriptSegment { text: string; offset: number }` (offset in seconds).
+- Produces: `TranscriptModule` (exports `TranscriptService`); `TranscriptService.fetchSegments(urlOrId: string): Promise<TranscriptSegment[]>`; `TranscriptService.fetchVideoTitle(videoId: string): Promise<string>` (oEmbed 4xx throws `class VideoUnavailableError extends Error` — exported, permanent condition; 5xx/network throw plain `Error`); pure exports `decodeEntities(text: string): string`, `formatOffset(seconds: number): string`, `transcriptToMarkdown(segments: TranscriptSegment[]): string`, `interface TranscriptSegment { text: string; offset: number }` (offset in seconds).
 
 - [ ] **Step 1: Install the dependency**
 
@@ -54,6 +54,7 @@ jest.mock('youtube-transcript', () => ({
 import { YoutubeTranscript } from 'youtube-transcript';
 import {
   TranscriptService,
+  VideoUnavailableError,
   decodeEntities,
   formatOffset,
   transcriptToMarkdown,
@@ -99,6 +100,34 @@ describe('transcriptToMarkdown', () => {
         '**00:00** Right, good afternoon. Welcome to\n' +
         "**00:02** today's live recap.\n",
     );
+  });
+
+  it('matches the real knowledge-base shape byte-for-byte at scale (entities, hour boundary)', () => {
+    // Real-shaped fixture: dozens of lines, entity-bearing text, and lines
+    // crossing the one-hour H:MM:SS boundary — the shapes where formatting
+    // drift would actually show.
+    const segments = [
+      ...Array.from({ length: 40 }, (_, i) => ({
+        text: i % 7 === 0 ? `zone ${i} &amp; the 7481.75 to 95&#39;s area` : `segment ${i} of the session narrative`,
+        offset: i * 89.5,
+      })),
+      { text: 'now past the hour &quot;mark&quot;', offset: 3601 },
+      { text: 'closing remarks &lt;end&gt;', offset: 3725.9 },
+    ];
+    const expectedLines = [
+      ...Array.from({ length: 40 }, (_, i) => {
+        const t = Math.floor(i * 89.5);
+        const h = Math.floor(t / 3600);
+        const mm = String(Math.floor((t % 3600) / 60)).padStart(2, '0');
+        const ss = String(t % 60).padStart(2, '0');
+        const stamp = h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+        const text = i % 7 === 0 ? `zone ${i} & the 7481.75 to 95's area` : `segment ${i} of the session narrative`;
+        return `**${stamp}** ${text}`;
+      }),
+      '**1:00:01** now past the hour "mark"',
+      '**1:02:05** closing remarks <end>',
+    ];
+    expect(transcriptToMarkdown(segments)).toBe(`# Transcript\n\n${expectedLines.join('\n')}\n`);
   });
 });
 
@@ -146,13 +175,23 @@ describe('TranscriptService.fetchVideoTitle', () => {
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('abc123');
   });
 
-  it('throws on a non-OK HTTP status', async () => {
+  it('throws VideoUnavailableError on a 4xx (deleted/private/unembeddable video — permanent)', async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({ ok: false, status: 404 }),
     ) as unknown as typeof fetch;
-    await expect(new TranscriptService().fetchVideoTitle('abc123')).rejects.toThrow(
-      'oEmbed fetch failed for abc123: HTTP 404',
-    );
+    const err = await new TranscriptService().fetchVideoTitle('abc123').catch((e) => e);
+    expect(err).toBeInstanceOf(VideoUnavailableError);
+    expect(err.message).toContain('HTTP 404');
+  });
+
+  it('throws a plain Error on a 5xx (transient — retryable transport failure)', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: false, status: 503 }),
+    ) as unknown as typeof fetch;
+    const err = await new TranscriptService().fetchVideoTitle('abc123').catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(VideoUnavailableError);
+    expect(err.message).toContain('HTTP 503');
   });
 
   it('throws when the response has no title', async () => {
@@ -226,6 +265,13 @@ export function transcriptToMarkdown(segments: TranscriptSegment[]): string {
 const OFFSET_DIVISOR = 1000;
 
 /**
+ * The video exists-check failed on YouTube's side (deleted, private, or
+ * embedding disabled) — a PERMANENT data condition, not a transient fault.
+ * Callers must not treat this as retryable transport failure.
+ */
+export class VideoUnavailableError extends Error {}
+
+/**
  * Site-agnostic YouTube access. fetchSegments' downstream markdown format is
  * byte-identical to the root package's `backtest transcript` CLI, which
  * produced the existing knowledge-base/es transcript files. fetchVideoTitle
@@ -255,7 +301,11 @@ export class TranscriptService {
       throw new Error(`oEmbed fetch failed for ${videoId}: ${(err as Error).message}`);
     }
     if (!res.ok) {
-      throw new Error(`oEmbed fetch failed for ${videoId}: HTTP ${res.status}`);
+      const message = `oEmbed fetch failed for ${videoId}: HTTP ${res.status}`;
+      // 4xx = the video itself is gone/private/unembeddable (permanent);
+      // 5xx = YouTube-side transient, plain error so callers may retry.
+      if (res.status >= 400 && res.status < 500) throw new VideoUnavailableError(message);
+      throw new Error(message);
     }
     const body = (await res.json()) as { title?: string };
     if (!body.title) {
@@ -398,6 +448,17 @@ describe('scraper contract stubs', () => {
     );
   });
 
+  it('getYoutubeUrl accepts www <-> apex host canonicalization (same path)', async () => {
+    // requested www, landed on apex — the host variance assertOnArchivePage
+    // already tolerates; must reach the extraction point, not a nav error
+    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+    const page = makePage({ url: jest.fn(() => 'https://eminiplayer.net/post/some-entry.aspx') });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
+      'eminiplayer: getYoutubeUrl selectors not implemented yet',
+    );
+  });
+
   it('downloadTradePlanPdf navigates to the detail page authenticated, then throws not-implemented', async () => {
     const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
     const page = makePage({ url: jest.fn(() => detailUrl) });
@@ -516,12 +577,16 @@ Add a structural landed-URL assertion for detail pages, next to `assertOnArchive
  * Structural check that the page landed where we asked. Same rationale as
  * assertOnArchivePage: a redirect (login.aspx?ReturnUrl=..., soft-404, home
  * page) must fail loudly here, not surface later as a selector mismatch.
+ * Hostname comparison tolerates www. <-> apex canonicalization — the same
+ * host variance assertOnArchivePage deliberately accepts — while keeping the
+ * pathname check exact.
  */
 private assertOnPage(page: Page, expectedUrl: string): void {
   const url = new URL(page.url());
   const expected = new URL(expectedUrl);
+  const normalizeHost = (h: string) => h.replace(/^www\./, '');
   const landed =
-    url.hostname === expected.hostname &&
+    normalizeHost(url.hostname) === normalizeHost(expected.hostname) &&
     url.pathname.toLowerCase() === expected.pathname.toLowerCase();
   if (!landed) {
     throw new Error(
@@ -613,7 +678,7 @@ git commit -m "feat(eminiplayer): stubbed scraper contracts with landed-URL asse
 - Produces (used by Tasks 4–8):
   - `class IngestStageError extends Error { readonly stage: 'plan'|'resolve'|'transcribe'|'download'|'verify'|'upload'|'commit'; readonly artifact: 'archive'|'recap'|'tradePlanMd'|'tradePlanPdf' }` — in the errors file
   - `class IngestValidationError extends Error` — in the errors file; maps to HTTP 422
-  - Pure functions in `eminiplayer-validation.ts`: `parseMmddyyyy(date: string): Date`, `isWeekday(date: string): boolean`, `assertDayInvariants(date: string, recapDate: string): void`, `extractYoutubeVideoId(url: string): string`, `type VideoFlavor = 'recap' | 'tradePlan'`, `assertVideoTitle(title: string, expectedDate: string, flavor: VideoFlavor): void`, `assertTranscriptMarkdown(markdown: string, label: string): void`, `assertPdfBuffer(buf: Buffer, label: string): void`, `sha256Hex(data: string | Buffer): string`, plus exported threshold constants.
+  - Pure functions in `eminiplayer-validation.ts`: `parseMmddyyyy(date: string): Date`, `isWeekday(date: string): boolean`, `assertDayInvariants(date: string, recapDate: string): void`, `extractYoutubeVideoId(url: string): string`, `type VideoFlavor = 'recap' | 'tradePlan'`, `assertVideoTitle(title: string, expectedDate: string, flavor: VideoFlavor): void` (distinguishes contradictory-date from no-recognizable-date), `assertTranscriptMarkdown(markdown: string, label: string): void`, `assertPdfBuffer(buf: Buffer, label: string): void`, `sha256Hex(data: string | Buffer): string`, `md5Base64(data: string | Buffer): string`, plus exported threshold constants and the storage-layout single source: `ES_STORAGE_PREFIX`, `manifestPath(date): string`, `dayPaths(date, recapDate): DayPaths` (`{ dir, recap, tradePlanMd, tradePlanPdf, manifest }`).
 
 - [ ] **Step 1: Write the errors file**
 
@@ -661,8 +726,11 @@ import {
   assertPdfBuffer,
   assertTranscriptMarkdown,
   assertVideoTitle,
+  dayPaths,
   extractYoutubeVideoId,
   isWeekday,
+  manifestPath,
+  md5Base64,
   parseMmddyyyy,
   sha256Hex,
   TRANSCRIPT_MIN_LINES,
@@ -740,25 +808,35 @@ describe('extractYoutubeVideoId', () => {
 });
 
 describe('assertVideoTitle', () => {
+  // Fixture weekdays are calendar-correct (06/30/2026 = Tuesday, 07/01/2026 =
+  // Wednesday). assertVideoTitle deliberately does NOT check weekday-vs-date
+  // agreement — that lives in the scraper's three-way check and the LLM
+  // referencedWeekday check — but fixtures must not teach the wrong invariant.
   it('accepts matching flavor + date (leading-zero and bare forms)', () => {
     expect(() =>
-      assertVideoTitle('ES Recap/Video Lesson for Monday 06/30/2026', '06302026', 'recap'),
+      assertVideoTitle('ES Recap/Video Lesson for Tuesday 06/30/2026', '06302026', 'recap'),
     ).not.toThrow();
     expect(() =>
-      assertVideoTitle('ES Key Zones and Trade Plan for Tuesday 7/1/2026', '07012026', 'tradePlan'),
+      assertVideoTitle('ES Key Zones and Trade Plan for Wednesday 7/1/2026', '07012026', 'tradePlan'),
     ).not.toThrow();
   });
 
   it('rejects a flavor mismatch (recap video in the TP slot)', () => {
     expect(() =>
-      assertVideoTitle('ES Recap/Video Lesson for Monday 06/30/2026', '06302026', 'tradePlan'),
+      assertVideoTitle('ES Recap/Video Lesson for Tuesday 06/30/2026', '06302026', 'tradePlan'),
     ).toThrow(IngestValidationError);
   });
 
-  it('rejects a date mismatch', () => {
+  it('rejects a contradictory date with a "contains" message', () => {
     expect(() =>
-      assertVideoTitle('ES Key Zones and Trade Plan for Wed. 07/02/2026', '07012026', 'tradePlan'),
-    ).toThrow(IngestValidationError);
+      assertVideoTitle('ES Key Zones and Trade Plan for Thu. 07/02/2026', '07012026', 'tradePlan'),
+    ).toThrow('contains 07/02/2026');
+  });
+
+  it('distinguishes an unrecognizable date format (our assumption may be wrong) from a contradiction', () => {
+    expect(() =>
+      assertVideoTitle('ES Key Zones and Trade Plan for July 1st', '07012026', 'tradePlan'),
+    ).toThrow('no recognizable M/D/YYYY date');
   });
 });
 
@@ -814,11 +892,28 @@ describe('assertPdfBuffer', () => {
   });
 });
 
-describe('sha256Hex', () => {
-  it('hashes deterministically', () => {
+describe('hashing', () => {
+  it('sha256Hex hashes deterministically', () => {
     expect(sha256Hex('abc')).toBe(
       'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     );
+  });
+
+  it('md5Base64 matches the GCS metadata md5Hash encoding', () => {
+    expect(md5Base64('abc')).toBe('kAFQmDzST7DWlj99KOF/cg==');
+  });
+});
+
+describe('dayPaths', () => {
+  it('is the single source of the storage layout', () => {
+    expect(dayPaths('07012026', '06302026')).toEqual({
+      dir: 'knowledge-base/es/07012026',
+      recap: 'knowledge-base/es/07012026/06302026_ES_RECAP.md',
+      tradePlanMd: 'knowledge-base/es/07012026/07012026_ES_TP.md',
+      tradePlanPdf: 'knowledge-base/es/07012026/07012026_ES_TP.pdf',
+      manifest: 'knowledge-base/es/07012026/manifest.json',
+    });
+    expect(manifestPath('07012026')).toBe('knowledge-base/es/07012026/manifest.json');
   });
 });
 ```
@@ -902,23 +997,39 @@ function titleDateForms(date: string): string[] {
   return [`${mm}/${dd}/${yyyy}`, `${Number(mm)}/${Number(dd)}/${yyyy}`];
 }
 
+// TODO(selectors follow-up): these accepted forms are an ASSUMPTION not yet
+// validated against the channel's real titles. Before trusting this gate at
+// volume, capture 3-5 real oEmbed titles and encode the observed date/flavor
+// forms — a format mismatch would 422 every single day.
 const FLAVOR_PATTERNS: Record<VideoFlavor, RegExp> = {
   recap: /recap|video lesson/i,
   tradePlan: /trade plan|key zones/i,
 };
 
-/** The video's own title must carry the expected date and the right flavor. */
+const ANY_TITLE_DATE = /\b\d{1,2}\/\d{1,2}\/\d{4}\b/;
+
+/**
+ * The video's own title must carry the expected date and the right flavor.
+ * Distinguishes "the title contradicts the expected date" (wrong video —
+ * source data problem) from "the title carries no recognizable date at all"
+ * (our format assumption may be wrong) so the two are diagnosable apart.
+ */
 export function assertVideoTitle(title: string, expectedDate: string, flavor: VideoFlavor): void {
   if (!FLAVOR_PATTERNS[flavor].test(title)) {
     throw new IngestValidationError(
       `video title "${title}" does not look like a ${flavor} video`,
     );
   }
-  if (!titleDateForms(expectedDate).some((form) => title.includes(form))) {
+  if (titleDateForms(expectedDate).some((form) => title.includes(form))) return;
+  const found = ANY_TITLE_DATE.exec(title);
+  if (found) {
     throw new IngestValidationError(
-      `video title "${title}" does not contain the expected date ${expectedDate}`,
+      `video title "${title}" contains ${found[0]} but the expected date is ${expectedDate}`,
     );
   }
+  throw new IngestValidationError(
+    `video title "${title}" has no recognizable M/D/YYYY date — the title-format assumption may be wrong; verify real oEmbed titles`,
+  );
 }
 
 const TRANSCRIPT_LINE = /^\*\*(\d+):(\d{2})(?::(\d{2}))?\*\* (.+)$/;
@@ -989,6 +1100,41 @@ export function assertPdfBuffer(buf: Buffer, label: string): void {
 export function sha256Hex(data: string | Buffer): string {
   return createHash('sha256').update(data).digest('hex');
 }
+
+/** Base64 MD5 — comparable against GCS object metadata's `md5Hash` field. */
+export function md5Base64(data: string | Buffer): string {
+  return createHash('md5').update(data).digest('base64');
+}
+
+// ---- storage layout: the SINGLE home of the knowledge-base/es/ contract ----
+// Orchestrator, manifest service, and audit all derive paths from here, so
+// the writer and the auditor can never drift apart (an audit whose prefix
+// drifted would "audit" nothing and report clean).
+
+export const ES_STORAGE_PREFIX = 'knowledge-base/es/';
+
+export function manifestPath(date: string): string {
+  return `${ES_STORAGE_PREFIX}${date}/manifest.json`;
+}
+
+export interface DayPaths {
+  dir: string;
+  recap: string;
+  tradePlanMd: string;
+  tradePlanPdf: string;
+  manifest: string;
+}
+
+export function dayPaths(date: string, recapDate: string): DayPaths {
+  const dir = `${ES_STORAGE_PREFIX}${date}`;
+  return {
+    dir,
+    recap: `${dir}/${recapDate}_ES_RECAP.md`,
+    tradePlanMd: `${dir}/${date}_ES_TP.md`,
+    tradePlanPdf: `${dir}/${date}_ES_TP.pdf`,
+    manifest: manifestPath(date),
+  };
+}
 ```
 
 - [ ] **Step 5: Run tests to verify they pass**
@@ -1015,7 +1161,7 @@ git commit -m "feat(eminiplayer): pure validation gates, date cross-checks, and 
 
 **Interfaces:**
 - Consumes: `LLM_PROVIDER` token (`backend/src/llm/llm.constants`) + `LlmProvider.messageStructured<T>(req, attribution)` (`backend/src/llm/llm.provider`); `IngestValidationError` (Task 3); `parseMmddyyyy`, `VideoFlavor` (Task 3).
-- Produces (used by Task 6): `EminiplayerVerifyService.verifyTranscript(markdown: string, expected: { flavor: VideoFlavor; date: string }): Promise<void>` — resolves when the transcript verifies; throws `IngestValidationError` on verdict mismatch; lets transport errors propagate as plain `Error` for the orchestrator to wrap as a `'verify'` stage failure.
+- Produces (used by Tasks 5–6): `interface TranscriptVerdict { docType: 'tradePlan'|'recap'|'other'; isEsContent: boolean; referencedWeekday: Weekday|'none'; confidence: 'high'|'medium'|'low' }`; `EminiplayerVerifyService.verifyTranscript(markdown: string, expected: { flavor: VideoFlavor; date: string }): Promise<TranscriptVerdict>` — returns the verdict (manifest evidence) when the transcript verifies; throws `IngestValidationError` on verdict mismatch; lets transport errors propagate as plain `Error` for the orchestrator to wrap as a `'verify'` stage failure.
 
 - [ ] **Step 1: Add config**
 
@@ -1033,6 +1179,15 @@ In `backend/.env.example`, under the EminiPlayer section:
 ```bash
 # Model for LLM transcript verification (unset = provider default model).
 EMINIPLAYER_VERIFY_MODEL=
+```
+
+Also update `backend/src/config/configuration.spec.ts`: its eminiplayer describe block deletes the existing `EMINIPLAYER_*` env vars in `beforeEach` and asserts the block's exact shape with `toEqual`. Add `delete process.env.EMINIPLAYER_VERIFY_MODEL;` to that `beforeEach` (otherwise any environment with the var exported turns the exact-shape assertion into an environment-dependent full-suite red), and extend the exact-shape expectation with `verifyModel: undefined` plus one override test:
+
+```ts
+it('reads EMINIPLAYER_VERIFY_MODEL', () => {
+  process.env.EMINIPLAYER_VERIFY_MODEL = 'claude-haiku-4-5';
+  expect(configuration().eminiplayer.verifyModel).toBe('claude-haiku-4-5');
+});
 ```
 
 - [ ] **Step 2: Write the failing tests**
@@ -1073,9 +1228,9 @@ async function build(verdict: unknown = GOOD_VERDICT) {
 }
 
 describe('EminiplayerVerifyService.verifyTranscript', () => {
-  it('resolves on a matching verdict and passes model + schema + attribution', async () => {
+  it('returns the verdict on a match and passes model + schema + attribution', async () => {
     const { service, llm } = await build();
-    await expect(service.verifyTranscript(MARKDOWN, EXPECTED)).resolves.toBeUndefined();
+    await expect(service.verifyTranscript(MARKDOWN, EXPECTED)).resolves.toEqual(GOOD_VERDICT);
     const [req, attribution] = llm.messageStructured.mock.calls[0];
     expect(req.model).toBe('test-verify-model');
     expect(req.schema).toBeDefined();
@@ -1084,8 +1239,9 @@ describe('EminiplayerVerifyService.verifyTranscript', () => {
   });
 
   it('accepts referencedWeekday "none" (speaker never names the day)', async () => {
-    const { service } = await build({ ...GOOD_VERDICT, referencedWeekday: 'none' });
-    await expect(service.verifyTranscript(MARKDOWN, EXPECTED)).resolves.toBeUndefined();
+    const verdict = { ...GOOD_VERDICT, referencedWeekday: 'none' };
+    const { service } = await build(verdict);
+    await expect(service.verifyTranscript(MARKDOWN, EXPECTED)).resolves.toEqual(verdict);
   });
 
   it.each([
@@ -1157,7 +1313,7 @@ const SYSTEM = [
   'You classify a transcript of a trading video. Answer only via the schema.',
   'docType: "tradePlan" if the speaker presents a plan for the UPCOMING session (typical opening: "let\'s go over today\'s trade plan"); "recap" if the speaker reviews a COMPLETED session (typical opening: "welcome to today\'s live recap"); otherwise "other".',
   'isEsContent: true only if the content is about ES / E-mini S&P 500 futures trading.',
-  'referencedWeekday: the weekday of the session being planned or recapped, only if the speaker states or clearly implies it; otherwise "none". Never guess.',
+  'referencedWeekday: the weekday of the session this video PRIMARILY covers (the session being planned or recapped), only if the speaker states or clearly implies it; otherwise "none". IGNORE mentions of the next or previous session ("tomorrow, Wednesday, watch for..." in a recap refers to the NEXT session, not this one). If both are named, answer with the covered session\'s weekday. Never guess.',
   'confidence: your certainty in docType.',
 ].join('\n');
 
@@ -1181,7 +1337,7 @@ export class EminiplayerVerifyService {
   async verifyTranscript(
     markdown: string,
     expected: { flavor: VideoFlavor; date: string },
-  ): Promise<void> {
+  ): Promise<TranscriptVerdict> {
     const expectedWeekday = WEEKDAYS[parseMmddyyyy(expected.date).getUTCDay()];
     const verdict = await this.llm.messageStructured<TranscriptVerdict>(
       {
@@ -1209,6 +1365,7 @@ export class EminiplayerVerifyService {
     if (verdict.confidence === 'low') {
       throw new IngestValidationError('llm verification: low-confidence classification');
     }
+    return verdict; // recorded as manifest evidence
   }
 }
 ```
@@ -1234,12 +1391,12 @@ git commit -m "feat(eminiplayer): blocking LLM transcript verification via the L
 - Test: `backend/src/eminiplayer/eminiplayer-manifest.service.spec.ts`
 
 **Interfaces:**
-- Consumes: `STORAGE_BUCKET`, `FIRESTORE` tokens (`backend/src/firebase/firebase.constants`); `IngestValidationError` (Task 3); `INGEST_PIPELINE_VERSION` (Task 2).
+- Consumes: `STORAGE_BUCKET`, `FIRESTORE` tokens (`backend/src/firebase/firebase.constants`); `IngestValidationError` (Task 3); `manifestPath` (Task 3); `INGEST_PIPELINE_VERSION` (Task 2); `TranscriptVerdict` (Task 4).
 - Produces (used by Tasks 6–8):
-  - `interface FileRecord { storagePath: string; sha256: string; bytes: number }`
-  - `interface DayManifest { version: number; date: string; recapDate: string; createdAt: string; sources: { recapPageUrl: string; tradePlanPageUrl: string; recapVideoId: string; tradePlanVideoId: string }; files: { recap: FileRecord; tradePlanMd: FileRecord; tradePlanPdf: FileRecord }; checks: { dateAgreement: boolean; invariants: boolean; transcriptGates: boolean; pdfGate: boolean; videoTitles: boolean; llmVerify: boolean; videoIdUniqueness: boolean } }`
+  - `interface FileRecord { storagePath: string; sha256: string; md5: string; bytes: number }` (`md5` is base64, comparable to GCS object metadata's `md5Hash`)
+  - `interface DayManifest { version: number; date: string; recapDate: string; createdAt: string; sources: { recapPageUrl: string; tradePlanPageUrl: string; recapVideoId: string; tradePlanVideoId: string }; files: { recap: FileRecord; tradePlanMd: FileRecord; tradePlanPdf: FileRecord }; evidence: { recapVideoTitle: string; tradePlanVideoTitle: string; recapVerdict: TranscriptVerdict; tradePlanVerdict: TranscriptVerdict } }` — evidence, not booleans: a questioned day can be re-examined without re-scraping
   - `const VIDEO_IDS_COLLECTION = 'eminiplayer-video-ids'`
-  - `EminiplayerManifestService`: `path(date): string`, `exists(date): Promise<boolean>`, `delete(date): Promise<void>`, `commit(manifest: DayManifest): Promise<void>` (claims both video ids transactionally, then writes the manifest — the last step of a run; a claim held by a different `{date, slot}` throws `IngestValidationError`).
+  - `EminiplayerManifestService`: `path(date): string` (delegates to Task 3's `manifestPath`), `exists(date): Promise<boolean>`, `read(date): Promise<DayManifest | null>`, `delete(date): Promise<void>` (**releases the day's video-id claims first** — symmetric uncommit, so a force-rerun resolving different videos never leaves stale claims that 422-block a neighboring day), `commit(manifest: DayManifest): Promise<void>` (claims both video ids transactionally, then writes the manifest — the last step of a run; a claim held by a different `{date, slot}` throws `IngestValidationError`).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1254,6 +1411,14 @@ import {
   VIDEO_IDS_COLLECTION,
 } from './eminiplayer-manifest.service';
 import { IngestValidationError } from './eminiplayer-ingest.errors';
+import type { TranscriptVerdict } from './eminiplayer-verify.service';
+
+const VERDICT: TranscriptVerdict = {
+  docType: 'recap',
+  isEsContent: true,
+  referencedWeekday: 'Tuesday',
+  confidence: 'high',
+};
 
 const MANIFEST: DayManifest = {
   version: 1,
@@ -1267,25 +1432,34 @@ const MANIFEST: DayManifest = {
     tradePlanVideoId: 'tpVid0000001',
   },
   files: {
-    recap: { storagePath: 'knowledge-base/es/07012026/06302026_ES_RECAP.md', sha256: 'a'.repeat(64), bytes: 1000 },
-    tradePlanMd: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.md', sha256: 'b'.repeat(64), bytes: 1100 },
-    tradePlanPdf: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.pdf', sha256: 'c'.repeat(64), bytes: 50000 },
+    recap: { storagePath: 'knowledge-base/es/07012026/06302026_ES_RECAP.md', sha256: 'a'.repeat(64), md5: 'aaa=', bytes: 1000 },
+    tradePlanMd: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.md', sha256: 'b'.repeat(64), md5: 'bbb=', bytes: 1100 },
+    tradePlanPdf: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.pdf', sha256: 'c'.repeat(64), md5: 'ccc=', bytes: 50000 },
   },
-  checks: {
-    dateAgreement: true, invariants: true, transcriptGates: true, pdfGate: true,
-    videoTitles: true, llmVerify: true, videoIdUniqueness: true,
+  evidence: {
+    recapVideoTitle: 'ES Recap/Video Lesson for Tuesday 06/30/2026',
+    tradePlanVideoTitle: 'ES Key Zones and Trade Plan for Wednesday 07/01/2026',
+    recapVerdict: VERDICT,
+    tradePlanVerdict: { ...VERDICT, docType: 'tradePlan', referencedWeekday: 'Wednesday' },
   },
 };
 
-function makeFakes(claims: Record<string, { date: string; slot: string }> = {}) {
+function makeFakes(
+  claims: Record<string, { date: string; slot: string }> = {},
+  storedManifest: DayManifest | null = null,
+) {
   const file = {
-    exists: jest.fn(() => Promise.resolve([false])),
+    exists: jest.fn(() => Promise.resolve([storedManifest !== null])),
     save: jest.fn(() => Promise.resolve()),
     delete: jest.fn(() => Promise.resolve()),
+    download: jest.fn(() =>
+      Promise.resolve([Buffer.from(JSON.stringify(storedManifest ?? {}))]),
+    ),
   };
   const bucket = { file: jest.fn(() => file) };
   const docRefs = new Map<string, { id: string }>();
   const txSets: Array<[string, unknown]> = [];
+  const txDeletes: string[] = [];
   const firestore = {
     collection: jest.fn(() => ({
       doc: jest.fn((id: string) => {
@@ -1305,11 +1479,14 @@ function makeFakes(claims: Record<string, { date: string; slot: string }> = {}) 
         set: jest.fn((ref: { id: string }, data: unknown) => {
           txSets.push([ref.id, data]);
         }),
+        delete: jest.fn((ref: { id: string }) => {
+          txDeletes.push(ref.id);
+        }),
       };
       await fn(tx);
     }),
   };
-  return { bucket, file, firestore, txSets };
+  return { bucket, file, firestore, txSets, txDeletes };
 }
 
 async function build(fakes = makeFakes()) {
@@ -1358,15 +1535,46 @@ describe('EminiplayerManifestService', () => {
     expect(file.save).not.toHaveBeenCalled();
   });
 
-  it('delete removes the manifest, ignoring not-found', async () => {
-    const { service, file } = await build();
+  it('read parses the stored manifest, or returns null when absent', async () => {
+    const { service: withManifest } = await build(makeFakes({}, MANIFEST));
+    await expect(withManifest.read('07012026')).resolves.toEqual(MANIFEST);
+    const { service: without } = await build(makeFakes({}, null));
+    await expect(without.read('07012026')).resolves.toBeNull();
+  });
+
+  it('delete releases the day-owned claims BEFORE removing the manifest (symmetric uncommit)', async () => {
+    const fakes = makeFakes(
+      {
+        recapVid0001: { date: '07012026', slot: 'recap' },
+        tpVid0000001: { date: '07012026', slot: 'tradePlan' },
+      },
+      MANIFEST,
+    );
+    const { service, file, txDeletes } = await build(fakes);
     await service.delete('07012026');
+    expect(txDeletes.sort()).toEqual(['recapVid0001', 'tpVid0000001']);
+    expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
+  });
+
+  it('delete never touches a claim owned by a different date', async () => {
+    // the manifest names recapVid0001, but another day now owns that claim
+    const fakes = makeFakes({ recapVid0001: { date: '07152026', slot: 'recap' } }, MANIFEST);
+    const { service, txDeletes, file } = await build(fakes);
+    await service.delete('07012026');
+    expect(txDeletes).toEqual([]);
+    expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
+  });
+
+  it('delete with no stored manifest just removes the (absent) file', async () => {
+    const fakes = makeFakes({}, null);
+    const { service, txDeletes, file } = await build(fakes);
+    await service.delete('07012026');
+    expect(txDeletes).toEqual([]);
     expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
   });
 
   it('exists reflects the bucket', async () => {
-    const fakes = makeFakes();
-    fakes.file.exists.mockResolvedValue([true]);
+    const fakes = makeFakes({}, MANIFEST);
     const { service } = await build(fakes);
     await expect(service.exists('07012026')).resolves.toBe(true);
   });
@@ -1388,10 +1596,14 @@ import type { Bucket } from '@google-cloud/storage';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE, STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { IngestValidationError } from './eminiplayer-ingest.errors';
+import { manifestPath } from './eminiplayer-validation';
+import type { TranscriptVerdict } from './eminiplayer-verify.service';
 
 export interface FileRecord {
   storagePath: string;
   sha256: string;
+  /** base64 — comparable against GCS object metadata's `md5Hash`. */
+  md5: string;
   bytes: number;
 }
 
@@ -1411,14 +1623,16 @@ export interface DayManifest {
     tradePlanMd: FileRecord;
     tradePlanPdf: FileRecord;
   };
-  checks: {
-    dateAgreement: boolean;
-    invariants: boolean;
-    transcriptGates: boolean;
-    pdfGate: boolean;
-    videoTitles: boolean;
-    llmVerify: boolean;
-    videoIdUniqueness: boolean;
+  /**
+   * Verification evidence, not booleans: a manifest can only exist if every
+   * check passed, so what matters for a later-questioned day is WHAT the
+   * checks saw — the video titles and the LLM verdicts.
+   */
+  evidence: {
+    recapVideoTitle: string;
+    tradePlanVideoTitle: string;
+    recapVerdict: TranscriptVerdict;
+    tradePlanVerdict: TranscriptVerdict;
   };
 }
 
@@ -1429,6 +1643,9 @@ export const VIDEO_IDS_COLLECTION = 'eminiplayer-video-ids';
  * gate: written last, only after every check passed. The Firestore video-id
  * collection guarantees the same YouTube video can never serve two day
  * groups (wrong-entry selection across days shows up here as a conflict).
+ * Uncommit (delete) is symmetric with commit: it releases the day's claims
+ * before removing the manifest, so a force-rerun that resolves different
+ * videos can never leave stale claims 422-blocking a neighboring day.
  */
 @Injectable()
 export class EminiplayerManifestService {
@@ -1438,7 +1655,7 @@ export class EminiplayerManifestService {
   ) {}
 
   path(date: string): string {
-    return `knowledge-base/es/${date}/manifest.json`;
+    return manifestPath(date);
   }
 
   async exists(date: string): Promise<boolean> {
@@ -1446,8 +1663,26 @@ export class EminiplayerManifestService {
     return exists;
   }
 
-  /** Uncommit a day (force-regeneration) — artifacts stay, trust is revoked. */
+  /** Parsed manifest, or null when the day is uncommitted. */
+  async read(date: string): Promise<DayManifest | null> {
+    const file = this.bucket.file(this.path(date));
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    const [buf] = await file.download();
+    return JSON.parse(buf.toString('utf8')) as DayManifest;
+  }
+
+  /**
+   * Uncommit a day (force-regeneration) — artifacts stay, trust is revoked,
+   * and the day's video-id claims are released FIRST so they can't outlive
+   * the manifest that justified them.
+   */
   async delete(date: string): Promise<void> {
+    const manifest = await this.read(date).catch(() => null); // unreadable: still remove; audit flags orphans
+    if (manifest) {
+      await this.release(manifest.sources.recapVideoId, date);
+      await this.release(manifest.sources.tradePlanVideoId, date);
+    }
     await this.bucket.file(this.path(date)).delete({ ignoreNotFound: true });
   }
 
@@ -1472,6 +1707,17 @@ export class EminiplayerManifestService {
         );
       }
       tx.set(ref, { date, slot, claimedAt: new Date().toISOString() });
+    });
+  }
+
+  /** Deletes the claim only when this date owns it — never a foreign claim. */
+  private async release(videoId: string, date: string): Promise<void> {
+    const ref = this.firestore.collection(VIDEO_IDS_COLLECTION).doc(videoId);
+    await this.firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (snap.exists && (snap.data() as { date: string }).date === date) {
+        tx.delete(ref);
+      }
     });
   }
 }
@@ -1509,7 +1755,7 @@ git commit -m "feat(eminiplayer): manifest commit service with transactional vid
 - Produces (used by Task 7):
   - `interface IngestFileReport { storagePath: string; status: 'uploaded' | 'skipped' }`
   - `interface IngestResult { date: string; recapDate: string; staleRecapsRemoved: string[]; manifestPath: string; files: { recap: IngestFileReport; tradePlanMd: IngestFileReport; tradePlanPdf: IngestFileReport } }`
-  - `EminiplayerIngestService.ingest(date: string, force?: boolean): Promise<IngestResult>` — concurrent same-date calls coalesce; `ArchiveNotFoundError` and `IngestValidationError` pass through untouched.
+  - `EminiplayerIngestService.ingest(date: string, force?: boolean): Promise<IngestResult>` — concurrent same-date calls coalesce, except a `force=true` call finding a non-force run in flight waits it out and then runs the forced pass (force is never silently dropped); `ArchiveNotFoundError` and `IngestValidationError` pass through untouched. Short-circuit responses are built from the manifest (via `manifest.read`), and a committed recapDate differing from the fresh resolution throws `IngestValidationError`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1525,6 +1771,7 @@ import { EminiplayerManifestService } from './eminiplayer-manifest.service';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 import { ArchiveNotFoundError, type DayEntries } from './eminiplayer.constants';
+import { VideoUnavailableError } from '../transcript/transcript.service';
 
 const DATE = '07012026'; // Wednesday
 const RECAP_DATE = '06302026'; // Tuesday
@@ -1613,14 +1860,41 @@ function makeBucket(existing: Record<string, string | Buffer> = {}) {
   };
 }
 
+/** A minimal committed manifest for short-circuit tests. */
+function committedManifest(recapDate = RECAP_DATE) {
+  const dir = `knowledge-base/es/${DATE}`;
+  return {
+    version: 1,
+    date: DATE,
+    recapDate,
+    createdAt: '2026-07-01T13:00:00.000Z',
+    sources: {
+      recapPageUrl: ENTRIES.recap.pageUrl,
+      tradePlanPageUrl: ENTRIES.tradePlan.pageUrl,
+      recapVideoId: 'recapVid0001',
+      tradePlanVideoId: 'tpVid0000001',
+    },
+    files: {
+      recap: { storagePath: `${dir}/${recapDate}_ES_RECAP.md`, sha256: 'a'.repeat(64), md5: 'a=', bytes: 1 },
+      tradePlanMd: { storagePath: TP_MD_PATH, sha256: 'b'.repeat(64), md5: 'b=', bytes: 1 },
+      tradePlanPdf: { storagePath: TP_PDF_PATH, sha256: 'c'.repeat(64), md5: 'c=', bytes: 1 },
+    },
+    evidence: {
+      recapVideoTitle: 'x', tradePlanVideoTitle: 'y',
+      recapVerdict: { docType: 'recap', isEsContent: true, referencedWeekday: 'none', confidence: 'high' },
+      tradePlanVerdict: { docType: 'tradePlan', isEsContent: true, referencedWeekday: 'none', confidence: 'high' },
+    },
+  };
+}
+
 async function build({
   bucket = makeBucket(),
   entries = ENTRIES,
-  manifestExists = false,
+  committed = null as ReturnType<typeof committedManifest> | null,
 }: {
   bucket?: ReturnType<typeof makeBucket>;
   entries?: DayEntries;
-  manifestExists?: boolean;
+  committed?: ReturnType<typeof committedManifest> | null;
 } = {}) {
   const eminiplayer = {
     findDayEntries: jest.fn(() => Promise.resolve(entries)),
@@ -1645,10 +1919,20 @@ async function build({
       ),
     ),
   };
-  const verify = { verifyTranscript: jest.fn(() => Promise.resolve()) };
+  const verify = {
+    verifyTranscript: jest.fn((_md: string, expected: { flavor: string }) =>
+      Promise.resolve({
+        docType: expected.flavor,
+        isEsContent: true,
+        referencedWeekday: 'none',
+        confidence: 'high',
+      }),
+    ),
+  };
   const manifest = {
     path: jest.fn((date: string) => `knowledge-base/es/${date}/manifest.json`),
-    exists: jest.fn(() => Promise.resolve(manifestExists)),
+    read: jest.fn(() => Promise.resolve(committed)),
+    exists: jest.fn(() => Promise.resolve(committed !== null)),
     delete: jest.fn(() => Promise.resolve()),
     commit: jest.fn(() => Promise.resolve()),
   };
@@ -1707,23 +1991,39 @@ describe('EminiplayerIngestService.ingest', () => {
       date: DATE,
     });
 
-    const committed = manifest.commit.mock.calls[0][0];
-    expect(committed.date).toBe(DATE);
-    expect(committed.sources.recapVideoId).toBe('recapVid0001');
-    expect(committed.sources.tradePlanVideoId).toBe('tpVid0000001');
-    expect(committed.files.recap.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(Object.values(committed.checks).every(Boolean)).toBe(true);
+    const written = manifest.commit.mock.calls[0][0];
+    expect(written.date).toBe(DATE);
+    expect(written.sources.recapVideoId).toBe('recapVid0001');
+    expect(written.sources.tradePlanVideoId).toBe('tpVid0000001');
+    expect(written.files.recap.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(written.files.recap.md5).toMatch(/=$/); // base64
+    // evidence recorded, not booleans: titles + verdicts
+    expect(written.evidence.recapVideoTitle).toContain('Recap');
+    expect(written.evidence.tradePlanVideoTitle).toContain('Trade Plan');
+    expect(written.evidence.recapVerdict.docType).toBe('recap');
+    expect(written.evidence.tradePlanVerdict.docType).toBe('tradePlan');
   });
 
-  it('manifest short-circuit: committed day + no force reports all-skipped without scraping pages', async () => {
-    const { service, eminiplayer, transcript } = await build({ manifestExists: true });
+  it('manifest short-circuit: committed day + matching recapDate reports all-skipped from the MANIFEST paths', async () => {
+    const { service, eminiplayer, transcript } = await build({ committed: committedManifest() });
     const result = await service.ingest(DATE);
-    expect(result.files.recap.status).toBe('skipped');
+    expect(result.recapDate).toBe(RECAP_DATE); // from the manifest
+    expect(result.files.recap).toEqual({ storagePath: RECAP_PATH, status: 'skipped' });
     expect(result.files.tradePlanMd.status).toBe('skipped');
     expect(result.files.tradePlanPdf.status).toBe('skipped');
     expect(eminiplayer.findDayEntries).toHaveBeenCalled(); // resolve still runs
     expect(eminiplayer.getYoutubeUrl).not.toHaveBeenCalled();
     expect(transcript.fetchSegments).not.toHaveBeenCalled();
+  });
+
+  it('manifest short-circuit: committed recap STALER than the fresh resolution → 422, never silent success', async () => {
+    // day committed early with 06/29's recap; the archive now resolves 06/30
+    const { service, manifest } = await build({ committed: committedManifest('06292026') });
+    const err = await service.ingest(DATE).catch((e) => e);
+    expect(err).toBeInstanceOf(IngestValidationError);
+    expect(err.message).toContain('06292026');
+    expect(err.message).toContain('force');
+    expect(manifest.commit).not.toHaveBeenCalled();
   });
 
   it('unmanifested existing artifacts are reloaded and fully re-verified (skip production, never verification)', async () => {
@@ -1749,7 +2049,7 @@ describe('EminiplayerIngestService.ingest', () => {
       [TP_MD_PATH]: plausibleMarkdown('tp'),
       [TP_PDF_PATH]: plausiblePdf(),
     });
-    const { service, manifest } = await build({ bucket, manifestExists: true });
+    const { service, manifest } = await build({ bucket, committed: committedManifest() });
     const result = await service.ingest(DATE, true);
     expect(manifest.delete).toHaveBeenCalledWith(DATE);
     expect(result.files.recap.status).toBe('uploaded');
@@ -1757,13 +2057,21 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(result.files.tradePlanPdf.status).toBe('uploaded');
   });
 
-  it('removes stale recap files and reports them', async () => {
+  it('removes stale recap files, never the currently-resolved one', async () => {
+    // resumed run: both the stale recap AND the current recap are present —
+    // the exclusion filter must delete exactly one of them
     const stalePath = `${DIR}/06292026_ES_RECAP.md`;
-    const bucket = makeBucket({ [stalePath]: plausibleMarkdown('stale') });
-    const { service } = await build({ bucket });
+    const bucket = makeBucket({
+      [stalePath]: plausibleMarkdown('stale'),
+      [RECAP_PATH]: plausibleMarkdown('recap'),
+    });
+    const { service, verify } = await build({ bucket });
     const result = await service.ingest(DATE);
     expect(result.staleRecapsRemoved).toEqual([stalePath]);
     expect(bucket.files.get(stalePath)!.delete).toHaveBeenCalled();
+    expect(bucket.files.get(RECAP_PATH)!.delete).not.toHaveBeenCalled();
+    expect(result.files.recap.status).toBe('skipped'); // reloaded, not re-produced
+    expect(verify.verifyTranscript).toHaveBeenCalledTimes(2); // still verified
   });
 
   it('propagates ArchiveNotFoundError untouched (404 path)', async () => {
@@ -1786,7 +2094,18 @@ describe('EminiplayerIngestService.ingest', () => {
     const { service, transcript, manifest, bucket } = await build();
     transcript.fetchSegments.mockResolvedValue([{ text: 'too short', offset: 0 }]);
     await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
-    expect(bucket.files.get(RECAP_PATH)?.save).toBeUndefined();
+    // the file HANDLE exists (the exists-check needs it before the gate runs);
+    // what must never have happened is the save
+    expect(bucket.files.get(RECAP_PATH)!.save).not.toHaveBeenCalled();
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('an unavailable video (oEmbed 4xx) is a 422, not a retryable stage error', async () => {
+    const { service, transcript, manifest } = await build();
+    transcript.fetchVideoTitle.mockRejectedValue(new VideoUnavailableError('HTTP 404'));
+    const err = await service.ingest(DATE).catch((e) => e);
+    expect(err).toBeInstanceOf(IngestValidationError);
+    expect(err.message).toContain('unavailable');
     expect(manifest.commit).not.toHaveBeenCalled();
   });
 
@@ -1836,6 +2155,18 @@ describe('EminiplayerIngestService.ingest', () => {
     await service.ingest(DATE);
     expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2);
   });
+
+  it('force is never silently dropped: queued behind an in-flight non-force run, then actually runs', async () => {
+    const { service, eminiplayer, manifest } = await build();
+    const [normal, forced] = await Promise.all([
+      service.ingest(DATE), // non-force run in flight...
+      service.ingest(DATE, true), // ...force arrives, must not coalesce away
+    ]);
+    expect(normal).toBeDefined();
+    expect(forced).toBeDefined();
+    expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2); // both runs happened
+    expect(manifest.delete).toHaveBeenCalledWith(DATE); // the forced pass ran force semantics
+  });
 });
 ```
 
@@ -1852,7 +2183,11 @@ Expected: FAIL — cannot find module `./eminiplayer-ingest.service`.
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Bucket } from '@google-cloud/storage';
 import { STORAGE_BUCKET } from '../firebase/firebase.constants';
-import { TranscriptService, transcriptToMarkdown } from '../transcript/transcript.service';
+import {
+  TranscriptService,
+  VideoUnavailableError,
+  transcriptToMarkdown,
+} from '../transcript/transcript.service';
 import { EminiplayerService } from './eminiplayer.service';
 import {
   ArchiveEntry,
@@ -1865,11 +2200,13 @@ import {
   assertPdfBuffer,
   assertTranscriptMarkdown,
   assertVideoTitle,
+  dayPaths,
   extractYoutubeVideoId,
+  md5Base64,
   sha256Hex,
   VideoFlavor,
 } from './eminiplayer-validation';
-import { EminiplayerVerifyService } from './eminiplayer-verify.service';
+import { EminiplayerVerifyService, TranscriptVerdict } from './eminiplayer-verify.service';
 import {
   DayManifest,
   EminiplayerManifestService,
@@ -1900,6 +2237,8 @@ type Stage = 'plan' | 'resolve' | 'transcribe' | 'download' | 'verify' | 'upload
 interface ProducedTranscript {
   report: IngestFileReport;
   videoId: string;
+  title: string;
+  verdict: TranscriptVerdict;
   record: FileRecord;
 }
 
@@ -1916,7 +2255,7 @@ interface ProducedTranscript {
 @Injectable()
 export class EminiplayerIngestService {
   private readonly logger = new Logger(EminiplayerIngestService.name);
-  private readonly inflight = new Map<string, Promise<IngestResult>>();
+  private readonly inflight = new Map<string, { force: boolean; run: Promise<IngestResult> }>();
 
   constructor(
     private readonly eminiplayer: EminiplayerService,
@@ -1928,9 +2267,16 @@ export class EminiplayerIngestService {
 
   async ingest(date: string, force = false): Promise<IngestResult> {
     const existing = this.inflight.get(date);
-    if (existing) return existing;
+    if (existing) {
+      // Coalesce same-flag calls (and non-force onto anything). A force call
+      // finding a NON-force run must not be silently dropped: wait the
+      // in-flight run out, then run the forced regeneration.
+      if (!force || existing.force) return existing.run;
+      await existing.run.catch(() => undefined);
+      return this.ingest(date, true);
+    }
     const run = this.run(date, force).finally(() => this.inflight.delete(date));
-    this.inflight.set(date, run);
+    this.inflight.set(date, { force, run });
     return run;
   }
 
@@ -1943,34 +2289,40 @@ export class EminiplayerIngestService {
     const recapDate = entries.recap.date;
     assertDayInvariants(date, recapDate);
 
-    const dir = `knowledge-base/es/${date}`;
-    const paths: Record<Artifact, string> = {
-      recap: `${dir}/${recapDate}_ES_RECAP.md`,
-      tradePlanMd: `${dir}/${date}_ES_TP.md`,
-      tradePlanPdf: `${dir}/${date}_ES_TP.pdf`,
-    };
-    const manifestPath = this.manifest.path(date);
+    const paths = dayPaths(date, recapDate);
 
     if (force) {
-      // Revoke trust before touching files; the day is uncommitted while
-      // regeneration runs.
+      // Revoke trust before touching files (releases the day's video-id
+      // claims too — see EminiplayerManifestService.delete). The day is
+      // uncommitted while regeneration runs.
       await this.stage('plan', 'archive', () => this.manifest.delete(date));
-    } else if (await this.stage('plan', 'archive', () => this.manifest.exists(date))) {
-      // Committed day: everything in it already passed every check.
-      return {
-        date,
-        recapDate,
-        staleRecapsRemoved: [],
-        manifestPath,
-        files: {
-          recap: { storagePath: paths.recap, status: 'skipped' },
-          tradePlanMd: { storagePath: paths.tradePlanMd, status: 'skipped' },
-          tradePlanPdf: { storagePath: paths.tradePlanPdf, status: 'skipped' },
-        },
-      };
+    } else {
+      const committed = await this.stage('plan', 'archive', () => this.manifest.read(date));
+      if (committed) {
+        // Committed day. The response must come from the MANIFEST (the fresh
+        // resolve may reference paths that don't exist in the bucket), and a
+        // recapDate drift means the day was committed before the real recap
+        // was posted — frozen wrong data unless we refuse here.
+        if (committed.recapDate !== recapDate) {
+          throw new IngestValidationError(
+            `committed manifest for ${date} references recap ${committed.recapDate} but the archive now resolves ${recapDate} — the committed recap is stale; rerun with force=true to regenerate`,
+          );
+        }
+        return {
+          date,
+          recapDate: committed.recapDate,
+          staleRecapsRemoved: [],
+          manifestPath: paths.manifest,
+          files: {
+            recap: { storagePath: committed.files.recap.storagePath, status: 'skipped' },
+            tradePlanMd: { storagePath: committed.files.tradePlanMd.storagePath, status: 'skipped' },
+            tradePlanPdf: { storagePath: committed.files.tradePlanPdf.storagePath, status: 'skipped' },
+          },
+        };
+      }
     }
 
-    const staleRecapsRemoved = await this.removeStaleRecaps(dir, paths.recap);
+    const staleRecapsRemoved = await this.removeStaleRecaps(paths.dir, paths.recap);
 
     const recap = await this.produceTranscript('recap', paths.recap, force, entries.recap, recapDate);
     const tradePlanMd = await this.produceTranscript(
@@ -1998,24 +2350,21 @@ export class EminiplayerIngestService {
         tradePlanMd: tradePlanMd.record,
         tradePlanPdf: tradePlanPdf.record,
       },
-      checks: {
-        dateAgreement: true,
-        invariants: true,
-        transcriptGates: true,
-        pdfGate: true,
-        videoTitles: true,
-        llmVerify: true,
-        videoIdUniqueness: true,
+      evidence: {
+        recapVideoTitle: recap.title,
+        tradePlanVideoTitle: tradePlanMd.title,
+        recapVerdict: recap.verdict,
+        tradePlanVerdict: tradePlanMd.verdict,
       },
     };
     await this.stage('commit', 'archive', () => this.manifest.commit(dayManifest));
-    this.logger.log(`committed ${manifestPath}`);
+    this.logger.log(`committed ${paths.manifest}`);
 
     return {
       date,
       recapDate,
       staleRecapsRemoved,
-      manifestPath,
+      manifestPath: paths.manifest,
       files: {
         recap: recap.report,
         tradePlanMd: tradePlanMd.report,
@@ -2040,9 +2389,19 @@ export class EminiplayerIngestService {
       this.eminiplayer.getYoutubeUrl(entry.pageUrl),
     );
     const videoId = extractYoutubeVideoId(youtubeUrl);
-    const title = await this.stage('verify', artifact, () =>
-      this.transcript.fetchVideoTitle(videoId),
-    );
+    let title: string;
+    try {
+      title = await this.transcript.fetchVideoTitle(videoId);
+    } catch (err) {
+      // A deleted/private video is a permanent data condition (422, human
+      // must look), not a retryable transport failure.
+      if (err instanceof VideoUnavailableError) {
+        throw new IngestValidationError(
+          `${artifact} video ${videoId} is unavailable on YouTube: ${err.message}`,
+        );
+      }
+      throw new IngestStageError('verify', artifact, err as Error);
+    }
     assertVideoTitle(title, expectedDate, flavor);
 
     const file = this.bucket.file(storagePath);
@@ -2068,13 +2427,20 @@ export class EminiplayerIngestService {
       this.logger.log(`uploaded ${storagePath}`);
       status = 'uploaded';
     }
-    await this.stage('verify', artifact, () =>
+    const verdict = await this.stage('verify', artifact, () =>
       this.verify.verifyTranscript(markdown, { flavor, date: expectedDate }),
     );
     return {
       report: { storagePath, status },
       videoId,
-      record: { storagePath, sha256: sha256Hex(markdown), bytes: Buffer.byteLength(markdown) },
+      title,
+      verdict,
+      record: {
+        storagePath,
+        sha256: sha256Hex(markdown),
+        md5: md5Base64(markdown),
+        bytes: Buffer.byteLength(markdown),
+      },
     };
   }
 
@@ -2106,7 +2472,7 @@ export class EminiplayerIngestService {
     }
     return {
       report: { storagePath, status },
-      record: { storagePath, sha256: sha256Hex(buf), bytes: buf.length },
+      record: { storagePath, sha256: sha256Hex(buf), md5: md5Base64(buf), bytes: buf.length },
     };
   }
 
@@ -2477,8 +2843,9 @@ git commit -m "feat(eminiplayer): POST /eminiplayer/ingest with 400/404/422/502 
 - Modify: `backend/README.md` (document the endpoint)
 
 **Interfaces:**
-- Consumes: `STORAGE_BUCKET` (`getFiles({prefix})`, `file().exists()/download()`), `FIRESTORE` (`collection().get()`), `DayManifest`/`VIDEO_IDS_COLLECTION` (Task 5), gates + `sha256Hex` + `assertDayInvariants` (Task 3).
-- Produces: `interface AuditAnomaly { date: string; problem: string }`; `interface AuditReport { daysChecked: number; ok: number; anomalies: AuditAnomaly[]; uncommittedDays: string[] }`; `EminiplayerAuditService.audit(): Promise<AuditReport>`; `GET /eminiplayer/audit` → 200 `AuditReport`.
+- Consumes: `STORAGE_BUCKET` (`getFiles({prefix})` — listing carries per-object `metadata.md5Hash`/`metadata.size`; `File.download()` in deep mode only), `FIRESTORE` (`collection().get()`), `DayManifest`/`VIDEO_IDS_COLLECTION` (Task 5), gates + `sha256Hex` + `assertDayInvariants` + `ES_STORAGE_PREFIX` + `parseMmddyyyy` (Task 3).
+- Produces: `interface AuditAnomaly { date: string; problem: string }`; `interface AuditOptions { from?: string; to?: string; deep?: boolean }`; `interface AuditReport { daysChecked: number; ok: number; deep: boolean; anomalies: AuditAnomaly[]; uncommittedDays: string[] }`; `EminiplayerAuditService.audit(opts?: AuditOptions): Promise<AuditReport>`; `GET /eminiplayer/audit?from=MMDDYYYY&to=MMDDYYYY&deep=true` → 200 `AuditReport` | 400 bad range param.
+- Semantics: **shallow (default)** never downloads artifact content — per-file integrity via the GCS listing's `md5Hash`/`size` metadata against the manifest's `md5`/`bytes`; **`deep=true`** additionally downloads each file, re-computes `sha256`, and re-runs the structural gates. Claims are checked in **both** directions (orphaned claim in range ↔ manifested id with missing/mismatched claim). Per-file transport failures are attributed to the artifact, never reported as `manifest unreadable`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2488,8 +2855,9 @@ git commit -m "feat(eminiplayer): POST /eminiplayer/ingest with 400/404/422/502 
 import { Test } from '@nestjs/testing';
 import { STORAGE_BUCKET, FIRESTORE } from '../firebase/firebase.constants';
 import { EminiplayerAuditService } from './eminiplayer-audit.service';
-import { sha256Hex } from './eminiplayer-validation';
+import { md5Base64, sha256Hex } from './eminiplayer-validation';
 import type { DayManifest } from './eminiplayer-manifest.service';
+import type { TranscriptVerdict } from './eminiplayer-verify.service';
 
 function plausibleMarkdown(label: string): string {
   const rows: string[] = [];
@@ -2510,12 +2878,28 @@ function plausiblePdf(): Buffer {
   ]);
 }
 
-/** A complete, self-consistent day in the fake bucket. */
+const VERDICT: TranscriptVerdict = {
+  docType: 'recap', isEsContent: true, referencedWeekday: 'none', confidence: 'high',
+};
+
+/**
+ * A complete, self-consistent day. `objects` maps path -> content; metadata
+ * (md5/size) is derived from content, mirroring what GCS reports. Individual
+ * tests corrupt content or metadata to trip specific checks.
+ */
 function makeDay(date: string, recapDate: string, videoSuffix: string) {
   const dir = `knowledge-base/es/${date}`;
   const recapMd = plausibleMarkdown('recap');
   const tpMd = plausibleMarkdown('tp');
   const pdf = plausiblePdf();
+  const record = (storagePath: string, content: Buffer) => ({
+    storagePath,
+    sha256: sha256Hex(content),
+    md5: md5Base64(content),
+    bytes: content.length,
+  });
+  const recapBuf = Buffer.from(recapMd);
+  const tpBuf = Buffer.from(tpMd);
   const manifest: DayManifest = {
     version: 1,
     date,
@@ -2528,85 +2912,151 @@ function makeDay(date: string, recapDate: string, videoSuffix: string) {
       tradePlanVideoId: `tp${videoSuffix}`,
     },
     files: {
-      recap: { storagePath: `${dir}/${recapDate}_ES_RECAP.md`, sha256: sha256Hex(recapMd), bytes: recapMd.length },
-      tradePlanMd: { storagePath: `${dir}/${date}_ES_TP.md`, sha256: sha256Hex(tpMd), bytes: tpMd.length },
-      tradePlanPdf: { storagePath: `${dir}/${date}_ES_TP.pdf`, sha256: sha256Hex(pdf), bytes: pdf.length },
+      recap: record(`${dir}/${recapDate}_ES_RECAP.md`, recapBuf),
+      tradePlanMd: record(`${dir}/${date}_ES_TP.md`, tpBuf),
+      tradePlanPdf: record(`${dir}/${date}_ES_TP.pdf`, pdf),
     },
-    checks: {
-      dateAgreement: true, invariants: true, transcriptGates: true, pdfGate: true,
-      videoTitles: true, llmVerify: true, videoIdUniqueness: true,
+    evidence: {
+      recapVideoTitle: 't1', tradePlanVideoTitle: 't2',
+      recapVerdict: VERDICT,
+      tradePlanVerdict: { ...VERDICT, docType: 'tradePlan' },
     },
   };
   return {
     [`${dir}/manifest.json`]: Buffer.from(JSON.stringify(manifest)),
-    [`${dir}/${recapDate}_ES_RECAP.md`]: Buffer.from(recapMd),
-    [`${dir}/${date}_ES_TP.md`]: Buffer.from(tpMd),
+    [`${dir}/${recapDate}_ES_RECAP.md`]: recapBuf,
+    [`${dir}/${date}_ES_TP.md`]: tpBuf,
     [`${dir}/${date}_ES_TP.pdf`]: pdf,
+  };
+}
+
+/** Claims that exactly mirror a makeDay(videoSuffix) manifest. */
+function claimsFor(date: string, videoSuffix: string) {
+  return {
+    [`recap${videoSuffix}`]: { date, slot: 'recap' },
+    [`tp${videoSuffix}`]: { date, slot: 'tradePlan' },
   };
 }
 
 function makeBucket(objects: Record<string, Buffer>) {
   const get = (path: string) => ({
     name: path,
-    exists: jest.fn(() => Promise.resolve([objects[path] !== undefined])),
-    download: jest.fn(() => Promise.resolve([objects[path] ?? Buffer.alloc(0)])),
+    metadata: {
+      md5Hash: objects[path] !== undefined ? md5Base64(objects[path]) : undefined,
+      size: objects[path] !== undefined ? String(objects[path].length) : undefined,
+    },
+    download: jest.fn(() =>
+      objects[path] !== undefined
+        ? Promise.resolve([objects[path]])
+        : Promise.reject(new Error('No such object')),
+    ),
   });
+  const files = new Map<string, ReturnType<typeof get>>();
+  const memo = (path: string) => {
+    if (!files.has(path)) files.set(path, get(path));
+    return files.get(path)!;
+  };
   return {
-    file: jest.fn(get),
+    files,
+    file: jest.fn(memo),
     getFiles: jest.fn(({ prefix }: { prefix: string }) =>
-      Promise.resolve([Object.keys(objects).filter((p) => p.startsWith(prefix)).map(get)]),
+      Promise.resolve([Object.keys(objects).filter((p) => p.startsWith(prefix)).map(memo)]),
     ),
   };
 }
 
-function makeFirestore(claimIds: string[] = []) {
+function makeFirestore(claims: Record<string, { date: string; slot: string }> = {}) {
   return {
     collection: jest.fn(() => ({
       get: jest.fn(() =>
         Promise.resolve({
-          docs: claimIds.map((id) => ({ id, data: () => ({ date: '07012026', slot: 'recap' }) })),
+          docs: Object.entries(claims).map(([id, data]) => ({ id, data: () => data })),
         }),
       ),
     })),
   };
 }
 
-async function build(objects: Record<string, Buffer>, claimIds: string[] = []) {
+async function build(
+  objects: Record<string, Buffer>,
+  claims: Record<string, { date: string; slot: string }> = {},
+) {
+  const bucket = makeBucket(objects);
   const moduleRef = await Test.createTestingModule({
     providers: [
       EminiplayerAuditService,
-      { provide: STORAGE_BUCKET, useValue: makeBucket(objects) },
-      { provide: FIRESTORE, useValue: makeFirestore(claimIds) },
+      { provide: STORAGE_BUCKET, useValue: bucket },
+      { provide: FIRESTORE, useValue: makeFirestore(claims) },
     ],
   }).compile();
-  return moduleRef.get(EminiplayerAuditService);
+  return { service: moduleRef.get(EminiplayerAuditService), bucket };
 }
 
 describe('EminiplayerAuditService.audit', () => {
-  it('reports a clean corpus', async () => {
+  it('reports a clean corpus (shallow: no artifact downloads, metadata only)', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
-    const service = await build(objects, ['recapVid0000001', 'tpVid0000001']);
+    const { service, bucket } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
-    expect(report).toEqual({ daysChecked: 1, ok: 1, anomalies: [], uncommittedDays: [] });
+    expect(report).toEqual({ daysChecked: 1, ok: 1, deep: false, anomalies: [], uncommittedDays: [] });
+    // shallow mode downloaded ONLY the manifest
+    const downloaded = [...bucket.files.entries()]
+      .filter(([, f]) => f.download.mock.calls.length > 0)
+      .map(([p]) => p);
+    expect(downloaded).toEqual(['knowledge-base/es/07012026/manifest.json']);
   });
 
-  it('flags a hash mismatch (stored object changed after commit)', async () => {
+  it('flags a metadata hash mismatch without downloading (stored object changed after commit)', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     objects['knowledge-base/es/07012026/07012026_ES_TP.md'] = Buffer.from(plausibleMarkdown('tampered'));
-    const service = await build(objects);
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.ok).toBe(0);
     expect(report.anomalies).toEqual([
-      expect.objectContaining({ date: '07012026', problem: expect.stringContaining('hash mismatch') }),
+      expect.objectContaining({ date: '07012026', problem: expect.stringContaining('md5 mismatch') }),
     ]);
   });
 
   it('flags a missing file referenced by a manifest', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     delete objects['knowledge-base/es/07012026/07012026_ES_TP.pdf'];
-    const service = await build(objects);
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
-    expect(report.anomalies[0].problem).toContain('missing');
+    expect(report.anomalies.some((a) => a.problem.includes('missing'))).toBe(true);
+  });
+
+  it('deep mode re-runs gates: a hash-consistent but gate-failing artifact is caught only there', async () => {
+    const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
+    // corrupt the CONTENT and rewrite the manifest records to match it, so
+    // every hash/size check passes and only the structural gate can object
+    const bad = Buffer.from('# Transcript\n\n**00:00** way too short\n');
+    const dir = 'knowledge-base/es/07012026';
+    const manifest = JSON.parse(objects[`${dir}/manifest.json`].toString('utf8')) as DayManifest;
+    manifest.files.tradePlanMd = {
+      storagePath: `${dir}/07012026_ES_TP.md`,
+      sha256: sha256Hex(bad), md5: md5Base64(bad), bytes: bad.length,
+    };
+    objects[`${dir}/07012026_ES_TP.md`] = bad;
+    objects[`${dir}/manifest.json`] = Buffer.from(JSON.stringify(manifest));
+    const claims = claimsFor('07012026', 'Vid0000001');
+
+    const { service: shallow } = await build({ ...objects }, claims);
+    expect((await shallow.audit()).anomalies).toEqual([]);
+
+    const { service: deep } = await build({ ...objects }, claims);
+    const report = await deep.audit({ deep: true });
+    expect(report.deep).toBe(true);
+    expect(report.anomalies.some((a) => a.problem.includes('fails its gate'))).toBe(true);
+  });
+
+  it('deep mode attributes a per-file transport failure to the artifact, not the manifest', async () => {
+    const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
+    const { service, bucket } = await build(objects, claimsFor('07012026', 'Vid0000001'));
+    bucket.file('knowledge-base/es/07012026/07012026_ES_TP.pdf').download.mockRejectedValue(
+      new Error('socket hang up'),
+    );
+    const report = await service.audit({ deep: true });
+    expect(report.anomalies.some((a) => a.problem.includes('tradePlanPdf unreadable'))).toBe(true);
+    expect(report.anomalies.some((a) => a.problem.includes('manifest unreadable'))).toBe(false);
   });
 
   it('flags duplicate video ids across manifests', async () => {
@@ -2614,7 +3064,7 @@ describe('EminiplayerAuditService.audit', () => {
       ...makeDay('07012026', '06302026', 'Vid0000001'),
       ...makeDay('07022026', '07012026', 'Vid0000001'), // same video ids as day 1
     };
-    const service = await build(objects);
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.anomalies.some((a) => a.problem.includes('also used by'))).toBe(true);
   });
@@ -2622,18 +3072,43 @@ describe('EminiplayerAuditService.audit', () => {
   it('lists unmanifested day folders without failing them', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
     objects['knowledge-base/es/07022026/07022026_ES_TP.md'] = Buffer.from(plausibleMarkdown('tp'));
-    const service = await build(objects);
+    const { service } = await build(objects, claimsFor('07012026', 'Vid0000001'));
     const report = await service.audit();
     expect(report.uncommittedDays).toEqual(['07022026']);
     expect(report.daysChecked).toBe(2);
     expect(report.ok).toBe(1);
   });
 
-  it('flags orphaned video-id claims (no manifest references them)', async () => {
+  it('flags an orphaned in-range claim (no manifest references it)', async () => {
     const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
-    const service = await build(objects, ['ghostVideo001']);
+    const { service } = await build(objects, {
+      ...claimsFor('07012026', 'Vid0000001'),
+      ghostVideo001: { date: '07012026', slot: 'recap' },
+    });
     const report = await service.audit();
     expect(report.anomalies.some((a) => a.problem.includes('orphaned'))).toBe(true);
+  });
+
+  it('flags a manifested video id whose claim is missing (uniqueness unenforced)', async () => {
+    const objects = { ...makeDay('07012026', '06302026', 'Vid0000001') };
+    const claims = claimsFor('07012026', 'Vid0000001');
+    delete claims['recapVid0000001'];
+    const { service } = await build(objects, claims);
+    const report = await service.audit();
+    expect(report.anomalies.some((a) => a.problem.includes('no video-id claim'))).toBe(true);
+  });
+
+  it('range params scope which days are audited', async () => {
+    const objects = {
+      ...makeDay('07012026', '06302026', 'Vid0000001'),
+      ...makeDay('07152026', '07142026', 'Vid0000002'),
+    };
+    const claims = { ...claimsFor('07012026', 'Vid0000001'), ...claimsFor('07152026', 'Vid0000002') };
+    const { service } = await build(objects, claims);
+    const report = await service.audit({ from: '07102026', to: '07312026' });
+    expect(report.daysChecked).toBe(1);
+    expect(report.ok).toBe(1);
+    expect(report.anomalies).toEqual([]); // day 07012026's claims are out of range, not orphans
   });
 });
 ```
@@ -2649,7 +3124,7 @@ Expected: FAIL — cannot find module `./eminiplayer-audit.service`.
 
 ```ts
 import { Inject, Injectable } from '@nestjs/common';
-import type { Bucket } from '@google-cloud/storage';
+import type { Bucket, File } from '@google-cloud/storage';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE, STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { DayManifest, VIDEO_IDS_COLLECTION } from './eminiplayer-manifest.service';
@@ -2657,6 +3132,8 @@ import {
   assertDayInvariants,
   assertPdfBuffer,
   assertTranscriptMarkdown,
+  ES_STORAGE_PREFIX,
+  parseMmddyyyy,
   sha256Hex,
 } from './eminiplayer-validation';
 
@@ -2665,21 +3142,29 @@ export interface AuditAnomaly {
   problem: string;
 }
 
+export interface AuditOptions {
+  from?: string; // MMDDYYYY inclusive
+  to?: string; // MMDDYYYY inclusive
+  deep?: boolean;
+}
+
 export interface AuditReport {
   daysChecked: number;
   ok: number;
+  deep: boolean;
   anomalies: AuditAnomaly[];
   uncommittedDays: string[];
 }
 
-const ES_PREFIX = 'knowledge-base/es/';
-
 /**
- * Read-only re-verification of the whole corpus — the "spot check everything"
- * button. Re-runs the deterministic checks against what is actually stored
- * (hashes, gates, invariants, uniqueness); does NOT re-run LLM verification
- * (its verdict is recorded in each manifest and re-judging history costs
- * money without new information). Run before any large backtest campaign.
+ * Read-only re-verification — the "spot check everything" button, sized for
+ * a multi-year corpus. Shallow mode (default) downloads only manifests and
+ * compares each artifact's md5/size against the GCS LISTING METADATA — no
+ * content downloads, so a full-corpus shallow audit is one listing plus one
+ * small download per day. `deep=true` additionally downloads content,
+ * re-computes sha256, and re-runs the structural gates (use ranges for deep
+ * runs). Does NOT re-run LLM verification (each manifest records the verdicts
+ * as evidence; re-judging history costs money without new information).
  */
 @Injectable()
 export class EminiplayerAuditService {
@@ -2688,88 +3173,130 @@ export class EminiplayerAuditService {
     @Inject(FIRESTORE) private readonly firestore: Firestore,
   ) {}
 
-  async audit(): Promise<AuditReport> {
-    const [files] = await this.bucket.getFiles({ prefix: ES_PREFIX });
-    const byDay = new Map<string, { hasManifest: boolean }>();
+  async audit(opts: AuditOptions = {}): Promise<AuditReport> {
+    const deep = opts.deep ?? false;
+    const fromT = opts.from ? parseMmddyyyy(opts.from).getTime() : -Infinity;
+    const toT = opts.to ? parseMmddyyyy(opts.to).getTime() : Infinity;
+    const inRange = (date: string) => {
+      const t = parseMmddyyyy(date).getTime();
+      return t >= fromT && t <= toT;
+    };
+
+    const [files] = await this.bucket.getFiles({ prefix: ES_STORAGE_PREFIX });
+    const dayRegex = new RegExp(`^${ES_STORAGE_PREFIX}(\\d{8})/`);
+    const byDay = new Map<string, Map<string, File>>(); // date -> path -> listed File
     for (const f of files) {
-      const m = new RegExp(`^${ES_PREFIX}(\\d{8})/`).exec(f.name);
-      if (!m) continue;
-      const day = byDay.get(m[1]) ?? { hasManifest: false };
-      if (f.name.endsWith('/manifest.json')) day.hasManifest = true;
-      byDay.set(m[1], day);
+      const m = dayRegex.exec(f.name);
+      if (!m || !inRange(m[1])) continue;
+      if (!byDay.has(m[1])) byDay.set(m[1], new Map());
+      byDay.get(m[1])!.set(f.name, f);
     }
 
     const anomalies: AuditAnomaly[] = [];
     const uncommittedDays: string[] = [];
     const videoOwners = new Map<string, string>(); // videoId -> date
+    const manifestedIds = new Map<string, { date: string; slot: string }>();
     let ok = 0;
 
-    for (const [date, info] of [...byDay.entries()].sort()) {
-      if (!info.hasManifest) {
+    for (const [date, dayFiles] of [...byDay.entries()].sort()) {
+      const manifestFile = dayFiles.get(`${ES_STORAGE_PREFIX}${date}/manifest.json`);
+      if (!manifestFile) {
         uncommittedDays.push(date);
         continue;
       }
       const before = anomalies.length;
+
+      // The unreadable-manifest catch covers ONLY the manifest download+parse;
+      // per-file failures below get attributed to their artifact.
+      let manifest: DayManifest;
       try {
-        const [buf] = await this.bucket.file(`${ES_PREFIX}${date}/manifest.json`).download();
-        const manifest = JSON.parse(buf.toString('utf8')) as DayManifest;
-
-        try {
-          assertDayInvariants(manifest.date, manifest.recapDate);
-        } catch (err) {
-          anomalies.push({ date, problem: `invariants: ${(err as Error).message}` });
-        }
-
-        for (const [artifact, record] of Object.entries(manifest.files)) {
-          const file = this.bucket.file(record.storagePath);
-          const [exists] = await file.exists();
-          if (!exists) {
-            anomalies.push({ date, problem: `${artifact} missing at ${record.storagePath}` });
-            continue;
-          }
-          const [content] = await file.download();
-          if (sha256Hex(content) !== record.sha256) {
-            anomalies.push({
-              date,
-              problem: `${artifact} hash mismatch — stored object differs from manifest`,
-            });
-          }
-          try {
-            if (artifact === 'tradePlanPdf') assertPdfBuffer(content, artifact);
-            else assertTranscriptMarkdown(content.toString('utf8'), artifact);
-          } catch (err) {
-            anomalies.push({ date, problem: `${artifact} fails its gate: ${(err as Error).message}` });
-          }
-        }
-
-        for (const [slot, videoId] of [
-          ['recap', manifest.sources.recapVideoId],
-          ['tradePlan', manifest.sources.tradePlanVideoId],
-        ] as const) {
-          const owner = videoOwners.get(videoId);
-          if (owner && owner !== date) {
-            anomalies.push({ date, problem: `video ${videoId} (${slot}) also used by ${owner}` });
-          }
-          videoOwners.set(videoId, date);
-        }
+        const [buf] = await manifestFile.download();
+        manifest = JSON.parse(buf.toString('utf8')) as DayManifest;
       } catch (err) {
         anomalies.push({ date, problem: `manifest unreadable: ${(err as Error).message}` });
+        continue;
       }
+
+      try {
+        assertDayInvariants(manifest.date, manifest.recapDate);
+      } catch (err) {
+        anomalies.push({ date, problem: `invariants: ${(err as Error).message}` });
+      }
+
+      for (const [artifact, record] of Object.entries(manifest.files)) {
+        const stored = dayFiles.get(record.storagePath);
+        if (!stored) {
+          anomalies.push({ date, problem: `${artifact} missing at ${record.storagePath}` });
+          continue;
+        }
+        // Shallow integrity: the GCS listing already carries md5Hash/size.
+        if (stored.metadata.md5Hash !== record.md5) {
+          anomalies.push({
+            date,
+            problem: `${artifact} md5 mismatch — stored object differs from manifest`,
+          });
+        } else if (Number(stored.metadata.size) !== record.bytes) {
+          anomalies.push({ date, problem: `${artifact} size mismatch` });
+        }
+        if (!deep) continue;
+        let content: Buffer;
+        try {
+          [content] = await stored.download();
+        } catch (err) {
+          anomalies.push({ date, problem: `${artifact} unreadable: ${(err as Error).message}` });
+          continue;
+        }
+        if (sha256Hex(content) !== record.sha256) {
+          anomalies.push({ date, problem: `${artifact} sha256 mismatch` });
+        }
+        try {
+          if (artifact === 'tradePlanPdf') assertPdfBuffer(content, artifact);
+          else assertTranscriptMarkdown(content.toString('utf8'), artifact);
+        } catch (err) {
+          anomalies.push({ date, problem: `${artifact} fails its gate: ${(err as Error).message}` });
+        }
+      }
+
+      for (const [slot, videoId] of [
+        ['recap', manifest.sources.recapVideoId],
+        ['tradePlan', manifest.sources.tradePlanVideoId],
+      ] as const) {
+        const owner = videoOwners.get(videoId);
+        if (owner && owner !== date) {
+          anomalies.push({ date, problem: `video ${videoId} (${slot}) also used by ${owner}` });
+        }
+        videoOwners.set(videoId, date);
+        manifestedIds.set(videoId, { date, slot });
+      }
+
       if (anomalies.length === before) ok += 1;
     }
 
+    // Claims, both directions. Orphans are only judged inside the audited
+    // range — an out-of-range manifest legitimately holds its claims.
     const claims = await this.firestore.collection(VIDEO_IDS_COLLECTION).get();
-    for (const doc of claims.docs) {
-      if (!videoOwners.has(doc.id)) {
-        const data = doc.data() as { date?: string };
+    const claimById = new Map(
+      claims.docs.map((d) => [d.id, d.data() as { date: string; slot: string }]),
+    );
+    for (const [id, claim] of claimById) {
+      if (inRange(claim.date) && !manifestedIds.has(id)) {
         anomalies.push({
-          date: data.date ?? 'unknown',
-          problem: `orphaned video-id claim ${doc.id} (no manifest references it)`,
+          date: claim.date,
+          problem: `orphaned video-id claim ${id} (no manifest references it)`,
+        });
+      }
+    }
+    for (const [id, want] of manifestedIds) {
+      const claim = claimById.get(id);
+      if (!claim || claim.date !== want.date || claim.slot !== want.slot) {
+        anomalies.push({
+          date: want.date,
+          problem: `no video-id claim matching ${id} (${want.slot}) — uniqueness is unenforced for this video`,
         });
       }
     }
 
-    return { daysChecked: byDay.size, ok, anomalies, uncommittedDays };
+    return { daysChecked: byDay.size, ok, deep, anomalies, uncommittedDays };
   }
 }
 ```
@@ -2781,29 +3308,81 @@ Expected: PASS.
 
 - [ ] **Step 5: Wire the route, module, and controller test**
 
-In `eminiplayer.module.ts`, add `EminiplayerAuditService` to `providers` and `exports`. In `eminiplayer.controller.ts`, add to the imports `Get` from `@nestjs/common` and the audit service, plus:
+In `eminiplayer.module.ts`, add `EminiplayerAuditService` to `providers` and `exports`. In `eminiplayer.controller.ts`, extend the `@nestjs/common` import with `Get`, and add:
+
+```ts
+import { AuditReport, EminiplayerAuditService } from './eminiplayer-audit.service';
+```
+
+change the constructor to:
+
+```ts
+constructor(
+  private readonly ingestService: EminiplayerIngestService,
+  private readonly auditService: EminiplayerAuditService,
+) {}
+```
+
+and add the route (range params validated with the same `isValidMmddyyyy` used by ingest):
 
 ```ts
 @Get('audit')
-async audit(): Promise<AuditReport> {
-  return this.auditService.audit();
+async audit(
+  @Query('from') from: string | undefined,
+  @Query('to') to: string | undefined,
+  @Query('deep') deep: string | undefined,
+): Promise<AuditReport> {
+  for (const [name, value] of [['from', from], ['to', to]] as const) {
+    if (value !== undefined && !isValidMmddyyyy(value)) {
+      throw new BadRequestException(`Query param "${name}" must be MMDDYYYY when present`);
+    }
+  }
+  return this.auditService.audit({ from, to, deep: deep === 'true' });
 }
 ```
 
-with the constructor gaining `private readonly auditService: EminiplayerAuditService`. In `eminiplayer.controller.spec.ts`, add `{ provide: EminiplayerAuditService, useValue: { audit: jest.fn(() => Promise.resolve({ daysChecked: 0, ok: 0, anomalies: [], uncommittedDays: [] })) } }` to the providers and one test:
+In `eminiplayer.controller.spec.ts`, change the `build` helper to construct and return the audit mock (two-line diff):
+
+```ts
+async function build() {
+  const ingest = { ingest: jest.fn(() => Promise.resolve(RESULT)) };
+  const audit = {
+    audit: jest.fn(() =>
+      Promise.resolve({ daysChecked: 0, ok: 0, deep: false, anomalies: [], uncommittedDays: [] }),
+    ),
+  };
+  const moduleRef = await Test.createTestingModule({
+    controllers: [EminiplayerController],
+    providers: [
+      { provide: EminiplayerIngestService, useValue: ingest },
+      { provide: EminiplayerAuditService, useValue: audit },
+    ],
+  }).compile();
+  return { controller: moduleRef.get(EminiplayerController), ingest, audit };
+}
+```
+
+(also import `EminiplayerAuditService` in the spec) and add:
 
 ```ts
 describe('GET /eminiplayer/audit', () => {
-  it('returns the audit report', async () => {
-    const { controller } = await build();
-    await expect(controller.audit()).resolves.toEqual({
-      daysChecked: 0, ok: 0, anomalies: [], uncommittedDays: [],
+  it('returns the audit report, passing parsed options', async () => {
+    const { controller, audit } = await build();
+    await expect(controller.audit('07012026', '07312026', 'true')).resolves.toEqual({
+      daysChecked: 0, ok: 0, deep: false, anomalies: [], uncommittedDays: [],
     });
+    expect(audit.audit).toHaveBeenCalledWith({ from: '07012026', to: '07312026', deep: true });
+  });
+
+  it('rejects a malformed range param with 400', async () => {
+    const { controller, audit } = await build();
+    await expect(controller.audit('2026-07-01', undefined, undefined)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(audit.audit).not.toHaveBeenCalled();
   });
 });
 ```
-
-(Adjust the `build` helper to construct and return the audit mock.)
 
 - [ ] **Step 6: Document**
 
@@ -2813,15 +3392,20 @@ Append to the README's EminiPlayer section:
 ### Audit the corpus
 
 ```bash
+# shallow (default): metadata-only integrity — fast even on the full corpus
 curl localhost:3000/eminiplayer/audit
+# date-range + deep: downloads content, re-computes sha256, re-runs gates
+curl "localhost:3000/eminiplayer/audit?from=07012026&to=07312026&deep=true"
 ```
 
-Re-verifies every committed day against what is actually stored: hash
-comparison per file, structural gates, date invariants, cross-day video-id
-uniqueness, orphaned Firestore claims, and unmanifested day folders. Returns
-`{ daysChecked, ok, anomalies, uncommittedDays }`. Run it before any large
-backtest campaign; a non-empty `anomalies` list means a human should look
-before trusting the data.
+Re-verifies committed days against what is actually stored: per-file
+md5/size via GCS listing metadata (shallow) or full content sha256 +
+structural gates (`deep=true`), date invariants, cross-day video-id
+uniqueness, claim↔manifest agreement in both directions, and unmanifested
+day folders. Returns `{ daysChecked, ok, deep, anomalies, uncommittedDays }`.
+Run a shallow full-corpus audit before any large backtest campaign (use
+ranges for deep runs); a non-empty `anomalies` list means a human should
+look before trusting the data.
 ````
 
 - [ ] **Step 7: Run the full suite**
