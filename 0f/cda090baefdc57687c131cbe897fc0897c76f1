@@ -1,0 +1,32 @@
+backend/src/config/configuration.spec.ts
+  s_52f359e82ac2c6::t_79f4f0f1e2afc0 234,238-240
+  s_52f359e82ac2c6::t_f279f60e0ea70e 205
+  s_52f359e82ac2c6::t_f88e876cc9a498 241-242
+backend/.env.example
+  s_52f359e82ac2c6::t_d68332d0c761b0 49-50
+backend/src/config/configuration.ts
+  s_52f359e82ac2c6::t_c49d72df404988 40
+  s_52f359e82ac2c6::t_d6f600ccb6e18b 127-130
+backend/src/eminiplayer/eminiplayer-verify.service.ts
+  s_52f359e82ac2c6::t_a42883580c70c8 1-91
+backend/src/eminiplayer/eminiplayer-verify.service.spec.ts
+  s_52f359e82ac2c6::t_fdb579ec1bea6b 20-27
+  s_52f359e82ac2c6::t_272735441e8d90 1-3,5-19,28-78
+  s_52f359e82ac2c6::t_be608257314f12 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "0fcda090baefdc57687c131cbe897fc0897c76f1",
+  "prompts": {},
+  "sessions": {
+    "s_52f359e82ac2c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5b2a452-2090-4e22-92da-b853e0a47de9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
