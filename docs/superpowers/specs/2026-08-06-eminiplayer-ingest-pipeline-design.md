@@ -51,7 +51,7 @@ backend/src/eminiplayer/
 - **`EminiplayerIngestService`** — pure orchestration; injects `EminiplayerService`, `TranscriptService`, and the existing `STORAGE_BUCKET` provider. No Playwright, no HTTP types.
 - **`EminiplayerController`** — validates `date` (`MMDDYYYY`, real calendar date), parses `force` (boolean, default false), maps orchestrator errors to HTTP statuses.
 
-`EminiplayerModule` imports `TranscriptModule`, declares the controller, and keeps `PlaywrightService` module-private.
+`EminiplayerModule` imports `TranscriptModule` and keeps `PlaywrightService` module-private; the controller is declared on `AppModule`'s `controllers` array, matching the repo convention (`MarketDataController`, `BenchmarkController`, …). `FirebaseModule` is `@Global()`, so `STORAGE_BUCKET` injects without an import.
 
 ## Ingest flow
 
