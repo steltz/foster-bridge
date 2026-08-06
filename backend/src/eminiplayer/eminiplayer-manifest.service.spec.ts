@@ -41,7 +41,9 @@ const MANIFEST: DayManifest = {
 
 function makeFakes(
   claims: Record<string, { date: string; slot: string }> = {},
-  storedManifest: DayManifest | null = null,
+  // `Partial` so a test can store a structurally-broken manifest: one that
+  // parses as JSON but has no `sources`.
+  storedManifest: DayManifest | Partial<DayManifest> | null = null,
 ) {
   const file = {
     exists: jest.fn(() => Promise.resolve([storedManifest !== null])),
@@ -116,6 +118,38 @@ describe('EminiplayerManifestService', () => {
     );
   });
 
+  it('claims both video ids in a SINGLE transaction (a conflict can never half-claim)', async () => {
+    const { service, firestore } = await build();
+    await service.commit(MANIFEST);
+    expect(firestore.runTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('a conflict on the SECOND id leaves NO claim written for the first', async () => {
+    // The regression that matters: with one transaction per id, recapVid0001
+    // would already be claimed when tpVid0000001 conflicts — and since delete()
+    // reads the ids to release FROM the manifest (which is never written here),
+    // that orphan claim could never be released by any automated path.
+    const fakes = makeFakes({ tpVid0000001: { date: '06152026', slot: 'tradePlan' } });
+    const { service, file, txSets } = await build(fakes);
+    await expect(service.commit(MANIFEST)).rejects.toThrow(IngestValidationError);
+    expect(txSets).toEqual([]);
+    expect(file.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a day whose two slots resolve to the same video id', async () => {
+    const { service, file, firestore } = await build();
+    const sameVideo: DayManifest = {
+      ...MANIFEST,
+      sources: { ...MANIFEST.sources, tradePlanVideoId: MANIFEST.sources.recapVideoId },
+    };
+    await expect(service.commit(sameVideo)).rejects.toThrow(IngestValidationError);
+    await expect(service.commit(sameVideo)).rejects.toThrow(
+      /same id recapVid0001 — a single video cannot serve both slots/,
+    );
+    expect(firestore.runTransaction).not.toHaveBeenCalled();
+    expect(file.save).not.toHaveBeenCalled();
+  });
+
   it('re-claim by the same date+slot is idempotent', async () => {
     const fakes = makeFakes({ recapVid0001: { date: '07012026', slot: 'recap' } });
     const { service, file } = await build(fakes);
@@ -145,10 +179,15 @@ describe('EminiplayerManifestService', () => {
       },
       MANIFEST,
     );
-    const { service, file, txDeletes } = await build(fakes);
+    const { service, file, txDeletes, firestore } = await build(fakes);
     await service.delete('07012026');
     expect(txDeletes.sort()).toEqual(['recapVid0001', 'tpVid0000001']);
     expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
+    // ORDER, not just membership: the release must precede the manifest
+    // removal, so hoisting file.delete above it fails this test.
+    const order = firestore.runTransaction.mock.invocationCallOrder;
+    expect(order).toHaveLength(1); // one transaction releases both claims
+    expect(order[order.length - 1]).toBeLessThan(file.delete.mock.invocationCallOrder[0]);
   });
 
   it('delete never touches a claim owned by a different date', async () => {
@@ -164,6 +203,16 @@ describe('EminiplayerManifestService', () => {
     const fakes = makeFakes({}, null);
     const { service, txDeletes, file } = await build(fakes);
     await service.delete('07012026');
+    expect(txDeletes).toEqual([]);
+    expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
+  });
+
+  it('delete still removes a structurally-broken manifest (parses, but no sources)', async () => {
+    // A manifest that can't be uncommitted can't be force-rerun — the file
+    // removal must not depend on `sources` being well-formed.
+    const fakes = makeFakes({}, {});
+    const { service, txDeletes, file } = await build(fakes);
+    await expect(service.delete('07012026')).resolves.toBeUndefined();
     expect(txDeletes).toEqual([]);
     expect(file.delete).toHaveBeenCalledWith({ ignoreNotFound: true });
   });
