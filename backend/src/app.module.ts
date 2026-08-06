@@ -22,6 +22,7 @@ import { AnthropicDemoController } from './demo/anthropic-demo.controller';
 import { MarketDataController } from './market-data/market-data.controller';
 import { BacktestController } from './execution/backtest.controller';
 import { BenchmarkController } from './benchmark/benchmark.controller';
+import { EminiplayerController } from './eminiplayer/eminiplayer.controller';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { BenchmarkController } from './benchmark/benchmark.controller';
     MarketDataController,
     BacktestController,
     BenchmarkController,
+    EminiplayerController,
   ],
   providers: [{ provide: APP_FILTER, useClass: GoogleErrorFilter }],
 })

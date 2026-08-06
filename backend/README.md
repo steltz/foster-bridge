@@ -269,3 +269,31 @@ from touching Firestore as a side effect:
       console.log(await app.get(EminiplayerService).openArchivePage()); \
       await app.close(); \
     })();"
+
+### Ingest a day's document group
+
+```bash
+curl -X POST "localhost:3000/eminiplayer/ingest?date=07012026"
+# force regeneration of artifacts that already exist in Storage:
+curl -X POST "localhost:3000/eminiplayer/ingest?date=07012026&force=true"
+```
+
+Scrapes the archive for the date's Trade Plan entry and the most recent Recap
+entry before it, transcribes both YouTube videos, downloads the TP pdf, runs
+layered verification (structural gates, redundant date cross-checks against
+entry and video titles, an LLM content check), and uploads everything to
+Firebase Storage under `knowledge-base/es/<date>/`. The day only becomes
+visible to consumers when its `manifest.json` commits — after every check
+passes. Existing artifacts are reused without re-scraping (`force=true`
+regenerates), stale recaps from earlier runs are deleted and reported, and
+concurrent requests for the same date share one run. Expect a request to take
+tens of seconds up to minutes: it drives a real browser plus transcript
+fetches, an LLM call, and a pdf download.
+
+Errors: `400` bad date, `404` no matching archive entry, `422` verification
+refused the data (a human should look before retrying), `502` a pipeline
+stage failed (retry resumes where it left off).
+
+**Current status:** the scraper's selector internals are stubbed — the
+endpoint returns a `502` naming the failing stage (`resolve (archive)`)
+until the follow-up selector work lands.
