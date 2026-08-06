@@ -10,12 +10,22 @@
  * 404/422 mappings.
  */
 export class IngestStageError extends Error {
+  /**
+   * The original failure, kept so the underlying stack survives the wrap.
+   * Declared explicitly rather than passed via `super(msg, { cause })`: the
+   * backend targets ES2021, whose lib has no `Error.cause` and no
+   * `ErrorOptions` overload. Same property name and meaning as the ES2022
+   * built-in, so loggers that read `err.cause` work either way.
+   */
+  readonly cause: Error;
+
   constructor(
     readonly stage: 'plan' | 'resolve' | 'transcribe' | 'download' | 'verify' | 'upload' | 'commit',
     readonly artifact: 'archive' | 'recap' | 'tradePlanMd' | 'tradePlanPdf',
     cause: Error,
   ) {
     super(`eminiplayer ingest failed at ${stage} (${artifact}): ${cause.message}`);
+    this.cause = cause;
   }
 }
 

@@ -11,11 +11,33 @@ export const PDF_MIN_BYTES = 10_000;
 
 export type VideoFlavor = 'recap' | 'tradePlan';
 
+const MMDDYYYY = /^\d{8}$/;
+
+/**
+ * Strict MMDDYYYY -> UTC Date. Validates the shape AND round-trips the parsed
+ * fields, because `Date.UTC` silently rolls over out-of-range values: '13012026'
+ * would become Jan 2027 and '02302026' would become Mar 2, both of which then
+ * sail through every downstream invariant. The audit feeds this bucket folder
+ * names it does not control, so a malformed name must fail loudly here.
+ */
 export function parseMmddyyyy(date: string): Date {
+  if (!MMDDYYYY.test(date)) {
+    throw new IngestValidationError(
+      `date "${date}" is not in MMDDYYYY form (expected exactly 8 digits)`,
+    );
+  }
   const mm = Number(date.slice(0, 2));
   const dd = Number(date.slice(2, 4));
   const yyyy = Number(date.slice(4));
-  return new Date(Date.UTC(yyyy, mm - 1, dd));
+  const parsed = new Date(Date.UTC(yyyy, mm - 1, dd));
+  if (
+    parsed.getUTCFullYear() !== yyyy ||
+    parsed.getUTCMonth() !== mm - 1 ||
+    parsed.getUTCDate() !== dd
+  ) {
+    throw new IngestValidationError(`date "${date}" is not a real calendar date`);
+  }
+  return parsed;
 }
 
 export function isWeekday(date: string): boolean {
@@ -40,6 +62,15 @@ export function assertDayInvariants(date: string, recapDate: string): void {
   if (!isWeekday(recapDate)) throw new IngestValidationError(`recap date ${recapDate} is not a weekday`);
 }
 
+// Anchored at both ends so only youtube.com / youtube-nocookie.com and their
+// subdomains match — "youtube.com.evil.com" must not be treated as YouTube.
+const YOUTUBE_HOST = /(^|\.)(youtube\.com|youtube-nocookie\.com)$/;
+
+// Path shapes that carry the id as the segment right after the prefix. The
+// archive's embedded players use /embed/ (often via the nocookie host), and
+// links pasted into posts show up as /live/, /shorts/ and legacy /v/.
+const YOUTUBE_ID_PATH_PREFIXES = ['/embed/', '/live/', '/shorts/', '/v/'];
+
 export function extractYoutubeVideoId(url: string): string {
   let parsed: URL;
   try {
@@ -48,10 +79,15 @@ export function extractYoutubeVideoId(url: string): string {
     throw new IngestValidationError(`cannot extract a YouTube video id from ${url}`);
   }
   let id: string | null = null;
-  if (parsed.hostname === 'youtu.be') id = parsed.pathname.slice(1) || null;
-  else if (/(^|\.)youtube\.com$/.test(parsed.hostname)) {
-    if (parsed.pathname === '/watch') id = parsed.searchParams.get('v');
-    else if (parsed.pathname.startsWith('/embed/')) id = parsed.pathname.split('/')[2] ?? null;
+  if (parsed.hostname === 'youtu.be') {
+    id = parsed.pathname.slice(1).split('/')[0] || null;
+  } else if (YOUTUBE_HOST.test(parsed.hostname)) {
+    if (/^\/watch\/?$/.test(parsed.pathname)) {
+      id = parsed.searchParams.get('v');
+    } else {
+      const prefix = YOUTUBE_ID_PATH_PREFIXES.find((p) => parsed.pathname.startsWith(p));
+      if (prefix) id = parsed.pathname.slice(prefix.length).split('/')[0] || null;
+    }
   }
   if (!id || !/^[\w-]{6,20}$/.test(id)) {
     throw new IngestValidationError(`cannot extract a YouTube video id from ${url}`);
@@ -104,6 +140,8 @@ export function assertVideoTitle(title: string, expectedDate: string, flavor: Vi
 
 const TRANSCRIPT_LINE = /^\*\*(\d+):(\d{2})(?::(\d{2}))?\*\* (.+)$/;
 
+const TRANSCRIPT_HEADER = '# Transcript\n\n';
+
 /**
  * Gate over the FINAL markdown (not raw segments) so the same check covers
  * freshly-generated transcripts and ones reloaded from the bucket on resume.
@@ -111,9 +149,10 @@ const TRANSCRIPT_LINE = /^\*\*(\d+):(\d{2})(?::(\d{2}))?\*\* (.+)$/;
  * classic-XML path, whose seconds get divided as if they were milliseconds.
  */
 export function assertTranscriptMarkdown(markdown: string, label: string): void {
-  if (!markdown.startsWith('# Transcript\n\n')) {
+  if (!markdown.startsWith(TRANSCRIPT_HEADER)) {
     throw new IngestValidationError(`${label} transcript is missing the "# Transcript" header`);
   }
+  const body = markdown.slice(TRANSCRIPT_HEADER.length);
   const offsets: number[] = [];
   let chars = 0;
   for (const line of markdown.split('\n')) {
@@ -126,6 +165,18 @@ export function assertTranscriptMarkdown(markdown: string, label: string): void 
       : Number(a) * 60 + Number(b);
     offsets.push(seconds);
     chars += text.length;
+  }
+  // A drifted line shape (CRLF endings, a formatter change) makes every line
+  // skip silently, and a bare "only 0 timestamped lines" points the reader at
+  // the transcript source instead of at the mismatch between formatter and
+  // gate. Name that case. The line shape is deliberately NOT shared as a
+  // constant with the transcript module: that module is site-agnostic and must
+  // not import eminiplayer code, so this gate re-derives the format on purpose
+  // and this message is what surfaces when the two drift apart.
+  if (offsets.length === 0 && body.trim().length > 0) {
+    throw new IngestValidationError(
+      `${label} transcript has no parseable '**MM:SS**' lines but is non-empty — formatter/gate format drift?`,
+    );
   }
   if (offsets.length < TRANSCRIPT_MIN_LINES) {
     throw new IngestValidationError(
@@ -162,7 +213,12 @@ export function assertPdfBuffer(buf: Buffer, label: string): void {
   if (!buf.includes('%%EOF')) {
     throw new IngestValidationError(`${label} has no %%EOF trailer — likely truncated`);
   }
-  if (!/\/Type\s*\/Page/.test(buf.toString('latin1'))) {
+  // PDF 1.5+ writers pack page dictionaries into compressed /ObjStm object
+  // streams, so the literal "/Type /Page" never appears in the raw bytes.
+  // Requiring it alone would 422 every ingest of a modern PDF, so an object
+  // stream counts as evidence of page content too.
+  const text = buf.toString('latin1');
+  if (!/\/Type\s*\/Page/.test(text) && !/\/ObjStm/.test(text)) {
     throw new IngestValidationError(`${label} has no page objects`);
   }
 }

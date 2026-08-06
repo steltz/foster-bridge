@@ -12,7 +12,7 @@ import {
   sha256Hex,
   TRANSCRIPT_MIN_LINES,
 } from './eminiplayer-validation';
-import { IngestValidationError } from './eminiplayer-ingest.errors';
+import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 
 /** Builds a plausible transcript markdown: `lines` timestamped lines, 4s apart. */
 function fixtureMarkdown(lines: number, opts: { startSeconds?: number; stepSeconds?: number } = {}): string {
@@ -36,6 +36,15 @@ function fixturePdf(): Buffer {
   ]);
 }
 
+/** A PDF big/valid enough to reach the page-object check, with `body` inside. */
+function fixturePdfWithBody(body: string): Buffer {
+  return Buffer.concat([
+    Buffer.from(`%PDF-1.7\n${body}\n`),
+    Buffer.alloc(12000, 0x20),
+    Buffer.from('\n%%EOF\n'),
+  ]);
+}
+
 describe('parseMmddyyyy / isWeekday', () => {
   it('parses MMDDYYYY to a UTC date', () => {
     const d = parseMmddyyyy('07012026');
@@ -47,6 +56,24 @@ describe('parseMmddyyyy / isWeekday', () => {
   it('classifies weekdays and weekends', () => {
     expect(isWeekday('07012026')).toBe(true); // Wed
     expect(isWeekday('07042026')).toBe(false); // Sat
+  });
+
+  // Task 8's audit feeds this bucket folder names it does not control, so a
+  // malformed name must fail loudly instead of silently rolling over into a
+  // plausible-looking Date that then passes every downstream invariant.
+  it.each([
+    ['070126', 'too few digits (would parse as year 0126 -> 1926)'],
+    ['13012026', 'month 13 (would roll over into Jan 2027)'],
+    ['02302026', 'Feb 30 (would roll over into Mar 2)'],
+    ['ab012026', 'non-numeric'],
+    ['0701202', 'seven digits'],
+    ['070120266', 'nine digits'],
+  ])('rejects malformed date %s (%s)', (date) => {
+    expect(() => parseMmddyyyy(date)).toThrow(IngestValidationError);
+  });
+
+  it('accepts a real leap day', () => {
+    expect(parseMmddyyyy('02292024').getUTCDate()).toBe(29);
   });
 });
 
@@ -71,6 +98,16 @@ describe('extractYoutubeVideoId', () => {
     ['https://youtu.be/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
     ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
     ['https://www.youtube.com/embed/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    // Forms the embedded players on the archive pages realistically hand us.
+    ['https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/live/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/shorts/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/v/dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/watch/?v=dQw4w9WgXcQ', 'dQw4w9WgXcQ'],
+    ['https://youtube.com/embed/dQw4w9WgXcQ/', 'dQw4w9WgXcQ'],
+    ['https://youtu.be/dQw4w9WgXcQ?t=30', 'dQw4w9WgXcQ'],
+    ['https://www.youtube.com/embed/dQw4w9WgXcQ?start=12', 'dQw4w9WgXcQ'],
   ])('extracts from %s', (url, id) => {
     expect(extractYoutubeVideoId(url)).toBe(id);
   });
@@ -79,6 +116,13 @@ describe('extractYoutubeVideoId', () => {
     ['https://vimeo.com/12345'],
     ['https://www.youtube.com/watch'],
     ['https://www.eminiplayer.net/archive.aspx'],
+    // Look-alike host: must NOT be treated as YouTube.
+    ['https://youtube.com.evil.com/watch?v=dQw4w9WgXcQ'],
+    ['https://notyoutube.com/watch?v=dQw4w9WgXcQ'],
+    ['https://www.youtube.com/embed/'],
+    ['https://www.youtube.com/live/'],
+    ['https://www.youtube.com/'],
+    ['not a url at all'],
   ])('rejects %s', (url) => {
     expect(() => extractYoutubeVideoId(url)).toThrow(IngestValidationError);
   });
@@ -139,6 +183,22 @@ describe('assertTranscriptMarkdown', () => {
     expect(() => assertTranscriptMarkdown(md, 'recap')).toThrow('timestamps regress');
   });
 
+  it('names format drift distinctly when a non-empty body parses to zero lines', () => {
+    // CRLF line endings / a formatter change would otherwise surface as the
+    // misleading "has only 0 timestamped lines" message.
+    const md = `# Transcript\n\n${Array.from(
+      { length: 40 },
+      (_, i) => `**00:${String(i).padStart(2, '0')}** crlf line ${i} with plenty of words here\r`,
+    ).join('\n')}\n`;
+    expect(() => assertTranscriptMarkdown(md, 'recap')).toThrow('format drift');
+  });
+
+  it('still reports a low line count when some lines DO parse', () => {
+    expect(() => assertTranscriptMarkdown(fixtureMarkdown(5), 'recap')).toThrow(
+      'timestamped lines',
+    );
+  });
+
   it('rejects an implausibly short duration (catches 1000x ms/s compression)', () => {
     // 60 lines all inside 2 seconds — the compressed shape of a 20-minute video
     expect(() =>
@@ -166,6 +226,32 @@ describe('assertPdfBuffer', () => {
     expect(() => assertPdfBuffer(Buffer.from('%PDF-1.4 /Type /Page %%EOF'), 'tradePlanPdf')).toThrow(
       IngestValidationError,
     );
+  });
+
+  it('accepts a PDF 1.5+ whose page dicts live in a compressed /ObjStm', () => {
+    // Modern writers pack page objects into object streams, so the literal
+    // "/Type /Page" never appears in the raw bytes. Rejecting these would 422
+    // every ingest.
+    expect(() =>
+      assertPdfBuffer(fixturePdfWithBody('5 0 obj << /Type /ObjStm /N 12 >> stream'), 'tradePlanPdf'),
+    ).not.toThrow();
+  });
+
+  it('rejects a PDF with neither a page marker nor an object stream', () => {
+    expect(() =>
+      assertPdfBuffer(fixturePdfWithBody('1 0 obj << /Type /Catalog >> endobj'), 'tradePlanPdf'),
+    ).toThrow('no page objects');
+  });
+});
+
+describe('IngestStageError', () => {
+  it('preserves the original error as its cause', () => {
+    const cause = new Error('socket hang up');
+    const err = new IngestStageError('download', 'tradePlanPdf', cause);
+    expect(err.cause).toBe(cause);
+    expect(err.stage).toBe('download');
+    expect(err.artifact).toBe('tradePlanPdf');
+    expect(err.message).toContain('socket hang up');
   });
 });
 
