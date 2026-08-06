@@ -202,6 +202,7 @@ describe('configuration (eminiplayer)', () => {
     delete process.env.EMINIPLAYER_PASSWORD;
     delete process.env.EMINIPLAYER_HEADLESS;
     delete process.env.EMINIPLAYER_SCREENSHOT_DIR;
+    delete process.env.EMINIPLAYER_VERIFY_MODEL;
   });
   afterAll(() => {
     process.env = OLD_ENV;
@@ -230,7 +231,13 @@ describe('configuration (eminiplayer)', () => {
       password: 'secret',
       headless: false,
       screenshotDir: '/tmp/shots',
+      verifyModel: undefined,
     });
+  });
+
+  it('reads EMINIPLAYER_VERIFY_MODEL', () => {
+    process.env.EMINIPLAYER_VERIFY_MODEL = 'claude-haiku-4-5';
+    expect(configuration().eminiplayer.verifyModel).toBe('claude-haiku-4-5');
   });
 
   it('treats set-but-empty values as unset (copied .env.example)', () => {

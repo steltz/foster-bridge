@@ -37,6 +37,7 @@ export interface AppConfig {
     password?: string;
     headless: boolean;
     screenshotDir: string;
+    verifyModel?: string;
   };
 }
 
@@ -123,5 +124,9 @@ export default (): AppConfig => ({
     screenshotDir:
       process.env.EMINIPLAYER_SCREENSHOT_DIR ||
       resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
+    // Model for LLM transcript verification. `|| undefined` convention (see
+    // username above): unset/empty means "use the provider's default model".
+    // Set a cheap classifier (e.g. Haiku) to cut verification cost.
+    verifyModel: process.env.EMINIPLAYER_VERIFY_MODEL || undefined,
   },
 });
