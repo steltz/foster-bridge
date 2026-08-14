@@ -14,6 +14,10 @@ export const SELECTORS = {
   username: '#ctl00_cphBody_Login1_UserName',
   password: '#ctl00_cphBody_Login1_Password',
   submit: '#ctl00_cphBody_Login1_LoginButton',
+  // Archive listing (verified 2026-08-14): per-category <table> under
+  // #archive, rows of <td class="date">YYYY-MM-DD</td> +
+  // <td class="title"><a href="/post/...">title</a></td>.
+  archiveRows: '#archive table tr',
 } as const;
 
 export interface ArchivePageResult {

@@ -160,6 +160,38 @@ describe('assertVideoTitle', () => {
     ).not.toThrow();
   });
 
+  it('accepts the real recap oEmbed title form (dash-separated MM-DD-YYYY)', () => {
+    // Captured from the live channel 2026-08-14 — recap videos date with
+    // dashes, TP videos with slashes.
+    expect(() =>
+      assertVideoTitle(
+        '08-13-2026 | E-mini S&P 500 and Nasdaq-100 Futures Trading Recap (Video Lesson)',
+        '08132026',
+        'recap',
+      ),
+    ).not.toThrow();
+  });
+
+  it('accepts the real TP oEmbed title form (slash-separated MM/DD/YYYY)', () => {
+    expect(() =>
+      assertVideoTitle(
+        '08/13/2026 E-mini S&P 500 Futures Key Support / Resistance Zones & Trade Plan',
+        '08132026',
+        'tradePlan',
+      ),
+    ).not.toThrow();
+  });
+
+  it('rejects a contradictory dash-separated date as a contradiction, not an unrecognizable format', () => {
+    expect(() =>
+      assertVideoTitle(
+        '08-12-2026 | E-mini S&P 500 and Nasdaq-100 Futures Trading Recap (Video Lesson)',
+        '08132026',
+        'recap',
+      ),
+    ).toThrow('contains 08-12-2026');
+  });
+
   it('rejects a flavor mismatch (recap video in the TP slot)', () => {
     expect(() =>
       assertVideoTitle('ES Recap/Video Lesson for Tuesday 06/30/2026', '06302026', 'tradePlan'),

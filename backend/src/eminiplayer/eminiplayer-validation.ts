@@ -95,24 +95,33 @@ export function extractYoutubeVideoId(url: string): string {
   return id;
 }
 
-/** "MM/DD/YYYY" and "M/D/YYYY" renderings of a MMDDYYYY date. */
+/**
+ * Slash and dash renderings (padded and bare) of a MMDDYYYY date. Validated
+ * against real oEmbed titles 2026-08-14: TP videos date with slashes
+ * ("08/13/2026 E-mini S&P 500 Futures Key Support / Resistance Zones & Trade
+ * Plan"), recap videos with dashes ("08-13-2026 | E-mini S&P 500 and
+ * Nasdaq-100 Futures Trading Recap (Video Lesson)").
+ */
 function titleDateForms(date: string): string[] {
   const mm = date.slice(0, 2);
   const dd = date.slice(2, 4);
   const yyyy = date.slice(4);
-  return [`${mm}/${dd}/${yyyy}`, `${Number(mm)}/${Number(dd)}/${yyyy}`];
+  return ['/', '-'].flatMap((sep) => [
+    `${mm}${sep}${dd}${sep}${yyyy}`,
+    `${Number(mm)}${sep}${Number(dd)}${sep}${yyyy}`,
+  ]);
 }
 
-// TODO(selectors follow-up): these accepted forms are an ASSUMPTION not yet
-// validated against the channel's real titles. Before trusting this gate at
-// volume, capture 3-5 real oEmbed titles and encode the observed date/flavor
-// forms — a format mismatch would 422 every single day.
+// Flavor keywords confirmed against the same captured titles: recap titles
+// carry "Trading Recap (Video Lesson)", TP titles carry "... & Trade Plan".
 const FLAVOR_PATTERNS: Record<VideoFlavor, RegExp> = {
   recap: /recap|video lesson/i,
   tradePlan: /trade plan|key zones/i,
 };
 
-const ANY_TITLE_DATE = /\b\d{1,2}\/\d{1,2}\/\d{4}\b/;
+// Same separators as titleDateForms, so a wrong-day title in either style is
+// reported as a contradiction rather than "no recognizable date".
+const ANY_TITLE_DATE = /\b\d{1,2}([/-])\d{1,2}\1\d{4}\b/;
 
 /**
  * The video's own title must carry the expected date and the right flavor.

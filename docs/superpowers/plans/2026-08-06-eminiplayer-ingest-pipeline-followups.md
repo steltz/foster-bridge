@@ -5,34 +5,42 @@ whole-branch review's two MUST items and five strongly-recommended items were
 fixed pre-merge. Everything below was explicitly triaged as **safe to defer** —
 recorded here because the execution ledger was removed with the worktree.
 
-## Selector follow-up (the next piece of real work)
+## Selector follow-up — DONE 2026-08-14
 
-`findDayEntries` / `getYoutubeUrl` / `downloadTradePlanPdf` still throw
-`selectors not implemented yet`. When implementing against the live site:
+The three scraper methods are implemented (`eminiplayer-archive.ts` holds the
+pure row parsing/selection; `eminiplayer.service.ts` scrapes raw rows,
+iframes, and hrefs). Verified: full suite green, plus a read-only live smoke
+(`findDayEntries('08132026')` → both `getYoutubeUrl` flavors → PDF download
+passing `assertPdfBuffer`). What the live-site recon settled, item by item:
 
-1. **Capture 3–5 real oEmbed video titles first** and encode the observed
-   date/flavor forms in `assertVideoTitle` (`eminiplayer-validation.ts`) —
-   the current `M/D/YYYY` + flavor-keyword patterns are an unvalidated
-   assumption; a format mismatch would 422 every single day. The gate already
-   distinguishes "no recognizable date (our assumption may be wrong)" from
-   "contradictory date" to make this diagnosable.
-2. **Capture a real trade-plan PDF** — the structural gate accepts classic
-   `/Type /Page` or compressed `/ObjStm` markers; confirm real PDFs pass.
-3. **Validate scraped hrefs are absolute and same-origin** before returning
-   them from `findDayEntries` — `pageUrl` flows into `page.goto` on a
-   credentialed session (security control, not a nit). Note `assertOnPage`
-   compares pathname only; if permalinks turn out to be query-keyed
-   (`/post.aspx?id=…`), extend it to compare the query too.
-4. **Honor the contracts in the `TODO(selectors)` comments**: three-way date
-   agreement (row date = title date = title weekday), `ArchiveNotFoundError`
-   within `RECAP_LOOKBACK_DAYS`, and note the orchestrator now also re-asserts
-   `entries.tradePlan.date === date` as a consumer-side backstop.
-5. **Check real YouTube URL forms** — extraction accepts youtube.com /
-   youtube-nocookie.com hosts and `/watch`, `/embed/`, `/live/`, `/shorts/`,
-   `/v/`, `youtu.be` paths.
-6. Operational smoke: verify the configured LLM provider handles the verify
-   call (`maxTokens: 300`; on moonshot, reasoning effort could hit the
-   length ceiling → 502).
+1. **oEmbed titles captured (5 recap + 2 TP)** — the fear was justified:
+   recap videos date with dashes (`08-13-2026 | E-mini S&P 500 and
+   Nasdaq-100 Futures Trading Recap (Video Lesson)`), TP videos with slashes
+   (`08/13/2026 … Key Support / Resistance Zones & Trade Plan`). The original
+   slash-only forms would have 422'd every recap; `titleDateForms` /
+   `ANY_TITLE_DATE` now accept both separators.
+2. **Real trade-plan PDF captured** (441KB "Trader Worksheet", PDF 1.7):
+   classic `/Type /Page` literal present, `%%EOF` in the last 1KB —
+   `assertPdfBuffer` passes as-is.
+3. **Same-origin enforcement landed** in `resolveEntryUrl`
+   (`eminiplayer-archive.ts`), applied to listing hrefs AND the PDF link
+   before any credentialed `page.goto`/`page.request.get`. Permalinks are
+   path-keyed (`/post/YYYY/MM/DD/Title.aspx`), so `assertOnPage`'s
+   pathname-only comparison needed no query extension.
+4. **Three-way agreement implemented** in `selectDayEntries`: row date cell
+   (ISO `YYYY-MM-DD`), title date, and title weekday vs calendar must agree
+   on any selected row (else `IngestValidationError`); absence throws
+   `ArchiveNotFoundError` within `RECAP_LOOKBACK_DAYS`. Titles are anchored
+   regexes — the listing also carries "ES Recap Charts …", "NQ Recap …", and
+   announcement posts mentioning "Trade Plan" that keyword tests would
+   misfile. Weekday tokens observed: full names + "Wed."; three typos in 14
+   years (e.g. "Thurday") are treated as unclassifiable.
+5. **Real YouTube form**: both flavors embed via `youtube.com/embed/<id>`
+   iframes (already accepted), next to a Twitter-widget iframe that
+   `extractYoutubeVideoId`'s host allowlist filters out.
+6. Operational smoke of the LLM verify call remains to be done on the first
+   real ingest (`maxTokens: 300`; on moonshot, reasoning effort could hit
+   the length ceiling → 502).
 
 ## Deferred minors (triaged safe; grouped by area)
 

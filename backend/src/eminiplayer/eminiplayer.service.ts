@@ -11,6 +11,8 @@ import {
   ArchivePageResult,
   DayEntries,
 } from './eminiplayer.constants';
+import { resolveEntryUrl, selectDayEntries } from './eminiplayer-archive';
+import { extractYoutubeVideoId } from './eminiplayer-validation';
 
 /**
  * Site-specific navigation for eminiplayer.net. openArchivePage() lands an
@@ -44,7 +46,11 @@ export class EminiplayerService {
 
   /**
    * Scan the archive listing for the trade-plan entry dated `date` (MMDDYYYY)
-   * and the most recent recap entry dated strictly before it.
+   * and the most recent recap entry dated strictly before it. Row selection,
+   * three-way date agreement, and the RECAP_LOOKBACK_DAYS bound live in
+   * eminiplayer-archive.ts (selectDayEntries); this method only scrapes the
+   * raw rows. Throws ArchiveNotFoundError when the day (or its recap) is not
+   * in the archive — the controller maps that to 404.
    */
   async findDayEntries(date: string): Promise<DayEntries> {
     return this.playwright.withPage(async (page) => {
@@ -54,43 +60,94 @@ export class EminiplayerService {
         'navigating to archive.aspx',
       );
       this.assertOnArchivePage(page);
-      // TODO(selectors): parse the listing rows into ArchiveEntry[] and select
-      // the TP entry for `date` + the latest recap before it. Contract for the
-      // selector follow-up:
-      //  - THREE-WAY DATE AGREEMENT: only return an entry when the row's date,
-      //    the date printed in the entry title ("...for Tuesday 04/10/2018"),
-      //    and the title's printed weekday (vs what that calendar date actually
-      //    falls on) all agree — an off-by-one-row parse must fail loudly, not
-      //    file a document under the wrong day.
-      //  - throw ArchiveNotFoundError (eminiplayer.constants) when there is no
-      //    TP entry for `date`, or no recap entry dated within
-      //    RECAP_LOOKBACK_DAYS calendar days strictly before it — the
-      //    controller maps that to 404, and the bound keeps the scan from
-      //    walking the whole multi-year archive inside this withPage callback.
-      throw new Error('eminiplayer: findDayEntries selectors not implemented yet');
+      const rows = await page.$$eval(SELECTORS.archiveRows, (trs) =>
+        trs.map((tr) => {
+          const anchor = tr.querySelector('td.title a');
+          return {
+            dateText: tr.querySelector('td.date')?.textContent?.trim() ?? '',
+            href: anchor?.getAttribute('href') ?? '',
+            title: anchor?.textContent?.trim() ?? '',
+          };
+        }),
+      );
+      return selectDayEntries(rows, date, ARCHIVE_URL);
     });
   }
 
-  /** Extract the embedded YouTube URL from an archive detail page. */
+  /**
+   * Extract the embedded YouTube URL from an archive detail page. Both TP and
+   * recap pages embed their video as a youtube.com/embed/<id> iframe, next to
+   * a Twitter-widget iframe that must be ignored — so a src only counts when
+   * extractYoutubeVideoId accepts it (host allowlist + id shape).
+   */
   async getYoutubeUrl(pageUrl: string): Promise<string> {
     return this.playwright.withPage(async (page) => {
       await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
       this.assertOnPage(page, pageUrl);
-      // TODO(selectors): locate the embedded YouTube iframe/link on the page.
-      throw new Error('eminiplayer: getYoutubeUrl selectors not implemented yet');
+      const srcs = await page.$$eval('iframe', (els) =>
+        els.map((el) => el.getAttribute('src') ?? ''),
+      );
+      for (const src of srcs) {
+        try {
+          extractYoutubeVideoId(src);
+          return src;
+        } catch {
+          // not a YouTube embed (Twitter widget, ad frame, empty src)
+        }
+      }
+      throw new Error(`eminiplayer: no YouTube embed found on ${pageUrl}`);
     });
   }
 
-  /** Download the trade-plan PDF linked from a TP detail page. */
+  /**
+   * Download the trade-plan PDF (the "Trader Worksheet") linked from a TP
+   * detail page. The site serves it via /file.axd?file=...pdf, so the PDF-ness
+   * lives in the `file` query param, not the pathname; the page also links a
+   * zones .zip through the same handler, which must not match. The fetch goes
+   * through page.request (shares the page's authenticated cookies) — no
+   * Playwright download event needed; verified against the live site
+   * 2026-08-14.
+   */
   async downloadTradePlanPdf(pageUrl: string): Promise<Buffer> {
     return this.playwright.withPage(async (page) => {
       await this.gotoAuthenticated(page, pageUrl, `navigating to ${pageUrl}`);
       this.assertOnPage(page, pageUrl);
-      // TODO(selectors): find the PDF link and capture the download as a Buffer.
-      throw new Error(
-        'eminiplayer: downloadTradePlanPdf selectors not implemented yet',
+      const hrefs = await page.$$eval('a', (els) =>
+        els.map((el) => el.getAttribute('href') ?? ''),
       );
+      const pdfUrl = this.findPdfUrl(hrefs, pageUrl);
+      if (!pdfUrl) {
+        throw new Error(`eminiplayer: no trade-plan PDF link found on ${pageUrl}`);
+      }
+      const response = await page.request.get(pdfUrl);
+      if (!response.ok()) {
+        throw new Error(
+          `eminiplayer: downloading ${pdfUrl} failed with HTTP ${response.status()}`,
+        );
+      }
+      return Buffer.from(await response.body());
     });
+  }
+
+  /**
+   * First href that resolves to a .pdf (by pathname or file.axd `file` query
+   * param), same-origin enforced via resolveEntryUrl BEFORE the URL reaches a
+   * credentialed fetch.
+   */
+  private findPdfUrl(hrefs: string[], pageUrl: string): string | null {
+    for (const href of hrefs) {
+      if (!href) continue;
+      let url: URL;
+      try {
+        url = new URL(href, pageUrl);
+      } catch {
+        continue;
+      }
+      const fileParam = url.searchParams.get('file') ?? '';
+      if (!/\.pdf$/i.test(url.pathname) && !/\.pdf$/i.test(fileParam)) continue;
+      return resolveEntryUrl(href, pageUrl);
+    }
+    return null;
   }
 
   /**

@@ -84,7 +84,7 @@ describe('POST /eminiplayer/ingest', () => {
   it('maps IngestStageError to 502', async () => {
     const { controller, ingest } = await build();
     ingest.ingest.mockRejectedValue(
-      new IngestStageError('resolve', 'archive', new Error('selectors not implemented yet')),
+      new IngestStageError('resolve', 'archive', new Error('archive listing unreachable')),
     );
     await expect(controller.ingest('07012026', undefined)).rejects.toThrow(BadGatewayException);
   });

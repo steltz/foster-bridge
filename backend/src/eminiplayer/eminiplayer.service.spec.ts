@@ -7,17 +7,25 @@ import { ConfigService } from '@nestjs/config';
 import { mkdir } from 'node:fs/promises';
 import { EminiplayerService } from './eminiplayer.service';
 import { PlaywrightService } from './playwright.service';
-import { ARCHIVE_URL, LOGIN_URL, SELECTORS } from './eminiplayer.constants';
+import {
+  ARCHIVE_URL,
+  ArchiveNotFoundError,
+  LOGIN_URL,
+  SELECTORS,
+} from './eminiplayer.constants';
+import { IngestValidationError } from './eminiplayer-ingest.errors';
 
 type FakePage = {
   goto: jest.Mock;
   $: jest.Mock;
+  $$eval: jest.Mock;
   fill: jest.Mock;
   click: jest.Mock;
   waitForURL: jest.Mock;
   url: jest.Mock;
   title: jest.Mock;
   screenshot: jest.Mock;
+  request: { get: jest.Mock };
 };
 
 function makePage(overrides: Partial<FakePage> = {}): FakePage {
@@ -25,12 +33,14 @@ function makePage(overrides: Partial<FakePage> = {}): FakePage {
     goto: jest.fn(() => Promise.resolve(null)),
     // default: logged in (no login link found)
     $: jest.fn(() => Promise.resolve(null)),
+    $$eval: jest.fn(() => Promise.resolve([])),
     fill: jest.fn(() => Promise.resolve()),
     click: jest.fn(() => Promise.resolve()),
     waitForURL: jest.fn(() => Promise.resolve()),
     url: jest.fn(() => ARCHIVE_URL),
     title: jest.fn(() => Promise.resolve('Archive')),
     screenshot: jest.fn(() => Promise.resolve(Buffer.from(''))),
+    request: { get: jest.fn() },
     ...overrides,
   };
 }
@@ -168,44 +178,91 @@ describe('EminiplayerService.openArchivePage', () => {
   });
 });
 
-describe('scraper contract stubs', () => {
-  it('findDayEntries navigates to the archive authenticated, then throws not-implemented', async () => {
-    const page = makePage(); // default: logged in, url() === ARCHIVE_URL
+describe('findDayEntries', () => {
+  // Row fixtures mirror the captured "Members Only" listing table.
+  const LISTING_ROWS = [
+    { dateText: '2026-08-13', href: '/post/2026/08/13/ES-Recap-(Video-Lesson)-for-Thursday-08132026.aspx', title: 'ES Recap (Video Lesson) for Thursday 08/13/2026' },
+    { dateText: '2026-08-13', href: '/post/2026/08/13/ES-Key-Zones-and-Trade-Plan-for-Thursday-08132026.aspx', title: 'ES Key Zones and Trade Plan for Thursday 08/13/2026' },
+    { dateText: '2026-08-12', href: '/post/2026/08/12/ES-Recap-(Video-Lesson)-for-Wed-08122026.aspx', title: 'ES Recap (Video Lesson) for Wed. 08/12/2026' },
+    { dateText: '2026-08-12', href: '/post/2026/08/12/ES-Key-Zones-and-Trade-Plan-for-Wed-08122026.aspx', title: 'ES Key Zones and Trade Plan for Wed. 08/12/2026' },
+  ];
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('scrapes the listing rows and returns the TP for the date plus the prior recap', async () => {
+    const page = makePage({ $$eval: jest.fn(() => Promise.resolve(LISTING_ROWS)) });
     const { service } = await build(page);
-    await expect(service.findDayEntries('07012026')).rejects.toThrow(
-      'eminiplayer: findDayEntries selectors not implemented yet',
-    );
+    const entries = await service.findDayEntries('08132026');
     expect(page.goto).toHaveBeenCalledWith(ARCHIVE_URL, expect.anything());
+    expect(page.$$eval).toHaveBeenCalledWith(SELECTORS.archiveRows, expect.any(Function));
+    expect(entries.tradePlan).toEqual({
+      date: '08132026',
+      pageUrl: 'https://www.eminiplayer.net/post/2026/08/13/ES-Key-Zones-and-Trade-Plan-for-Thursday-08132026.aspx',
+      title: 'ES Key Zones and Trade Plan for Thursday 08/13/2026',
+    });
+    expect(entries.recap.date).toBe('08122026');
   });
 
-  it('findDayEntries logs in first when logged out', async () => {
+  it('throws ArchiveNotFoundError when the listing has no TP entry for the date', async () => {
+    const page = makePage({ $$eval: jest.fn(() => Promise.resolve(LISTING_ROWS)) });
+    const { service } = await build(page);
+    await expect(service.findDayEntries('08142026')).rejects.toBeInstanceOf(ArchiveNotFoundError);
+  });
+
+  it('logs in first when logged out, then scrapes', async () => {
     const page = makePage({
       // 1st check (archive): logged out; 2nd check (after login): logged in
-      $: jest
-        .fn()
-        .mockResolvedValueOnce({})
-        .mockResolvedValue(null),
+      $: jest.fn().mockResolvedValueOnce({}).mockResolvedValue(null),
+      $$eval: jest.fn(() => Promise.resolve(LISTING_ROWS)),
     });
     const { service } = await build(page);
-    await expect(service.findDayEntries('07012026')).rejects.toThrow(
-      'selectors not implemented',
-    );
+    const entries = await service.findDayEntries('08132026');
     expect(page.fill).toHaveBeenCalledWith(SELECTORS.username, 'user@example.com');
     expect(page.click).toHaveBeenCalledWith(SELECTORS.submit);
+    expect(entries.tradePlan.date).toBe('08132026');
   });
+});
 
-  it('getYoutubeUrl navigates to the detail page authenticated, then throws not-implemented', async () => {
-    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
-    const page = makePage({ url: jest.fn(() => detailUrl) });
+describe('getYoutubeUrl', () => {
+  const detailUrl = 'https://www.eminiplayer.net/post/2026/08/13/ES-Recap-(Video-Lesson)-for-Thursday-08132026.aspx';
+  // iframe srcs verbatim from the captured recap detail page: the YouTube
+  // player plus the Twitter widget that must be ignored.
+  const IFRAME_SRCS = [
+    'https://www.youtube.com/embed/SHWb4rz_lMI?vq=hd720&rel=0&showinfo=0&modestbranding=1&&playsinline=1&enablejsapi=1&origin=https://www.eminiplayer.net',
+    'https://platform.twitter.com/widgets/widget_iframe.1227a5674072e080ffb1ba14ac0c1079.html?origin=https%3A%2F%2Fwww.eminiplayer.net',
+  ];
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns the YouTube embed src, ignoring non-YouTube iframes', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve(IFRAME_SRCS)),
+    });
     const { service } = await build(page);
-    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
-      'eminiplayer: getYoutubeUrl selectors not implemented yet',
-    );
+    await expect(service.getYoutubeUrl(detailUrl)).resolves.toBe(IFRAME_SRCS[0]);
     expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
   });
 
-  it('getYoutubeUrl throws a navigation error when the site redirects off the detail page', async () => {
-    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
+  it('ignores a leading non-YouTube iframe (order independence)', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve([IFRAME_SRCS[1], IFRAME_SRCS[0]])),
+    });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).resolves.toBe(IFRAME_SRCS[0]);
+  });
+
+  it('throws a descriptive error when the page has no YouTube embed', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve([IFRAME_SRCS[1]])),
+    });
+    const { service } = await build(page);
+    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(/no YouTube embed/);
+  });
+
+  it('throws a navigation error when the site redirects off the detail page', async () => {
     // landed somewhere else (soft-404 / upsell / home) that is NOT logged-out
     const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
     const { service } = await build(page);
@@ -214,36 +271,98 @@ describe('scraper contract stubs', () => {
     );
   });
 
-  it('getYoutubeUrl accepts www <-> apex host canonicalization (same path)', async () => {
+  it('accepts www <-> apex host canonicalization (same path)', async () => {
     // requested www, landed on apex — the host variance assertOnArchivePage
     // already tolerates; must reach the extraction point, not a nav error
-    const detailUrl = 'https://www.eminiplayer.net/post/some-entry.aspx';
-    const page = makePage({ url: jest.fn(() => 'https://eminiplayer.net/post/some-entry.aspx') });
+    const apexUrl = detailUrl.replace('www.', '');
+    const page = makePage({
+      url: jest.fn(() => apexUrl),
+      $$eval: jest.fn(() => Promise.resolve(IFRAME_SRCS)),
+    });
     const { service } = await build(page);
-    await expect(service.getYoutubeUrl(detailUrl)).rejects.toThrow(
-      'eminiplayer: getYoutubeUrl selectors not implemented yet',
-    );
+    await expect(service.getYoutubeUrl(detailUrl)).resolves.toBe(IFRAME_SRCS[0]);
+  });
+});
+
+describe('downloadTradePlanPdf', () => {
+  const detailUrl = 'https://www.eminiplayer.net/post/2026/08/13/ES-Key-Zones-and-Trade-Plan-for-Thursday-08132026.aspx';
+  // hrefs verbatim from the captured TP detail page: the worksheet PDF is
+  // linked three times via /file.axd, next to a zones .zip that must be
+  // ignored.
+  const PAGE_HREFS = [
+    '/post/2012/10/30/EMiniPlayer-Zones-Indicator.aspx',
+    '/file.axd?file=2026%2f8%2f20260813TW-A77.pdf',
+    '/file.axd?file=2026%2f8%2f20260813TW-A77.pdf',
+    '/file.axd?file=2026%2f8%2fES_ZONES_1260813_A77.zip',
+  ];
+  const PDF_BYTES = Buffer.from('%PDF-1.7 fake body');
+
+  const okResponse = () => ({
+    ok: () => true,
+    status: () => 200,
+    body: () => Promise.resolve(PDF_BYTES),
   });
 
-  it('downloadTradePlanPdf navigates to the detail page authenticated, then throws not-implemented', async () => {
-    const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
-    const page = makePage({ url: jest.fn(() => detailUrl) });
+  beforeEach(() => jest.clearAllMocks());
+
+  it('finds the file.axd PDF link, fetches it through the page session, and returns the bytes', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve(PAGE_HREFS)),
+      request: { get: jest.fn(() => Promise.resolve(okResponse())) },
+    });
     const { service } = await build(page);
-    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
-      'eminiplayer: downloadTradePlanPdf selectors not implemented yet',
+    const buf = await service.downloadTradePlanPdf(detailUrl);
+    expect(buf.equals(PDF_BYTES)).toBe(true);
+    expect(page.request.get).toHaveBeenCalledWith(
+      'https://www.eminiplayer.net/file.axd?file=2026%2f8%2f20260813TW-A77.pdf',
     );
-    expect(page.goto).toHaveBeenCalledWith(detailUrl, expect.anything());
+    expect(page.request.get).toHaveBeenCalledTimes(1);
   });
 
-  it('downloadTradePlanPdf throws a navigation error when the site redirects off the detail page', async () => {
-    const detailUrl = 'https://www.eminiplayer.net/post/tp-entry.aspx';
+  it('throws a descriptive error when the page has no PDF link', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve([PAGE_HREFS[0], PAGE_HREFS[3]])),
+    });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(/no trade-plan PDF link/);
+  });
+
+  it('rejects a foreign-origin PDF link instead of fetching it with credentials', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve(['https://evil.example.com/plan.pdf'])),
+    });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toBeInstanceOf(IngestValidationError);
+    expect(page.request.get).not.toHaveBeenCalled();
+  });
+
+  it('throws with the HTTP status when the download fails', async () => {
+    const page = makePage({
+      url: jest.fn(() => detailUrl),
+      $$eval: jest.fn(() => Promise.resolve(PAGE_HREFS)),
+      request: {
+        get: jest.fn(() =>
+          Promise.resolve({ ok: () => false, status: () => 403, body: () => Promise.resolve(Buffer.alloc(0)) }),
+        ),
+      },
+    });
+    const { service } = await build(page);
+    await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(/HTTP 403/);
+  });
+
+  it('throws a navigation error when the site redirects off the detail page', async () => {
     const page = makePage({ url: jest.fn(() => 'https://www.eminiplayer.net/default.aspx') });
     const { service } = await build(page);
     await expect(service.downloadTradePlanPdf(detailUrl)).rejects.toThrow(
       'eminiplayer navigation failed',
     );
   });
+});
 
+describe('scraper serialization', () => {
   it('each scraper method runs inside withPage (serialized page access)', async () => {
     const page = makePage();
     const { service, playwright } = await build(page);
