@@ -112,6 +112,7 @@ function rowDateToMmddyyyy(dateText: string): string | null {
 interface Candidate {
   kind: 'tradePlan' | 'recap';
   rowDate: string;
+  rowTime: number;
   classified: ClassifiedTitle;
   raw: RawArchiveRow;
 }
@@ -165,7 +166,13 @@ export function selectDayEntries(
     if (!rowDate) continue;
     const classified = classifyArchiveTitle(raw.title);
     if (!classified) continue;
-    candidates.push({ kind: classified.kind, rowDate, classified, raw });
+    let rowTime: number;
+    try {
+      rowTime = parseMmddyyyy(rowDate).getTime();
+    } catch {
+      continue; // shape-valid but impossible date — skip, not fatal for the whole day
+    }
+    candidates.push({ kind: classified.kind, rowDate, rowTime, classified, raw });
   }
 
   const tp = candidates.find((c) => c.kind === 'tradePlan' && c.rowDate === date);
@@ -177,7 +184,7 @@ export function selectDayEntries(
   let recapTime = -Infinity;
   for (const c of candidates) {
     if (c.kind !== 'recap') continue;
-    const t = parseMmddyyyy(c.rowDate).getTime();
+    const t = c.rowTime;
     if (t >= target) continue; // strictly before the requested day
     if ((target - t) / 86_400_000 > RECAP_LOOKBACK_DAYS) continue;
     if (t > recapTime) {

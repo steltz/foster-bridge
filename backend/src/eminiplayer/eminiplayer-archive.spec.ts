@@ -207,6 +207,19 @@ describe('selectDayEntries', () => {
     ];
     expect(selectDayEntries(rows, '08132026', BASE).tradePlan.date).toBe('08132026');
   });
+
+  it('skips a shape-valid but impossible calendar date row instead of poisoning the whole day', () => {
+    // 2026-02-31 survives the row-date shape regex but parseMmddyyyy throws —
+    // one garbage recap row elsewhere in the listing must not fail every day
+    // resolved from it.
+    const rows = [
+      row('2026-02-31', '/post/g.aspx', 'ES Recap (Video Lesson) for Tuesday 02/31/2026'),
+      ...listing,
+    ];
+    const entries = selectDayEntries(rows, '08132026', BASE);
+    expect(entries.tradePlan.date).toBe('08132026');
+    expect(entries.recap.date).toBe('08122026');
+  });
 });
 
 describe('listTradePlanDates', () => {
