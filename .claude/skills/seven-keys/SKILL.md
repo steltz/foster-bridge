@@ -3,6 +3,12 @@ name: seven-keys
 description: Generate the shared Seven-Keys daily zone assessment for an ES session — a four-agent workflow (current-day analyst over the general docs plus the day's three docs, outcome-aware lookback analyst over up to three prior days' keys files paired with their outcome recaps, a synthesizer that weights the current day heavily, and a verifier that checks every scorecard row against the trade plan) writing a committed <prefix>_ES_KEYS.md into the day folder. Use when the user asks to generate the seven keys or keys assessment for a day (/seven-keys MMDDYYYY, optional force), or when another skill needs a day's missing keys file.
 ---
 
+> **Retired — superseded by the Nest API.** Keys generation now lives in
+> `backend/src/benchmark/seven-keys/` and runs as part of `POST /benchmark/run`
+> (see `CLAUDE.md`). This skill is hidden from Claude via `skillOverrides` in
+> `.claude/settings.json` and kept only for reference; do not follow it without a
+> deliberate reason.
+
 # Seven Keys — shared daily zone assessment
 
 Produce ONE per-day scorecard of the trade plan's support/resistance zones

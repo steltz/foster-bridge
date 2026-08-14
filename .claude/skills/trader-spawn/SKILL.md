@@ -3,6 +3,12 @@ name: trader-spawn
 description: Spawn a new descendant trader persona from an existing origin trader — /trader-spawn <origin> <tweak description> drafts a new traders/*.md that changes exactly one thing about the origin and carries origin/mutation lineage frontmatter, with a diff approval gate before writing. Use when the user wants to derive, refine, tweak, evolve, or branch a trader.
 ---
 
+> **Retired — no API replacement.** Authoring a persona is a file edit, not a
+> service operation: add a `traders/*.md` directly, keeping the `origin` /
+> `mutation` lineage frontmatter this document describes (see `CLAUDE.md`). The
+> conventions below still hold — only the skill wrapper is retired. Hidden from
+> Claude via `skillOverrides` in `.claude/settings.json`.
+
 # Trader Spawn — derive a descendant trader
 
 Create ONE new trader file in `traders/` from an existing origin persona,

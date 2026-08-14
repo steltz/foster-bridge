@@ -3,6 +3,11 @@ name: ingest-ticker-data
 description: Use when new OHLC candle CSVs need to be folded into the monthly ticker files the backtester reads — e.g. the user says to ingest, import, or append new ticker/candle data, or has dropped CSVs into ticker-data/incoming/.
 ---
 
+> **Retired — superseded by the Nest API.** Ingest candles with
+> `POST /markets/:symbol/:interval/candles` instead (see `CLAUDE.md`). This skill
+> is hidden from Claude via `skillOverrides` in `.claude/settings.json` and kept
+> only for reference; do not follow it without a deliberate reason.
+
 # Ingest Ticker Data
 
 Fold new candle CSVs from `ticker-data/incoming/` into the correct

@@ -3,6 +3,12 @@ name: trader-bench
 description: Top up the trader benchmark matrix — run every traders/*.md persona N independent times against every complete knowledge-base day, for one model, across a base variant plus every features/*.md variant (auto-generating and committing any missing feature artifacts, e.g. seven-keys-scorecard), writing one immutable JSON cell per (trader, model, day, variant, run-index) under runs/, then regenerate runs/SCOREBOARD.md. Use when the user asks to benchmark the traders, run the bench, or catch a new trader or feature up, optionally with a run count (/trader-bench 5) and/or model alias (/trader-bench 5 sonnet).
 ---
 
+> **Retired — superseded by the Nest API.** Top up the matrix with
+> `POST /benchmark/run`, poll `GET /benchmark/status`, read
+> `GET /benchmark/scoreboard` (see `CLAUDE.md`). This skill is hidden from Claude
+> via `skillOverrides` in `.claude/settings.json` and kept only for reference; do
+> not follow it without a deliberate reason.
+
 # Trader Bench — idempotent benchmark matrix top-up
 
 One primitive: bring every trader to N runs on every complete

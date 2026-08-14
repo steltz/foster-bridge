@@ -3,6 +3,13 @@ name: trader-panel
 description: Run the daily trader-persona panel backtest for an ES session — fan out one subagent per traders/*.md persona over the shared general strategy docs (knowledge-base/general/), the Seven-Keys methodology doc (knowledge-base/methods/seven-keys.md), plus the day's knowledge-base docs (trade plan PDF, plan transcript, recap transcript) and the shared seven-keys assessment (auto-generated when missing), run each persona's single setup through the backtest CLI, and write a scored panel report into the day folder. Use when the user asks to run the trader panel, optionally with a day argument (/trader-panel MMDDYYYY) and/or force to overwrite an existing report.
 ---
 
+> **Retired — superseded by the Nest API.** Run personas against a day with
+> `POST /benchmark/run` scoped to that day; score individual setups with
+> `POST /backtest` (see `CLAUDE.md`). No dedicated panel-report endpoint exists —
+> the benchmark scoreboard covers the same ground. This skill is hidden from
+> Claude via `skillOverrides` in `.claude/settings.json` and kept only for
+> reference; do not follow it without a deliberate reason.
+
 # Trader Panel — daily persona backtest
 
 Orchestrate a panel of trading-persona subagents against one ES session.
