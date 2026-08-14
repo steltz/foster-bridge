@@ -1,0 +1,19 @@
+docs/benchmark-power-plan.md
+  s_7a312fa816d94b::t_4b4ebe7f4fbe4f 1-347
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "0132b5a79a48e513b560ac0551d3d899030e1897",
+  "prompts": {},
+  "sessions": {
+    "s_7a312fa816d94b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e62e89c0-bdfb-4a8c-87a0-5dfc625aa327",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
