@@ -203,6 +203,9 @@ describe('configuration (eminiplayer)', () => {
     delete process.env.EMINIPLAYER_HEADLESS;
     delete process.env.EMINIPLAYER_SCREENSHOT_DIR;
     delete process.env.EMINIPLAYER_VERIFY_MODEL;
+    delete process.env.EMINIPLAYER_BACKFILL_DELAY_MS;
+    delete process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS;
+    delete process.env.EMINIPLAYER_BACKFILL_TOKEN;
   });
   afterAll(() => {
     process.env = OLD_ENV;
@@ -218,6 +221,9 @@ describe('configuration (eminiplayer)', () => {
     expect(cfg.eminiplayer.screenshotDir).toBe(
       resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
     );
+    expect(cfg.eminiplayer.backfillDelayMs).toBe(2000);
+    expect(cfg.eminiplayer.backfillDayTimeoutMs).toBe(600000);
+    expect(cfg.eminiplayer.backfillToken).toBeUndefined();
   });
 
   it('reads env overrides and EMINIPLAYER_HEADLESS=false', () => {
@@ -225,6 +231,9 @@ describe('configuration (eminiplayer)', () => {
     process.env.EMINIPLAYER_PASSWORD = 'secret';
     process.env.EMINIPLAYER_HEADLESS = 'false';
     process.env.EMINIPLAYER_SCREENSHOT_DIR = '/tmp/shots';
+    process.env.EMINIPLAYER_BACKFILL_DELAY_MS = '500';
+    process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS = '30000';
+    process.env.EMINIPLAYER_BACKFILL_TOKEN = 'hunter2';
     const cfg = configuration();
     expect(cfg.eminiplayer).toEqual({
       username: 'user@example.com',
@@ -232,6 +241,9 @@ describe('configuration (eminiplayer)', () => {
       headless: false,
       screenshotDir: '/tmp/shots',
       verifyModel: undefined,
+      backfillDelayMs: 500,
+      backfillDayTimeoutMs: 30000,
+      backfillToken: 'hunter2',
     });
   });
 
@@ -250,5 +262,15 @@ describe('configuration (eminiplayer)', () => {
     expect(cfg.eminiplayer.screenshotDir).toBe(
       resolve(__dirname, '..', '..', 'artifacts', 'eminiplayer'),
     );
+  });
+
+  it('treats set-but-empty backfill values as their defaults (copied .env.example)', () => {
+    process.env.EMINIPLAYER_BACKFILL_DELAY_MS = '';
+    process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS = '';
+    process.env.EMINIPLAYER_BACKFILL_TOKEN = '';
+    const cfg = configuration();
+    expect(cfg.eminiplayer.backfillDelayMs).toBe(2000);
+    expect(cfg.eminiplayer.backfillDayTimeoutMs).toBe(600000);
+    expect(cfg.eminiplayer.backfillToken).toBeUndefined();
   });
 });

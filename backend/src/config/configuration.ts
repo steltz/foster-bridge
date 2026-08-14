@@ -38,6 +38,9 @@ export interface AppConfig {
     headless: boolean;
     screenshotDir: string;
     verifyModel?: string;
+    backfillDelayMs: number;
+    backfillDayTimeoutMs: number;
+    backfillToken?: string;
   };
 }
 
@@ -128,5 +131,18 @@ export default (): AppConfig => ({
     // username above): unset/empty means "use the provider's default model".
     // Set a cheap classifier (e.g. Haiku) to cut verification cost.
     verifyModel: process.env.EMINIPLAYER_VERIFY_MODEL || undefined,
+    // Pause between backfill days that touched the network — politeness knob
+    // for eminiplayer.net and YouTube during multi-hour bulk runs. `||`, not
+    // `??`: a copied .env.example sets this to '' and parseInt('') is NaN.
+    backfillDelayMs: parseInt(process.env.EMINIPLAYER_BACKFILL_DELAY_MS || '2000', 10),
+    // Per-day ceiling: a hung external call becomes a 'stage' ledger entry
+    // instead of wedging the singleton job forever.
+    backfillDayTimeoutMs: parseInt(
+      process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS || '600000',
+      10,
+    ),
+    // When set, POST/DELETE /eminiplayer/backfill require a matching
+    // x-backfill-token header (`|| undefined` convention: empty = unset).
+    backfillToken: process.env.EMINIPLAYER_BACKFILL_TOKEN || undefined,
   },
 });
