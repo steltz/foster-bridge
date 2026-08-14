@@ -6,6 +6,7 @@ import { EminiplayerVerifyService } from './eminiplayer-verify.service';
 import { EminiplayerManifestService } from './eminiplayer-manifest.service';
 import { EminiplayerIngestService } from './eminiplayer-ingest.service';
 import { EminiplayerAuditService } from './eminiplayer-audit.service';
+import { EminiplayerBackfillService } from './eminiplayer-backfill.service';
 
 @Module({
   imports: [TranscriptModule],
@@ -16,9 +17,15 @@ import { EminiplayerAuditService } from './eminiplayer-audit.service';
     EminiplayerManifestService,
     EminiplayerIngestService,
     EminiplayerAuditService,
+    EminiplayerBackfillService,
   ],
   // PlaywrightService is deliberately NOT exported: the shared page has a
   // single owner and all access must go through EminiplayerService.
-  exports: [EminiplayerService, EminiplayerIngestService, EminiplayerAuditService],
+  exports: [
+    EminiplayerService,
+    EminiplayerIngestService,
+    EminiplayerAuditService,
+    EminiplayerBackfillService,
+  ],
 })
 export class EminiplayerModule {}
