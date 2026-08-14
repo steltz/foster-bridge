@@ -1,0 +1,33 @@
+backend/src/eminiplayer/eminiplayer-backfill.service.ts
+  s_ebdd4fc7dee5d4::t_fdda8836225aa5 32-33
+  s_ebdd4fc7dee5d4::t_63af33b95c00ca 124
+  s_ebdd4fc7dee5d4::t_76c051df3e4d18 145-148
+  s_ebdd4fc7dee5d4::t_6570ed14eef524 105
+  s_ebdd4fc7dee5d4::t_5b1800c61f5010 194-195
+  s_ebdd4fc7dee5d4::t_9d1d26d3d64190 237,239-240
+backend/src/eminiplayer/eminiplayer.controller.spec.ts
+  s_ebdd4fc7dee5d4::t_fd976875dce534 48
+docs/superpowers/specs/2026-08-14-eminiplayer-bulk-backfill-design.md
+  s_ebdd4fc7dee5d4::t_7c346b12b42b87 91-92
+  s_ebdd4fc7dee5d4::t_7fd8a250e29d78 182-186
+  s_ebdd4fc7dee5d4::t_f0144f1f4f4e4d 162
+  s_ebdd4fc7dee5d4::t_102bb502dda41d 114
+backend/src/eminiplayer/eminiplayer-backfill.service.spec.ts
+  s_ebdd4fc7dee5d4::t_406dd3d0aa1aec 307-310,318-329
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "050cfee4cf4768ab433c65b30b7a8084530e28df",
+  "prompts": {},
+  "sessions": {
+    "s_ebdd4fc7dee5d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4631d59c-336f-472e-b1b2-fc54bbd9e2e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
