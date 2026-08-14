@@ -41,12 +41,22 @@ import { NormalizedOrder, Side } from './orders';
 //   same granularity the fill/exit rules already use) seen from the fill
 //   candle through the exit candle inclusive. Both are null until filled.
 
-export type OrderStatus = 'SL' | 'TP' | 'EOD' | 'NOT_FILLED';
+// 'BE': the runner exited at a management-moved stop (docs/order-contract-v2.md
+// §2.2) — a scratch, deliberately distinct from 'SL'.
+export type OrderStatus = 'SL' | 'TP' | 'EOD' | 'BE' | 'NOT_FILLED';
 
 export interface SimulateOptions {
   openMinutes?: number | null;
   cutoffMinutes?: number | null;
   tz?: string;
+}
+
+// The partial leg of a managed order: takeFraction exited at the trigger
+// price. Present only when a management rule with takeFraction fired.
+export interface ScaleExit {
+  time: number;
+  price: number;
+  fraction: number;
 }
 
 export interface OrderOutcome {
@@ -58,6 +68,7 @@ export interface OrderOutcome {
   maxFavorableExcursion: number | null;
   rMultiple: number | null;
   closestApproach: number | null;
+  scaleExit?: ScaleExit;
 }
 
 export interface SimResult extends NormalizedOrder, OrderOutcome {
@@ -70,14 +81,12 @@ export interface SimSummary {
   filled: number;
   wins: number;
   losses: number;
+  // Status 'BE' count. Overlaps wins/losses by design: a scaled trade whose
+  // runner scratches has positive blended points and counts as both a win
+  // and a scratch.
+  scratches: number;
   netPoints: number;
   netDollars: number;
-}
-
-function slHitsFirst(candle: Candle, side: Side): boolean {
-  const bullish = candle.close >= candle.open;
-  // long: SL sits on the low side, TP on the high side. short: mirrored.
-  return side === 'long' ? bullish : !bullish;
 }
 
 export function simulateOrder(
@@ -89,30 +98,53 @@ export function simulateOrder(
   const { openMinutes = null, cutoffMinutes = null, tz = 'UTC' } = options;
   const direction = side === 'long' ? 1 : -1;
   const riskDistance = Math.abs(entry - stopLoss);
+  // Order-level activeFrom tightens (never loosens) the session open window.
+  const orderOpen = order.activeFromMinutes ?? null;
+  const effOpenMinutes =
+    openMinutes === null ? orderOpen : orderOpen === null ? openMinutes : Math.max(openMinutes, orderOpen);
+  // v1 management: at most one rule (enforced by normalizeOrders).
+  const mgmt = order.management && order.management.length > 0 ? order.management[0] : null;
   let fillTime: number | null = null;
   let armed = false; // has price been on the entry's correct side, in-window?
   let closestApproach: number | null = null;
   let maxAdverseExcursion = 0;
   let maxFavorableExcursion = 0;
+  let effStop = stopLoss; // moves to mgmt.newStop when the trigger fires
+  let stopMoved = false; // a moved-stop exit is 'BE', an original-stop exit is 'SL'
+  let triggerFired = false;
+  let scaleExit: ScaleExit | undefined;
 
   // rMultiple is deliberately qty-independent (a per-unit ratio), so it's
-  // comparable across orders regardless of position size.
-  const finish = (status: OrderStatus, exitTime: number, exitPrice: number): OrderOutcome => ({
-    status,
-    fillTime,
-    exitTime,
-    exitPrice,
-    maxAdverseExcursion,
-    maxFavorableExcursion,
-    rMultiple: riskDistance === 0 ? null : ((exitPrice - entry) * direction) / riskDistance,
-    closestApproach: null,
-  });
+  // comparable across orders regardless of position size. With a partial
+  // scale-out it blends both legs against the ORIGINAL risk (R is fixed at
+  // inception — docs/order-contract-v2.md §2.2).
+  const finish = (status: OrderStatus, exitTime: number, exitPrice: number): OrderOutcome => {
+    const f = scaleExit ? scaleExit.fraction : 0;
+    const perUnitR =
+      riskDistance === 0
+        ? null
+        : (direction * (f * ((scaleExit ? scaleExit.price : 0) - entry) + (1 - f) * (exitPrice - entry))) /
+          riskDistance;
+    return {
+      status,
+      fillTime,
+      exitTime,
+      exitPrice,
+      maxAdverseExcursion,
+      maxFavorableExcursion,
+      rMultiple: perUnitR,
+      closestApproach: null,
+      // Omitted (not null) when absent, so unmanaged outcomes keep their
+      // pre-v2 shape exactly.
+      ...(scaleExit ? { scaleExit } : {}),
+    };
+  };
 
   for (const candle of candles) {
     if (fillTime === null) {
       const localMinutes =
-        openMinutes === null && cutoffMinutes === null ? null : minutesOfDayForTimestamp(candle.time, tz);
-      const afterOpen = openMinutes === null || (localMinutes as number) >= openMinutes;
+        effOpenMinutes === null && cutoffMinutes === null ? null : minutesOfDayForTimestamp(candle.time, tz);
+      const afterOpen = effOpenMinutes === null || (localMinutes as number) >= effOpenMinutes;
       const beforeCutoff = cutoffMinutes === null || (localMinutes as number) < cutoffMinutes;
       if (!afterOpen || !beforeCutoff) continue; // not active for entry
 
@@ -144,13 +176,38 @@ export function simulateOrder(
     if (adverse > maxAdverseExcursion) maxAdverseExcursion = adverse;
     if (favorable > maxFavorableExcursion) maxFavorableExcursion = favorable;
 
-    const slHit = side === 'long' ? candle.low <= stopLoss : candle.high >= stopLoss;
-    const tpHit = side === 'long' ? candle.high >= takeProfit : candle.low <= takeProfit;
-    if (slHit && tpHit) {
-      return slHitsFirst(candle, side) ? finish('SL', candle.time, stopLoss) : finish('TP', candle.time, takeProfit);
+    // Walk the candle's assumed path (bullish: O->L->H->C, bearish:
+    // O->H->L->C — the same candle-shape heuristic slHitsFirst encodes) and
+    // process each extreme's events in path order. For an unmanaged order
+    // this reduces exactly to the historical slHitsFirst resolution; with
+    // management it additionally orders the trigger relative to the stop:
+    // a level already passed on the path can never act on state created
+    // later in that same path (no retroactive exits).
+    const bullish = candle.close >= candle.open;
+    const legs: Array<'low' | 'high'> = bullish ? ['low', 'high'] : ['high', 'low'];
+    const stopLeg = side === 'long' ? 'low' : 'high';
+    for (const leg of legs) {
+      if (leg === stopLeg) {
+        const stopHit = side === 'long' ? candle.low <= effStop : candle.high >= effStop;
+        if (stopHit) return finish(stopMoved ? 'BE' : 'SL', candle.time, effStop);
+      } else {
+        if (mgmt && !triggerFired) {
+          const trigHit = side === 'long' ? candle.high >= mgmt.triggerPrice : candle.low <= mgmt.triggerPrice;
+          if (trigHit) {
+            triggerFired = true;
+            if (mgmt.takeFraction !== null) {
+              scaleExit = { time: candle.time, price: mgmt.triggerPrice, fraction: mgmt.takeFraction };
+            }
+            if (mgmt.newStop !== null) {
+              effStop = mgmt.newStop;
+              stopMoved = true;
+            }
+          }
+        }
+        const tpHit = side === 'long' ? candle.high >= takeProfit : candle.low <= takeProfit;
+        if (tpHit) return finish('TP', candle.time, takeProfit);
+      }
     }
-    if (slHit) return finish('SL', candle.time, stopLoss);
-    if (tpHit) return finish('TP', candle.time, takeProfit);
   }
 
   if (fillTime === null) {
@@ -181,7 +238,12 @@ export function simulate(
     let dollars: number | null = null;
     if (outcome.status !== 'NOT_FILLED') {
       const direction = order.side === 'long' ? 1 : -1;
-      points = ((outcome.exitPrice as number) - order.entry) * direction * order.qty;
+      // Blend the scale-out leg (if any) with the runner's exit, per unit,
+      // then scale by qty. Unmanaged orders reduce to the plain exit move.
+      const f = outcome.scaleExit ? outcome.scaleExit.fraction : 0;
+      const scaleMove = outcome.scaleExit ? outcome.scaleExit.price - order.entry : 0;
+      const perUnit = direction * (f * scaleMove + (1 - f) * ((outcome.exitPrice as number) - order.entry));
+      points = perUnit * order.qty;
       dollars = points * multiplier;
     }
     return { ...order, ...outcome, points, dollars };
@@ -193,6 +255,7 @@ export function simulate(
     filled: filled.length,
     wins: filled.filter((r) => (r.points as number) > 0).length,
     losses: filled.filter((r) => (r.points as number) < 0).length,
+    scratches: filled.filter((r) => r.status === 'BE').length,
     netPoints: filled.reduce((sum, r) => sum + (r.points as number), 0),
     netDollars: filled.reduce((sum, r) => sum + (r.dollars as number), 0),
   };

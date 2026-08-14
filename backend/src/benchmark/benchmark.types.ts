@@ -37,11 +37,13 @@ export const SETUP_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-// TP/SL/EOD/NOT_FILLED come straight from the engine. Bench-only statuses:
-// INVALID (bad prices / order geometry the judge rejects), NO_SETUP (refusal /
-// dead result), and CLI_ERROR (backtest failed for an environmental reason —
-// missing candles, incomplete session — not the setup's fault).
-export type CellStatus = 'TP' | 'SL' | 'EOD' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP' | 'CLI_ERROR';
+// TP/SL/EOD/NOT_FILLED/BE come straight from the engine (BE: the runner exited
+// at a management-moved stop — a managed scratch). Bench-only statuses:
+// INVALID (bad prices / order geometry the judge rejects, or a setup below the
+// grading reward-to-risk floor), NO_SETUP (refusal / dead result), and
+// CLI_ERROR (backtest failed for an environmental reason — missing candles,
+// incomplete session — not the setup's fault).
+export type CellStatus = 'TP' | 'SL' | 'EOD' | 'BE' | 'NOT_FILLED' | 'INVALID' | 'NO_SETUP' | 'CLI_ERROR';
 
 export type Variant = string; // 'base' | 'seven-keys-method' | 'seven-keys-scorecard'
 export const CORE_VARIANTS: readonly Variant[] = Object.freeze(['base', 'seven-keys-method']);
@@ -60,6 +62,19 @@ export interface CellResult {
   maxFavorableExcursion?: number | null;
   rMultiple?: number | null;
   closestApproach?: number | null;
+  // The partial leg of a managed order (present only when the management
+  // trigger fired with a takeFraction) — see docs/order-contract-v2.md §2.2.
+  scaleExit?: { time: number; price: number; fraction: number };
+}
+
+// The grading regime a cell was scored under (harness constants, not
+// LLM output) — recorded as provenance because the scoreboard groups by
+// (trader, alias, variant) with no regime in the key: cells graded under
+// different regimes must not silently share a row.
+export interface CellGrading {
+  rrFloor: number;
+  qty: number;
+  management: { triggerR: number; takeFraction: number; moveStopToR: number } | null;
 }
 
 export interface BenchmarkCell {
@@ -79,6 +94,7 @@ export interface BenchmarkCell {
   artifactSha256?: string; // sha256 of the injected KEYS content (scorecard cells only)
   setup?: Setup;
   result: CellResult;
+  grading?: CellGrading; // regime provenance; present on cells scored via the grading path
   note?: string;
   createdAt: string; // ISO-8601 UTC
 }

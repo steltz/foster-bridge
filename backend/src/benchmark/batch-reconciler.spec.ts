@@ -47,8 +47,17 @@ function makeDeps() {
   return { repo, llm, backtest, scoreboard, created };
 }
 
-async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true) {
-  const config = { get: (k: string) => (k === 'benchmark.schedulerEnabled' ? schedulerEnabled : undefined) };
+const DEFAULT_GRADING = {
+  rrFloor: 2,
+  qty: 2,
+  management: { triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 },
+};
+
+async function build(deps: ReturnType<typeof makeDeps>, schedulerEnabled = true, grading: any = DEFAULT_GRADING) {
+  const config = {
+    get: (k: string) =>
+      k === 'benchmark.schedulerEnabled' ? schedulerEnabled : k === 'benchmark.grading' ? grading : undefined,
+  };
   const moduleRef = await Test.createTestingModule({
     providers: [
       BatchReconciler,
@@ -83,8 +92,72 @@ describe('BatchReconciler.reconcile', () => {
     expect(getBatchResultsSpy).toHaveBeenCalledWith('batch_1');
     expect(deps.backtest.run).toHaveBeenCalledWith(expect.objectContaining({
       symbol: 'MES', interval: 'min-5', date: '2026-07-01', session: 'rth', allowIncomplete: false,
-      orders: [{ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110 }],
+      // Grading constants stamped deterministically on every order — the LLM
+      // never emits management (docs/order-contract-v2.md §4).
+      orders: [{
+        side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, qty: 2,
+        management: [{ triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 }],
+      }],
     }));
+  });
+
+  it('records the grading regime on the scored cell as provenance', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.grading).toEqual(DEFAULT_GRADING);
+  });
+
+  it('rejects a setup below the reward-to-risk floor as INVALID without backtesting it', async () => {
+    const deps = makeDeps();
+    // risk 5, reward 7 -> 1.4:1, below the 2:1 floor
+    deps.llm.batchResults = [
+      { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 107, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
+    ];
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('INVALID');
+    expect(cell.note).toMatch(/reward-to-risk 1\.40 below floor 2/);
+    expect(deps.backtest.run).not.toHaveBeenCalled();
+  });
+
+  it('accepts a setup exactly at the reward-to-risk floor', async () => {
+    const deps = makeDeps();
+    // risk 5, reward 10 -> exactly 2:1
+    deps.llm.batchResults = [
+      { customId: KEY, type: 'succeeded', text: JSON.stringify({ side: 'long', entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) },
+    ];
+    const rec = await build(deps);
+    await rec.reconcile();
+    expect(deps.backtest.run).toHaveBeenCalled();
+  });
+
+  it('omits management from orders when grading.management is null', async () => {
+    const deps = makeDeps();
+    const rec = await build(deps, true, { ...DEFAULT_GRADING, management: null });
+    await rec.reconcile();
+    const orders = deps.backtest.run.mock.calls[0][0].orders;
+    expect(orders[0].management).toBeUndefined();
+    expect(orders[0].qty).toBe(2);
+  });
+
+  it('carries a BE outcome and its scaleExit into the cell result', async () => {
+    const deps = makeDeps();
+    deps.backtest.run.mockResolvedValue({
+      results: [{
+        status: 'BE', points: 5.25, dollars: 26.25, fillTime: 1, exitTime: 3,
+        maxAdverseExcursion: 1, maxFavorableExcursion: 12, rMultiple: 0.75, closestApproach: null,
+        scaleExit: { time: 2, price: 107.5, fraction: 0.5 },
+      }],
+    });
+    const rec = await build(deps);
+    await rec.reconcile();
+    const cell = deps.created.find((c) => c.runIndex === 1);
+    expect(cell.result.status).toBe('BE');
+    expect(cell.result.rMultiple).toBe(0.75);
+    expect(cell.result.scaleExit).toEqual({ time: 2, price: 107.5, fraction: 0.5 });
   });
 
   it('maps a refusal to a NO_SETUP cell (no fallback)', async () => {

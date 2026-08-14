@@ -80,7 +80,32 @@ describe('configuration benchmark defaults', () => {
       effort: 'medium',
       // jest sets NODE_ENV='test' -> scheduler defaults OFF.
       schedulerEnabled: false,
+      // Grading regime defaults: 2:1 floor, 2 contracts, scale-half +
+      // breakeven at 1.5R (docs/order-contract-v2.md §4).
+      grading: {
+        rrFloor: 2,
+        qty: 2,
+        management: { triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 },
+      },
     });
+  });
+
+  it('honours grading env overrides', () => {
+    process.env.BENCHMARK_RR_FLOOR = '2.5';
+    process.env.BENCHMARK_QTY = '4';
+    process.env.BENCHMARK_MGMT_TRIGGER_R = '2';
+    process.env.BENCHMARK_MGMT_TAKE_FRACTION = '0.25';
+    process.env.BENCHMARK_MGMT_MOVE_STOP_TO_R = '0.5';
+    expect(configuration().benchmark.grading).toEqual({
+      rrFloor: 2.5,
+      qty: 4,
+      management: { triggerR: 2, takeFraction: 0.25, moveStopToR: 0.5 },
+    });
+  });
+
+  it("BENCHMARK_MGMT='off' disables management stamping (fire-and-forget grading)", () => {
+    process.env.BENCHMARK_MGMT = 'off';
+    expect(configuration().benchmark.grading.management).toBeNull();
   });
 });
 

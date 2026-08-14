@@ -297,6 +297,7 @@ describe('engine', () => {
       filled: 2,
       wins: 2,
       losses: 0,
+      scratches: 0,
       netPoints: 30,
       netDollars: 150,
     });
@@ -315,6 +316,7 @@ describe('engine', () => {
       filled: 1,
       wins: 0,
       losses: 1,
+      scratches: 0,
       netPoints: -5,
       netDollars: -25,
     });

@@ -9,7 +9,7 @@ import { requireCapabilities } from '../llm/require-capabilities';
 import { BatchItemResult } from '../llm/llm.types';
 import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
-import { BenchmarkCell, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
+import { BenchmarkCell, CellGrading, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
 
 const SYMBOL = 'MES';
 const INTERVAL = 'min-5' as const;
@@ -19,6 +19,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
   private readonly logger = new Logger(BatchReconciler.name);
   private running = false;
   private readonly schedulerEnabled: boolean;
+  private readonly grading: CellGrading;
 
   constructor(
     private readonly repo: BenchmarkRepository,
@@ -29,6 +30,13 @@ export class BatchReconciler implements OnApplicationBootstrap {
     private readonly events: EventEmitter2,
   ) {
     this.schedulerEnabled = config.get<boolean>('benchmark.schedulerEnabled') ?? false;
+    // Grading regime constants (docs/order-contract-v2.md §4) — stamped on
+    // every backtest order; the LLM only ever emits entry/stop/target.
+    this.grading = config.get<CellGrading>('benchmark.grading') ?? {
+      rrFloor: 2,
+      qty: 2,
+      management: { triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 },
+    };
   }
 
   // Startup reconciliation: drains batches that finished while the server was off.
@@ -203,6 +211,24 @@ export class BatchReconciler implements OnApplicationBootstrap {
       return withMetaNote({ ...base, result: { status: 'INVALID' }, note: 'setup failed validation' });
     }
 
+    // Hard reward-to-risk floor: sub-floor setups are never surfaced as
+    // trades. This also guarantees the management trigger (1.5R by default)
+    // always sits strictly inside the target, so the constant rule below can
+    // never collide with a tight take-profit.
+    const grading = this.grading;
+    const risk = Math.abs(setup.entry - setup.stopLoss);
+    const reward = Math.abs(setup.takeProfit - setup.entry);
+    if (risk === 0 || reward / risk < grading.rrFloor) {
+      const rr = risk === 0 ? 'undefined (zero risk)' : (reward / risk).toFixed(2);
+      return withMetaNote({
+        ...base,
+        setup,
+        grading,
+        result: { status: 'INVALID' },
+        note: `reward-to-risk ${rr} below floor ${grading.rrFloor}`,
+      });
+    }
+
     try {
       const bt = await this.backtest.run({
         symbol: SYMBOL,
@@ -210,7 +236,14 @@ export class BatchReconciler implements OnApplicationBootstrap {
         date: meta?.date ?? batch.date,
         session: 'rth',
         allowIncomplete: false,
-        orders: [{ side: setup.side, entry: setup.entry, stopLoss: setup.stopLoss, takeProfit: setup.takeProfit }],
+        orders: [{
+          side: setup.side,
+          entry: setup.entry,
+          stopLoss: setup.stopLoss,
+          takeProfit: setup.takeProfit,
+          qty: grading.qty,
+          ...(grading.management ? { management: [grading.management] } : {}),
+        }],
       });
       const r = bt.results[0];
       const result: CellResult = {
@@ -223,8 +256,9 @@ export class BatchReconciler implements OnApplicationBootstrap {
         maxFavorableExcursion: r.maxFavorableExcursion,
         rMultiple: r.rMultiple,
         closestApproach: r.closestApproach,
+        ...(r.scaleExit ? { scaleExit: r.scaleExit } : {}),
       };
-      return withMetaNote({ ...base, setup, result });
+      return withMetaNote({ ...base, setup, grading, result });
     } catch (err) {
       // Preserve the judge's verdict: bad order geometry / "must be a number"
       // (BadRequest 400 from normalizeOrders) is the SETUP's fault -> INVALID;

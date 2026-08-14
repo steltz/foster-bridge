@@ -18,8 +18,8 @@ export interface FeatureLike {
   combines?: string[] | null;
 }
 
-const SCORED = new Set(['TP', 'SL', 'EOD', 'NOT_FILLED']);
-const FILLED = new Set(['TP', 'SL', 'EOD']);
+const SCORED = new Set(['TP', 'SL', 'EOD', 'BE', 'NOT_FILLED']);
+const FILLED = new Set(['TP', 'SL', 'EOD', 'BE']);
 
 const rekey = (day: string) => day.slice(4) + day.slice(0, 4);
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;

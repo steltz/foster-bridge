@@ -31,6 +31,11 @@ export interface AppConfig {
     maxTokens: number;
     effort: string;
     schedulerEnabled: boolean;
+    grading: {
+      rrFloor: number;
+      qty: number;
+      management: { triggerR: number; takeFraction: number; moveStopToR: number } | null;
+    };
   };
   eminiplayer: {
     username?: string;
@@ -110,6 +115,27 @@ export default (): AppConfig => ({
     // unrelated specs never hit real Firestore at boot, and per-instance in prod
     // (BENCHMARK_SCHEDULER='false') so only a dedicated worker runs the crons.
     schedulerEnabled: process.env.BENCHMARK_SCHEDULER !== 'false' && process.env.NODE_ENV !== 'test',
+    // The grading regime (docs/order-contract-v2.md §4): harness constants
+    // stamped deterministically on every backtest order built from a setup —
+    // the LLM only ever emits entry/stop/target. The user executes the plan
+    // live with 2 contracts: at +1.5R sell one and move the stop to breakeven,
+    // which is exactly what takeFraction 0.5 + moveStopToR 0 simulates per
+    // unit. rrFloor rejects setups below 2:1 as INVALID before backtesting —
+    // a floor which also guarantees the trigger (1.5R) always sits strictly
+    // inside the target. BENCHMARK_MGMT='off' disables management stamping
+    // (fire-and-forget grading, the pre-v2 behavior).
+    grading: {
+      rrFloor: parseFloat(process.env.BENCHMARK_RR_FLOOR ?? '2'),
+      qty: parseInt(process.env.BENCHMARK_QTY ?? '2', 10),
+      management:
+        process.env.BENCHMARK_MGMT === 'off'
+          ? null
+          : {
+              triggerR: parseFloat(process.env.BENCHMARK_MGMT_TRIGGER_R ?? '1.5'),
+              takeFraction: parseFloat(process.env.BENCHMARK_MGMT_TAKE_FRACTION ?? '0.5'),
+              moveStopToR: parseFloat(process.env.BENCHMARK_MGMT_MOVE_STOP_TO_R ?? '0'),
+            },
+    },
   },
   eminiplayer: {
     // `|| undefined`, not a bare read: .env.example ships these keys empty, so

@@ -23,6 +23,14 @@ describe('computeScoreboard', () => {
     expect(sb.maxCells).toBe(2);
   });
 
+  it('counts a BE (managed scratch) cell as filled and scored', () => {
+    const sb = computeScoreboard([
+      cell({ runIndex: 1, result: { status: 'BE', points: 5.25, dollars: 26.25 } }),
+      cell({ runIndex: 2, result: { status: 'SL', points: -5, dollars: -25 } }),
+    ]);
+    expect(sb.groups[0].meanDollars).toBeCloseTo(0.625); // mean(26.25, -25)
+  });
+
   it('renders a ranking table and a coverage table', () => {
     const md = renderScoreboard(computeScoreboard([cell({})]), [], []);
     expect(md).toContain('## Ranking (mean net USD per run)');
