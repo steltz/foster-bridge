@@ -61,6 +61,52 @@ describe('MoonshotLlmProvider – sync + upload', () => {
     expect(events.emitted[0].p.tokens).toEqual({ input: 5, cacheRead: 3, cacheCreate5m: 0, cacheCreate1h: 0, output: 2 });
   });
 
+  it("messageStructured with effort 'none' sends thinking-disabled instead of reasoning_effort", async () => {
+    // reasoning_effort (any level) degenerates kimi strict-schema decoding
+    // into a whitespace loop — see effortParams in moonshot.chat.ts.
+    const { svc } = make((body) => {
+      expect(body.thinking).toEqual({ type: 'disabled' });
+      expect(body.reasoning_effort).toBeUndefined();
+      return { choices: [{ message: { content: '{"a":1}' }, finish_reason: 'stop' }], usage: { prompt_tokens: 8, completion_tokens: 2 } };
+    });
+    await expect(
+      svc.messageStructured({ prompt: 'go', schema: { type: 'object' }, effort: 'none', maxTokens: 100 }, { operation: 'other' }),
+    ).resolves.toEqual({ a: 1 });
+  });
+
+  it('messageStructured retries a degenerate strict-schema response through the json_object fallback', async () => {
+    // kimi strict-json_schema decoding can loop whitespace before the final
+    // enum until finish_reason=length (observed 2/6 on kimi-k2.6). One retry
+    // in schema-instructed json_object mode recovers it.
+    const bodies: any[] = [];
+    const { svc, events } = make((body) => {
+      bodies.push(body);
+      if (body.response_format?.type === 'json_schema') {
+        return { choices: [{ message: { content: '{"a": \r \r \r' }, finish_reason: 'length' }], usage: { prompt_tokens: 8, completion_tokens: 300 } };
+      }
+      return { choices: [{ message: { content: '"a":1}' }, finish_reason: 'stop' }], usage: { prompt_tokens: 9, completion_tokens: 5 } };
+    });
+    const out = await svc.messageStructured({ prompt: 'go', schema: { type: 'object' }, effort: 'none', maxTokens: 300 }, { operation: 'other' });
+    expect(out).toEqual({ a: 1 });
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1].response_format).toEqual({ type: 'json_object' });
+    // both attempts are billed
+    expect(events.emitted.filter((e: any) => e.name === 'llm.usage')).toHaveLength(2);
+  });
+
+  it('messageStructured still 502s when the json_object retry is also truncated', async () => {
+    const { svc } = make((body) =>
+      body.response_format?.type === 'json_schema'
+        ? { choices: [{ message: { content: '{"a": \r' }, finish_reason: 'length' }], usage: {} }
+        : { choices: [{ message: { content: '"a": \r' }, finish_reason: 'length' }], usage: {} },
+    );
+    const res = await statusOf(() =>
+      svc.messageStructured({ prompt: 'go', schema: { type: 'object' }, maxTokens: 300 }, { operation: 'other' }),
+    );
+    expect(res.status).toBe(502);
+    expect(res.error).toContain('finish_reason=length');
+  });
+
   it('uploadFile extracts, caches by hash, deletes remote, returns synthetic id', async () => {
     const { svc, extracts, dels } = make(() => ({}), { text: 'PDF CONTENT' });
     const id = await svc.uploadFile(Buffer.from('bytes'), 'f.pdf', 'application/pdf');

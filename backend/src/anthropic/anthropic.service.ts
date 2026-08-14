@@ -30,6 +30,13 @@ import {
 
 const FILES_BETA = ['files-api-2025-04-14'];
 
+// The Claude API's output_config.effort accepts low|medium|high|xhigh|max —
+// there is no 'none'. Callers use 'none' to mean "minimum reasoning" (the
+// moonshot provider passes it through natively); here it clamps to the floor.
+function normalizeEffort(effort: string): string {
+  return effort === 'none' ? 'low' : effort;
+}
+
 export interface MessageInput {
   prompt: string;
   system?: string;
@@ -200,7 +207,7 @@ export class AnthropicLlmProvider implements LlmProvider {
     const useFiles = this.envelopeHasFile(req.envelope);
     const outputConfig = {
       ...(req.schema ? { format: { type: 'json_schema', schema: req.schema } } : {}),
-      ...(req.effort ? { effort: req.effort } : {}),
+      ...(req.effort ? { effort: normalizeEffort(req.effort) } : {}),
     };
     const built = req.envelope
       ? this.buildEnvelopeRequest(req.envelope, req.prompt)
@@ -252,7 +259,7 @@ export class AnthropicLlmProvider implements LlmProvider {
     const maxTokens = opts.maxTokens ?? this.defaultMaxTokens;
     const outputConfig = {
       ...(opts.schema ? { format: { type: 'json_schema', schema: opts.schema } } : {}),
-      ...(opts.effort ? { effort: opts.effort } : {}),
+      ...(opts.effort ? { effort: normalizeEffort(opts.effort) } : {}),
     };
     // Batches ALWAYS use the beta/files path — submit and retrieve must agree on
     // beta-ness, and getBatch/getBatchResults cannot see the request to infer it.

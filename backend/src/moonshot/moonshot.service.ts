@@ -27,7 +27,17 @@ import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotExtractStore } from './moonshot.extract-store';
 import { MoonshotBatchStore } from './moonshot.batch-store';
 import { MoonshotBatchWorker } from './moonshot.batch-worker';
-import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
+import { MoonshotChatBody, toChatResult, effortParams, jsonSchemaFormat, createChatWithFallback, createJsonObjectFallback } from './moonshot.chat';
+
+/** True when `text` is parseable JSON — the cheap half of the degenerate-output check. */
+function parses(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 import { tokensFromUsage } from './moonshot.usage';
 
 // D6: emulated batches expire this long after creation (mirrors configuration.ts).
@@ -83,7 +93,7 @@ export class MoonshotLlmProvider implements LlmProvider {
         model,
         messages: built.messages,
         max_completion_tokens: req.maxTokens ?? this.defaultMaxTokens,
-        reasoning_effort: mapEffort(req.effort),
+        ...effortParams(req.effort),
         // Spread conditionally: promptCacheKey is `string | undefined` (undefined when
         // the envelope has no stable prefix), and an explicit `prompt_cache_key:
         // undefined` key would still be an own property on the request body.
@@ -94,9 +104,19 @@ export class MoonshotLlmProvider implements LlmProvider {
       // not per request: createChatWithFallback latches the (model, schema-hash)
       // pair on first rejection and skips straight to json_object afterwards.
       const resp = await createChatWithFallback(this.clientFactory.get(), body);
-      const r = toChatResult(resp);
+      let r = toChatResult(resp);
       // Capture usage BEFORE any refusal/parse throw — a refusal is still billed.
       this.emitUsage(r.rawUsage, (resp as any).model ?? model, attribution);
+      // A degenerate strict-schema response (kimi constrained decoding can loop
+      // whitespace before the final enum until finish_reason=length — see
+      // effortParams) gets ONE retry through the schema-instructed json_object
+      // fallback before the failure maps below. The retry is billed too.
+      const degenerate = () => r.finishReason === 'length' || !parses(r.text);
+      if (req.schema && r.finishReason !== 'content_filter' && degenerate()) {
+        const retryResp = await createJsonObjectFallback(this.clientFactory.get(), body);
+        r = toChatResult(retryResp);
+        this.emitUsage(r.rawUsage, (retryResp as any).model ?? model, attribution);
+      }
       // A refusal can arrive as a 200 with finish_reason 'content_filter' and empty
       // content, not only as a thrown 400 (see rethrow) — map both to the same 422
       // so a refusal never masquerades as a malformed-JSON 502.
@@ -246,7 +266,7 @@ export class MoonshotLlmProvider implements LlmProvider {
           model,
           messages: built.messages,
           max_completion_tokens: opts.maxTokens ?? this.defaultMaxTokens,
-          reasoning_effort: mapEffort(opts.effort),
+          ...effortParams(opts.effort),
           // Spread conditionally for parity with the sync path: promptCacheKey is
           // undefined when the envelope has no stable prefix, and an explicit
           // `prompt_cache_key: undefined` would be an own property of the body.

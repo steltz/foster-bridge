@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { MOONSHOT_CLIENT, MoonshotClientFactory, DEFAULT_MAX_COMPLETION_TOKENS, numericConfig } from './moonshot.constants';
 import { MoonshotEnvelopeBuilder } from './moonshot.envelope';
 import { MoonshotBatchStore, EmulatedBatchItem, EmulatedBatchDoc, isUnfinished } from './moonshot.batch-store';
-import { MoonshotChatBody, toChatResult, mapEffort, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
+import { MoonshotChatBody, toChatResult, effortParams, jsonSchemaFormat, createChatWithFallback } from './moonshot.chat';
 import { UsageTokens } from '../cost/cost.types';
 
 const MAX_ATTEMPTS = 4;
@@ -277,7 +277,7 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
         // batch doc, so this fallback only covers a doc written before that resolution
         // existed — kept rather than dropped so an old in-flight doc still drains.
         max_completion_tokens: batch.opts.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
-        reasoning_effort: mapEffort(batch.opts.effort),
+        ...effortParams(batch.opts.effort),
         // Optional field: an envelope with no stable prefix has nothing to key a
         // shared cache on, so omit it rather than send a meaningless key.
         ...(built.promptCacheKey ? { prompt_cache_key: built.promptCacheKey } : {}),

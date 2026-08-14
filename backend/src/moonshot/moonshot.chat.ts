@@ -24,7 +24,9 @@ export interface MoonshotChatBody {
   model: string;
   messages: ChatMessage[];
   max_completion_tokens: number;
-  reasoning_effort: string;
+  /** Exactly one of reasoning_effort / thinking is set — see effortParams. */
+  reasoning_effort?: string;
+  thinking?: { type: 'disabled' };
   prompt_cache_key?: string;
   response_format?: unknown;
 }
@@ -71,6 +73,21 @@ export function mapEffort(effort?: string): string {
       }
       return 'high';
   }
+}
+
+/**
+ * The effort-related slice of a chat body. 'none' means "no reasoning", and it
+ * MUST be expressed as thinking:{type:'disabled'}, not reasoning_effort:
+ * verified live 2026-08-14 on kimi-k2.6, the reasoning_effort param (at any
+ * level, 'none' included) makes strict-json_schema decoding degenerate into a
+ * whitespace loop right before the final enum value — the output truncates or
+ * parses invalid on every call — while thinking-disabled completes the same
+ * payload cleanly in ~40 tokens.
+ */
+export function effortParams(effort?: string): Pick<MoonshotChatBody, 'reasoning_effort' | 'thinking'> {
+  return effort === 'none'
+    ? { thinking: { type: 'disabled' } }
+    : { reasoning_effort: mapEffort(effort) };
 }
 
 // D8: shape a JSON schema for Moonshot strict json_schema. OpenAI-strict semantics
@@ -159,12 +176,30 @@ function latchKey(body: MoonshotChatBody): string {
 }
 
 // The D8 fallback call: json_object mode with a '{' partial prefill, repairing
-// the leading brace the partial mode does not echo.
-async function createJsonObjectFallback(client: MoonshotChatClient, body: MoonshotChatBody): Promise<any> {
+// the leading brace the partial mode does not echo. Exported so
+// messageStructured can also reach it directly when a strict json_schema
+// response comes back degenerate (see effortParams for the kimi whitespace
+// loop) rather than rejected.
+//
+// json_object mode has no grammar to hold the schema's enums — verified live
+// 2026-08-14 on kimi-k2.6, which emitted `"confidence": 0.95` for a
+// high|medium|low enum — so when the original body carried a schema, it is
+// restated as an instruction message the unconstrained model can follow
+// (6/6 clean in the same live test).
+export async function createJsonObjectFallback(client: MoonshotChatClient, body: MoonshotChatBody): Promise<any> {
+  const schema = (body.response_format as any)?.json_schema?.schema;
+  const instruction = schema
+    ? [{
+        role: 'user' as const,
+        content:
+          'Respond with a single JSON object that conforms EXACTLY to this JSON Schema (no extra keys, enum values verbatim):\n' +
+          JSON.stringify(schema),
+      }]
+    : [];
   const fallback = {
     ...body,
     response_format: { type: 'json_object' },
-    messages: [...body.messages, { role: 'assistant', content: '{', partial: true }],
+    messages: [...body.messages, ...instruction, { role: 'assistant', content: '{', partial: true }],
   };
   logPayloadIfDebug(fallback);
   const resp = await client.chat.completions.create(fallback);

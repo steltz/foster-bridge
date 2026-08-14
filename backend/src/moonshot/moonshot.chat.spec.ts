@@ -4,6 +4,7 @@ import {
   jsonSchemaFormat,
   createChatWithFallback,
   clearSchemaRejectionLatch,
+  effortParams,
   mapEffort,
   isSchemaRejection,
   toChatResult,
@@ -204,6 +205,23 @@ describe('mapEffort', () => {
   });
 });
 
+describe('effortParams', () => {
+  it("expresses 'none' as thinking-disabled, NOT reasoning_effort", () => {
+    // Verified live 2026-08-14 on kimi-k2.6: reasoning_effort (at ANY level,
+    // 'none' included) makes strict-json_schema decoding degenerate into a
+    // whitespace loop right before the final enum value — truncated or
+    // invalid JSON on every call. thinking:{type:'disabled'} completes the
+    // same payload cleanly in ~40 tokens.
+    expect(effortParams('none')).toEqual({ thinking: { type: 'disabled' } });
+  });
+
+  it('maps every other value through mapEffort onto reasoning_effort', () => {
+    expect(effortParams('low')).toEqual({ reasoning_effort: 'low' });
+    expect(effortParams('max')).toEqual({ reasoning_effort: 'max' });
+    expect(effortParams(undefined)).toEqual({ reasoning_effort: 'high' });
+  });
+});
+
 describe('mapEffort (table)', () => {
   it.each([
     ['low', 'low'],
@@ -302,6 +320,30 @@ describe('createChatWithFallback (D8)', () => {
     await createChatWithFallback(client as any, mk({ b: { type: 'string' } }));
     // The latch keys on the schema, so a fresh schema gets its own strict probe.
     expect(bodies.filter((b) => b.response_format?.type === 'json_schema')).toHaveLength(2);
+  });
+
+  it('embeds the schema as an instruction message in the json_object fallback (unconstrained mode has no grammar to hold the enums)', async () => {
+    let fallbackBody: any;
+    let call = 0;
+    const client = { chat: { completions: { create: async (body: any) => {
+      call++;
+      if (call === 1) throw Object.assign(new Error('bad schema'), { status: 400, error: { type: 'invalid_request_error' } });
+      fallbackBody = body;
+      return { choices: [{ message: { content: '"a":1}' }, finish_reason: 'stop' }] };
+    } } } };
+    await createChatWithFallback(client as any, {
+      model: 'kimi-k3',
+      messages: [{ role: 'user', content: 'x' }],
+      max_completion_tokens: 10,
+      reasoning_effort: 'high',
+      response_format: jsonSchemaFormat({ type: 'object', properties: { a: { type: 'number' } }, required: ['a'] }) as any,
+    });
+    // messages: [original..., schema instruction, '{' prefill]
+    const instruction = fallbackBody.messages[fallbackBody.messages.length - 2];
+    expect(instruction.role).toBe('user');
+    expect(instruction.content).toContain('JSON Schema');
+    expect(instruction.content).toContain('"a"');
+    expect(fallbackBody.messages[fallbackBody.messages.length - 1]).toEqual({ role: 'assistant', content: '{', partial: true });
   });
 
   it('does not double the leading brace when the json_object fallback response already starts with {', async () => {

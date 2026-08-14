@@ -66,6 +66,12 @@ export class EminiplayerVerifyService {
         prompt: `Transcript (may be truncated):\n\n${markdown.slice(0, TRANSCRIPT_SNIPPET_CHARS)}`,
         schema: VERDICT_SCHEMA,
         model: this.config.get<string>('eminiplayer.verifyModel'),
+        // Reasoning off: classification is trivial, and on moonshot the
+        // default effort ('high') makes kimi models spend the ENTIRE 300-token
+        // budget on reasoning — finish_reason=length, empty content, 502 on
+        // every verify. The anthropic provider normalizes 'none' to its 'low'
+        // floor.
+        effort: 'none',
         maxTokens: 300,
       },
       { operation: 'other' },

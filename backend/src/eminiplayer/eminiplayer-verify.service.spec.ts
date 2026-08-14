@@ -44,6 +44,10 @@ describe('EminiplayerVerifyService.verifyTranscript', () => {
     await expect(service.verifyTranscript(MARKDOWN, EXPECTED)).resolves.toEqual(GOOD_VERDICT);
     const [req, attribution] = llm.messageStructured.mock.calls[0];
     expect(req.model).toBe('test-verify-model');
+    // Classification is trivial; without this, moonshot defaults reasoning to
+    // 'high' and kimi models burn the entire 300-token budget on reasoning
+    // (finish_reason=length, empty content -> 502 on every verify).
+    expect(req.effort).toBe('none');
     expect(req.schema).toBeDefined();
     expect(req.prompt).toContain('welcome to the recap');
     expect(attribution).toEqual({ operation: 'other' });

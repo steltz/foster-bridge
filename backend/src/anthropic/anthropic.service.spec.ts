@@ -388,6 +388,20 @@ describe('AnthropicLlmProvider', () => {
       expect(out).toEqual({ pass: true, mismatches: [] });
     });
 
+    it("normalizes effort 'none' to 'low' — the Claude API's floor (it has no 'none' level)", async () => {
+      create.mockResolvedValue({
+        model: 'claude-fable-5',
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{}' }],
+        usage: {},
+      });
+      await service.messageStructured(
+        { prompt: 'verify', schema: { type: 'object' } as any, effort: 'none' },
+        { operation: 'other' },
+      );
+      expect(create.mock.calls[0][0].output_config.effort).toBe('low');
+    });
+
     it('routes to the beta client with the files beta header and a cached document tier when the envelope has a file', async () => {
       betaCreate.mockResolvedValue({
         model: 'claude-fable-5',
