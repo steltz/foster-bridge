@@ -97,7 +97,9 @@ export class SevenKeysService {
     const haveKeys = new Set<string>();
     const withKeys: LookbackEntry[] = [];
     for (const p of prior) {
-      const doc = await this.repo.getDayArtifact(p.day, 'keys');
+      // Same-lineage lookback: a flagship calibrates only against its own prior
+      // assessments — Kimi never reads Fable's keys (nor vice versa).
+      const doc = await this.repo.getKeysArtifact(p.day, this.flagshipAlias);
       if (!doc?.content) continue;
       haveKeys.add(p.day);
       const recapPath = this.inputs.outcomeRecapPathForDay(p.day);
@@ -174,13 +176,16 @@ export class SevenKeysService {
   }
 
   /**
-   * Idempotent KEYS resolution with a two-level freeze:
-   * - Immutable once the day's KEYS are pinned by a scorecard cell — either
-   *   persisted (`hasScorecardCells`) or in-flight (`opts.pinned`, a
-   *   submitted-but-unreconciled batch). The stored artifact is reused
-   *   unconditionally, even under `opts.force`, so a recorded `artifactSha256`
-   *   never dangles; a missing artifact in this state is refused (null), not
-   *   silently regenerated.
+   * Idempotent KEYS resolution, scoped to the current flagship's lineage
+   * (Fable's keys on Anthropic, Kimi's on Moonshot — a bench never consumes
+   * another flagship's keys), with a two-level freeze:
+   * - Immutable once THIS lineage's KEYS are pinned by a scorecard cell — either
+   *   persisted (the doc's contentHash appears in `pinnedKeysHashes`) or in-flight
+   *   (`opts.pinned`, a submitted-but-unreconciled batch). The stored artifact is
+   *   reused unconditionally, even under `opts.force`, so a recorded
+   *   `artifactSha256` never dangles; a missing artifact in this state is refused
+   *   (null), not silently regenerated. Another lineage's pins never freeze this
+   *   one — a Kimi bench generates fresh keys on a Fable-benchmarked day.
    * - Refreshable until then: reuse a stored artifact only while it is verified
    *   and its `inputsHash` is unchanged; a corrected trade plan (inputsHash drift),
    *   an unverified leftover, or `opts.force` triggers regeneration.
@@ -189,23 +194,37 @@ export class SevenKeysService {
    * variant for the day.
    */
   async ensureKeys(day: DayInput, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
-    const existing = await this.repo.getDayArtifact(day.day, 'keys');
-    const benchmarked = await this.repo.hasScorecardCells(day.day);
-    // (1) Immutable when benchmarked OR pinned: a scorecard cell recorded this KEYS
-    // content's hash (artifactSha256), so the artifact must never change for
-    // reproducibility — reuse unconditionally, even when force is set. `pinned`
-    // covers in-flight (submitted-but-unreconciled) scorecard cells that have already
-    // pinned this KEYS hash but whose batch has not yet persisted its cells, so
-    // hasScorecardCells does not yet see them.
+    const alias = this.flagshipAlias;
+    const existing = await this.repo.getKeysArtifact(day.day, alias);
+    const pinnedHashes = await this.repo.pinnedKeysHashes(day.day);
+    // (1) Immutable when a persisted scorecard cell pinned THIS doc's hash, or when
+    // in-flight cells did (`opts.pinned`, a submitted-but-unreconciled batch whose
+    // pins pinnedKeysHashes does not yet see) — reuse unconditionally, even under
+    // force, so a recorded artifactSha256 never dangles.
+    const benchmarked = existing !== null && pinnedHashes.has(existing.contentHash);
     if (benchmarked || opts?.pinned === true) {
       if (existing) return existing;
-      // Anomaly: immutable but the KEYS artifact is missing. Regenerating would
-      // break the artifactSha256 already pinned on those scorecard cells, so refuse
-      // rather than silently overwrite.
+      // Anomaly: in-flight cells pinned this lineage's KEYS but the artifact is
+      // missing. Regenerating would break those pins, so refuse.
       this.logger.error(
-        `Seven-keys for ${day.day}: scorecard cells exist but the KEYS artifact is missing; refusing to regenerate (would break cell provenance).`,
+        `Seven-keys for ${day.day}: in-flight scorecard cells pinned this lineage's KEYS but the artifact is missing; refusing to regenerate (would break cell provenance).`,
       );
       return null;
+    }
+    // Orphaned-pin anomaly: this lineage has no artifact, yet the day carries pins
+    // that no doc we can see accounts for. They may be this lineage's orphaned pins
+    // (its doc was deleted), so generating here could bury broken provenance —
+    // refuse and make a human look. Pins fully explained by another lineage's
+    // legacy doc are fine: that is exactly the Kimi-on-a-Fable-day case.
+    if (!existing && pinnedHashes.size > 0) {
+      const legacy = await this.repo.getDayArtifact(day.day, 'keys');
+      const orphaned = [...pinnedHashes].filter((h) => h !== legacy?.contentHash);
+      if (orphaned.length > 0) {
+        this.logger.error(
+          `Seven-keys for ${day.day}: scorecard cells pinned KEYS hash(es) ${orphaned.join(', ')} that match no stored artifact; refusing to generate for lineage ${alias} (possible deleted artifact).`,
+        );
+        return null;
+      }
     }
     // (2) Refreshable until benchmarked: reuse only a VERIFIED artifact whose
     // generation inputs are unchanged. A corrected trade plan (inputsHash drift), an
@@ -235,7 +254,9 @@ export class SevenKeysService {
     const content = this.composeKeysMarkdown(result.artifact, generatedAt, result.lookbackSources);
     const doc: DayArtifactDoc = {
       contentHash: createHash('sha256').update(content).digest('hex'),
-      gcsPath: `benchmark/es/${day.day}/${day.prefix}_ES_KEYS.md`, // inline-stored; path is a stable marker
+      // Inline-stored; path is a stable marker. Lineage-suffixed like the repo's
+      // old *_ES_KEYS.fable.md convention so two flagships' keys never collide.
+      gcsPath: `benchmark/es/${day.day}/${day.prefix}_ES_KEYS.${alias}.md`,
       content,
       uploadedAt: generatedAt,
       generatedBy: this.flagshipModel,
@@ -245,7 +266,7 @@ export class SevenKeysService {
       verified: true,
       inputsHash,
     };
-    await this.repo.saveDayArtifact(day.day, 'keys', doc);
+    await this.repo.saveKeysArtifact(day.day, alias, doc);
     return doc;
   }
 

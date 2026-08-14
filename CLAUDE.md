@@ -49,6 +49,16 @@ provider-aware (Fable on Anthropic, Kimi K3 on Moonshot); `BENCHMARK_MODEL`
 overrides. The grade-discrimination rule lives in
 `backend/src/benchmark/seven-keys/prompts.ts`.
 
+KEYS artifacts are **per-flagship lineages**: each provider flagship generates,
+reuses, and looks back on only its own keys (`generatedBy` in the artifact
+frontmatter names the model), so a Kimi bench never consumes Fable-generated
+keys or vice versa. Within a provider, keys stay shared across run models by
+design. Immutability is hash-exact — a lineage's doc freezes once a scorecard
+cell pins its `contentHash` — so one flagship benchmarking a day does not block
+another from generating its own keys for that day. A new lineage bootstraps its
+own lookback history (expect reduced-lookback warnings on its first run), and
+cross-model scoreboard rows therefore rest on different keys per provider.
+
 Runs go through the Batch API and reconcile asynchronously — poll
 `GET /benchmark/status` rather than expecting `run` to return finished cells.
 

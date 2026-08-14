@@ -57,9 +57,14 @@ function findCall(fake: FakeLlmProvider, schema: any) {
 function makeDeps() {
   const fake = new FakeLlmProvider();
   const repo = {
+    // Per-flagship keys lineage reads/writes (getKeysArtifact applies the legacy
+    // `${day}__keys` fallback internally in the real repo).
+    getKeysArtifact: jest.fn().mockResolvedValue(null),
+    saveKeysArtifact: jest.fn().mockResolvedValue(undefined),
+    // artifactSha256 values pinned by the day's scorecard cells (any model).
+    pinnedKeysHashes: jest.fn().mockResolvedValue(new Set<string>()),
+    // Legacy unscoped doc, read directly only by the orphaned-pin anomaly check.
     getDayArtifact: jest.fn().mockResolvedValue(null),
-    saveDayArtifact: jest.fn().mockResolvedValue(undefined),
-    hasScorecardCells: jest.fn().mockResolvedValue(false),
   };
   const inputs = {
     collectGeneralDocs: jest.fn().mockReturnValue({ concatenated: 'GEN', sha256: 'g' }),
@@ -124,9 +129,7 @@ describe('SevenKeysService.generate', () => {
     const deps = makeDeps();
     queueGenerationRun(deps.fake); // includes lookback
     deps.inputs.priorCompleteDays.mockReturnValue([{ day: '07012026', date: '2026-07-01' }]);
-    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) =>
-      kind === 'keys' ? { content: `KEYS-${d}` } : null,
-    );
+    deps.repo.getKeysArtifact.mockImplementation(async (d: string) => ({ content: `KEYS-${d}` }));
     const svc = await build(deps, { 'benchmark.model': 'k3' });
     await svc.generate(DAY as any);
     expect(deps.fake.structuredCalls.length).toBe(4); // current, lookback, synth, verify
@@ -143,15 +146,16 @@ describe('SevenKeysService.generate', () => {
       { day: '07012026', date: '2026-07-01' },
       { day: '07022026', date: '2026-07-02' },
     ]);
-    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) =>
-      kind === 'keys' ? { content: `KEYS-${d}` } : null,
-    );
+    deps.repo.getKeysArtifact.mockImplementation(async (d: string) => ({ content: `KEYS-${d}` }));
     deps.inputs.outcomeRecapPathForDay.mockReturnValue('/es/next/x_ES_RECAP.md');
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
     const lookbackCall = findCall(deps.fake, LOOKBACK_SCHEMA);
     expect(lookbackCall.req.prompt.indexOf('07012026')).toBeLessThan(lookbackCall.req.prompt.indexOf('07022026'));
     expect(out.lookbackSources).toEqual(['07012026_ES_KEYS.md', '07022026_ES_KEYS.md']);
+    // Lookback reads the SAME lineage the flagship writes — Kimi never
+    // calibrates against Fable's prior assessments.
+    expect(deps.repo.getKeysArtifact).toHaveBeenCalledWith('07012026', 'fable');
   });
 
   it('caps the lookback set to the 3 most recent prior KEYS days (still oldest-first)', async () => {
@@ -160,7 +164,7 @@ describe('SevenKeysService.generate', () => {
     deps.inputs.priorCompleteDays.mockReturnValue(
       ['07012026', '07022026', '07032026', '07042026'].map((day) => ({ day, date: `2026-07-0${day[1]}` })),
     );
-    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) => (kind === 'keys' ? { content: `K-${d}` } : null));
+    deps.repo.getKeysArtifact.mockImplementation(async (d: string) => ({ content: `K-${d}` }));
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
     expect(out.lookbackSources).toEqual(['07022026_ES_KEYS.md', '07032026_ES_KEYS.md', '07042026_ES_KEYS.md']);
@@ -249,8 +253,8 @@ describe('SevenKeysService.generate', () => {
       { day: '07032026', date: '2026-07-03' },
     ]);
     // 0702's generation failed earlier in the run, so it has no KEYS.
-    deps.repo.getDayArtifact.mockImplementation(async (d: string, kind: string) =>
-      kind === 'keys' && d !== '07022026' ? { content: `K-${d}` } : null,
+    deps.repo.getKeysArtifact.mockImplementation(async (d: string) =>
+      d !== '07022026' ? { content: `K-${d}` } : null,
     );
     const svc = await build(deps);
     const out = await svc.generate(DAY as any);
@@ -266,11 +270,11 @@ describe('SevenKeysService.ensureKeys', () => {
     (readFileSync as jest.Mock).mockImplementation((p: string) => (String(p).includes('RECAP') ? 'RECAP' : 'TP'));
   });
 
-  it('is immutable once benchmarked: reuses stored KEYS, never regenerates, even on force', async () => {
+  it('is immutable once benchmarked: reuses stored KEYS when a cell pinned ITS hash, never regenerates, even on force', async () => {
     const deps = makeDeps();
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true } as any;
-    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
-    deps.repo.hasScorecardCells.mockResolvedValue(true); // a scorecard cell pinned this artifact
+    deps.repo.getKeysArtifact.mockResolvedValue(existing);
+    deps.repo.pinnedKeysHashes.mockResolvedValue(new Set(['kh'])); // a scorecard cell pinned this artifact
     const svc = await build(deps);
     const genSpy = jest.spyOn(svc, 'generate');
     expect(await svc.ensureKeys(DAY as any)).toBe(existing);
@@ -278,25 +282,42 @@ describe('SevenKeysService.ensureKeys', () => {
     expect(genSpy).not.toHaveBeenCalled();
   });
 
-  it('benchmarked anomaly: refuses to regenerate (returns null) when cells exist but the KEYS artifact is missing', async () => {
+  it('generates a fresh lineage when the day was benchmarked only by ANOTHER flagship', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(true); // day is benchmarked
-    deps.repo.getDayArtifact.mockImplementation(async () => null); // but the KEYS doc is gone
+    // Fable's legacy doc exists and is pinned by Fable-era cells; the Kimi
+    // lineage has no artifact yet. Kimi must generate its own, not reuse or refuse.
+    deps.repo.getKeysArtifact.mockResolvedValue(null); // no doc for alias k3
+    deps.repo.getDayArtifact.mockResolvedValue({ contentHash: 'fable-kh', content: '# fable', generatedBy: 'claude-fable-5' });
+    deps.repo.pinnedKeysHashes.mockResolvedValue(new Set(['fable-kh'])); // pins all accounted for by the legacy doc
+    const svc = await build(deps, { 'benchmark.model': 'kimi-k3' });
+    jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# kimi fresh', mismatches: [], lookbackSources: [], lookbackMissing: [] });
+    const out = await svc.ensureKeys(DAY as any);
+    expect(out).not.toBeNull();
+    expect(out!.generatedBy).toBe('kimi-k3');
+    // persisted under the k3 lineage, never the legacy id
+    expect(deps.repo.saveKeysArtifact).toHaveBeenCalledWith(DAY.day, 'k3', expect.objectContaining({ generatedBy: 'kimi-k3' }));
+    expect(out!.gcsPath).toContain('_ES_KEYS.k3.md');
+  });
+
+  it('orphaned-pin anomaly: refuses to generate when cells pinned a hash no stored doc accounts for', async () => {
+    const deps = makeDeps();
+    deps.repo.getKeysArtifact.mockResolvedValue(null); // our lineage's doc is gone
+    deps.repo.getDayArtifact.mockResolvedValue(null); // and no legacy doc explains the pin
+    deps.repo.pinnedKeysHashes.mockResolvedValue(new Set(['dangling-kh']));
     const svc = await build(deps);
     const genSpy = jest.spyOn(svc, 'generate');
     const out = await svc.ensureKeys(DAY as any);
     expect(out).toBeNull();
-    expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would break pinned artifactSha256
-    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+    expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would bury the broken provenance
+    expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
   });
 
   it('reuses a verified artifact when the generation inputs are unchanged (not yet benchmarked)', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(false);
     const svc = await build(deps);
     const inputsHash = (svc as any).computeInputsHash(DAY); // same inputs the impl will hash
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
-    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.getKeysArtifact.mockResolvedValue(existing);
     const genSpy = jest.spyOn(svc, 'generate');
     expect(await svc.ensureKeys(DAY as any)).toBe(existing);
     expect(genSpy).not.toHaveBeenCalled();
@@ -304,23 +325,21 @@ describe('SevenKeysService.ensureKeys', () => {
 
   it('regenerates when the trade plan changed (inputsHash drift) on a not-yet-benchmarked day', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(false);
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stale', uploadedAt: 't', verified: true, inputsHash: 'OLD' } as any;
-    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.getKeysArtifact.mockResolvedValue(existing);
     const svc = await build(deps);
     jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# fresh', mismatches: [], lookbackSources: [], lookbackMissing: [] });
     const out = await svc.ensureKeys(DAY as any);
-    expect(deps.repo.saveDayArtifact).toHaveBeenCalled();
+    expect(deps.repo.saveKeysArtifact).toHaveBeenCalledWith(DAY.day, 'fable', expect.anything());
     expect(out!.content).toContain('# fresh');
   });
 
   it('regenerates a not-yet-benchmarked day when force is set even if inputs are unchanged', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(false);
     const svc = await build(deps);
     const inputsHash = (svc as any).computeInputsHash(DAY);
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash } as any;
-    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.getKeysArtifact.mockResolvedValue(existing);
     jest.spyOn(svc, 'generate').mockResolvedValue({ verified: true, artifact: '# forced', mismatches: [], lookbackSources: [], lookbackMissing: [] });
     const out = await svc.ensureKeys(DAY as any, { force: true });
     expect(out!.content).toContain('# forced');
@@ -337,15 +356,16 @@ describe('SevenKeysService.ensureKeys', () => {
       lookbackMissing: [],
     });
     const out = await svc.ensureKeys(DAY as any);
-    expect(deps.repo.saveDayArtifact).toHaveBeenCalledWith('07082026', 'keys', expect.objectContaining({
+    expect(deps.repo.saveKeysArtifact).toHaveBeenCalledWith('07082026', 'fable', expect.objectContaining({
       generatedBy: 'claude-fable-5',
       verified: true,
       lookbackSources: ['07012026_ES_KEYS.md'],
     }));
-    const doc = deps.repo.saveDayArtifact.mock.calls[0][2];
+    const doc = deps.repo.saveKeysArtifact.mock.calls[0][2];
     expect(doc.content).toContain('generatedBy: claude-fable-5');
     expect(doc.content).toContain('lookbackSources: [07012026_ES_KEYS.md]');
     expect(doc.content).toContain('# Seven Keys — ES 2026-07-08');
+    expect(doc.gcsPath).toContain('_ES_KEYS.fable.md'); // lineage-marked path
     expect(doc.contentHash).toHaveLength(64);
     expect(doc.inputsHash).toHaveLength(64);
     expect(out).toBe(doc);
@@ -368,7 +388,7 @@ describe('SevenKeysService.ensureKeys', () => {
     jest.spyOn(svc, 'generate').mockResolvedValue({ verified: false, artifact: 'x', mismatches: ['bad'], lookbackSources: [], lookbackMissing: [] });
     const out = await svc.ensureKeys(DAY as any);
     expect(out).toBeNull();
-    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+    expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
   });
 
   it('returns null and does NOT persist when generation throws (e.g. Fable refusal)', async () => {
@@ -377,33 +397,32 @@ describe('SevenKeysService.ensureKeys', () => {
     jest.spyOn(svc, 'generate').mockRejectedValue(new Error('refused'));
     const out = await svc.ensureKeys(DAY as any);
     expect(out).toBeNull();
-    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+    expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
   });
 
   it('is immutable when pinned by in-flight cells: reuses stored KEYS, never regenerates, even under force and inputsHash drift', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(false); // NOT yet persisted-benchmarked
-    // Existing verified doc whose inputsHash no longer matches (would normally force
-    // regeneration on the not-benchmarked path) — pinned must still freeze it.
+    // NOT yet persisted-benchmarked (no pinned hashes); existing verified doc whose
+    // inputsHash no longer matches (would normally force regeneration on the
+    // not-benchmarked path) — pinned must still freeze it.
     const existing = { contentHash: 'kh', gcsPath: 'p', content: '# stored', uploadedAt: 't', verified: true, inputsHash: 'OLD' } as any;
-    deps.repo.getDayArtifact.mockImplementation(async (_d: string, kind: string) => (kind === 'keys' ? existing : null));
+    deps.repo.getKeysArtifact.mockResolvedValue(existing);
     const svc = await build(deps);
     const genSpy = jest.spyOn(svc, 'generate');
     expect(await svc.ensureKeys(DAY as any, { pinned: true })).toBe(existing);
     expect(await svc.ensureKeys(DAY as any, { force: true, pinned: true })).toBe(existing);
     expect(genSpy).not.toHaveBeenCalled(); // in-flight cells pinned this hash — never regenerate
-    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+    expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
   });
 
   it('pinned anomaly: refuses to regenerate (returns null) when pinned but the KEYS artifact is missing', async () => {
     const deps = makeDeps();
-    deps.repo.hasScorecardCells.mockResolvedValue(false); // no persisted cells
-    deps.repo.getDayArtifact.mockImplementation(async () => null); // but the KEYS doc is gone
+    deps.repo.getKeysArtifact.mockResolvedValue(null); // the lineage's KEYS doc is gone
     const svc = await build(deps);
     const genSpy = jest.spyOn(svc, 'generate');
     const out = await svc.ensureKeys(DAY as any, { pinned: true });
     expect(out).toBeNull();
     expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would break in-flight artifactSha256
-    expect(deps.repo.saveDayArtifact).not.toHaveBeenCalled();
+    expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
   });
 });

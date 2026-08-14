@@ -134,14 +134,63 @@ describe('BenchmarkRepository', () => {
     expect(got?.verified).toBe(true);
   });
 
-  it('hasScorecardCells is true only once a scorecard cell exists for the day', async () => {
+  it('pinnedKeysHashes collects artifactSha256 from the day\'s scorecard cells only', async () => {
     const { repo } = await build();
-    expect(await repo.hasScorecardCells('07012026')).toBe(false);
+    expect((await repo.pinnedKeysHashes('07012026')).size).toBe(0);
     await repo.createCell({
       trader: 'context-trader', modelAlias: 'fable', day: '07012026',
-      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'SL' },
+      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'SL' }, artifactSha256: 'kh-fable',
     } as any);
-    expect(await repo.hasScorecardCells('07012026')).toBe(true);
-    expect(await repo.hasScorecardCells('07022026')).toBe(false); // scoped to the day
+    await repo.createCell({
+      trader: 'context-trader', modelAlias: 'k3', day: '07012026',
+      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'TP' }, artifactSha256: 'kh-k3',
+    } as any);
+    // base cells carry no artifactSha256 and other days must not leak in
+    await repo.createCell({
+      trader: 'context-trader', modelAlias: 'fable', day: '07012026',
+      variant: 'base', runIndex: 1, result: { status: 'TP' },
+    } as any);
+    await repo.createCell({
+      trader: 'context-trader', modelAlias: 'fable', day: '07022026',
+      variant: 'seven-keys-scorecard', runIndex: 1, result: { status: 'TP' }, artifactSha256: 'kh-other-day',
+    } as any);
+    const pinned = await repo.pinnedKeysHashes('07012026');
+    expect([...pinned].sort()).toEqual(['kh-fable', 'kh-k3']);
+  });
+
+  describe('keys lineages (per-flagship artifacts)', () => {
+    const doc = (o: Record<string, unknown> = {}) => ({
+      contentHash: 'kh', gcsPath: 'p', content: '# k', uploadedAt: 't', verified: true, ...o,
+    }) as any;
+
+    it('round-trips a scoped keys artifact and isolates lineages', async () => {
+      const { repo } = await build();
+      expect(await repo.getKeysArtifact('07012026', 'k3')).toBeNull();
+      await repo.saveKeysArtifact('07012026', 'k3', doc({ generatedBy: 'kimi-k3' }));
+      expect((await repo.getKeysArtifact('07012026', 'k3'))?.generatedBy).toBe('kimi-k3');
+      // another lineage on the same day sees nothing
+      expect(await repo.getKeysArtifact('07012026', 'fable')).toBeNull();
+    });
+
+    it('falls back to the legacy unscoped doc only when generatedBy resolves to the same alias', async () => {
+      const { repo } = await build();
+      await repo.saveDayArtifact('07012026', 'keys', doc({ generatedBy: 'claude-fable-5' }));
+      expect((await repo.getKeysArtifact('07012026', 'fable'))?.generatedBy).toBe('claude-fable-5');
+      expect(await repo.getKeysArtifact('07012026', 'k3')).toBeNull(); // foreign lineage ignores it
+    });
+
+    it('treats a legacy doc with no generatedBy as Anthropic-era Fable', async () => {
+      const { repo } = await build();
+      await repo.saveDayArtifact('07012026', 'keys', doc());
+      expect(await repo.getKeysArtifact('07012026', 'fable')).not.toBeNull();
+      expect(await repo.getKeysArtifact('07012026', 'k3')).toBeNull();
+    });
+
+    it('prefers the scoped doc over the legacy doc for the same alias', async () => {
+      const { repo } = await build();
+      await repo.saveDayArtifact('07012026', 'keys', doc({ content: '# legacy', generatedBy: 'claude-fable-5' }));
+      await repo.saveKeysArtifact('07012026', 'fable', doc({ content: '# scoped', generatedBy: 'claude-fable-5' }));
+      expect((await repo.getKeysArtifact('07012026', 'fable'))?.content).toBe('# scoped');
+    });
   });
 });

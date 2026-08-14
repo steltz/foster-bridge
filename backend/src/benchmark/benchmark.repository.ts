@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.constants';
-import { BenchmarkCell, cellKey, SCORECARD_VARIANT } from './benchmark.types';
+import { BenchmarkCell, cellKey, resolveModel, SCORECARD_VARIANT } from './benchmark.types';
 
 export type BatchStatus =
   | 'submitted'
@@ -115,16 +115,22 @@ export class BenchmarkRepository {
     return snap.docs.map((d) => (d.data() as BenchmarkCell).runIndex);
   }
 
-  // True once the day has at least one persisted seven-keys-scorecard cell. Such a
-  // cell pinned this day's KEYS via artifactSha256, so ensureKeys must treat the
-  // stored artifact as immutable from then on.
-  async hasScorecardCells(day: string): Promise<boolean> {
+  // Every KEYS content hash pinned by the day's persisted scorecard cells (via
+  // artifactSha256, any model). A keys doc whose contentHash appears here is
+  // immutable — regenerating it would orphan those cells' provenance. Hash-exact
+  // so one flagship's pins never freeze another flagship's lineage.
+  async pinnedKeysHashes(day: string): Promise<Set<string>> {
     const snap = await this.db
       .collection(RUNS)
       .where('day', '==', day)
       .where('variant', '==', SCORECARD_VARIANT)
       .get();
-    return snap.docs.length > 0;
+    const hashes = new Set<string>();
+    for (const d of snap.docs) {
+      const sha = (d.data() as BenchmarkCell).artifactSha256;
+      if (sha) hashes.add(sha);
+    }
+    return hashes;
   }
 
   async listCells(modelAlias: string): Promise<BenchmarkCell[]> {
@@ -177,6 +183,29 @@ export class BenchmarkRepository {
 
   async saveDayArtifact(day: string, kind: DayArtifactKind, doc: DayArtifactDoc): Promise<void> {
     await this.db.collection(ARTIFACTS).doc(`${day}__${kind}`).set(doc as any);
+  }
+
+  /**
+   * KEYS artifacts are keyed per provider-flagship lineage (`${day}__keys__${alias}`)
+   * so a Kimi bench never consumes — or overwrites — Fable-generated keys. Reads
+   * fall back to the legacy unscoped `${day}__keys` doc, but only when its
+   * `generatedBy` resolves to the requested alias: existing Fable-era docs become
+   * the Fable lineage with no migration, and stay invisible to every other lineage.
+   * A legacy doc with no `generatedBy` predates the field — all such docs are
+   * Anthropic-era Fable (same reasoning as DayArtifactDoc.fileProvider).
+   */
+  async getKeysArtifact(day: string, flagshipAlias: string): Promise<DayArtifactDoc | null> {
+    const scoped = await this.db.collection(ARTIFACTS).doc(`${day}__keys__${flagshipAlias}`).get();
+    if (scoped.exists) return scoped.data() as DayArtifactDoc;
+    const legacy = await this.getDayArtifact(day, 'keys');
+    if (!legacy) return null;
+    const legacyAlias = resolveModel(legacy.generatedBy ?? 'claude-fable-5').alias;
+    return legacyAlias === flagshipAlias ? legacy : null;
+  }
+
+  /** New KEYS saves always use the lineage-scoped id; the legacy id is read-only. */
+  async saveKeysArtifact(day: string, flagshipAlias: string, doc: DayArtifactDoc): Promise<void> {
+    await this.db.collection(ARTIFACTS).doc(`${day}__keys__${flagshipAlias}`).set(doc as any);
   }
 
   async getScoreboard(modelAlias: string): Promise<ScoreboardDoc | null> {
