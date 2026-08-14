@@ -193,7 +193,7 @@ async function build({
 
 describe('EminiplayerIngestService.ingest', () => {
   it('produces, verifies, uploads all three artifacts and commits a manifest', async () => {
-    const { service, bucket, verify, manifest } = await build();
+    const { service, bucket, verify, manifest, transcript } = await build();
     const result = await service.ingest(DATE);
 
     expect(result).toEqual({
@@ -216,6 +216,11 @@ describe('EminiplayerIngestService.ingest', () => {
       expect.any(Buffer),
       { contentType: 'application/pdf' },
     );
+    // fetchSegments must get the extracted video ID, never the page's raw
+    // embed URL — youtube-transcript chokes on /embed/ URLs with query params
+    // (misreported as "Transcript is disabled"; hit on the first live ingest).
+    expect(transcript.fetchSegments).toHaveBeenCalledWith('recapVid0001');
+    expect(transcript.fetchSegments).toHaveBeenCalledWith('tpVid0000001');
     expect(verify.verifyTranscript).toHaveBeenCalledTimes(2);
     expect(verify.verifyTranscript).toHaveBeenCalledWith(expect.any(String), {
       flavor: 'recap',
@@ -354,7 +359,7 @@ describe('EminiplayerIngestService.ingest', () => {
 
   it('wraps a resolve failure as IngestStageError(resolve, archive)', async () => {
     const { service, eminiplayer } = await build();
-    eminiplayer.findDayEntries.mockRejectedValue(new Error('selectors not implemented yet'));
+    eminiplayer.findDayEntries.mockRejectedValue(new Error('archive listing unreachable'));
     const err = await service.ingest(DATE).catch((e) => e);
     expect(err).toBeInstanceOf(IngestStageError);
     expect(err.stage).toBe('resolve');

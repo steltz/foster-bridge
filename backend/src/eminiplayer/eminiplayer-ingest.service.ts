@@ -244,8 +244,11 @@ export class EminiplayerIngestService {
       assertTranscriptMarkdown(markdown, artifact);
       status = 'skipped';
     } else {
+      // Pass the extracted ID, not the page's raw embed URL — youtube-transcript
+      // cannot parse /embed/ URLs with query params and misreports them as
+      // "Transcript is disabled" (hit on the first live ingest).
       const segments = await this.stage('transcribe', artifact, () =>
-        this.transcript.fetchSegments(youtubeUrl),
+        this.transcript.fetchSegments(videoId),
       );
       markdown = transcriptToMarkdown(segments);
       assertTranscriptMarkdown(markdown, artifact);
