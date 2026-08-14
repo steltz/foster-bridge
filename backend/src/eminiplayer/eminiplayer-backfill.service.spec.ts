@@ -5,7 +5,8 @@ import {
 } from './eminiplayer-backfill.service';
 import { RawArchiveRow } from './eminiplayer-archive';
 import { IngestResult } from './eminiplayer-ingest.service';
-import { IngestValidationError } from './eminiplayer-ingest.errors';
+import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
+import { ArchiveNotFoundError } from './eminiplayer.constants';
 
 const row = (dateText: string, href: string, title: string): RawArchiveRow => ({
   dateText,
@@ -171,5 +172,174 @@ describe('EminiplayerBackfillService — core', () => {
     expect(service.status()!.state).toBe('done');
     expect(() => service.start('08112026', '08132026')).not.toThrow();
     await settle(service); // let the second job drain before the test ends
+  });
+});
+
+describe('EminiplayerBackfillService — resilience', () => {
+  it('records a per-day failure with its kind and continues with later days', async () => {
+    const ingestMock = jest.fn((date: string) =>
+      date === '08122026'
+        ? Promise.reject(new IngestValidationError('title gate said no'))
+        : Promise.resolve(result(date)),
+    );
+    const { service } = build({ ingest: ingestMock });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('done'); // one bad day never fails the job
+    expect(job.counts).toEqual({ candidates: 3, processed: 3, uploaded: 2, skipped: 0, failed: 1 });
+    expect(job.failures).toEqual([
+      { date: '08122026', kind: 'validation', message: 'title gate said no' },
+    ]);
+    expect(ingestMock).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    [new IngestStageError('transcribe', 'recap', new Error('youtube 429')), 'stage'],
+    [new ArchiveNotFoundError('gone'), 'notFound'],
+    [new TypeError('bug'), 'unknown'],
+  ])('classifies %p as %s', async (error, kind) => {
+    const ingestMock = jest.fn((date: string) =>
+      date === '08112026' ? Promise.reject(error) : Promise.resolve(result(date)),
+    );
+    const { service } = build({ ingest: ingestMock });
+    service.start('08112026', '08132026');
+    await settle(service);
+    expect(service.status()!.failures[0].kind).toBe(kind);
+  });
+
+  it('a day whose recap is missing from the listing lands in the ledger without calling ingest — and without sleeping', async () => {
+    // TP with no recap anywhere near it: 09/15/2026 is a Tuesday
+    const rows = [
+      ...ROWS,
+      row('2026-09-15', '/post/lone.aspx', 'ES Key Zones and Trade Plan for Tuesday 09/15/2026'),
+    ];
+    const { service, ingest, sleep } = build({ rows });
+    service.start('08112026', '09152026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.counts.failed).toBe(1);
+    expect(job.failures[0]).toMatchObject({ date: '09152026', kind: 'notFound' });
+    expect(ingest.ingest.mock.calls.map((c: unknown[]) => c[0])).not.toContain('09152026');
+    expect(sleep).toHaveBeenCalledTimes(3); // only the 3 real days slept
+  });
+
+  it('a hung day hits the day timeout, is ledgered as stage, and the loop continues', async () => {
+    const never = new Promise<IngestResult>(() => undefined); // hangs forever
+    const ingestMock = jest.fn((date: string) =>
+      date === '08122026' ? never : Promise.resolve(result(date)),
+    );
+    const { service } = build({ ingest: ingestMock, dayTimeoutMs: 20 });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('done');
+    expect(job.counts.failed).toBe(1);
+    expect(job.failures[0]).toMatchObject({ date: '08122026', kind: 'stage' });
+    expect(job.failures[0].message).toMatch(/day timeout/);
+    expect(ingestMock).toHaveBeenCalledTimes(3); // later days still ran
+  });
+
+  it('frontier days (within the recap lookback of the scrape moment) resolve fresh — no pre-resolved entries', async () => {
+    // "now" = the day after the newest fixture day, so all three are frontier
+    const { service, ingest } = build({ nowMs: new Date('2026-08-14T12:00:00Z').getTime() });
+    service.start('08112026', '08132026');
+    await settle(service);
+    expect(service.status()!.counts.uploaded).toBe(3);
+    for (const call of ingest.ingest.mock.calls) {
+      expect(call[2]).toBeUndefined(); // fresh resolve inside ingest instead
+    }
+  });
+
+  it('cancel during a day lets it finish, starts no further days, ends cancelled', async () => {
+    let release!: (r: IngestResult) => void;
+    let started!: () => void;
+    const startedP = new Promise<void>((r) => (started = r));
+    const gated = new Promise<IngestResult>((r) => (release = r));
+    const ingestMock = jest.fn((date: string) => {
+      if (date === '08112026') {
+        started();
+        return gated;
+      }
+      return Promise.resolve(result(date));
+    });
+    const { service } = build({ ingest: ingestMock });
+    service.start('08112026', '08132026');
+    await startedP; // day 1 is genuinely in flight before we cancel
+    service.cancel();
+    release(result('08112026'));
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('cancelled');
+    expect(job.counts.processed).toBe(1); // the in-flight day finished and counted
+    expect(ingestMock).toHaveBeenCalledTimes(1); // nothing after it started
+    expect(job.finishedAt).not.toBeNull();
+  });
+
+  it('cancel before the first day starts cancels with zero days processed', async () => {
+    const { service, ingest } = build();
+    service.start('08112026', '08132026');
+    service.cancel(); // lands while the loop is still awaiting the scrape
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('cancelled');
+    expect(job.counts.processed).toBe(0);
+    expect(ingest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('onApplicationShutdown cancels a running job like DELETE would', async () => {
+    const { service, ingest } = build();
+    service.start('08112026', '08132026');
+    service.onApplicationShutdown();
+    await settle(service);
+    expect(service.status()!.state).toBe('cancelled');
+    expect(ingest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('onModuleDestroy also cancels a running job (shutdown phase ordering)', async () => {
+    const { service, ingest } = build();
+    service.start('08112026', '08132026');
+    service.onModuleDestroy();
+    await settle(service);
+    expect(service.status()!.state).toBe('cancelled');
+    expect(ingest.ingest).not.toHaveBeenCalled();
+  });
+
+  it('a listing-scrape failure fails the JOB with the error recorded', async () => {
+    const { service, eminiplayer } = build();
+    eminiplayer.fetchArchiveRows.mockRejectedValue(new Error('login failed'));
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toBe('login failed');
+    expect(job.finishedAt).not.toBeNull();
+  });
+
+  it('zero classifiable TP rows across the scrape trips the drift tripwire (failed, not done)', async () => {
+    const { service } = build({ rows: [row('2026-08-13', '/post/r.aspx', 'Some Redesigned Title 08/13/2026')] });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toMatch(/selector drift/);
+  });
+
+  it('an empty RANGE with a healthy archive completes done with candidates 0', async () => {
+    const { service } = build();
+    service.start('08152026', '08162026'); // Sat–Sun: no TP days
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('done');
+    expect(job.counts.candidates).toBe(0);
+  });
+
+  it('cancel() is a no-op on a finished job and null before any job', async () => {
+    const fresh = build();
+    expect(fresh.service.cancel()).toBeNull();
+    fresh.service.start('08112026', '08132026');
+    await settle(fresh.service);
+    const snap = fresh.service.cancel();
+    expect(snap!.state).toBe('done'); // not flipped to cancelled
   });
 });
