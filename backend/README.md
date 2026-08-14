@@ -318,6 +318,14 @@ structural gates (`deep=true`), date invariants, cross-day video-id
 uniqueness, claim↔manifest agreement in both directions, and unmanifested
 day folders. Returns `{ daysChecked, ok, deep, anomalies, uncommittedDays }`.
 
+Run a shallow full-corpus audit before any large backtest campaign (use
+ranges for deep runs); a non-empty `anomalies` list means a human should
+look before trusting the data.
+
+The audit never aborts on one bad item: a day folder whose name is not a real
+calendar date, a structurally invalid manifest, or a video-id claim with an
+unparseable date each become a single anomaly and the sweep continues.
+
 ### Bulk backfill
 
 Runs the same per-day pipeline as `/eminiplayer/ingest` over a whole date
@@ -354,10 +362,3 @@ Four env knobs, all in `.env.example`:
   unguarded. Recommended for any long-running backfill, since these routes
   can trigger many hours of credentialed scraping and LLM spend from a
   single request.
-Run a shallow full-corpus audit before any large backtest campaign (use
-ranges for deep runs); a non-empty `anomalies` list means a human should
-look before trusting the data.
-
-The audit never aborts on one bad item: a day folder whose name is not a real
-calendar date, a structurally invalid manifest, or a video-id claim with an
-unparseable date each become a single anomaly and the sweep continues.
