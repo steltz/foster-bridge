@@ -1,0 +1,42 @@
+backend/src/eminiplayer/eminiplayer-archive.spec.ts
+  s_ebdd4fc7dee5d4::t_a03b4f930aed81 1-3,6,8-108
+  s_ebdd4fc7dee5d4::t_dd495d46ecd0cc 4-5,7
+  s_ebdd4fc7dee5d4::t_213dc92545ab77 109-209
+backend/src/eminiplayer/eminiplayer-validation.spec.ts
+  s_ebdd4fc7dee5d4::t_3bbc82e5acb6fe 163-194
+backend/src/eminiplayer/eminiplayer-validation.ts
+  s_ebdd4fc7dee5d4::t_523c4fde43fb89 98-104,109-112,115-116,122-124
+backend/src/eminiplayer/eminiplayer.service.spec.ts
+  s_ebdd4fc7dee5d4::t_a35da0e18da766 21,28,36,43
+  s_ebdd4fc7dee5d4::t_6706790c69a515 10-16
+  s_ebdd4fc7dee5d4::t_3df7ca32130dc0 181-193,195,197-203,206-212,215-216,219,222,224-233,235-241,243,247-265,274,277-281,283,285-306,308-313,315-318,320-339,342-356,363,365
+docs/superpowers/plans/2026-08-06-eminiplayer-ingest-pipeline-followups.md
+  s_ebdd4fc7dee5d4::t_24a90b17ee15a9 8,10-14,16-43
+backend/src/eminiplayer/eminiplayer.constants.ts
+  s_ebdd4fc7dee5d4::t_9556441364ebcf 17-20
+backend/src/eminiplayer/eminiplayer.service.ts
+  s_ebdd4fc7dee5d4::t_8546277d8bd339 14-15
+  s_ebdd4fc7dee5d4::t_b81a06f40f4f45 49-53,63-73,77-82,87-98,102-110,115-116,118-128,132-150
+  s_ebdd4fc7dee5d4::t_e1c10a285c8d51 151-152
+backend/src/eminiplayer/eminiplayer-archive.ts
+  s_ebdd4fc7dee5d4::t_87704a809098d9 1-104
+  s_ebdd4fc7dee5d4::t_60534325bb7231 105-195
+backend/src/eminiplayer/eminiplayer.controller.spec.ts
+  s_ebdd4fc7dee5d4::t_886e3e5a69d388 87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f078769d88a77cb58e324cbb22c81782242a65b5",
+  "prompts": {},
+  "sessions": {
+    "s_ebdd4fc7dee5d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4631d59c-336f-472e-b1b2-fc54bbd9e2e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
