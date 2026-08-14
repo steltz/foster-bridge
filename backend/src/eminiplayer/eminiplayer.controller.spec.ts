@@ -45,6 +45,7 @@ async function build(cfg: Record<string, unknown> = {}) {
     startedAt: '2026-08-14T00:00:00.000Z',
     finishedAt: null,
     currentDate: null,
+    cancelRequested: false,
     counts: { candidates: null, processed: 0, uploaded: 0, skipped: 0, failed: 0 },
     failures: [],
     error: null,

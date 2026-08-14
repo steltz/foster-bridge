@@ -304,6 +304,10 @@ describe('EminiplayerBackfillService — resilience', () => {
     service.start('08112026', '08132026');
     await startedP; // day 1 is genuinely in flight before we cancel
     service.cancel();
+    // observable before the in-flight day finishes: the DELETE ack, and the
+    // day it lands mid — this also closes final-review Minor #8.
+    expect(service.status()!.cancelRequested).toBe(true);
+    expect(service.status()!.currentDate).toBe('08112026');
     release(result('08112026'));
     await settle(service);
     const job = service.status()!;
@@ -311,6 +315,18 @@ describe('EminiplayerBackfillService — resilience', () => {
     expect(job.counts.processed).toBe(1); // the in-flight day finished and counted
     expect(ingestMock).toHaveBeenCalledTimes(1); // nothing after it started
     expect(job.finishedAt).not.toBeNull();
+    expect(job.cancelRequested).toBe(true); // final snapshot keeps it observable
+  });
+
+  it('a thrown non-Error (string rejection) ledgers a readable message instead of "undefined"', async () => {
+    const ingestMock = jest.fn((date: string) =>
+      date === '08112026' ? Promise.reject('boom') : Promise.resolve(result(date)),
+    );
+    const { service } = build({ ingest: ingestMock });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.failures[0]).toEqual({ date: '08112026', kind: 'unknown', message: 'boom' });
   });
 
   it('cancel before the first day starts cancels with zero days processed', async () => {

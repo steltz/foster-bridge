@@ -88,7 +88,8 @@ DELETE /eminiplayer/backfill
   either commits or doesn't), **no further days start** — a cancel that lands before the
   first day starts cancels with zero days processed. Terminal state `cancelled`. **404** only
   when no job has run since boot (same rule as `GET`); against an already-finished job it is
-  a no-op **200** answered with the retained snapshot.
+  a no-op **200** answered with the retained snapshot. The snapshot acknowledges the request
+  via `cancelRequested` while the in-flight day finishes.
 
 ### Exposure guard
 
@@ -110,6 +111,7 @@ unguarded. Unset token = no guard, preserving the local-dev workflow.
   "startedAt": "2026-08-14T13:00:00.000Z",
   "finishedAt": null,            // set on any terminal state
   "currentDate": "03052019",     // day in flight, null when not running
+  "cancelRequested": false,      // true once cancellation was requested (DELETE ack)
   "counts": {
     "candidates": 2150,          // TP dates found in range (null until listing scraped)
     "processed": 312,            // days attempted so far
@@ -157,6 +159,7 @@ fail the job.
 | `EMINIPLAYER_BACKFILL_DELAY_MS` | `eminiplayer.backfillDelayMs` | `2000` | pause after each day that touched the network |
 | `EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS` | `eminiplayer.backfillDayTimeoutMs` | `600000` | per-day ceiling; a timed-out day becomes a `stage` ledger entry |
 | `EMINIPLAYER_BACKFILL_TOKEN` | `eminiplayer.backfillToken` | unset | when set, `POST`/`DELETE` require a matching `x-backfill-token` header |
+| `EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES` | `eminiplayer.backfillMaxConsecutiveStageFailures` | `20` | abort the job after N consecutive `stage` failures |
 
 ## Components
 
@@ -176,7 +179,11 @@ kicks the detached loop:
    `ingest(date, false, entries)`. The whole day races the
    `backfillDayTimeoutMs` ceiling (decision 7). Classify the outcome:
    `result.fromManifest` → `skipped++`; else `uploaded++`; thrown/timeout → ledger +
-   `failed++`, continue.
+   `failed++`, continue. A `stage`-kind outcome increments a consecutive-stage-failure
+   counter; any success or non-`stage` failure resets it to zero. Once the counter reaches
+   `eminiplayer.backfillMaxConsecutiveStageFailures` (default 20), the job aborts as
+   job-level `failed` — a broken session or a YouTube throttle at hour 6 must not silently
+   burn the remaining thousands of days.
 3. **Pacing:** sleep `eminiplayer.backfillDelayMs` after each day **that touched the
    network** — `fromManifest` days and days that failed *before* ingest was invoked (a pure
    `selectDayEntries` throw) skip the delay, so a resume sprints through the committed prefix

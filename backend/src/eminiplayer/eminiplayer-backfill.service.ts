@@ -29,6 +29,8 @@ export interface BackfillJobSnapshot {
   finishedAt: string | null;
   /** Day in flight; null when not running. */
   currentDate: string | null;
+  /** True once cancellation was requested — DELETE ack while the in-flight day finishes. */
+  cancelRequested: boolean;
   counts: {
     /** TP dates found in range; null until the listing is scraped. */
     candidates: number | null;
@@ -100,6 +102,7 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
     if (this.job?.state === 'running' && !this.cancelRequested) {
       this.logger.log('shutdown: cancelling the running backfill job');
       this.cancelRequested = true;
+      this.job.cancelRequested = true;
     }
   }
 
@@ -118,6 +121,7 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
       startedAt: new Date().toISOString(),
       finishedAt: null,
       currentDate: null,
+      cancelRequested: false,
       counts: { candidates: null, processed: 0, uploaded: 0, skipped: 0, failed: 0 },
       failures: [],
       error: null,
@@ -138,7 +142,10 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
    */
   cancel(): BackfillJobSnapshot | null {
     if (!this.job) return null;
-    if (this.job.state === 'running') this.cancelRequested = true;
+    if (this.job.state === 'running') {
+      this.cancelRequested = true;
+      this.job.cancelRequested = true;
+    }
     return structuredClone(this.job);
   }
 
@@ -184,8 +191,8 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
       // Job-level failure (listing scrape, login, drift tripwire) — per-day
       // errors never land here.
       job.state = 'failed';
-      job.error = (err as Error).message;
-      this.logger.error(`backfill failed: ${(err as Error).message}`);
+      job.error = err instanceof Error ? err.message : String(err);
+      this.logger.error(`backfill failed: ${job.error}`);
     } finally {
       job.currentDate = null;
       job.finishedAt = new Date().toISOString();
@@ -227,13 +234,10 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
       return { touchedNetwork: true, failureKind: null };
     } catch (err) {
       const kind = this.classify(err);
+      const message = err instanceof Error ? err.message : String(err);
       job.counts.failed += 1;
-      job.failures.push({
-        date,
-        kind,
-        message: (err as Error).message,
-      });
-      this.logger.warn(`backfill day ${date} failed: ${(err as Error).message}`);
+      job.failures.push({ date, kind, message });
+      this.logger.warn(`backfill day ${date} failed: ${message}`);
       // A pure selectDayEntries throw touched nothing — no delay owed.
       return { touchedNetwork: ingestInvoked, failureKind: kind };
     }
