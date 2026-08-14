@@ -193,3 +193,31 @@ export function selectDayEntries(
 
   return { tradePlan: toEntry(tp, baseUrl), recap: toEntry(recap, baseUrl) };
 }
+
+/**
+ * All trade-plan dates in [from, to] (inclusive, MMDDYYYY), deduped and
+ * ascending — the bulk backfill's candidate list, derived from ONE listing
+ * scrape. Rows that fail classification, have malformed date cells, or carry
+ * a shape-valid but impossible calendar date (2026-02-31) are skipped, never
+ * fatal; per-day agreement checks run later, when each day is actually
+ * processed.
+ */
+export function listTradePlanDates(rows: RawArchiveRow[], from: string, to: string): string[] {
+  const fromT = parseMmddyyyy(from).getTime();
+  const toT = parseMmddyyyy(to).getTime();
+  const times = new Map<string, number>();
+  for (const raw of rows) {
+    const rowDate = rowDateToMmddyyyy(raw.dateText);
+    if (!rowDate) continue;
+    if (classifyArchiveTitle(raw.title)?.kind !== 'tradePlan') continue;
+    let t: number;
+    try {
+      t = parseMmddyyyy(rowDate).getTime();
+    } catch {
+      continue; // shape-valid but impossible date — one bad row, zero cost
+    }
+    if (t < fromT || t > toT) continue;
+    times.set(rowDate, t);
+  }
+  return [...times.entries()].sort((a, b) => a[1] - b[1]).map(([date]) => date);
+}

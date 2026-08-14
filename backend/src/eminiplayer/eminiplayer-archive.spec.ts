@@ -1,5 +1,6 @@
 import {
   classifyArchiveTitle,
+  listTradePlanDates,
   resolveEntryUrl,
   selectDayEntries,
   RawArchiveRow,
@@ -205,5 +206,54 @@ describe('selectDayEntries', () => {
       ...listing,
     ];
     expect(selectDayEntries(rows, '08132026', BASE).tradePlan.date).toBe('08132026');
+  });
+});
+
+describe('listTradePlanDates', () => {
+  const row = (dateText: string, href: string, title: string): RawArchiveRow => ({
+    dateText,
+    href,
+    title,
+  });
+
+  const rows: RawArchiveRow[] = [
+    row('2026-01-02', '/post/a.aspx', 'ES Key Zones and Trade Plan for Friday 01/02/2026'),
+    row('2025-12-30', '/post/b.aspx', 'ES Key Zones and Trade Plan for Tuesday 12/30/2025'),
+    row('2025-12-30', '/post/b2.aspx', 'ES Key Zones and Trade Plan for Tuesday 12/30/2025'), // dup date
+    row('2025-12-30', '/post/r.aspx', 'ES Recap (Video Lesson) for Tuesday 12/30/2025'), // recap, not TP
+    row('2025-12-29', '/post/c.aspx', 'ES Key Zones and Trade Plan for Monday 12/29/2025'),
+    row('Date', '/post/x.aspx', 'ES Key Zones and Trade Plan for Monday 12/29/2025'), // malformed cell
+    row('2025-12-24', '/post/d.aspx', "Zones and Trade Plans Will Resume When I'm Back"), // announcement
+  ];
+
+  it('returns deduped TP dates in [from, to] inclusive, ascending across a year boundary', () => {
+    expect(listTradePlanDates(rows, '12292025', '01022026')).toEqual([
+      '12292025',
+      '12302025',
+      '01022026',
+    ]);
+  });
+
+  it('range bounds are inclusive and exclude everything outside', () => {
+    expect(listTradePlanDates(rows, '12302025', '12302025')).toEqual(['12302025']);
+  });
+
+  it('ignores recap rows, announcements, and malformed date cells', () => {
+    // only the announcement + malformed rows fall in this range
+    expect(listTradePlanDates(rows, '12202025', '12242025')).toEqual([]);
+  });
+
+  it('skips a shape-valid but impossible calendar date instead of throwing', () => {
+    // 2026-02-31 survives the shape regex but parseMmddyyyy would throw —
+    // one garbage cell among 8,419 rows must cost nothing, not the whole job
+    const withGarbage = [
+      ...rows,
+      row('2026-02-31', '/post/g.aspx', 'ES Key Zones and Trade Plan for Tuesday 02/31/2026'),
+    ];
+    expect(listTradePlanDates(withGarbage, '12292025', '01022026')).toEqual([
+      '12292025',
+      '12302025',
+      '01022026',
+    ]);
   });
 });
