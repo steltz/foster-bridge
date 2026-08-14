@@ -131,4 +131,17 @@ describe('PlaywrightService', () => {
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
     expect(chromium.launch).not.toHaveBeenCalled();
   });
+
+  it('after onModuleDestroy, withPage rejects instead of relaunching the browser', async () => {
+    const { browser } = makeFakes();
+    const service = await build();
+    await service.withPage(async () => undefined); // launch once
+    await service.onModuleDestroy();
+    await expect(service.withPage(async () => undefined)).rejects.toThrow(
+      /browser has been shut down/,
+    );
+    // the recovery path must NOT have relaunched
+    expect(chromium.launch).toHaveBeenCalledTimes(1);
+    expect(browser.close).toHaveBeenCalled();
+  });
 });

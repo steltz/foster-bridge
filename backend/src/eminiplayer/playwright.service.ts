@@ -20,6 +20,7 @@ export class PlaywrightService implements OnModuleDestroy {
   private context?: BrowserContext;
   private page?: Page;
   private queue: Promise<unknown> = Promise.resolve();
+  private destroyed = false;
 
   constructor(private readonly config: ConfigService) {}
 
@@ -31,6 +32,11 @@ export class PlaywrightService implements OnModuleDestroy {
   }
 
   private async acquirePage(): Promise<Page> {
+    if (this.destroyed) {
+      // Shutdown has run; the dead-browser recovery below must not resurrect
+      // a fresh Chromium (it would keep the process from ever draining).
+      throw new Error('eminiplayer: browser has been shut down');
+    }
     if (this.browser && !this.browser.isConnected()) {
       // the Chromium process died out from under us; drop every stale ref so
       // we relaunch instead of calling newPage() on a dead context forever
@@ -56,6 +62,7 @@ export class PlaywrightService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.destroyed = true;
     try {
       await this.context?.close();
     } catch {
