@@ -11,7 +11,7 @@ import {
   ArchivePageResult,
   DayEntries,
 } from './eminiplayer.constants';
-import { resolveEntryUrl, selectDayEntries } from './eminiplayer-archive';
+import { resolveEntryUrl, selectDayEntries, RawArchiveRow } from './eminiplayer-archive';
 import { extractYoutubeVideoId } from './eminiplayer-validation';
 
 /**
@@ -45,14 +45,12 @@ export class EminiplayerService {
   }
 
   /**
-   * Scan the archive listing for the trade-plan entry dated `date` (MMDDYYYY)
-   * and the most recent recap entry dated strictly before it. Row selection,
-   * three-way date agreement, and the RECAP_LOOKBACK_DAYS bound live in
-   * eminiplayer-archive.ts (selectDayEntries); this method only scrapes the
-   * raw rows. Throws ArchiveNotFoundError when the day (or its recap) is not
-   * in the archive — the controller maps that to 404.
+   * One authenticated scrape of the archive listing's raw rows. Extracted from
+   * findDayEntries so the bulk backfill can scrape ONCE and derive every day's
+   * entries from the same capture (the listing is 1.7 MB — re-downloading it
+   * per day tripled the site footprint).
    */
-  async findDayEntries(date: string): Promise<DayEntries> {
+  async fetchArchiveRows(): Promise<RawArchiveRow[]> {
     return this.playwright.withPage(async (page) => {
       await this.gotoAuthenticated(
         page,
@@ -60,7 +58,7 @@ export class EminiplayerService {
         'navigating to archive.aspx',
       );
       this.assertOnArchivePage(page);
-      const rows = await page.$$eval(SELECTORS.archiveRows, (trs) =>
+      return page.$$eval(SELECTORS.archiveRows, (trs) =>
         trs.map((tr) => {
           const anchor = tr.querySelector('td.title a');
           return {
@@ -70,8 +68,20 @@ export class EminiplayerService {
           };
         }),
       );
-      return selectDayEntries(rows, date, ARCHIVE_URL);
     });
+  }
+
+  /**
+   * Scan the archive listing for the trade-plan entry dated `date` (MMDDYYYY)
+   * and the most recent recap entry dated strictly before it. Row selection,
+   * three-way date agreement, and the RECAP_LOOKBACK_DAYS bound live in
+   * eminiplayer-archive.ts (selectDayEntries). Throws ArchiveNotFoundError
+   * when the day (or its recap) is not in the archive — the controller maps
+   * that to 404.
+   */
+  async findDayEntries(date: string): Promise<DayEntries> {
+    const rows = await this.fetchArchiveRows();
+    return selectDayEntries(rows, date, ARCHIVE_URL);
   }
 
   /**

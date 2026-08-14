@@ -221,6 +221,15 @@ describe('findDayEntries', () => {
     expect(page.click).toHaveBeenCalledWith(SELECTORS.submit);
     expect(entries.tradePlan.date).toBe('08132026');
   });
+
+  it('fetchArchiveRows scrapes the authenticated listing once and returns raw rows', async () => {
+    const page = makePage({ $$eval: jest.fn(() => Promise.resolve(LISTING_ROWS)) });
+    const { service } = await build(page);
+    const rows = await service.fetchArchiveRows();
+    expect(page.goto).toHaveBeenCalledWith(ARCHIVE_URL, expect.anything());
+    expect(page.$$eval).toHaveBeenCalledWith(SELECTORS.archiveRows, expect.any(Function));
+    expect(rows).toEqual(LISTING_ROWS);
+  });
 });
 
 describe('getYoutubeUrl', () => {
