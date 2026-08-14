@@ -201,6 +201,7 @@ describe('EminiplayerIngestService.ingest', () => {
       recapDate: RECAP_DATE,
       staleRecapsRemoved: [],
       manifestPath: MANIFEST_PATH,
+      fromManifest: false,
       files: {
         recap: { storagePath: RECAP_PATH, status: 'uploaded' },
         tradePlanMd: { storagePath: TP_MD_PATH, status: 'uploaded' },
@@ -448,5 +449,22 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(forced).toBeDefined();
     expect(eminiplayer.findDayEntries).toHaveBeenCalledTimes(2); // both runs happened
     expect(manifest.delete).toHaveBeenCalledWith(DATE); // the forced pass ran force semantics
+  });
+
+  it('with resolvedEntries: skips archive resolution and feeds the entries into the pipeline', async () => {
+    const { service, eminiplayer, manifest } = await build();
+    const result = await service.ingest(DATE, false, ENTRIES);
+    expect(eminiplayer.findDayEntries).not.toHaveBeenCalled();
+    expect(result.date).toBe(DATE);
+    expect(result.recapDate).toBe(RECAP_DATE);
+    expect(result.fromManifest).toBe(false);
+    expect(manifest.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports fromManifest: true exactly on the committed-day short-circuit', async () => {
+    const { service } = await build({ committed: committedManifest() });
+    const result = await service.ingest(DATE);
+    expect(result.fromManifest).toBe(true);
+    expect(result.files.recap.status).toBe('skipped');
   });
 });

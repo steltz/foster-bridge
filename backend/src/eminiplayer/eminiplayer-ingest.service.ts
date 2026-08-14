@@ -10,6 +10,7 @@ import { EminiplayerService } from './eminiplayer.service';
 import {
   ArchiveEntry,
   ArchiveNotFoundError,
+  DayEntries,
   INGEST_PIPELINE_VERSION,
 } from './eminiplayer.constants';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
@@ -42,6 +43,14 @@ export interface IngestResult {
   /** Old *_ES_RECAP.md objects deleted because their date no longer matches. */
   staleRecapsRemoved: string[];
   manifestPath: string;
+  /**
+   * True only when a committed manifest answered the whole day (the
+   * short-circuit) — the bulk backfill keys its skipped-count and its
+   * politeness delay on this, NOT on per-file statuses, because a
+   * fill-and-skip day (artifacts existed, manifest didn't) reports all files
+   * 'skipped' while still doing page loads, re-verification, and a commit.
+   */
+  fromManifest: boolean;
   files: {
     recap: IngestFileReport;
     tradePlanMd: IngestFileReport;
@@ -83,7 +92,7 @@ export class EminiplayerIngestService {
     @Inject(STORAGE_BUCKET) private readonly bucket: Bucket,
   ) {}
 
-  async ingest(date: string, force = false): Promise<IngestResult> {
+  async ingest(date: string, force = false, resolvedEntries?: DayEntries): Promise<IngestResult> {
     const existing = this.inflight.get(date);
     if (existing) {
       // Coalesce same-flag calls (and non-force onto anything). A force call
@@ -91,19 +100,22 @@ export class EminiplayerIngestService {
       // in-flight run out, then run the forced regeneration.
       if (!force || existing.force) return existing.run;
       await existing.run.catch(() => undefined);
-      return this.ingest(date, true);
+      return this.ingest(date, true, resolvedEntries);
     }
-    const run = this.run(date, force).finally(() => this.inflight.delete(date));
+    const run = this.run(date, force, resolvedEntries).finally(() => this.inflight.delete(date));
     this.inflight.set(date, { force, run });
     return run;
   }
 
-  private async run(date: string, force: boolean): Promise<IngestResult> {
-    // Resolution always runs: the recap filename embeds the recap date,
-    // which only the archive listing knows.
-    const entries = await this.stage('resolve', 'archive', () =>
-      this.eminiplayer.findDayEntries(date),
-    );
+  private async run(date: string, force: boolean, resolvedEntries?: DayEntries): Promise<IngestResult> {
+    // Resolution always runs unless the caller (bulk backfill) already derived
+    // the entries from its own single listing scrape — the recap filename
+    // embeds the recap date, which only the archive listing knows. Contract on
+    // resolvedEntries: derived from a scrape no older than RECAP_LOOKBACK_DAYS
+    // before `date` (the backfill resolves frontier days fresh for this reason).
+    const entries =
+      resolvedEntries ??
+      (await this.stage('resolve', 'archive', () => this.eminiplayer.findDayEntries(date)));
     const recapDate = entries.recap.date;
     assertDayInvariants(date, recapDate);
     // Consumer-side guard on the scraper contract: the trade-plan entry is the
@@ -141,6 +153,7 @@ export class EminiplayerIngestService {
           recapDate: committed.recapDate,
           staleRecapsRemoved: [],
           manifestPath: paths.manifest,
+          fromManifest: true,
           files: {
             recap: { storagePath: committed.files.recap.storagePath, status: 'skipped' },
             tradePlanMd: { storagePath: committed.files.tradePlanMd.storagePath, status: 'skipped' },
@@ -193,6 +206,7 @@ export class EminiplayerIngestService {
       recapDate,
       staleRecapsRemoved,
       manifestPath: paths.manifest,
+      fromManifest: false,
       files: {
         recap: recap.report,
         tradePlanMd: tradePlanMd.report,

@@ -16,6 +16,7 @@ const RESULT = {
   recapDate: '06302026',
   staleRecapsRemoved: [],
   manifestPath: 'knowledge-base/es/07012026/manifest.json',
+  fromManifest: false,
   files: {
     recap: { storagePath: 'knowledge-base/es/07012026/06302026_ES_RECAP.md', status: 'uploaded' },
     tradePlanMd: { storagePath: 'knowledge-base/es/07012026/07012026_ES_TP.md', status: 'uploaded' },
