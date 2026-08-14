@@ -1,0 +1,19 @@
+.gitignore
+  s_20e6d3b9e238e5::t_475bf9d9ff0e15 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4350c80206b5d1de13a33f64423f75b4e946c458",
+  "prompts": {},
+  "sessions": {
+    "s_20e6d3b9e238e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d543d967-5473-448a-b899-34dbac3d6720",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
