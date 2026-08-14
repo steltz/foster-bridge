@@ -317,6 +317,43 @@ md5/size via GCS listing metadata (shallow) or full content sha256 +
 structural gates (`deep=true`), date invariants, cross-day video-id
 uniqueness, claim↔manifest agreement in both directions, and unmanifested
 day folders. Returns `{ daysChecked, ok, deep, anomalies, uncommittedDays }`.
+
+### Bulk backfill
+
+Runs the same per-day pipeline as `/eminiplayer/ingest` over a whole date
+range, as one detached background job (a multi-hour run is expected across
+the full ~14-year archive):
+
+```bash
+curl -X POST "localhost:3000/eminiplayer/backfill?from=01012018&to=08142026"   # 202, job snapshot
+curl localhost:3000/eminiplayer/backfill                                      # GET: current/last job snapshot
+curl -X DELETE localhost:3000/eminiplayer/backfill                            # request cancellation
+```
+
+The archive listing is scraped **once** at job start; every candidate day in
+range is derived from that capture and processed oldest-first, so a
+multi-hour run costs one listing scrape, not one per day. Each day is atomic
+and manifest-gated — a **re-POST resumes**, since already-committed days
+short-circuit against Storage with no site traffic. `GET` returns the ledger
+of per-day failures (`notFound` / `validation` / `stage` / `unknown`) plus
+`cancelRequested`, which flips true once `DELETE` is acknowledged while the
+in-flight day finishes.
+
+Four env knobs, all in `.env.example`:
+
+- `EMINIPLAYER_BACKFILL_DELAY_MS` (default 2000) — politeness pause after
+  each day that touched the network.
+- `EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS` (default 600000 / 10 min) — per-day
+  ceiling; a hang becomes a `stage` ledger entry instead of wedging the job.
+- `EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES` (default 20) —
+  circuit breaker: aborts the job (state `failed`) after N consecutive
+  `stage` failures, so a broken session or a YouTube throttle partway
+  through doesn't silently burn the rest of the range.
+- `EMINIPLAYER_BACKFILL_TOKEN` (unset by default) — when set, `POST` and
+  `DELETE` require a matching `x-backfill-token` header. `GET` stays
+  unguarded. Recommended for any long-running backfill, since these routes
+  can trigger many hours of credentialed scraping and LLM spend from a
+  single request.
 Run a shallow full-corpus audit before any large backtest campaign (use
 ranges for deep runs); a non-empty `anomalies` list means a human should
 look before trusting the data.

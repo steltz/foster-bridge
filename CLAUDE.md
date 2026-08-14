@@ -110,6 +110,17 @@ POST /eminiplayer/ingest?date=MMDDYYYY&force=true
 GET  /eminiplayer/audit?from=MMDDYYYY&to=MMDDYYYY&deep=true
 ```
 
+Bulk backfill — a detached multi-day job over the same pipeline:
+
+```
+POST   /eminiplayer/backfill?from=MMDDYYYY&to=MMDDYYYY   202, detached job; committed days short-circuit on re-POST
+GET    /eminiplayer/backfill                             current/last job snapshot (ledger, counts, cancelRequested)
+DELETE /eminiplayer/backfill                              request cancellation; in-flight day finishes first
+```
+
+Optional `EMINIPLAYER_BACKFILL_TOKEN` guards `POST`/`DELETE` via an `x-backfill-token`
+header; empty/unset means unguarded.
+
 ### Costs
 
 ```
