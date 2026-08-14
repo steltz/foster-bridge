@@ -1,2 +1,7 @@
 .worktrees/
 node_modules/
+
+# Raw TradingView exports. Candle data is ingested into Firestore via
+# POST /markets/:symbol/:interval/candles, which is the source of truth —
+# the export is a transient input, not an artifact worth versioning.
+CME_MINI_*.csv
