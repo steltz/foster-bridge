@@ -1,0 +1,33 @@
+backend/src/config/configuration.ts
+  s_ebdd4fc7dee5d4::t_bbfc45958c983d 148-155
+  s_ebdd4fc7dee5d4::t_f5c975108d131f 44
+backend/src/config/configuration.spec.ts
+  s_ebdd4fc7dee5d4::t_c150f39aaf5a5c 275,280
+  s_ebdd4fc7dee5d4::t_27292250140f79 209
+  s_ebdd4fc7dee5d4::t_f630c6a5654c60 228,239,250
+backend/src/eminiplayer/eminiplayer-backfill.service.spec.ts
+  s_ebdd4fc7dee5d4::t_ab645d38ad8ac1 263-290
+  s_ebdd4fc7dee5d4::t_279764c4ad81ed 50-56,69-71
+backend/.env.example
+  s_ebdd4fc7dee5d4::t_213176ac3c5097 61-64
+backend/src/eminiplayer/eminiplayer-backfill.service.ts
+  s_ebdd4fc7dee5d4::t_209f0ff08a7a48 198-202,208,224,227,229,233,238
+  s_ebdd4fc7dee5d4::t_04068cd904f3bb 158-159,166,169-179
+  s_ebdd4fc7dee5d4::t_99ae65a4580d7e 273-278
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bb315e8963d252c16a6344ab347f67bcdf025f1d",
+  "prompts": {},
+  "sessions": {
+    "s_ebdd4fc7dee5d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4631d59c-336f-472e-b1b2-fc54bbd9e2e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
