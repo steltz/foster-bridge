@@ -132,6 +132,31 @@ export class BenchmarkRepository {
     return snap.docs.map((d) => d.data() as BenchmarkCell);
   }
 
+  /**
+   * Every cell across every model, for the content-drift comparison — a
+   * persona is frozen by ANY cell that ran on it, not just cells for the model
+   * currently being run, so this deliberately cannot be model-scoped like
+   * listCells. Projected to the identity + provenance fields: drift never
+   * reads setup/result, and those are the bulk of a cell's bytes.
+   */
+  async listCellsForDrift(): Promise<BenchmarkCell[]> {
+    const snap = await this.db
+      .collection(RUNS)
+      .select(
+        'trader',
+        'modelAlias',
+        'day',
+        'variant',
+        'runIndex',
+        'personaSha256',
+        'generalSha256',
+        'featureSha256',
+        'staticDocSha256',
+      )
+      .get();
+    return snap.docs.map((d) => d.data() as BenchmarkCell);
+  }
+
   async saveBatch(doc: BatchDoc): Promise<void> {
     await this.db.collection(BATCHES).doc(doc.batchId).set(doc as any);
   }

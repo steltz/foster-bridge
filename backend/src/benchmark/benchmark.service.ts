@@ -16,6 +16,8 @@ import { intervalToSeconds } from '../market-data/candle';
 import { hhmmToMinutes } from '../common/session-time';
 import { ALL_VARIANTS, SCORECARD_VARIANT, resolveModel, cellKey, parseCellKey, SETUP_SCHEMA, Variant } from './benchmark.types';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
+import { detectDrift, hasDrift, renderDrift, DriftInputs, DriftReport } from './drift';
+import { BenchmarkDriftError } from './benchmark.errors';
 
 // Symbol/interval the benchmark backtests against (see design §7).
 const SYMBOL = 'MES';
@@ -55,6 +57,27 @@ export class BenchmarkService {
     private readonly config: ConfigService,
   ) {}
 
+  /** Narrow RepoInputsService output to what the drift comparison reads. */
+  private driftInputs(traders: TraderInput[], features: FeatureInput[], generalSha256: string): DriftInputs {
+    return {
+      traders: traders.map((t) => ({ name: t.name, sha256: t.sha256 })),
+      general: { sha256: generalSha256 },
+      features: features.map((f) => ({ id: f.id, sha256: f.sha256, staticDocSha256: f.staticDocSha256 })),
+    };
+  }
+
+  /**
+   * Read-only drift check over the current files and every existing cell.
+   * Same comparison the run guard applies, without submitting anything —
+   * answers "is my scoreboard already mixed?" before spending a batch.
+   */
+  async checkDrift(): Promise<DriftReport> {
+    return detectDrift(
+      this.driftInputs(this.inputs.collectTraders(), this.inputs.collectFeatures(), this.inputs.collectGeneralDocs().sha256),
+      await this.repo.listCellsForDrift(),
+    );
+  }
+
   async run(opts: RunOptions = {}): Promise<RunSummary> {
     requireCapabilities(this.llm, ['batch', 'fileUpload', 'structuredOutput']);
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
@@ -67,6 +90,16 @@ export class BenchmarkService {
     const features = this.inputs.collectFeatures();
     const general = this.inputs.collectGeneralDocs();
     const featureById = new Map(features.map((f) => [f.id, f]));
+
+    // Content-drift guard, BEFORE any artifact upload or batch submission, so
+    // an abort leaves nothing touched. Compares every input file against the
+    // provenance hashes recorded on existing cells; see drift.ts.
+    const drift = detectDrift(this.driftInputs(traders, features, general.sha256), await this.repo.listCellsForDrift());
+    if (hasDrift(drift)) {
+      const message = renderDrift(drift);
+      this.logger.error(message);
+      throw new BenchmarkDriftError(drift, message);
+    }
 
     let days = this.inputs.collectDays();
     if (opts.days?.length) days = days.filter((d) => opts.days!.includes(d.day));

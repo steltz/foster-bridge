@@ -60,6 +60,7 @@ import { fakeFirestore } from './fake-firestore';
 import { BatchReconciler } from '../src/benchmark/batch-reconciler';
 import { ScoreboardService } from '../src/benchmark/scoreboard.service';
 import { BenchmarkRepository } from '../src/benchmark/benchmark.repository';
+import { RepoInputsService } from '../src/benchmark/repo-inputs.service';
 
 function fakeBucket() {
   const saved: Record<string, Buffer> = {};
@@ -218,5 +219,70 @@ describe('Benchmark (e2e)', () => {
     const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
     expect(sb.body.markdown).toContain('## context-trader @ fable [base]');
     expect((sb.body.json as any).groups[0].cellCount).toBe(2);
+  });
+
+  describe('content-drift guard', () => {
+    // A cell recording a persona hash that the seeded traders/context-trader.md
+    // cannot produce — i.e. the file was edited after this cell was benchmarked.
+    const staleCell = {
+      trader: 'context-trader', model: { alias: 'fable', id: 'claude-fable-5' }, modelAlias: 'fable',
+      day: '07012026', date: '2026-07-01', variant: 'base', runIndex: 1,
+      personaSha256: 'sha-from-a-since-edited-persona',
+      result: { status: 'TP' }, createdAt: '2026-07-01T00:00:00.000Z',
+    };
+
+    /**
+     * Boot, then seed a cell that differs from the seeded repo ONLY in its
+     * persona hash — its generalSha256 is the real one, read from the running
+     * app. A synthetic general hash would drift too and the assertions could
+     * not tell the two findings apart.
+     */
+    async function bootWithStaleCell() {
+      let db: any;
+      const moduleRef = await boot(async (d) => { db = d; });
+      const generalSha256 = moduleRef.get(RepoInputsService).collectGeneralDocs().sha256;
+      await db.collection('benchmarkRuns')
+        .doc('context-trader__fable__07012026__base__run1')
+        .set({ ...staleCell, generalSha256 });
+      return moduleRef;
+    }
+
+    it('rejects POST /benchmark/run with 409 and submits nothing', async () => {
+      batchState.status = 'ended';
+      const moduleRef = await bootWithStaleCell();
+      await request(app.getHttpServer()).post('/markets/MES/min-5/candles').attach('file', Buffer.from(fullCsv), 'mes.csv').expect(201);
+
+      const res = await request(app.getHttpServer())
+        .post('/benchmark/run')
+        .send({ model: 'fable', runCount: 2, variants: ['base'] })
+        .expect(409);
+      expect(res.body.message).toContain('context-trader');
+      expect(res.body.drift.findings[0]).toMatchObject({ family: 'persona', kind: 'file-drift' });
+
+      // Nothing queued: the only cell in the collection is still the seeded one,
+      // and no batch was created.
+      const status = await request(app.getHttpServer()).get('/benchmark/status').expect(200);
+      expect(status.body.batches).toHaveLength(0);
+      expect(await moduleRef.get(BenchmarkRepository).listCells('fable')).toHaveLength(1);
+    });
+
+    it('reports the same drift read-only via GET /benchmark/drift', async () => {
+      await bootWithStaleCell();
+      const res = await request(app.getHttpServer()).get('/benchmark/drift').expect(200);
+      expect(res.body.cellsExamined).toBe(1);
+      expect(res.body.findings).toHaveLength(1);
+      expect(res.body.findings[0]).toMatchObject({
+        family: 'persona',
+        identity: 'context-trader',
+        recorded: [{ sha256: 'sha-from-a-since-edited-persona', cellCount: 1 }],
+      });
+    });
+
+    it('reports no drift on a clean tree', async () => {
+      await boot();
+      const res = await request(app.getHttpServer()).get('/benchmark/drift').expect(200);
+      expect(res.body.findings).toEqual([]);
+      expect(res.body.cellsExamined).toBe(0);
+    });
   });
 });

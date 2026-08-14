@@ -1,9 +1,11 @@
-import { Body, Controller, Get, NotFoundException, Post, Query } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, NotFoundException, Post, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkService, RunSummary } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkRepository, ScoreboardDoc } from './benchmark.repository';
 import { Variant, resolveModel } from './benchmark.types';
+import { BenchmarkDriftError } from './benchmark.errors';
+import { DriftReport } from './drift';
 
 interface RunBody {
   model?: string;
@@ -25,13 +27,28 @@ export class BenchmarkController {
 
   @Post('run')
   async run(@Body() body: RunBody): Promise<RunSummary> {
-    return this.benchmark.run({
-      model: body.model,
-      days: body.days,
-      runCount: body.runCount,
-      variants: body.variants,
-      regenerateKeys: body.regenerateKeys,
-    });
+    try {
+      return await this.benchmark.run({
+        model: body.model,
+        days: body.days,
+        runCount: body.runCount,
+        variants: body.variants,
+        regenerateKeys: body.regenerateKeys,
+      });
+    } catch (err) {
+      // 409: a benchmarked input file changed. Nothing was submitted; the fix
+      // is a new file (or reverting the edit), never a retry.
+      if (err instanceof BenchmarkDriftError) {
+        throw new ConflictException({ message: err.message, drift: err.report });
+      }
+      throw err;
+    }
+  }
+
+  /** Read-only: does the current tree disagree with what existing cells recorded? */
+  @Get('drift')
+  async drift(): Promise<DriftReport> {
+    return this.benchmark.checkDrift();
   }
 
   @Get('status')

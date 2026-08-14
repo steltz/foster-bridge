@@ -52,6 +52,29 @@ overrides. The grade-discrimination rule lives in
 Runs go through the Batch API and reconcile asynchronously — poll
 `GET /benchmark/status` rather than expecting `run` to return finished cells.
 
+### Content-drift guard
+
+```
+GET /benchmark/drift          read-only report; {} findings means clean
+```
+
+Every cell records the sha256 of the inputs it ran under (persona, general
+docs, feature body, feature staticDoc). `POST /benchmark/run` compares the
+current files against those hashes **before** uploading or submitting anything
+and returns **409** if they disagree — otherwise an edited persona's new runs
+would average into the same scoreboard row as the old persona's, since the
+scoreboard groups by `(trader, alias, variant)` with no hash in the key.
+
+Two conditions are reported: `file-drift` (a file changed after cells were
+written) and `internal-drift` (existing cells disagree with each other, so a row
+is *already* mixed). `GET /benchmark/drift` runs the same comparison without
+submitting, for checking before spending a batch.
+
+There is deliberately **no bypass flag**. The remedy is a new file, or reverting
+the edit. Intentionally starting a new benchmark era means retiring the existing
+cells — there is no endpoint for that today, so it is a manual Firestore
+operation.
+
 ### Backtest — the sole judge of a setup
 
 ```
@@ -89,12 +112,11 @@ GET /costs/report      HTML cost dashboard
 
 Personas are files, not a service operation: add a `traders/*.md` directly.
 Keep the `origin` / `mutation` lineage frontmatter — the scoreboard renders the
-family tree from those fields. Treat a trader file as **immutable once
-benchmarked**: refining a persona means a new file, never an edit to an existing
-one, so that recorded cells keep meaning what they meant when they ran. This is
-a convention, not something the backend enforces — the old `trader-bench` skill
-hash-guarded it and the port did not carry that guard over.
-`.claude/skills/trader-spawn/SKILL.md` still documents the conventions.
+family tree from those fields. Trader files are **immutable once benchmarked**:
+refining a persona means a new file, never an edit to an existing one, so that
+recorded cells keep meaning what they meant when they ran. The backend enforces
+this — see the drift guard below. `.claude/skills/trader-spawn/SKILL.md` still
+documents the conventions.
 
 Never carry a persona list over from a previous run or a previous message; the
 set on disk is the only source of truth.

@@ -10,6 +10,7 @@ import { EnvelopeBuilder } from './envelope.builder';
 import { FakeLlmProvider } from '../llm/fake-llm.provider';
 import { LLM_PROVIDER } from '../llm/llm.constants';
 import { SETUP_SCHEMA } from './benchmark.types';
+import { BenchmarkDriftError } from './benchmark.errors';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
@@ -25,6 +26,9 @@ function makeDeps() {
     existingRunIndices: jest.fn().mockResolvedValue([]),
     nonTerminalBatches: jest.fn().mockResolvedValue([]),
     saveBatch: jest.fn().mockResolvedValue(undefined),
+    // No prior cells => nothing for the drift guard to disagree with; the
+    // guard's own behavior is covered in drift.spec.ts and below.
+    listCellsForDrift: jest.fn().mockResolvedValue([]),
   };
   const inputs = {
     collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null, file: 'context-trader.md', content: 'P', sha256: 'psha' }]),
@@ -301,5 +305,81 @@ describe('BenchmarkService.run', () => {
     deps.fake.capabilities = { batch: false, fileUpload: true, promptCaching: true, structuredOutput: true };
     const svc = await build(deps);
     await expect(svc.run({})).rejects.toThrow(/lacks required capabilities: batch/);
+  });
+
+  describe('content-drift guard', () => {
+    // makeDeps' trader hashes to 'psha'; a cell recording anything else means
+    // the persona file was edited after that cell was benchmarked.
+    const editedPersonaCell = {
+      trader: 'context-trader', modelAlias: 'fable', day: '07012026', variant: 'base', runIndex: 1,
+      personaSha256: 'psha-BEFORE-EDIT', generalSha256: 'gsha',
+    };
+
+    it('aborts the run when a benchmarked persona file has changed', async () => {
+      const deps = makeDeps();
+      deps.repo.listCellsForDrift.mockResolvedValue([editedPersonaCell]);
+      jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      const svc = await build(deps);
+      await expect(svc.run({ runCount: 1, variants: ['base'] })).rejects.toBeInstanceOf(BenchmarkDriftError);
+      jest.restoreAllMocks();
+    });
+
+    it('submits nothing and uploads nothing when it aborts', async () => {
+      const deps = makeDeps();
+      deps.repo.listCellsForDrift.mockResolvedValue([editedPersonaCell]);
+      jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      const svc = await build(deps);
+      await expect(svc.run({ runCount: 1, variants: ['base'] })).rejects.toThrow();
+      // The whole point of guarding before the day loop: nothing was touched.
+      expect(deps.fake.submittedBatches).toHaveLength(0);
+      expect(deps.repo.saveBatch).not.toHaveBeenCalled();
+      expect(deps.dayArtifacts.ensurePdf).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
+
+    it('names the trader, both hashes and the remedy in the error', async () => {
+      const deps = makeDeps();
+      deps.repo.listCellsForDrift.mockResolvedValue([editedPersonaCell]);
+      jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      const svc = await build(deps);
+      const err: BenchmarkDriftError = await svc
+        .run({ runCount: 1, variants: ['base'] })
+        .then(() => { throw new Error('expected the drift guard to abort the run'); })
+        .catch((e) => e);
+      expect(err.message).toContain('context-trader');
+      expect(err.message).toContain('psha-BEFORE-EDIT');
+      expect(err.message).toContain('psha');
+      expect(err.report.findings[0]).toMatchObject({ family: 'persona', kind: 'file-drift' });
+      jest.restoreAllMocks();
+    });
+
+    it('proceeds normally when existing cells agree with the current files', async () => {
+      const deps = makeDeps();
+      deps.repo.listCellsForDrift.mockResolvedValue([{ ...editedPersonaCell, personaSha256: 'psha', generalSha256: 'gsha' }]);
+      const svc = await build(deps);
+      const summary = await svc.run({ runCount: 1, variants: ['base'] });
+      expect(summary.batchesSubmitted).toBeGreaterThan(0);
+    });
+  });
+
+  describe('checkDrift', () => {
+    it('reports drift without submitting anything', async () => {
+      const deps = makeDeps();
+      deps.repo.listCellsForDrift.mockResolvedValue([
+        { trader: 'context-trader', modelAlias: 'fable', day: '07012026', variant: 'base', runIndex: 1,
+          personaSha256: 'psha-BEFORE-EDIT', generalSha256: 'gsha' },
+      ]);
+      const svc = await build(deps);
+      const report = await svc.checkDrift();
+      expect(report.findings).toHaveLength(1);
+      expect(report.cellsExamined).toBe(1);
+      expect(deps.fake.submittedBatches).toHaveLength(0);
+    });
+
+    it('returns an empty report for a clean tree', async () => {
+      const deps = makeDeps();
+      const svc = await build(deps);
+      expect((await svc.checkDrift()).findings).toEqual([]);
+    });
   });
 });
