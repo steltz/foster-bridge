@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EminiplayerService } from './eminiplayer.service';
 import { EminiplayerIngestService, IngestResult } from './eminiplayer-ingest.service';
@@ -68,7 +68,7 @@ class BackfillDayTimeoutError extends Error {
  * a hung socket can't wedge the singleton.
  */
 @Injectable()
-export class EminiplayerBackfillService implements OnApplicationShutdown {
+export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicationShutdown {
   private readonly logger = new Logger(EminiplayerBackfillService.name);
   private job: BackfillJobSnapshot | null = null;
   private cancelRequested = false;
@@ -81,9 +81,23 @@ export class EminiplayerBackfillService implements OnApplicationShutdown {
     private readonly config: ConfigService,
   ) {}
 
-  /** A 19-hour run WILL meet a SIGTERM: stop starting days so the loop drains. */
+  /**
+   * A 19-hour run WILL meet a SIGTERM. Nest calls onModuleDestroy first (the
+   * phase where PlaywrightService latches shut), then onApplicationShutdown —
+   * setting the flag in BOTH phases guarantees no further days start no
+   * matter the provider ordering; the destroyed Playwright latch cuts the
+   * in-flight day short.
+   */
+  onModuleDestroy(): void {
+    this.requestShutdownCancel();
+  }
+
   onApplicationShutdown(): void {
-    if (this.job?.state === 'running') {
+    this.requestShutdownCancel();
+  }
+
+  private requestShutdownCancel(): void {
+    if (this.job?.state === 'running' && !this.cancelRequested) {
       this.logger.log('shutdown: cancelling the running backfill job');
       this.cancelRequested = true;
     }
