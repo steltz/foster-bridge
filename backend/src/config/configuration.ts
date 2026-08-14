@@ -41,6 +41,7 @@ export interface AppConfig {
     backfillDelayMs: number;
     backfillDayTimeoutMs: number;
     backfillToken?: string;
+    backfillMaxConsecutiveStageFailures: number;
   };
 }
 
@@ -144,5 +145,13 @@ export default (): AppConfig => ({
     // When set, POST/DELETE /eminiplayer/backfill require a matching
     // x-backfill-token header (`|| undefined` convention: empty = unset).
     backfillToken: process.env.EMINIPLAYER_BACKFILL_TOKEN || undefined,
+    // Circuit breaker: aborts the job after N consecutive stage failures — a
+    // broken session/YouTube throttle at hour 6 must not burn the remaining
+    // thousands of days. `||`, not `??`: same copied-.env.example convention
+    // as the other backfill keys above.
+    backfillMaxConsecutiveStageFailures: parseInt(
+      process.env.EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES || '20',
+      10,
+    ),
   },
 });

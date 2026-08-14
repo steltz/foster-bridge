@@ -206,6 +206,7 @@ describe('configuration (eminiplayer)', () => {
     delete process.env.EMINIPLAYER_BACKFILL_DELAY_MS;
     delete process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS;
     delete process.env.EMINIPLAYER_BACKFILL_TOKEN;
+    delete process.env.EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES;
   });
   afterAll(() => {
     process.env = OLD_ENV;
@@ -224,6 +225,7 @@ describe('configuration (eminiplayer)', () => {
     expect(cfg.eminiplayer.backfillDelayMs).toBe(2000);
     expect(cfg.eminiplayer.backfillDayTimeoutMs).toBe(600000);
     expect(cfg.eminiplayer.backfillToken).toBeUndefined();
+    expect(cfg.eminiplayer.backfillMaxConsecutiveStageFailures).toBe(20);
   });
 
   it('reads env overrides and EMINIPLAYER_HEADLESS=false', () => {
@@ -234,6 +236,7 @@ describe('configuration (eminiplayer)', () => {
     process.env.EMINIPLAYER_BACKFILL_DELAY_MS = '500';
     process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS = '30000';
     process.env.EMINIPLAYER_BACKFILL_TOKEN = 'hunter2';
+    process.env.EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES = '3';
     const cfg = configuration();
     expect(cfg.eminiplayer).toEqual({
       username: 'user@example.com',
@@ -244,6 +247,7 @@ describe('configuration (eminiplayer)', () => {
       backfillDelayMs: 500,
       backfillDayTimeoutMs: 30000,
       backfillToken: 'hunter2',
+      backfillMaxConsecutiveStageFailures: 3,
     });
   });
 
@@ -268,9 +272,11 @@ describe('configuration (eminiplayer)', () => {
     process.env.EMINIPLAYER_BACKFILL_DELAY_MS = '';
     process.env.EMINIPLAYER_BACKFILL_DAY_TIMEOUT_MS = '';
     process.env.EMINIPLAYER_BACKFILL_TOKEN = '';
+    process.env.EMINIPLAYER_BACKFILL_MAX_CONSECUTIVE_STAGE_FAILURES = '';
     const cfg = configuration();
     expect(cfg.eminiplayer.backfillDelayMs).toBe(2000);
     expect(cfg.eminiplayer.backfillDayTimeoutMs).toBe(600000);
     expect(cfg.eminiplayer.backfillToken).toBeUndefined();
+    expect(cfg.eminiplayer.backfillMaxConsecutiveStageFailures).toBe(20);
   });
 });

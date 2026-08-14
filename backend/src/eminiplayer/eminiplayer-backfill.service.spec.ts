@@ -47,7 +47,13 @@ function result(date: string, fromManifest = false): IngestResult {
 const FAR_FUTURE = new Date('2030-01-01T00:00:00Z').getTime();
 
 function build(
-  overrides: { ingest?: jest.Mock; rows?: RawArchiveRow[]; nowMs?: number; dayTimeoutMs?: number } = {},
+  overrides: {
+    ingest?: jest.Mock;
+    rows?: RawArchiveRow[];
+    nowMs?: number;
+    dayTimeoutMs?: number;
+    maxConsecutiveStageFailures?: number;
+  } = {},
 ) {
   const eminiplayer = {
     fetchArchiveRows: jest.fn(() => Promise.resolve(overrides.rows ?? ROWS)),
@@ -60,6 +66,9 @@ function build(
     get: jest.fn((key: string) => {
       if (key === 'eminiplayer.backfillDelayMs') return 5;
       if (key === 'eminiplayer.backfillDayTimeoutMs') return overrides.dayTimeoutMs ?? 60_000;
+      if (key === 'eminiplayer.backfillMaxConsecutiveStageFailures') {
+        return overrides.maxConsecutiveStageFailures ?? 20;
+      }
       return undefined;
     }),
   } as unknown as ConfigService;
@@ -249,6 +258,34 @@ describe('EminiplayerBackfillService — resilience', () => {
     for (const call of ingest.ingest.mock.calls) {
       expect(call[2]).toBeUndefined(); // fresh resolve inside ingest instead
     }
+  });
+
+  it('aborts the job after N consecutive stage failures instead of burning the whole range', async () => {
+    const ingestMock = jest.fn(() =>
+      Promise.reject(new IngestStageError('transcribe', 'recap', new Error('youtube 429'))),
+    );
+    const { service } = build({ ingest: ingestMock, maxConsecutiveStageFailures: 2 });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toMatch(/consecutive stage failures/);
+    expect(job.counts.failed).toBe(2); // breaker fired before day 3
+    expect(ingestMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('a non-stage success between stage failures resets the consecutive-failure counter', async () => {
+    const ingestMock = jest.fn((date: string) => {
+      if (date === '08122026') return Promise.resolve(result(date));
+      return Promise.reject(new IngestStageError('transcribe', 'recap', new Error('youtube 429')));
+    });
+    const { service } = build({ ingest: ingestMock, maxConsecutiveStageFailures: 2 });
+    service.start('08112026', '08132026');
+    await settle(service);
+    const job = service.status()!;
+    expect(job.state).toBe('done'); // the counter reset on the 08/12 success
+    expect(job.counts.failed).toBe(2);
+    expect(ingestMock).toHaveBeenCalledTimes(3);
   });
 
   it('cancel during a day lets it finish, starts no further days, ends cancelled', async () => {

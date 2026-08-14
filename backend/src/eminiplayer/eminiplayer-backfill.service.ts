@@ -155,15 +155,28 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
       job.counts.candidates = dates.length;
       const scrapeTime = this.now();
       this.logger.log(`backfill ${job.from}..${job.to}: ${dates.length} candidate days`);
+      const maxConsecutiveStageFailures = this.maxConsecutiveStageFailures();
+      let consecutiveStageFailures = 0;
       for (const date of dates) {
         if (this.cancelRequested) {
           job.state = 'cancelled';
           break;
         }
         job.currentDate = date;
-        const touchedNetwork = await this.runDay(job, rows, date, scrapeTime);
+        const { touchedNetwork, failureKind } = await this.runDay(job, rows, date, scrapeTime);
         job.counts.processed += 1;
         job.currentDate = null;
+        if (failureKind === 'stage') {
+          consecutiveStageFailures += 1;
+        } else {
+          consecutiveStageFailures = 0;
+        }
+        if (consecutiveStageFailures >= maxConsecutiveStageFailures) {
+          job.state = 'failed';
+          job.error = `aborted after ${maxConsecutiveStageFailures} consecutive stage failures — investigate before re-POSTing`;
+          this.logger.error(job.error);
+          break;
+        }
         if (touchedNetwork) await this.sleep(this.delayMs());
       }
       if (job.state === 'running') job.state = 'done';
@@ -182,13 +195,17 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
     }
   }
 
-  /** Returns whether the day touched the network (drives the politeness delay). */
+  /**
+   * Returns whether the day touched the network (drives the politeness
+   * delay) and its failure kind (null on success) — feeds the caller's
+   * consecutive-stage-failure circuit breaker.
+   */
   private async runDay(
     job: BackfillJobSnapshot,
     rows: RawArchiveRow[],
     date: string,
     scrapeTime: number,
-  ): Promise<boolean> {
+  ): Promise<{ touchedNetwork: boolean; failureKind: BackfillFailureKind | null }> {
     let ingestInvoked = false;
     try {
       // Frontier days (within the recap lookback of the scrape moment) must
@@ -204,20 +221,21 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
       );
       if (result.fromManifest) {
         job.counts.skipped += 1;
-        return false; // served entirely from the manifest — no site traffic
+        return { touchedNetwork: false, failureKind: null }; // served entirely from the manifest — no site traffic
       }
       job.counts.uploaded += 1;
-      return true;
+      return { touchedNetwork: true, failureKind: null };
     } catch (err) {
+      const kind = this.classify(err);
       job.counts.failed += 1;
       job.failures.push({
         date,
-        kind: this.classify(err),
+        kind,
         message: (err as Error).message,
       });
       this.logger.warn(`backfill day ${date} failed: ${(err as Error).message}`);
       // A pure selectDayEntries throw touched nothing — no delay owed.
-      return ingestInvoked;
+      return { touchedNetwork: ingestInvoked, failureKind: kind };
     }
   }
 
@@ -250,6 +268,12 @@ export class EminiplayerBackfillService implements OnModuleDestroy, OnApplicatio
 
   private delayMs(): number {
     return this.config.get<number>('eminiplayer.backfillDelayMs') ?? 2000;
+  }
+
+  private maxConsecutiveStageFailures(): number {
+    return (
+      this.config.get<number>('eminiplayer.backfillMaxConsecutiveStageFailures') ?? 20
+    );
   }
 
   private sleep(ms: number): Promise<void> {
