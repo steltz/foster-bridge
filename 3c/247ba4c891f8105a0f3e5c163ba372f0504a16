@@ -1,0 +1,32 @@
+.claude/skills/trader-panel/SKILL.md
+  s_20e6d3b9e238e5::t_1671697ec1092e 6-12
+.claude/skills/ingest-ticker-data/SKILL.md
+  s_20e6d3b9e238e5::t_ce481892792a78 6-10
+.claude/settings.json
+  s_20e6d3b9e238e5::t_acb7dd1f3d9f66 1-10
+.claude/skills/seven-keys/SKILL.md
+  s_20e6d3b9e238e5::t_28a5b83c79a8e2 6-11
+CLAUDE.md
+  s_20e6d3b9e238e5::t_a5962fa48e2781 1-91,98-100
+  s_20e6d3b9e238e5::t_0e9a201455411b 92-97
+.claude/skills/trader-spawn/SKILL.md
+  s_20e6d3b9e238e5::t_b6c814a31f9277 6-11
+.claude/skills/trader-bench/SKILL.md
+  s_20e6d3b9e238e5::t_8325f3cbc141d1 6-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3c247ba4c891f8105a0f3e5c163ba372f0504a16",
+  "prompts": {},
+  "sessions": {
+    "s_20e6d3b9e238e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d543d967-5473-448a-b899-34dbac3d6720",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
