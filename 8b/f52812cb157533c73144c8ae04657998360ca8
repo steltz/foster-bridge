@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-08-14-eminiplayer-bulk-backfill.md
+  s_ebdd4fc7dee5d4::t_8a0b2636c5a95c 1-1083
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8bf52812cb157533c73144c8ae04657998360ca8",
+  "prompts": {},
+  "sessions": {
+    "s_ebdd4fc7dee5d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4631d59c-336f-472e-b1b2-fc54bbd9e2e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
