@@ -1,0 +1,40 @@
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_20e6d3b9e238e5::t_9caca8916bbc87 100-102
+  s_20e6d3b9e238e5::t_dfecdfe2dc8d69 257-259,269
+  s_20e6d3b9e238e5::t_1e551859b95c37 179-188,197-204,207-208,210,214-227
+  s_20e6d3b9e238e5::t_869311289bb786 228
+CLAUDE.md
+  s_20e6d3b9e238e5::t_c43e6bf13352e5 52-61
+backend/src/benchmark/benchmark.repository.spec.ts
+  s_20e6d3b9e238e5::t_382c647519603a 137,139,142,144-194
+backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
+  s_20e6d3b9e238e5::t_5ffab17bb63efa 132
+  s_20e6d3b9e238e5::t_c5b30fb426f970 167
+  s_20e6d3b9e238e5::t_99a516d274310e 273,276-277,285-302,304-306,311-312
+  s_20e6d3b9e238e5::t_d3e1d588e0afd9 149,156-158
+  s_20e6d3b9e238e5::t_2dca3d988d15af 60-66
+  s_20e6d3b9e238e5::t_a616a9198f2ac1 256-257
+  s_20e6d3b9e238e5::t_5a4e735cbe173a 359,364,368
+  s_20e6d3b9e238e5::t_a1f96a46d7ae92 391,400,405-407,409,415,420,426
+  s_20e6d3b9e238e5::t_dda7ab440fed75 320,329,333,342
+backend/src/benchmark/benchmark.repository.ts
+  s_20e6d3b9e238e5::t_15223a16e5b114 4
+  s_20e6d3b9e238e5::t_340b4ed22e806c 188-210
+  s_20e6d3b9e238e5::t_2d3048b5c7c5a9 118-122,128-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4fa2cdfed2b3e9736d894db85c19b5b70607aeeb",
+  "prompts": {},
+  "sessions": {
+    "s_20e6d3b9e238e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d543d967-5473-448a-b899-34dbac3d6720",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
