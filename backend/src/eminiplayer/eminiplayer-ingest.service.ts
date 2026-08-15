@@ -73,6 +73,11 @@ interface ProducedTranscript {
   record: FileRecord;
 }
 
+interface ResolvedVideo {
+  videoId: string;
+  title: string;
+}
+
 interface ProducedPdf {
   storagePath: string;
   buf: Buffer;
@@ -201,17 +206,34 @@ export class EminiplayerIngestService {
     force: boolean,
     entries: DayEntries,
   ): Promise<IngestResult> {
+    // Resolve both videos first — page load, id extraction, title gate — then
+    // probe their claims. Everything after this is expensive (transcription,
+    // two LLM verdicts, a pdf download), and a video already owned by another
+    // day fails all of it at the commit anyway. One batched read buys that
+    // whole cost back.
+    const recapVideo = await this.resolveVideo('recap', entries.recap, recapDate);
+    const tradePlanVideo = await this.resolveVideo('tradePlanMd', entries.tradePlan, date);
+    const conflict = await this.stage('plan', 'archive', () =>
+      this.manifest.findClaimConflict(date, [
+        { videoId: recapVideo.videoId, slot: 'recap' },
+        { videoId: tradePlanVideo.videoId, slot: 'tradePlan' },
+      ]),
+    );
+    // Advisory: commit still runs the transactional claim, which is what makes
+    // a race between this probe and that write safe.
+    if (conflict) throw new IngestValidationError(conflict);
+
     const staleRecapsRemoved = await this.removeStaleRecaps(paths.dir, paths.recap);
 
     // Produce AND verify everything before a single byte is uploaded. Each
     // artifact verifies as soon as it is produced so a bad recap costs no pdf
     // download, but no upload happens until all three have passed.
-    const recap = await this.produceTranscript('recap', paths.recap, force, entries.recap, recapDate);
+    const recap = await this.produceTranscript('recap', paths.recap, force, recapVideo, recapDate);
     const tradePlanMd = await this.produceTranscript(
       'tradePlanMd',
       paths.tradePlanMd,
       force,
-      entries.tradePlan,
+      tradePlanVideo,
       date,
     );
     const tradePlanPdf = await this.producePdf(paths.tradePlanPdf, force, entries.tradePlan);
@@ -301,14 +323,16 @@ export class EminiplayerIngestService {
     return artifact === 'recap' ? 'recap' : 'tradePlan';
   }
 
-  private async produceTranscript(
+  /**
+   * The cheap half of producing a transcript: find the video and gate its
+   * title. Split from production so both videos can be resolved — and their
+   * claims probed — before any expensive work begins.
+   */
+  private async resolveVideo(
     artifact: 'recap' | 'tradePlanMd',
-    storagePath: string,
-    force: boolean,
     entry: ArchiveEntry,
     expectedDate: string,
-  ): Promise<ProducedTranscript> {
-    const flavor = this.flavorOf(artifact);
+  ): Promise<ResolvedVideo> {
     const youtubeUrl = await this.stage('resolve', artifact, () =>
       this.eminiplayer.getYoutubeUrl(entry.pageUrl),
     );
@@ -326,8 +350,19 @@ export class EminiplayerIngestService {
       }
       throw new IngestStageError('verify', artifact, err as Error);
     }
-    assertVideoTitle(title, expectedDate, flavor);
+    assertVideoTitle(title, expectedDate, this.flavorOf(artifact));
+    return { videoId, title };
+  }
 
+  private async produceTranscript(
+    artifact: 'recap' | 'tradePlanMd',
+    storagePath: string,
+    force: boolean,
+    video: ResolvedVideo,
+    expectedDate: string,
+  ): Promise<ProducedTranscript> {
+    const flavor = this.flavorOf(artifact);
+    const { videoId, title } = video;
     const file = this.bucket.file(storagePath);
     let markdown: string;
     const [exists] = force

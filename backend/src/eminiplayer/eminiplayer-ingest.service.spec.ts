@@ -188,6 +188,7 @@ async function build({
     exists: jest.fn(() => Promise.resolve(committed !== null)),
     delete: jest.fn(() => Promise.resolve()),
     commit: jest.fn((_manifest: DayManifest) => Promise.resolve()),
+    findClaimConflict: jest.fn(() => Promise.resolve<string | null>(null)),
   };
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -528,5 +529,48 @@ describe('EminiplayerIngestService.ingest', () => {
     const result = await service.ingest(DATE);
     expect(result.fromManifest).toBe(true);
     expect(result.files.recap.status).toBe('skipped');
+  });
+});
+
+describe('EminiplayerIngestService video-claim pre-check', () => {
+  it('probes both resolved video ids before doing any expensive work', async () => {
+    const { service, manifest, transcript } = await build();
+    await service.ingest(DATE);
+    expect(manifest.findClaimConflict).toHaveBeenCalledWith(DATE, [
+      { videoId: 'recapVid0001', slot: 'recap' },
+      { videoId: 'tpVid0000001', slot: 'tradePlan' },
+    ]);
+    // Resolution is cheap, transcription is not: the probe must come first.
+    expect(manifest.findClaimConflict.mock.invocationCallOrder[0]).toBeLessThan(
+      transcript.fetchSegments.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('a claimed video 422s before transcribing, downloading, or uploading anything', async () => {
+    const { service, manifest, transcript, eminiplayer, bucket } = await build();
+    manifest.findClaimConflict.mockResolvedValue(
+      'video tpVid0000001 is already claimed by 06302026/recap — the same video cannot serve two day groups',
+    );
+
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+
+    expect(transcript.fetchSegments).not.toHaveBeenCalled();
+    expect(eminiplayer.downloadTradePlanPdf).not.toHaveBeenCalled();
+    expect(written(bucket)).toEqual([]);
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('surfaces the probe message verbatim so the failure reads identically either way', async () => {
+    const { service, manifest } = await build();
+    manifest.findClaimConflict.mockResolvedValue('video X is already claimed by 06302026/recap');
+    const err = (await service.ingest(DATE).catch((e: Error) => e)) as Error;
+    expect(err.message).toBe('video X is already claimed by 06302026/recap');
+  });
+
+  it('a clean probe is advisory only — commit still runs its own transactional claim', async () => {
+    const { service, manifest } = await build();
+    manifest.commit.mockRejectedValue(new IngestValidationError('raced: claimed after the probe'));
+    await expect(service.ingest(DATE)).rejects.toThrow(/raced/);
+    expect(manifest.commit).toHaveBeenCalled();
   });
 });

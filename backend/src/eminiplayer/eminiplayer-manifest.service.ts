@@ -46,6 +46,28 @@ export interface DayManifest {
 export const VIDEO_IDS_COLLECTION = 'eminiplayer-video-ids';
 
 /**
+ * Single source of the conflict wording. The commit transaction and the
+ * read-only pre-check both diagnose the same state, so they must describe it
+ * with the same sentence — a drift between them would read as two different
+ * problems in the backfill's failure list.
+ */
+function claimConflict(
+  videoId: string,
+  slot: string,
+  date: string,
+  snap: { exists: boolean; data(): unknown },
+): string | null {
+  if (!snap.exists) return null;
+  const owner = snap.data() as { date: string; slot: string };
+  if (owner.date === date && owner.slot === slot) return null; // idempotent re-claim
+  return `video ${videoId} is already claimed by ${owner.date}/${owner.slot} — the same video cannot serve two day groups`;
+}
+
+function sameVideoConflict(videoId: string): string {
+  return `recap and trade-plan videos resolve to the same id ${videoId} — a single video cannot serve both slots`;
+}
+
+/**
  * The manifest is the day group's commit record and the consumers' trust
  * gate: written last, only after every check passed. The Firestore video-id
  * collection guarantees the same YouTube video can never serve two day
@@ -104,9 +126,7 @@ export class EminiplayerManifestService {
     // same document — the second write would silently win, and the conflict
     // check would report the day as conflicting with itself.
     if (recapVideoId === tradePlanVideoId) {
-      throw new IngestValidationError(
-        `recap and trade-plan videos resolve to the same id ${recapVideoId} — a single video cannot serve both slots`,
-      );
+      throw new IngestValidationError(sameVideoConflict(recapVideoId));
     }
     await this.claim(manifest.date, [
       { videoId: recapVideoId, slot: 'recap' },
@@ -115,6 +135,32 @@ export class EminiplayerManifestService {
     await this.bucket
       .file(this.path(manifest.date))
       .save(JSON.stringify(manifest, null, 2), { contentType: 'application/json' });
+  }
+
+  /**
+   * The conflict `commit` WOULD raise for these claims, or null if it would
+   * succeed. Read-only and advisory: the transactional claim inside `commit`
+   * stays the real guard, since another day can take a video between this
+   * probe and that transaction.
+   *
+   * Its value is cost, not correctness. A collision discovered at commit has
+   * already paid for two transcriptions and two LLM verdicts; discovered here,
+   * before any of that work, it costs one batched read.
+   */
+  async findClaimConflict(
+    date: string,
+    entries: ReadonlyArray<{ videoId: string; slot: 'recap' | 'tradePlan' }>,
+  ): Promise<string | null> {
+    const sameId = entries.find((e, i) => entries.findIndex((o) => o.videoId === e.videoId) !== i);
+    if (sameId) return sameVideoConflict(sameId.videoId);
+    const collection = this.firestore.collection(VIDEO_IDS_COLLECTION);
+    const refs = entries.map((entry) => collection.doc(entry.videoId));
+    const snaps = await this.firestore.getAll(...refs);
+    for (const [i, snap] of snaps.entries()) {
+      const conflict = claimConflict(entries[i].videoId, entries[i].slot, date, snap);
+      if (conflict) return conflict;
+    }
+    return null;
   }
 
   /**
@@ -136,12 +182,9 @@ export class EminiplayerManifestService {
       const snaps = await Promise.all(refs.map(({ ref }) => tx.get(ref)));
       const toWrite = refs.filter(({ videoId, slot }, i) => {
         const snap = snaps[i];
-        if (!snap.exists) return true;
-        const owner = snap.data() as { date: string; slot: string };
-        if (owner.date === date && owner.slot === slot) return false; // idempotent re-claim
-        throw new IngestValidationError(
-          `video ${videoId} is already claimed by ${owner.date}/${owner.slot} — the same video cannot serve two day groups`,
-        );
+        const conflict = claimConflict(videoId, slot, date, snap);
+        if (conflict) throw new IngestValidationError(conflict);
+        return !snap.exists; // an existing snap here is this day's own re-claim
       });
       const claimedAt = new Date().toISOString();
       for (const { ref, slot } of toWrite) tx.set(ref, { date, slot, claimedAt });

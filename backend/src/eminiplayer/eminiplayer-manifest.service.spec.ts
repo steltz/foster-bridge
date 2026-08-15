@@ -57,6 +57,10 @@ function makeFakes(
   const docRefs = new Map<string, { id: string }>();
   const txSets: Array<[string, unknown]> = [];
   const txDeletes: string[] = [];
+  const snapOf = (ref: { id: string }) =>
+    claims[ref.id]
+      ? { exists: true, data: () => claims[ref.id] }
+      : { exists: false, data: () => undefined };
   const firestore = {
     collection: jest.fn(() => ({
       doc: jest.fn((id: string) => {
@@ -64,6 +68,7 @@ function makeFakes(
         return docRefs.get(id);
       }),
     })),
+    getAll: jest.fn((...refs: Array<{ id: string }>) => Promise.resolve(refs.map(snapOf))),
     runTransaction: jest.fn(async (fn: (tx: unknown) => Promise<void>) => {
       const tx = {
         get: jest.fn((ref: { id: string }) =>
@@ -221,5 +226,48 @@ describe('EminiplayerManifestService', () => {
     const fakes = makeFakes({}, MANIFEST);
     const { service } = await build(fakes);
     await expect(service.exists('07012026')).resolves.toBe(true);
+  });
+});
+
+describe('EminiplayerManifestService.findClaimConflict', () => {
+  const CLAIMS = [
+    { videoId: 'recapVid0001', slot: 'recap' as const },
+    { videoId: 'tpVid0000001', slot: 'tradePlan' as const },
+  ];
+
+  it('returns null when neither video is claimed', async () => {
+    const { service } = await build();
+    await expect(service.findClaimConflict('07012026', CLAIMS)).resolves.toBeNull();
+  });
+
+  it('returns null for this day\'s own idempotent re-claim', async () => {
+    const { service } = await build(
+      makeFakes({
+        recapVid0001: { date: '07012026', slot: 'recap' },
+        tpVid0000001: { date: '07012026', slot: 'tradePlan' },
+      }),
+    );
+    await expect(service.findClaimConflict('07012026', CLAIMS)).resolves.toBeNull();
+  });
+
+  it('reports the SAME message commit would raise when another day owns the video', async () => {
+    const owned = { tpVid0000001: { date: '06302026', slot: 'recap' } };
+    const { service } = await build(makeFakes(owned));
+
+    const conflict = await service.findClaimConflict('07012026', CLAIMS);
+
+    // The pre-check exists to fail early with the identical diagnosis, so the
+    // two paths must never drift into describing the same state differently.
+    const fromCommit = await service.commit(MANIFEST).catch((e: Error) => e.message);
+    expect(conflict).toBe(
+      'video tpVid0000001 is already claimed by 06302026/recap — the same video cannot serve two day groups',
+    );
+    expect(conflict).toBe(fromCommit);
+  });
+
+  it('never writes a claim — it is a read-only probe', async () => {
+    const { service, txSets } = await build();
+    await service.findClaimConflict('07012026', CLAIMS);
+    expect(txSets).toEqual([]);
   });
 });
