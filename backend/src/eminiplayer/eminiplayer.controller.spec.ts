@@ -11,6 +11,7 @@ import { Test } from '@nestjs/testing';
 import { EminiplayerController } from './eminiplayer.controller';
 import { EminiplayerAuditService } from './eminiplayer-audit.service';
 import { EminiplayerIngestService } from './eminiplayer-ingest.service';
+import { EminiplayerPruneService } from './eminiplayer-prune.service';
 import {
   BackfillAlreadyRunningError,
   EminiplayerBackfillService,
@@ -60,6 +61,11 @@ async function build(cfg: Record<string, unknown> = {}) {
   backfill.start.mockReturnValue(JOB);
   backfill.status.mockReturnValue(JOB);
   backfill.cancel.mockReturnValue(JOB);
+  const prune = {
+    prune: jest.fn(() =>
+      Promise.resolve({ apply: false, daysScanned: 0, prunedDays: [], deleted: 0 }),
+    ),
+  };
   const config = { get: jest.fn((key: string) => cfg[key]) };
   const moduleRef = await Test.createTestingModule({
     controllers: [EminiplayerController],
@@ -67,10 +73,11 @@ async function build(cfg: Record<string, unknown> = {}) {
       { provide: EminiplayerIngestService, useValue: ingest },
       { provide: EminiplayerAuditService, useValue: audit },
       { provide: EminiplayerBackfillService, useValue: backfill },
+      { provide: EminiplayerPruneService, useValue: prune },
       { provide: ConfigService, useValue: config },
     ],
   }).compile();
-  return { controller: moduleRef.get(EminiplayerController), ingest, audit, backfill };
+  return { controller: moduleRef.get(EminiplayerController), ingest, audit, backfill, prune };
 }
 
 describe('POST /eminiplayer/ingest', () => {
@@ -224,5 +231,65 @@ describe('/eminiplayer/backfill', () => {
     expect(backfill.cancel).toHaveBeenCalled();
     backfill.cancel.mockReturnValue(null);
     expect(() => controller.cancelBackfill(undefined)).toThrow(NotFoundException);
+  });
+});
+
+describe('POST /eminiplayer/prune', () => {
+  it('defaults to a dry run and delegates the range', async () => {
+    const { controller, prune, backfill } = await build();
+    backfill.status.mockReturnValue(null);
+    await controller.prune('03012026', '03312026', undefined, undefined);
+    expect(prune.prune).toHaveBeenCalledWith({
+      from: '03012026',
+      to: '03312026',
+      apply: false,
+    });
+  });
+
+  it('passes apply=true through when explicitly requested', async () => {
+    const { controller, prune, backfill } = await build();
+    backfill.status.mockReturnValue(null);
+    await controller.prune(undefined, undefined, 'true', undefined);
+    expect(prune.prune).toHaveBeenCalledWith({
+      from: undefined,
+      to: undefined,
+      apply: true,
+    });
+  });
+
+  it.each([
+    ['from', '13012026', undefined],
+    ['to', undefined, '02302026'],
+  ])('rejects a malformed %s with 400 before touching the service', async (_name, from, to) => {
+    const { controller, prune, backfill } = await build();
+    backfill.status.mockReturnValue(null);
+    await expect(controller.prune(from, to, undefined, undefined)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prune.prune).not.toHaveBeenCalled();
+  });
+
+  it('401s an applying prune when a token is configured and not supplied', async () => {
+    const { controller, prune } = await build({ 'eminiplayer.backfillToken': 's3cret' });
+    await expect(controller.prune(undefined, undefined, 'true', undefined)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(prune.prune).not.toHaveBeenCalled();
+  });
+
+  it('409s an applying prune while a backfill is running — its in-flight day has uncommitted uploads', async () => {
+    const { controller, prune } = await build();
+    await expect(controller.prune(undefined, undefined, 'true', undefined)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(prune.prune).not.toHaveBeenCalled();
+  });
+
+  it('allows a DRY RUN while a backfill is running — it deletes nothing', async () => {
+    const { controller, prune } = await build();
+    await expect(
+      controller.prune(undefined, undefined, undefined, undefined),
+    ).resolves.toBeDefined();
+    expect(prune.prune).toHaveBeenCalled();
   });
 });

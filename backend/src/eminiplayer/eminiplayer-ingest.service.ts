@@ -62,22 +62,41 @@ type Artifact = 'recap' | 'tradePlanMd' | 'tradePlanPdf';
 type Stage = 'plan' | 'resolve' | 'transcribe' | 'download' | 'verify' | 'upload' | 'commit';
 
 interface ProducedTranscript {
-  report: IngestFileReport;
+  artifact: 'recap' | 'tradePlanMd';
+  storagePath: string;
+  markdown: string;
   videoId: string;
   title: string;
   verdict: TranscriptVerdict;
+  /** Reloaded from the bucket rather than transcribed — already at rest, nothing to upload. */
+  existed: boolean;
+  record: FileRecord;
+}
+
+interface ProducedPdf {
+  storagePath: string;
+  buf: Buffer;
+  existed: boolean;
   record: FileRecord;
 }
 
 /**
  * Orchestrates one day's document group: resolve archive entries, gate and
  * cross-check everything (see the spec's verification decision), transcribe
- * the two videos, download the TP pdf, upload each artifact as soon as it is
- * produced, LLM-verify both transcripts, and only then commit the day via its
- * manifest. Skip skips production, never verification — a resumed run reloads
- * existing artifacts and re-verifies them, because the previous run may have
- * died between upload and verify. Concurrent requests for the same date
- * coalesce onto one in-flight run.
+ * the two videos, download the TP pdf, LLM-verify both transcripts, and only
+ * once every artifact is produced AND verified upload them and commit the day
+ * via its manifest.
+ *
+ * The day is ALL-OR-NOTHING: nothing is uploaded until everything has passed,
+ * and any failure after the first upload discards the day's artifacts. The
+ * invariant consumers rely on is `artifacts exist <=> the day is committed` —
+ * a half-written day would otherwise be indistinguishable from a good one to
+ * anything that lists the folder rather than reading the manifest.
+ *
+ * Skip skips production, never verification — a resumed run reloads existing
+ * artifacts and re-verifies them, because the previous run may have died
+ * between upload and commit. Concurrent requests for the same date coalesce
+ * onto one in-flight run.
  */
 @Injectable()
 export class EminiplayerIngestService {
@@ -163,8 +182,30 @@ export class EminiplayerIngestService {
       }
     }
 
+    // Past this point the day is known-uncommitted, so it owns the
+    // all-or-nothing invariant: any failure must leave it with no artifacts.
+    // The committed-day guards above must stay OUTSIDE this try — their 422
+    // describes a day whose files are legitimately at rest.
+    try {
+      return await this.produceUploadCommit(date, recapDate, paths, force, entries);
+    } catch (err) {
+      await this.discardArtifacts(paths);
+      throw err;
+    }
+  }
+
+  private async produceUploadCommit(
+    date: string,
+    recapDate: string,
+    paths: ReturnType<typeof dayPaths>,
+    force: boolean,
+    entries: DayEntries,
+  ): Promise<IngestResult> {
     const staleRecapsRemoved = await this.removeStaleRecaps(paths.dir, paths.recap);
 
+    // Produce AND verify everything before a single byte is uploaded. Each
+    // artifact verifies as soon as it is produced so a bad recap costs no pdf
+    // download, but no upload happens until all three have passed.
     const recap = await this.produceTranscript('recap', paths.recap, force, entries.recap, recapDate);
     const tradePlanMd = await this.produceTranscript(
       'tradePlanMd',
@@ -174,6 +215,10 @@ export class EminiplayerIngestService {
       date,
     );
     const tradePlanPdf = await this.producePdf(paths.tradePlanPdf, force, entries.tradePlan);
+
+    const recapReport = await this.uploadTranscript(recap);
+    const tradePlanMdReport = await this.uploadTranscript(tradePlanMd);
+    const tradePlanPdfReport = await this.uploadPdf(tradePlanPdf);
 
     const dayManifest: DayManifest = {
       version: INGEST_PIPELINE_VERSION,
@@ -208,11 +253,48 @@ export class EminiplayerIngestService {
       manifestPath: paths.manifest,
       fromManifest: false,
       files: {
-        recap: recap.report,
-        tradePlanMd: tradePlanMd.report,
-        tradePlanPdf: tradePlanPdf.report,
+        recap: recapReport,
+        tradePlanMd: tradePlanMdReport,
+        tradePlanPdf: tradePlanPdfReport,
       },
     };
+  }
+
+  /**
+   * Best-effort removal of the day's three artifacts, restoring the
+   * all-or-nothing invariant after a failed run. Never throws: it runs inside a
+   * catch and must not mask the failure that brought us here. A process killed
+   * mid-run still orphans files — that residue is what the prune endpoint
+   * sweeps.
+   */
+  private async discardArtifacts(paths: ReturnType<typeof dayPaths>): Promise<void> {
+    for (const storagePath of [paths.recap, paths.tradePlanMd, paths.tradePlanPdf]) {
+      try {
+        await this.bucket.file(storagePath).delete({ ignoreNotFound: true });
+      } catch (err) {
+        this.logger.warn(`failed to discard ${storagePath}: ${(err as Error).message}`);
+      }
+    }
+  }
+
+  private async uploadTranscript(produced: ProducedTranscript): Promise<IngestFileReport> {
+    const { storagePath, artifact } = produced;
+    if (produced.existed) return { storagePath, status: 'skipped' };
+    await this.stage('upload', artifact, () =>
+      this.bucket.file(storagePath).save(produced.markdown, { contentType: 'text/markdown' }),
+    );
+    this.logger.log(`uploaded ${storagePath}`);
+    return { storagePath, status: 'uploaded' };
+  }
+
+  private async uploadPdf(produced: ProducedPdf): Promise<IngestFileReport> {
+    const { storagePath } = produced;
+    if (produced.existed) return { storagePath, status: 'skipped' };
+    await this.stage('upload', 'tradePlanPdf', () =>
+      this.bucket.file(storagePath).save(produced.buf, { contentType: 'application/pdf' }),
+    );
+    this.logger.log(`uploaded ${storagePath}`);
+    return { storagePath, status: 'uploaded' };
   }
 
   private flavorOf(artifact: Artifact): VideoFlavor {
@@ -248,7 +330,6 @@ export class EminiplayerIngestService {
 
     const file = this.bucket.file(storagePath);
     let markdown: string;
-    let status: 'uploaded' | 'skipped';
     const [exists] = force
       ? [false]
       : await this.stage('plan', artifact, () => file.exists());
@@ -256,7 +337,6 @@ export class EminiplayerIngestService {
       const [buf] = await this.stage('plan', artifact, () => file.download());
       markdown = buf.toString('utf8');
       assertTranscriptMarkdown(markdown, artifact);
-      status = 'skipped';
     } else {
       // Pass the extracted ID, not the page's raw embed URL — youtube-transcript
       // cannot parse /embed/ URLs with query params and misreports them as
@@ -266,20 +346,18 @@ export class EminiplayerIngestService {
       );
       markdown = transcriptToMarkdown(segments);
       assertTranscriptMarkdown(markdown, artifact);
-      await this.stage('upload', artifact, () =>
-        file.save(markdown, { contentType: 'text/markdown' }),
-      );
-      this.logger.log(`uploaded ${storagePath}`);
-      status = 'uploaded';
     }
     const verdict = await this.stage('verify', artifact, () =>
       this.verify.verifyTranscript(markdown, { flavor, date: expectedDate }),
     );
     return {
-      report: { storagePath, status },
+      artifact,
+      storagePath,
+      markdown,
       videoId,
       title,
       verdict,
+      existed: exists,
       record: {
         storagePath,
         sha256: sha256Hex(markdown),
@@ -293,30 +371,25 @@ export class EminiplayerIngestService {
     storagePath: string,
     force: boolean,
     entry: ArchiveEntry,
-  ): Promise<{ report: IngestFileReport; record: FileRecord }> {
+  ): Promise<ProducedPdf> {
     const file = this.bucket.file(storagePath);
     let buf: Buffer;
-    let status: 'uploaded' | 'skipped';
     const [exists] = force
       ? [false]
       : await this.stage('plan', 'tradePlanPdf', () => file.exists());
     if (exists) {
       [buf] = await this.stage('plan', 'tradePlanPdf', () => file.download());
       assertPdfBuffer(buf, 'tradePlanPdf');
-      status = 'skipped';
     } else {
       buf = await this.stage('download', 'tradePlanPdf', () =>
         this.eminiplayer.downloadTradePlanPdf(entry.pageUrl),
       );
       assertPdfBuffer(buf, 'tradePlanPdf');
-      await this.stage('upload', 'tradePlanPdf', () =>
-        file.save(buf, { contentType: 'application/pdf' }),
-      );
-      this.logger.log(`uploaded ${storagePath}`);
-      status = 'uploaded';
     }
     return {
-      report: { storagePath, status },
+      storagePath,
+      buf,
+      existed: exists,
       record: { storagePath, sha256: sha256Hex(buf), md5: md5Base64(buf), bytes: buf.length },
     };
   }

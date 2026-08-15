@@ -172,10 +172,16 @@ export class RepoInputsService {
       if (!entry.isDirectory()) continue;
       const folder = join(dir, entry.name);
       const files = readdirSync(folder);
-      const pdf = files.find((f) => f.endsWith('_ES_TP.pdf'));
-      const plan = files.find((f) => f.endsWith('_ES_TP.md'));
-      const recap = files.find((f) => f.endsWith('_ES_RECAP.md'));
-      if (!pdf || !plan || !recap) continue;
+      // Exactly one match per required suffix. Taking the first of several
+      // would resolve a stale leftover (a second recap, say) by readdir order
+      // — an arbitrary, silent choice of which day a trader actually reads.
+      const pdfs = files.filter((f) => f.endsWith('_ES_TP.pdf'));
+      const plans = files.filter((f) => f.endsWith('_ES_TP.md'));
+      const recaps = files.filter((f) => f.endsWith('_ES_RECAP.md'));
+      if (pdfs.length !== 1 || plans.length !== 1 || recaps.length !== 1) continue;
+      const [pdf] = pdfs;
+      const [plan] = plans;
+      const [recap] = recaps;
       // Derive the day from the 8-digit TP prefix, not the folder name.
       const prefix = pdf.slice(0, 8);
       if (!/^\d{8}$/.test(prefix) || plan.slice(0, 8) !== prefix) continue;
@@ -192,8 +198,10 @@ export class RepoInputsService {
     return days.sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  // Folders under knowledge-base/es/* that are NOT complete days: report which
-  // of the three required docs are missing so the run summary can surface them.
+  // Folders under knowledge-base/es/* that are NOT usable days: report why —
+  // a missing doc, a duplicate where exactly one is required, or a prefix
+  // mismatch — so the run summary can surface them instead of a folder
+  // silently disappearing from the benchmark.
   collectDayIssues(): DayIssue[] {
     const dir = join(this.root, 'knowledge-base', 'es');
     if (!existsSync(dir)) return [];
@@ -209,6 +217,17 @@ export class RepoInputsService {
       const missing = required.filter((r) => !files.some((f) => f.endsWith(r.suffix))).map((r) => r.label);
       if (missing.length) {
         issues.push({ day: entry.name, missing });
+        continue;
+      }
+      // Present but ambiguous: collectDays requires exactly one match per
+      // suffix, so surface the duplicate rather than let the folder vanish
+      // from both lists.
+      const ambiguous = required
+        .map((r) => ({ label: r.label, count: files.filter((f) => f.endsWith(r.suffix)).length }))
+        .filter((x) => x.count > 1)
+        .map((x) => `ambiguous: ${x.count} files match ${x.label} — exactly one is required`);
+      if (ambiguous.length) {
+        issues.push({ day: entry.name, missing: ambiguous });
         continue;
       }
       // All three required suffixes are present, but collectDays additionally

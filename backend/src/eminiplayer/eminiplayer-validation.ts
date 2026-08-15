@@ -252,6 +252,19 @@ export function manifestPath(date: string): string {
   return `${ES_STORAGE_PREFIX}${date}/manifest.json`;
 }
 
+/**
+ * Calendar position of an MMDDYYYY day folder, or null when the name is
+ * shape-valid but not a real date ('13012026'). Shared by every corpus walker
+ * so range filtering and "is this even a day?" agree everywhere.
+ */
+export function dayTime(date: string): number | null {
+  try {
+    return parseMmddyyyy(date).getTime();
+  } catch {
+    return null;
+  }
+}
+
 export interface DayPaths {
   dir: string;
   recap: string;

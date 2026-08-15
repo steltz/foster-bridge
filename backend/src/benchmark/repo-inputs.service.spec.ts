@@ -42,6 +42,15 @@ function seedFixture(): string {
   writeFileSync(join(mismatch, '07032026_ES_TP.pdf'), 'x');
   writeFileSync(join(mismatch, '07042026_ES_TP.md'), 'x');
   writeFileSync(join(mismatch, '07032026_ES_RECAP.md'), 'x');
+  // Two recaps in one folder — a stale one left beside the real one. Which is
+  // which is not knowable from the listing, so the day is unusable, not
+  // silently resolved by readdir order.
+  const ambiguous = join(dir, 'knowledge-base', 'es', '07102026');
+  mkdirSync(ambiguous, { recursive: true });
+  writeFileSync(join(ambiguous, '07102026_ES_TP.pdf'), 'x');
+  writeFileSync(join(ambiguous, '07102026_ES_TP.md'), 'x');
+  writeFileSync(join(ambiguous, '07052026_ES_RECAP.md'), 'STALE');
+  writeFileSync(join(ambiguous, '07062026_ES_RECAP.md'), 'REAL');
 
   // Scorecard feature (carries an artifactSuffix the method feature lacks).
   writeFileSync(
@@ -127,15 +136,25 @@ describe('RepoInputsService', () => {
     expect(days.some((d) => d.day === '07032026' || d.day === '07042026')).toBe(false);
   });
 
+  it('collectDays excludes a folder holding two recaps rather than picking one by readdir order', async () => {
+    const svc = await build(root);
+    expect(svc.collectDays().some((d) => d.day === '07102026')).toBe(false);
+  });
+
   it('collectDayIssues reports incomplete folders with the missing suffix(es)', async () => {
     const svc = await build(root);
     const issues = svc.collectDayIssues();
-    // 07022026 is missing the recap doc; 07032026 has all three but mismatched prefixes.
+    // 07022026 is missing the recap doc; 07032026 has all three but mismatched
+    // prefixes; 07102026 has two recaps where exactly one is required.
     expect(issues).toEqual([
       { day: '07022026', missing: ['*_ES_RECAP.md'] },
       {
         day: '07032026',
         missing: ['prefix mismatch: *_ES_TP.pdf and *_ES_TP.md date prefixes differ or are not 8 digits'],
+      },
+      {
+        day: '07102026',
+        missing: ['ambiguous: 2 files match *_ES_RECAP.md — exactly one is required'],
       },
     ]);
   });

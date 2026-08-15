@@ -95,6 +95,24 @@ function makeBucket(existing: Record<string, string | Buffer> = {}) {
   };
 }
 
+/** Every storage path that received a save() — sorted, for all-or-nothing assertions. */
+function written(bucket: ReturnType<typeof makeBucket>): string[] {
+  return [...bucket.files.values()]
+    .filter((f) => f.save.mock.calls.length > 0)
+    .map((f) => f.name)
+    .sort();
+}
+
+/** Every storage path that received a delete(). */
+function deleted(bucket: ReturnType<typeof makeBucket>): string[] {
+  return [...bucket.files.values()]
+    .filter((f) => f.delete.mock.calls.length > 0)
+    .map((f) => f.name)
+    .sort();
+}
+
+const ALL_ARTIFACTS = [RECAP_PATH, TP_MD_PATH, TP_PDF_PATH].sort();
+
 /** A minimal committed manifest for short-circuit tests. */
 function committedManifest(recapDate = RECAP_DATE) {
   const dir = `knowledge-base/es/${DATE}`;
@@ -350,12 +368,29 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(manifest.commit).not.toHaveBeenCalled();
   });
 
-  it('an LLM verdict mismatch blocks commit; artifacts remain', async () => {
+  it('an LLM verdict mismatch uploads nothing and never commits', async () => {
     const { service, verify, manifest, bucket } = await build();
     verify.verifyTranscript.mockRejectedValue(new IngestValidationError('llm verification: nope'));
     await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
-    expect(bucket.files.get(RECAP_PATH)!.save).toHaveBeenCalled(); // uploaded before verify
+    // Verification runs BEFORE any upload: a rejected transcript is never written.
+    expect(written(bucket)).toEqual([]);
     expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('a rejected trade-plan verdict leaves the already-produced recap unwritten', async () => {
+    const { service, verify, bucket } = await build();
+    verify.verifyTranscript.mockImplementation((_md: string, expected: { flavor: string }) =>
+      expected.flavor === 'tradePlan'
+        ? Promise.reject(new IngestValidationError('llm verification: nope'))
+        : Promise.resolve({
+            docType: 'recap',
+            isEsContent: true,
+            referencedWeekday: 'none',
+            confidence: 'high',
+          }),
+    );
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+    expect(written(bucket)).toEqual([]);
   });
 
   it('wraps a resolve failure as IngestStageError(resolve, archive)', async () => {
@@ -376,7 +411,7 @@ describe('EminiplayerIngestService.ingest', () => {
     expect(err.artifact).toBe('recap');
   });
 
-  it('a mid-run failure preserves earlier uploads (resume semantics)', async () => {
+  it('a mid-run failure uploads nothing — the day is all-or-nothing', async () => {
     const { service, eminiplayer, bucket } = await build();
     eminiplayer.getYoutubeUrl
       .mockImplementationOnce(() => Promise.resolve('https://youtu.be/recapVid0001'))
@@ -384,8 +419,35 @@ describe('EminiplayerIngestService.ingest', () => {
     const err = await service.ingest(DATE).catch((e) => e);
     expect(err).toBeInstanceOf(IngestStageError);
     expect(err.artifact).toBe('tradePlanMd');
-    expect(bucket.files.get(RECAP_PATH)!.save).toHaveBeenCalled();
-    expect(bucket.files.get(TP_PDF_PATH)?.save).toBeUndefined();
+    expect(written(bucket)).toEqual([]);
+  });
+
+  it('a pdf download failure uploads nothing and never commits', async () => {
+    const { service, eminiplayer, bucket, manifest } = await build();
+    eminiplayer.downloadTradePlanPdf.mockRejectedValue(new Error('pdf 404'));
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestStageError);
+    expect(written(bucket)).toEqual([]);
+    expect(manifest.commit).not.toHaveBeenCalled();
+  });
+
+  it('a commit failure removes every artifact the run uploaded', async () => {
+    const { service, manifest, bucket } = await build();
+    manifest.commit.mockRejectedValue(
+      new IngestValidationError('video tpVid0000001 is already claimed by 06302026/recap'),
+    );
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+    // Uploads necessarily precede the commit, so cleanup is what restores the
+    // invariant: an uncommitted day owns no artifacts.
+    expect(written(bucket)).toEqual(ALL_ARTIFACTS);
+    expect(deleted(bucket)).toEqual(ALL_ARTIFACTS);
+  });
+
+  it('a stale committed recap (422) never deletes the committed day\'s artifacts', async () => {
+    // The day IS committed — its files are legitimately there. Cleanup must not
+    // reach a failure raised by the committed-day guard.
+    const { service, bucket } = await build({ committed: committedManifest('06292026') });
+    await expect(service.ingest(DATE)).rejects.toThrow(IngestValidationError);
+    expect(deleted(bucket)).toEqual([]);
   });
 
   it('coalesces concurrent ingests for the same date onto one run', async () => {

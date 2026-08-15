@@ -7,6 +7,7 @@ import {
   assertDayInvariants,
   assertPdfBuffer,
   assertTranscriptMarkdown,
+  dayTime,
   ES_STORAGE_PREFIX,
   manifestPath,
   parseMmddyyyy,
@@ -44,14 +45,6 @@ interface VideoClaim {
  * folder names and Firestore claim dates — where a single bad value must
  * degrade to one anomaly, not abort the sweep over every other day.
  */
-function dayTime(date: string): number | null {
-  try {
-    return parseMmddyyyy(date).getTime();
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Read-only re-verification — the "spot check everything" button, sized for
  * a multi-year corpus. Shallow mode (default) downloads only manifests and

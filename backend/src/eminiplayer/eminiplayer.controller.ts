@@ -21,6 +21,7 @@ import {
   BackfillJobSnapshot,
   EminiplayerBackfillService,
 } from './eminiplayer-backfill.service';
+import { EminiplayerPruneService, PruneReport } from './eminiplayer-prune.service';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 import { ArchiveNotFoundError } from './eminiplayer.constants';
 import { parseMmddyyyy } from './eminiplayer-validation';
@@ -59,6 +60,7 @@ export class EminiplayerController {
     private readonly ingestService: EminiplayerIngestService,
     private readonly auditService: EminiplayerAuditService,
     private readonly backfillService: EminiplayerBackfillService,
+    private readonly pruneService: EminiplayerPruneService,
     private readonly config: ConfigService,
   ) {}
 
@@ -132,6 +134,42 @@ export class EminiplayerController {
       }
       throw err;
     }
+  }
+
+  /**
+   * Sweeps artifacts of never-committed days. Dry-run unless `apply=true`,
+   * which is the only mode that needs the token — reading the report is safe
+   * for anyone who can reach the audit.
+   */
+  @Post('prune')
+  @HttpCode(200) // operator maintenance, not resource creation
+  async prune(
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Query('apply') apply: string | undefined,
+    @Headers('x-backfill-token') token: string | undefined,
+  ): Promise<PruneReport> {
+    for (const [name, value] of [['from', from], ['to', to]] as const) {
+      if (value !== undefined && !isValidMmddyyyy(value)) {
+        throw new BadRequestException(`Query param "${name}" must be MMDDYYYY when present`);
+      }
+    }
+    const applying = apply === 'true';
+    if (applying) {
+      this.assertBackfillToken(token);
+      // A running backfill's in-flight day has uploads that have not reached
+      // their commit yet — indistinguishable from orphans by the only rule
+      // prune knows. Deleting them would corrupt a healthy run mid-flight.
+      const job = this.backfillService.status();
+      if (job?.state === 'running') {
+        throw new ConflictException({
+          message:
+            'a backfill is running; its in-flight day has uploaded-but-uncommitted artifacts that prune cannot distinguish from orphans',
+          job,
+        });
+      }
+    }
+    return this.pruneService.prune({ from, to, apply: applying });
   }
 
   @Get('backfill')
