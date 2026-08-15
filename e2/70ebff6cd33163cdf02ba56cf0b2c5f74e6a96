@@ -1,0 +1,26 @@
+docs/benchmark-power-plan.md
+  s_07118a94508fa4::t_0ed891ffaa80d0 281-287
+backend/src/moonshot/moonshot.batch-worker.spec.ts
+  s_07118a94508fa4::t_6f5c42e147f696 382-480
+backend/src/moonshot/moonshot.batch-worker.ts
+  s_07118a94508fa4::t_9a1da2d56692f7 151-161
+  s_07118a94508fa4::t_24799e95def820 76
+  s_07118a94508fa4::t_3fedab6e7021d0 212-214
+  s_07118a94508fa4::t_f519715bd9556e 33-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e270ebff6cd33163cdf02ba56cf0b2c5f74e6a96",
+  "prompts": {},
+  "sessions": {
+    "s_07118a94508fa4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "087c8c90-9b1e-40b1-8474-fd49df2007e8",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
