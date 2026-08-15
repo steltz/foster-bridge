@@ -30,6 +30,16 @@ const MAX_ATTEMPTS = 4;
 // errored out and re-queued.
 const LEASE_MS = 30 * 60 * 1000;
 const GC_TTL_DEFAULT_MS = 24 * 60 * 60 * 1000;
+// In-process drain-guard entries older than this are presumed hung and may be
+// replaced by a new drain. Deliberately the same span as LEASE_MS: by the time a
+// guard entry goes stale, any item the hung drain was still holding has outlived
+// its claim lease too, so the replacement can reclaim it — while a healthy drain
+// that merely runs long loses nothing, because the replacement's claims all fail
+// against live leases and it backs off. Without this bound, one drain that never
+// returns leaves its batchId in `active` forever, and every later kick()/
+// resumeAll() no-ops before reaching the D6 expiry check — the batch sits at
+// 'in_progress' looking healthy until a process restart.
+const ACTIVE_STALE_MS = LEASE_MS;
 const DEFAULT_CONCURRENCY = 8;
 // The result write happens AFTER a paid API call, so a transient Firestore throw
 // must never discard it — a few quick retries before giving up on the item.
@@ -63,7 +73,7 @@ interface RunOutcome {
 @Injectable()
 export class MoonshotBatchWorker implements OnApplicationBootstrap {
   private readonly logger = new Logger(MoonshotBatchWorker.name);
-  private readonly active = new Set<string>(); // batchIds draining in THIS process
+  private readonly active = new Map<string, { startedMs: number }>(); // batchIds draining in THIS process → guard entry
   private readonly schedulerEnabled: boolean;
 
   constructor(
@@ -138,8 +148,17 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
   // Drain one emulated batch: expire if past deadline (D6), else claim+run each
   // unfinished item, priming one call per prefix group (D7) before fanning out.
   async drainBatch(batchId: string): Promise<void> {
-    if (this.active.has(batchId)) return;
-    this.active.add(batchId);
+    const held = this.active.get(batchId);
+    if (held && Date.now() - held.startedMs <= ACTIVE_STALE_MS) {
+      // This no-op must be LOUD: a silent return here once turned a single hung
+      // drain into a ~6h invisible stall, every maintenance pass bouncing off the
+      // guard while the batch looked healthy.
+      this.logger.warn(`drain of ${batchId} already in flight in this process (started ${Math.round((Date.now() - held.startedMs) / 1000)}s ago) — skipping`);
+      return;
+    }
+    if (held) this.logger.warn(`drain of ${batchId} held the in-process guard past ${ACTIVE_STALE_MS}ms — presuming it hung, starting a replacement drain`);
+    const entry = { startedMs: Date.now() };
+    this.active.set(batchId, entry);
     try {
       const batch = await this.store.getBatch(batchId);
       if (!batch || batch.status !== 'in_progress') return;
@@ -190,7 +209,9 @@ export class MoonshotBatchWorker implements OnApplicationBootstrap {
       }
       await this.store.setBatchStatus(batchId, 'ended', new Date().toISOString());
     } finally {
-      this.active.delete(batchId);
+      // Only the owner clears its entry: a hung drain that finally returns after
+      // being replaced must not release the guard now held by its replacement.
+      if (this.active.get(batchId) === entry) this.active.delete(batchId);
     }
   }
 

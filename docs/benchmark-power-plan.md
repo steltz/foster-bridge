@@ -278,7 +278,13 @@ days produced zero fills for every variant and contributed no information.
 
 ## 7. Engineering prerequisites
 
-### 7.1 Fix the batch-worker wedge — blocking
+### 7.1 Fix the batch-worker wedge — blocking (FIXED)
+
+**Fixed 2026-08-15:** `active` guard entries are now time-bounded (stale after
+`LEASE_MS`, so a replacement drain can take over and reach the expiry check),
+the no-op on the guard logs at warn, and a hung drain returning late cannot
+release its replacement's guard entry. Pinned by four tests in
+`moonshot.batch-worker.spec.ts`. Original diagnosis kept below for the record.
 
 An unattended 35-hour run **will** hit this. It cost ~6 hours and one lost day
 during the 14-day run.

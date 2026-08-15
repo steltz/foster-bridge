@@ -379,6 +379,105 @@ describe('MoonshotBatchWorker', () => {
     expect(store.batches.get('b1').status).toBe('in_progress'); // not ended — reclaimed after the lease expires
   });
 
+  it('re-drains a batch whose previous drain hung, once the guard entry goes stale', async () => {
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'clearImmediate', 'nextTick', 'queueMicrotask'] });
+    try {
+      const store = new MemBatchStore();
+      store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 2, expiresAt: future });
+      store.items.set('b1', [
+        { customId: 'c1', prompt: 'p1', status: 'pending' },
+        { customId: 'c2', prompt: 'p2', status: 'pending' },
+      ]);
+      let hang = true;
+      let calls = 0;
+      const client = clientFactory(() => { calls++; return hang ? new Promise(() => {}) : okResp('{}'); });
+      const worker = makeWorker(client, fakeEnvelopes, store);
+      void worker.drainBatch('b1'); // phase-0 prime hangs on c1's API call, forever
+      await flush();
+      expect(calls).toBe(1);
+      // While the guard entry is fresh, a second call still no-ops (one drain per batch per process).
+      await worker.drainBatch('b1');
+      expect(calls).toBe(1);
+      expect(store.batches.get('b1').status).toBe('in_progress');
+      // Past the stale window the hung drain must not block the batch forever:
+      // its item lease has lapsed too, so a replacement drain reclaims and finishes.
+      jest.setSystemTime(Date.now() + 31 * 60 * 1000);
+      hang = false;
+      await worker.drainBatch('b1');
+      expect((await store.listItems('b1')).every((i) => i.status === 'succeeded')).toBe(true);
+      expect(store.batches.get('b1').status).toBe('ended');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('force-terminates an expired batch even when a hung drain holds the guard (the 6h wedge)', async () => {
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'clearImmediate', 'nextTick', 'queueMicrotask'] });
+    try {
+      const store = new MemBatchStore();
+      store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 2, expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() });
+      store.items.set('b1', [
+        { customId: 'c1', prompt: 'p1', status: 'pending' },
+        { customId: 'c2', prompt: 'p2', status: 'pending' },
+      ]);
+      let calls = 0;
+      const worker = makeWorker(clientFactory(() => { calls++; return new Promise(() => {}); }), fakeEnvelopes, store);
+      void worker.drainBatch('b1'); // hangs mid-drain, holding the guard
+      await flush();
+      expect(calls).toBe(1);
+      // 3h later the batch is past its D6 expiry. The maintenance pass must reach
+      // the expiry check instead of no-opping on the guard — the observed incident
+      // was exactly this state sitting at 'in_progress' for ~6h with nothing logged.
+      jest.setSystemTime(Date.now() + 3 * 60 * 60 * 1000);
+      await worker.drainBatch('b1');
+      expect(calls).toBe(1); // no new API call — force-termination, not a re-run
+      expect(store.batches.get('b1').status).toBe('errored');
+      // Items left untouched so the reconciler re-queues them.
+      expect((await store.listItems('b1')).find((i) => i.customId === 'c2')!.status).toBe('pending');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('warns when a drain no-ops on the in-flight guard (the silence that hid the wedge)', async () => {
+    const store = new MemBatchStore();
+    store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+    store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+    const worker = makeWorker(clientFactory(() => new Promise(() => {})), fakeEnvelopes, store);
+    void worker.drainBatch('b1');
+    await flush();
+    const warn = jest.spyOn((worker as any).logger, 'warn').mockImplementation(() => {});
+    await worker.drainBatch('b1');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('b1'));
+  });
+
+  it('a hung drain finishing late does not release the guard held by its replacement', async () => {
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'clearImmediate', 'nextTick', 'queueMicrotask'] });
+    try {
+      const store = new MemBatchStore();
+      store.batches.set('b1', { batchId: 'b1', model: 'kimi-k3', opts: {}, status: 'in_progress', total: 1, expiresAt: future });
+      store.items.set('b1', [{ customId: 'c1', prompt: 'p', status: 'pending' }]);
+      const releases: Array<(v: any) => void> = [];
+      const worker = makeWorker(clientFactory(() => new Promise((r) => releases.push(r))), fakeEnvelopes, store);
+      const drain1 = worker.drainBatch('b1');
+      await flush();
+      jest.setSystemTime(Date.now() + 31 * 60 * 1000);
+      const drain2 = worker.drainBatch('b1'); // replacement takes the guard, hangs on its own call
+      await flush();
+      expect(releases).toHaveLength(2);
+      releases[0]!(okResp('{}')); // the original hung drain finally returns…
+      await drain1;
+      // …but must not delete the replacement's guard entry on its way out.
+      expect((worker as any).active.has('b1')).toBe(true);
+      releases[1]!(okResp('{}'));
+      await drain2;
+      expect((worker as any).active.has('b1')).toBe(false);
+      expect(store.batches.get('b1').status).toBe('ended');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('gc core deletes terminal batches older than the TTL and keeps live ones', async () => {
     const store = new MemBatchStore();
     store.batches.set('old', { batchId: 'old', status: 'ended', endedAt: '2000-01-01T00:00:00.000Z' });
