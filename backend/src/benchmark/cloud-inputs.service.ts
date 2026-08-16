@@ -4,6 +4,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE, STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { parseFrontmatter, extractBlock } from '../common/markdown-frontmatter';
 import { ES_STORAGE_PREFIX, dayPaths, manifestPath } from '../eminiplayer/eminiplayer-validation';
+import type { DayManifest } from '../eminiplayer/eminiplayer-manifest.service';
 
 const ZERO_BYTES_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
@@ -199,10 +200,10 @@ export class CloudInputsService {
         let recapDate: string;
         let fileSha256: DayListing['fileSha256'];
         try {
-          const m = JSON.parse((await this.download(manifestPath(day))).toString('utf8')) as {
-            recapDate: string;
-            files: { tradePlanMd: { sha256: string }; tradePlanPdf: { sha256: string }; recap: { sha256: string } };
-          };
+          const m = JSON.parse((await this.download(manifestPath(day))).toString('utf8')) as Pick<
+            DayManifest,
+            'recapDate' | 'files'
+          >;
           recapDate = m.recapDate;
           if (!/^\d{8}$/.test(recapDate)) throw new Error(`bad recapDate ${recapDate}`);
           fileSha256 = {

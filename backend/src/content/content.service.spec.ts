@@ -86,4 +86,13 @@ describe('ContentService', () => {
     const listing = await svc.listGeneral();
     expect(listing).toEqual([{ path: 'knowledge-base/general/a.md', sha256: expect.stringMatching(/^[0-9a-f]{64}$/) }]);
   });
+
+  it('listGeneral excludes directory-placeholder objects', async () => {
+    const bucket = fakeBucket();
+    const svc = new ContentService(fakeDb(), bucket);
+    bucket.saved['knowledge-base/general/'] = ''; // placeholder object a console "folder" leaves behind
+    await svc.putGeneral('a', 'AAA');
+    const listing = await svc.listGeneral();
+    expect(listing.map((l) => l.path)).toEqual(['knowledge-base/general/a.md']);
+  });
 });

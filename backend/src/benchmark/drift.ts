@@ -51,7 +51,7 @@ export interface DriftReport {
   cellsExamined: number;
 }
 
-/** The subset of RepoInputsService output this comparison needs. */
+/** The subset of CloudInputsService output this comparison needs. */
 export interface DriftInputs {
   traders: { name: string; sha256: string }[];
   general: { sha256: string };
@@ -63,8 +63,15 @@ export const GENERAL_IDENTITY = 'knowledge-base/general';
 
 const SAMPLE_LIMIT = 3;
 
-/** Which store holds a family's content: general docs live in the bucket, the rest in Firestore. */
-const sourceFor = (family: DriftFamily): 'firestore' | 'bucket' => (family === 'general' ? 'bucket' : 'firestore');
+/**
+ * Which store holds a family's content. Personas and features are Firestore
+ * docs; general docs live in the bucket. staticDoc is bucket too:
+ * `staticDocSha256` hashes the bucket's methods doc
+ * (knowledge-base/methods/seven-keys.md), so the only way that family drifts
+ * is a bucket-side change — the 409 must point at the bucket.
+ */
+const sourceFor = (family: DriftFamily): 'firestore' | 'bucket' =>
+  family === 'general' || family === 'staticDoc' ? 'bucket' : 'firestore';
 
 /**
  * Group cells by their recorded hash for one family, skipping cells where the
@@ -158,7 +165,7 @@ const REMEDY: Record<DriftFamily, string> = {
   persona: 'trader files are immutable once benchmarked — create a NEW trader file instead of editing this one',
   general: 'general docs are frozen once benchmarked — revert the edit, or retire the existing cells to start a new benchmark era',
   feature: 'feature files are immutable once benchmarked — create a NEW feature file (new id) instead of editing this one',
-  staticDoc: 'a feature\'s static doc is frozen once benchmarked — revert the edit, or create a NEW feature pointing at the new doc',
+  staticDoc: 'the methods doc is frozen once benchmarked — revert the methods-doc edit (PUT /knowledge/methods), or retire the existing cells to start a new benchmark era',
 };
 
 /** Human-readable report, used as the 409 message and for logs. */
@@ -172,9 +179,9 @@ export function renderDrift(report: DriftReport): string {
       `  ${f.family} "${f.identity}" [${f.source}] — ${
         f.kind === 'internal-drift'
           ? 'existing cells disagree with each other; results for this row are already mixed'
-          : 'the file on disk changed after cells were written'
+          : 'the stored content changed after cells were written'
       }`,
-      `    on disk now: ${f.currentSha256}`,
+      `    current: ${f.currentSha256}`,
       `    recorded on cells:`,
       detail,
       `    remedy: ${REMEDY[f.family]}`,

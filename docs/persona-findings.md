@@ -1,5 +1,10 @@
 # Persona Findings — what the 14-day K3 run revealed about the trader panel
 
+> **Note (2026-08-16):** personas are now write-once Firestore docs managed via
+> `POST /traders` (see CLAUDE.md). The file-based conventions referenced below
+> — `traders/*.md`, `git mv traders/<f>.md traders/retired/` — are historical
+> and no longer apply; the analysis itself still stands.
+
 Written 2026-08-14, from behavioral analysis of the 420 cells (2 traders × 3
 variants × 14 days × 5 runs) in the Kimi K3 benchmark. Companion to
 `benchmark-power-plan.md` (statistical design) — this doc covers what the data

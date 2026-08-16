@@ -37,7 +37,10 @@ GET  /benchmark/scoreboard?model=<alias>
 
 `POST /benchmark/run` tops up the matrix — personas × days × variants — and only
 runs missing cells, so it is safe to re-issue. It is **single-flight**: a second
-`POST` while a run is in progress returns 409. Omit `days` for every complete
+`POST` while a run is in progress returns 409 — note `POST /benchmark/run` has
+two 409 causes, a run in progress (check `GET /benchmark/status`) vs content
+drift (check `GET /benchmark/drift`), and the response body says which. Omit
+`days` for every complete
 day, omit `variants` for all declared variants, omit `model` to take
 `benchmark.model` from config.
 

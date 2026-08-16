@@ -203,7 +203,10 @@ Six touchpoints migrate; logic otherwise unchanged:
 - `seven-keys/seven-keys.service.ts` — `(day, snap)` signatures; lookback and
   outcome recaps resolved through the snapshot.
 - `drift.ts` — pure comparison unchanged; findings gain
-  `source: 'firestore' | 'bucket'` (`general` → bucket, others → firestore).
+  `source: 'firestore' | 'bucket'` (`general` and `staticDoc` → bucket;
+  `persona`/`feature` → firestore). `staticDocSha256` hashes the bucket's
+  methods doc, so a staticDoc drift can only be a bucket-side change — the
+  409 must point there, not at the Firestore feature doc.
 - `scoreboard.service.ts`, `cache-warmer.ts` — take a snapshot per invocation.
 - `benchmark.module.ts` — provides `CloudInputsService`.
 

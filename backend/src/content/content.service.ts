@@ -101,7 +101,11 @@ export class ContentService {
 
   async listGeneral(): Promise<{ path: string; sha256: string }[]> {
     const [objects] = await this.bucket.getFiles({ prefix: GENERAL_PREFIX });
-    const paths = objects.map((o) => o.name).sort();
+    // Skip directory-placeholder objects, same as CloudInputsService.collectGeneralDocs.
+    const paths = objects
+      .map((o) => o.name)
+      .filter((n) => !n.endsWith('/'))
+      .sort();
     return Promise.all(
       paths.map(async (path) => {
         const [buf] = await this.bucket.file(path).download();

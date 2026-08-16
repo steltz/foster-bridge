@@ -138,7 +138,8 @@ describe('detectDrift', () => {
         [cell({ variant: 'seven-keys-method', featureSha256: 'f-a', staticDocSha256: 's-a' })],
       );
       expect(report.findings).toHaveLength(1);
-      expect(report.findings[0]).toMatchObject({ family: 'staticDoc', identity: 'seven-keys-method', source: 'firestore' });
+      // staticDoc points at the bucket: staticDocSha256 hashes the bucket's methods doc.
+      expect(report.findings[0]).toMatchObject({ family: 'staticDoc', identity: 'seven-keys-method', source: 'bucket' });
     });
 
     it('ignores base cells, which carry no featureSha256', () => {
