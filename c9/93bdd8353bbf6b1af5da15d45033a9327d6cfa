@@ -1,0 +1,29 @@
+docs/superpowers/specs/2026-08-15-contract-data-ingest-design.md
+  s_881f9ed6729261::t_ce0215d1ca7fcb 1-71,79-201
+  s_881f9ed6729261::t_da38916a65e1f7 72-78
+docs/es-contract-roll-convention.md
+  s_881f9ed6729261::t_107a33271b39df 74-75,78,80-81
+  s_881f9ed6729261::t_fc065ccc89dfde 105-116,125-126
+  s_881f9ed6729261::t_1e114fbba490dd 62,65,76-77,79,83-88,90-92
+  s_881f9ed6729261::t_629c4bb47d8182 4-6
+  s_881f9ed6729261::t_4f8e1d42deae70 122-124,127-130,135-139
+  s_881f9ed6729261::t_28f19d5b238c12 1-2,7-15,26-61,63-64,66-73,82,89,93-104,117-121,131-134,140-150
+  s_881f9ed6729261::t_58e1f56c2b090f 3
+  s_881f9ed6729261::t_c9de39cb4c6083 16-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c993bdd8353bbf6b1af5da15d45033a9327d6cfa",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
