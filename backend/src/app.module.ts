@@ -12,6 +12,7 @@ import { ContractsModule } from './contracts/contracts.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { ExecutionModule } from './execution/execution.module';
 import { BenchmarkModule } from './benchmark/benchmark.module';
+import { ContentModule } from './content/content.module';
 import { CostModule } from './cost/cost.module';
 import { EminiplayerModule } from './eminiplayer/eminiplayer.module';
 import { GoogleErrorFilter } from './common/google-error.filter';
@@ -38,6 +39,7 @@ import { EminiplayerController } from './eminiplayer/eminiplayer.controller';
     MarketDataModule,
     ExecutionModule,
     BenchmarkModule,
+    ContentModule,
     CostModule,
     EminiplayerModule,
   ],
