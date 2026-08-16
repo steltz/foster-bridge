@@ -73,15 +73,20 @@ export class MarketDataService {
 
   async ingestCsv(symbol: string, interval: Interval, csvText: string, opts: IngestOptions): Promise<IngestSummary> {
     this.validate(symbol, interval);
-    const spec = this.contracts.get(symbol);
     let candles: Candle[];
     try {
       candles = parseCsv(csvText);
     } catch (err) {
       throw new BadRequestException((err as Error).message);
     }
+    return this.ingestCandles(symbol, interval, candles, opts);
+  }
 
-    // Reject mislabeled uploads: every candle must sit on the interval grid.
+  async ingestCandles(symbol: string, interval: Interval, candles: Candle[], opts: IngestOptions): Promise<IngestSummary> {
+    this.validate(symbol, interval);
+    const spec = this.contracts.get(symbol);
+
+    // Reject mislabeled inputs: every candle must sit on the interval grid.
     // A truncated/gappy day still aligns (gaps are whole multiples of the
     // interval); sub-interval spacing (e.g. 1-min data sent to min-5) does not.
     const intervalSec = intervalToSeconds(interval);
@@ -89,7 +94,7 @@ export class MarketDataService {
     if (misaligned) {
       throw new BadRequestException(
         `Candle time ${misaligned.time} is not aligned to the ${interval} interval ` +
-          `(${intervalSec}s); the CSV does not match this interval`,
+          `(${intervalSec}s); the data does not match this interval`,
       );
     }
 

@@ -153,3 +153,53 @@ describe('MarketDataService.ingestCsv', () => {
       .rejects.toThrow(BadRequestException);
   });
 });
+
+describe('MarketDataService.ingestCandles', () => {
+  // 09:30 ET 2026-07-14 — same anchor the ingestCsv describe uses.
+  const OPEN = Math.floor(Date.UTC(2026, 6, 14, 13, 30, 0) / 1000);
+
+  async function buildWith(firestore: any) {
+    const moduleRef = await Test.createTestingModule({
+      providers: [MarketDataService, ContractsService, { provide: FIRESTORE, useValue: firestore }],
+    }).compile();
+    return moduleRef.get(MarketDataService);
+  }
+
+  it('accepts pre-parsed candles and produces the same summary as ingestCsv', async () => {
+    const { firestore, store } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    const candles = [
+      { time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5 },
+      { time: OPEN + 300, open: 1.5, high: 2.5, low: 1.0, close: 2.0 },
+    ];
+    const summary = await service.ingestCandles('ESU26', 'min-5', candles, {});
+    expect(summary.symbol).toBe('ESU26');
+    expect(summary.totalRows).toBe(2);
+    expect(summary.days).toHaveLength(1);
+    expect(store.written.candles).toEqual([
+      { t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5 },
+      { t: OPEN + 300, o: 1.5, h: 2.5, l: 1.0, c: 2.0 },
+    ]);
+  });
+
+  it('is idempotent: re-ingesting identical candles reports unchanged and writes nothing', async () => {
+    // Second run simulated by seeding the store with exactly what a first
+    // run would have written; the merge must detect no change and skip tx.set.
+    const existing = [{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5 }];
+    const { firestore, tx } = makeIngestFirestore(existing);
+    const service = await buildWith(firestore);
+    const summary = await service.ingestCandles(
+      'ESU26', 'min-5', [{ time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5 }], {},
+    );
+    expect(summary.days[0]).toMatchObject({ added: 0, updated: 0, unchanged: true });
+    expect(tx.set).not.toHaveBeenCalled();
+  });
+
+  it('rejects candles misaligned to the interval grid', async () => {
+    const { firestore } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    await expect(
+      service.ingestCandles('ESU26', 'min-5', [{ time: OPEN + 60, open: 1, high: 1, low: 1, close: 1 }], {}),
+    ).rejects.toThrow(/align|interval/i);
+  });
+});
