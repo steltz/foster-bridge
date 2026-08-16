@@ -1,8 +1,9 @@
-import { Body, ConflictException, Controller, Get, NotFoundException, Post, Query } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkService, RunSummary } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
-import { BenchmarkRepository, ScoreboardDoc } from './benchmark.repository';
+import { BenchmarkRepository, ScoreboardDoc, SampleDoc } from './benchmark.repository';
+import { SamplesService, CreateSampleOptions, SampleSummary } from './samples.service';
 import { Variant, resolveModel } from './benchmark.types';
 import { BenchmarkDriftError } from './benchmark.errors';
 import { DriftReport } from './drift';
@@ -23,6 +24,7 @@ export class BenchmarkController {
     private readonly scoreboardService: ScoreboardService,
     private readonly repo: BenchmarkRepository,
     private readonly config: ConfigService,
+    private readonly samples: SamplesService,
   ) {}
 
   @Post('run')
@@ -71,5 +73,20 @@ export class BenchmarkController {
     const saved = await this.repo.getScoreboard(alias);
     if (saved) return saved;
     throw new NotFoundException(`No scoreboard for model ${alias}; run the benchmark first`);
+  }
+
+  @Post('samples')
+  async createSample(@Body() body: CreateSampleOptions): Promise<SampleDoc> {
+    return this.samples.create(body);
+  }
+
+  @Get('samples')
+  async listSamples(): Promise<SampleSummary[]> {
+    return this.samples.list();
+  }
+
+  @Get('samples/:name')
+  async getSample(@Param('name') name: string): Promise<SampleDoc> {
+    return this.samples.get(name);
   }
 }

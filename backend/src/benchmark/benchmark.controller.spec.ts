@@ -1,10 +1,11 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkController } from './benchmark.controller';
 import { BenchmarkService } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkRepository } from './benchmark.repository';
+import { SamplesService } from './samples.service';
 
 async function build() {
   const service = { run: jest.fn().mockResolvedValue({ batchesSubmitted: 1, cellsQueued: 5, daysSkipped: [] }) };
@@ -14,6 +15,11 @@ async function build() {
     getScoreboard: jest.fn().mockResolvedValue({ markdown: '# saved', json: {}, generatedAt: 't' }),
   };
   const config = { get: jest.fn().mockReturnValue('claude-fable-5') };
+  const samples = {
+    create: jest.fn().mockResolvedValue({ name: 's1', days: ['01062025'], requestedCount: 1, poolSize: 10, from: null, to: null, createdAt: 't' }),
+    list: jest.fn().mockResolvedValue([{ name: 's1', count: 1, poolSize: 10, firstDay: '01062025', lastDay: '01062025', createdAt: 't' }]),
+    get: jest.fn().mockResolvedValue({ name: 's1', days: ['01062025'], requestedCount: 1, poolSize: 10, from: null, to: null, createdAt: 't' }),
+  };
   const moduleRef = await Test.createTestingModule({
     controllers: [BenchmarkController],
     providers: [
@@ -21,9 +27,10 @@ async function build() {
       { provide: ScoreboardService, useValue: scoreboard },
       { provide: BenchmarkRepository, useValue: repo },
       { provide: ConfigService, useValue: config },
+      { provide: SamplesService, useValue: samples },
     ],
   }).compile();
-  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config };
+  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config, samples };
 }
 
 describe('BenchmarkController', () => {
@@ -64,5 +71,38 @@ describe('BenchmarkController', () => {
     const { ctrl, repo } = await build();
     await ctrl.scoreboard('claude-fable-5');
     expect(repo.getScoreboard).toHaveBeenCalledWith('fable');
+  });
+});
+
+describe('BenchmarkController samples', () => {
+  it('POST /benchmark/samples forwards the body to the service', async () => {
+    const { ctrl, samples } = await build();
+    const res = await ctrl.createSample({ name: 's1', count: 100, from: '01012025', to: '12312026' });
+    expect(samples.create).toHaveBeenCalledWith({ name: 's1', count: 100, from: '01012025', to: '12312026' });
+    expect(res.name).toBe('s1');
+  });
+
+  it('GET /benchmark/samples lists summaries', async () => {
+    const { ctrl, samples } = await build();
+    const res = await ctrl.listSamples();
+    expect(samples.list).toHaveBeenCalled();
+    expect(res[0].name).toBe('s1');
+  });
+
+  it('GET /benchmark/samples/:name fetches one sample', async () => {
+    const { ctrl, samples } = await build();
+    const res = await ctrl.getSample('s1');
+    expect(samples.get).toHaveBeenCalledWith('s1');
+    expect(res.days).toEqual(['01062025']);
+  });
+
+  it('service errors pass through unwrapped', async () => {
+    const { ctrl, samples } = await build();
+    const conflict = new ConflictException('exists');
+    samples.create.mockRejectedValue(conflict);
+    await expect(ctrl.createSample({ name: 's1' })).rejects.toBe(conflict);
+    const notFound = new NotFoundException('nope');
+    samples.get.mockRejectedValue(notFound);
+    await expect(ctrl.getSample('nope')).rejects.toBe(notFound);
   });
 });

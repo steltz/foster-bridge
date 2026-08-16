@@ -360,4 +360,25 @@ describe('Benchmark (e2e)', () => {
       expect(res.body.cellsExamined).toBe(0);
     });
   });
+
+  it('samples: create over HTTP, list, get, 404/400/409 semantics', async () => {
+    await boot();
+    // Complete candles for the one committed day -> pool of exactly 1.
+    await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
+
+    const created = await request(app.getHttpServer()).post('/benchmark/samples').send({ name: 's1', count: 1 }).expect(201);
+    expect(created.body.days).toEqual(['07012026']);
+    expect(created.body.poolSize).toBe(1);
+
+    const listed = await request(app.getHttpServer()).get('/benchmark/samples').expect(200);
+    expect(listed.body).toEqual([expect.objectContaining({ name: 's1', count: 1 })]);
+
+    const fetched = await request(app.getHttpServer()).get('/benchmark/samples/s1').expect(200);
+    expect(fetched.body.days).toEqual(['07012026']);
+
+    await request(app.getHttpServer()).get('/benchmark/samples/nope').expect(404);
+    await request(app.getHttpServer()).post('/benchmark/samples').send({ name: 'Bad Name!' }).expect(400);
+    await request(app.getHttpServer()).post('/benchmark/samples').send({ name: 's1', count: 1 }).expect(409);
+    await request(app.getHttpServer()).post('/benchmark/samples').send({ name: 's2', count: 5 }).expect(422);
+  });
 });
