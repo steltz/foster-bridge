@@ -60,9 +60,9 @@ describe('BacktestService', () => {
     expect(r.results[0].dollars).toBe(50);
   });
 
-  it('uses a different contract pointValue (ES=50)', async () => {
+  it('uses a different contract pointValue (ESU26=50, quarterly derives from ES)', async () => {
     const { service } = await build(() => Promise.resolve(winningDay));
-    const r = await service.run({ ...req, symbol: 'ES' }); // pointValue 50
+    const r = await service.run({ ...req, symbol: 'ESU26' }); // pointValue 50, explicit contract
     expect(r.results[0].points).toBe(10);
     expect(r.results[0].dollars).toBe(500);
   });
@@ -103,5 +103,50 @@ describe('BacktestService', () => {
   it('rejects an invalid session with 400', async () => {
     const { service } = await build(() => Promise.resolve(fullDay));
     await expect(service.run({ ...req, session: 'bogus' as any })).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('contract resolution', () => {
+  // getDay that returns candles ONLY for the given contract symbol.
+  const dayOnlyFor = (contract: string) => (sym: string) =>
+    Promise.resolve(sym === contract ? fullDay : null);
+
+  it("resolves symbol 'ES' to the front contract and echoes it", async () => {
+    const { service, marketData } = await build(dayOnlyFor('ESM26'));
+    const result = await service.run({ ...req, symbol: 'ES', date: '2026-06-12' });
+    expect(result.contract).toBe('ESM26');
+    expect(result.symbol).toBe('ES');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESM26', 'min-5', '2026-06-12');
+  });
+
+  it('resolves to the next quarterly on/after the switch Monday', async () => {
+    const { service, marketData } = await build(dayOnlyFor('ESU26'));
+    const result = await service.run({ ...req, symbol: 'ES', date: '2026-06-15' });
+    expect(result.contract).toBe('ESU26');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESU26', 'min-5', '2026-06-15');
+  });
+
+  it('explicit quarterly symbols bypass resolution', async () => {
+    const { service, marketData } = await build(dayOnlyFor('ESM26'));
+    const result = await service.run({ ...req, symbol: 'ESM26', date: '2026-06-15' });
+    expect(result.contract).toBe('ESM26');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESM26', 'min-5', '2026-06-15');
+  });
+
+  it('non-resolved symbols behave exactly as before, contract === symbol', async () => {
+    const { service, marketData } = await build(dayOnlyFor('MES'));
+    const result = await service.run({ ...req, date: '2026-06-15' }); // symbol stays 'MES'
+    expect(result.contract).toBe('MES');
+    expect(marketData.getDay).toHaveBeenCalledWith('MES', 'min-5', '2026-06-15');
+  });
+
+  it('404 for a resolved-but-missing day names the contract', async () => {
+    const { service } = await build(() => Promise.resolve(null));
+    await expect(service.run({ ...req, symbol: 'ES', date: '2026-06-15' })).rejects.toThrow('ESU26');
+  });
+
+  it('400 (not 500) for a regex-valid but calendar-invalid date', async () => {
+    const { service } = await build(() => Promise.resolve(fullDay));
+    await expect(service.run({ ...req, symbol: 'ES', date: '2026-13-01' })).rejects.toThrow(BadRequestException);
   });
 });

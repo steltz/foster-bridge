@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ContractsService } from '../contracts/contracts.service';
+import { resolveContract } from '../contracts/contracts-roll';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ExecutionEngine } from './execution-engine';
 import { RawOrder, normalizeOrders } from './orders';
@@ -21,6 +22,7 @@ export interface BacktestRequest {
 
 export interface BacktestResult {
   symbol: string;
+  contract: string;
   date: string;
   session: 'rth' | 'full';
   results: SimResult[];
@@ -36,6 +38,8 @@ function parseEntryCutoff(value: string): number | null {
   if (!match || hour > 23 || minute > 59) throw new Error('entryCutoff must be a 24-hour HH:MM time or "off"');
   return hour * 60 + minute;
 }
+
+const ROLL_RESOLVED_BASES = new Set(['ES']);
 
 @Injectable()
 export class BacktestService {
@@ -54,6 +58,22 @@ export class BacktestService {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(req.date)) {
       throw new BadRequestException('date must be YYYY-MM-DD');
     }
+
+    // A roll-resolved base (ES) maps date -> concrete quarterly per the
+    // verified roll rule; explicit contract symbols and every other symbol
+    // pass through untouched. The spec is identical by derivation, so
+    // pointValue/RTH math is unaffected. resolveContract throws a plain Error
+    // for regex-valid but calendar-invalid dates (2026-13-01) — rethrow as the
+    // endpoint's 400, never a 500.
+    let contract = req.symbol;
+    if (ROLL_RESOLVED_BASES.has(req.symbol)) {
+      try {
+        contract = resolveContract('ES', req.date);
+      } catch (err) {
+        throw new BadRequestException((err as Error).message);
+      }
+    }
+
     const session = req.session ?? 'rth';
     if (session !== 'rth' && session !== 'full') {
       throw new BadRequestException('session must be "rth" or "full"');
@@ -69,9 +89,9 @@ export class BacktestService {
       throw new BadRequestException((err as Error).message);
     }
 
-    const dayCandles = await this.marketData.getDay(req.symbol, req.interval, req.date);
+    const dayCandles = await this.marketData.getDay(contract, req.interval, req.date);
     if (dayCandles === null || dayCandles.length === 0) {
-      throw new NotFoundException(`No stored candle data for ${req.symbol} ${req.interval} ${req.date}`);
+      throw new NotFoundException(`No stored candle data for ${contract} ${req.interval} ${req.date}`);
     }
 
     const rthOpen = hhmmToMinutes(spec.rth.open);
@@ -83,7 +103,7 @@ export class BacktestService {
     if (session === 'rth' && !coverage.complete && req.allowIncomplete !== true) {
       throw new UnprocessableEntityException({
         error: 'incomplete-session',
-        message: `Incomplete RTH session for ${req.symbol} ${req.date}; refusing to backtest`,
+        message: `Incomplete RTH session for ${contract} ${req.date}; refusing to backtest`,
         hasOpen: coverage.hasOpen, hasClose: coverage.hasClose, gaps: coverage.gaps,
       });
     }
@@ -102,6 +122,6 @@ export class BacktestService {
       openMinutes, cutoffMinutes, tz,
     });
 
-    return { symbol: req.symbol, date: req.date, session, results, summary, coverage };
+    return { symbol: req.symbol, contract, date: req.date, session, results, summary, coverage };
   }
 }
