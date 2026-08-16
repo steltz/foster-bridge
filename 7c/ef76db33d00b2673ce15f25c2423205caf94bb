@@ -1,0 +1,24 @@
+backend/test/benchmark.e2e-spec.ts
+  s_54034df2c349b1::t_2a21cd8084a7b1 311-314,317-318
+  s_54034df2c349b1::t_ba7227e24ab4f6 107,114,125-128,132-167
+  s_54034df2c349b1::t_5b564447ed34a9 300-302
+  s_54034df2c349b1::t_2708936da674a2 180-182,189
+backend/test/benchmark-scorecard.e2e-spec.ts
+  s_54034df2c349b1::t_38a25a8f15bdbe 125,142-145,149-182,192,198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7cef76db33d00b2673ce15f25c2423205caf94bb",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
