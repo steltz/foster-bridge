@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-08-16-day-samples-design.md
+  s_32f41e41ddf017::t_575cdecbde220d 1-42,45-151
+  s_32f41e41ddf017::t_3e4b640f3e12a1 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b8358c46db275073b7f9003053a0fcc5d57dbbf6",
+  "prompts": {},
+  "sessions": {
+    "s_32f41e41ddf017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ffb845a-bf26-42fa-84a3-cd1709d43387",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
