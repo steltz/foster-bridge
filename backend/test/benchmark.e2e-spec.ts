@@ -36,7 +36,17 @@ jest.mock('openai', () => {
     // still return content starting with '{' (moonshot.chat.ts's brace-repair
     // would mangle non-JSON).
     const structured = (body?.response_format as any)?.type === 'json_schema';
-    const content = structured ? setupJson(setupSides.shift() ?? 'long') : '{}';
+    let content = '{}';
+    if (structured) {
+      const side = setupSides.shift();
+      if (side === undefined) {
+        throw new Error(
+          'benchmark.e2e-spec chatCreate mock: setupSides queue exhausted — ' +
+            'an unexpected extra structured (json_schema) call was made',
+        );
+      }
+      content = setupJson(side);
+    }
     return {
       model: 'kimi-k3',
       choices: [{ message: { content }, finish_reason: 'stop' }],

@@ -7,7 +7,10 @@ describe('Anthropic readiness (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    // Empty-string pin (matches set-test-env.ts): a delete would re-open the
+    // dotenv hole — ConfigModule assigns .env keys NOT already in process.env,
+    // so a real key in backend/.env would make these tests hit the live API.
+    process.env.ANTHROPIC_API_KEY = '';
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

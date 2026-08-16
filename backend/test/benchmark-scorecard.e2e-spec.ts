@@ -82,6 +82,7 @@ jest.mock('openai', () => {
       },
     });
   const filesCreate = jest.fn(async ({ purpose }: any) =>
+    // 'batch' arm unused in this suite — k3 submits are emulated.
     purpose === 'batch' ? { id: 'file_sc' } : { id: 'file_extract_sc' });
   const filesContent = jest.fn(async (fileId: string) => ({
     text: async () =>
@@ -94,6 +95,7 @@ jest.mock('openai', () => {
         : 'EXTRACTED PDF TEXT', // uploadFile's extract read; folded into envelopes
   }));
   const filesDel = jest.fn().mockResolvedValue({});
+  // (unused in this suite — k3 submits are emulated)
   const batchesCreate = jest.fn().mockResolvedValue({ id: 'batch_sc', status: 'validating' });
   const batchesRetrieve = jest.fn(async (batchId: string) => ({
     id: batchId,

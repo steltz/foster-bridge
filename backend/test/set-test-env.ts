@@ -5,3 +5,7 @@
 // overrides variables that are already set on process.env.
 process.env.LLM_PROVIDER = 'moonshot';
 process.env.MOONSHOT_API_KEY = 'test-key';
+// Empty string, not delete: the key EXISTS so dotenv won't assign a real .env
+// key over it, but stays falsy so Boolean(config.get(...)) and the lazy
+// factory's `if (!apiKey)` both take the unconfigured (401) path.
+process.env.ANTHROPIC_API_KEY = '';
