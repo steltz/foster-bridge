@@ -1,0 +1,34 @@
+backend/src/market-data/market-data.service.spec.ts
+  s_881f9ed6729261::t_f86ae77d8da706 205-237
+backend/src/market-data/market-data.service.ts
+  s_881f9ed6729261::t_57b1304493db8b 153-155,165
+docs/superpowers/specs/2026-08-15-contract-data-ingest-design.md
+  s_881f9ed6729261::t_cf4c3d6cda27a4 50-54
+  s_881f9ed6729261::t_be11921f388679 114-116
+backend/src/market-data/candle.ts
+  s_881f9ed6729261::t_7ba5142db9a382 2-5,12,16-17,24,28,32
+backend/src/market-data/contract-txt-parser.ts
+  s_881f9ed6729261::t_f67ffd5e8234c9 41-44,46,59
+  s_881f9ed6729261::t_5104a5592a11a5 5-7
+backend/src/market-data/candle.spec.ts
+  s_881f9ed6729261::t_13fb636c8b20b5 1-23
+backend/src/market-data/contract-txt-parser.spec.ts
+  s_881f9ed6729261::t_57f5e230b561a2 22,32,34,38-42
+  s_881f9ed6729261::t_54d18e9174d251 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "eb64bf99d45f3bfb4c699f5095be13c974aa3e87",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
