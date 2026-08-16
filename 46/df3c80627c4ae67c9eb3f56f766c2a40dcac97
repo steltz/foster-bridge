@@ -1,0 +1,40 @@
+backend/src/benchmark/benchmark.service.ts
+  s_881f9ed6729261::t_75832d6293dbc7 24-25
+  s_881f9ed6729261::t_0c825e0f420a2c 14
+  s_881f9ed6729261::t_eaf2636911f28d 171-174
+backend/test/benchmark.e2e-spec.ts
+  s_881f9ed6729261::t_5ed197551a17f6 133-135
+  s_881f9ed6729261::t_be441de78a8393 95,97
+  s_881f9ed6729261::t_8f1beacb974565 195-196
+  s_881f9ed6729261::t_4cb9d77148fe8d 254
+backend/src/benchmark/batch-reconciler.ts
+  s_881f9ed6729261::t_fffe298adad6b5 251
+  s_881f9ed6729261::t_4ff2ad1b13d786 14-15
+backend/test/benchmark-scorecard.e2e-spec.ts
+  s_881f9ed6729261::t_6d520bf81ce177 139
+  s_881f9ed6729261::t_73666aabab17fe 150-153
+  s_881f9ed6729261::t_6b4bb383797627 112
+backend/src/benchmark/benchmark.types.ts
+  s_881f9ed6729261::t_c8364c5868dd55 57-58
+backend/src/benchmark/batch-reconciler.spec.ts
+  s_881f9ed6729261::t_d1e525436fe5d4 86-87
+  s_881f9ed6729261::t_57dd51b690237f 97
+  s_881f9ed6729261::t_cc26e3f5f59a78 152
+  s_881f9ed6729261::t_dcbc1f1e0501e3 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "46df3c80627c4ae67c9eb3f56f766c2a40dcac97",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
