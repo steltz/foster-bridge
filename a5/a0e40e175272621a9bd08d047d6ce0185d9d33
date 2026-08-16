@@ -1,0 +1,31 @@
+data/moonshot-requests/.sb_cache.json
+  s_6672e188d137e6::t_85e59616e65718 1
+data/persona-context.md
+  s_32f41e41ddf017::t_8f11e979cfa8a0 1-38
+data/persona-structured.md
+  s_32f41e41ddf017::t_577b57f34f7be7 1-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a5a0e40e175272621a9bd08d047d6ce0185d9d33",
+  "prompts": {},
+  "sessions": {
+    "s_32f41e41ddf017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ffb845a-bf26-42fa-84a3-cd1709d43387",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    },
+    "s_6672e188d137e6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3bcaeea-febc-42e4-b639-4bcbb4a98477",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
