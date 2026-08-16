@@ -1,12 +1,11 @@
 import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { LLM_PROVIDER } from '../../llm/llm.constants';
 import { LlmProvider } from '../../llm/llm.provider';
 import { PromptEnvelope } from '../../llm/llm.types';
 import { BenchmarkRepository, DayArtifactDoc } from '../benchmark.repository';
-import { RepoInputsService, DayInput } from '../repo-inputs.service';
+import { CloudInputsService, DayInput, InputsSnapshot } from '../cloud-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
 import { resolveModel } from '../benchmark.types';
 import { CURRENT_SCHEMA, LOOKBACK_SCHEMA, SYNTH_SCHEMA, VERIFY_SCHEMA } from './schemas';
@@ -27,7 +26,7 @@ export class SevenKeysService {
   constructor(
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     private readonly repo: BenchmarkRepository,
-    private readonly inputs: RepoInputsService,
+    private readonly inputs: CloudInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly config: ConfigService,
   ) {}
@@ -80,12 +79,12 @@ export class SevenKeysService {
   }
 
   /** Runs current-day ∥ lookback -> synthesize -> verify on the flagship model. Never persists. */
-  async generate(day: DayInput): Promise<KeysArtifact> {
-    const methodsDoc = this.inputs.readMethodsDoc();
+  async generate(day: DayInput, snap: InputsSnapshot): Promise<KeysArtifact> {
+    const methodsDoc = snap.methodsDoc;
     if (!methodsDoc) throw new Error(`Seven-keys methods doc missing (day ${day.day})`);
-    const general = this.inputs.collectGeneralDocs();
-    const tpTranscript = readFileSync(day.planPath, 'utf8');
-    const recapTranscript = readFileSync(day.recapPath, 'utf8');
+    const general = snap.general;
+    const tpTranscript = day.tpTranscript;
+    const recapTranscript = day.recapTranscript;
     const fileId = await this.dayArtifacts.ensureFileId(day.day);
 
     // Lookback set: up-to-3 most recent prior complete days that already have KEYS,
@@ -93,7 +92,7 @@ export class SevenKeysService {
     // the 3 most recent complete days WITHOUT a KEYS artifact is recorded in
     // lookbackMissing so a mid-run failure's silent calibration degradation on the
     // later days is observable.
-    const prior = this.inputs.priorCompleteDays(day.day);
+    const prior = this.inputs.priorCompleteDays(day.day, snap);
     const haveKeys = new Set<string>();
     const withKeys: LookbackEntry[] = [];
     for (const p of prior) {
@@ -102,11 +101,11 @@ export class SevenKeysService {
       const doc = await this.repo.getKeysArtifact(p.day, this.flagshipAlias);
       if (!doc?.content) continue;
       haveKeys.add(p.day);
-      const recapPath = this.inputs.outcomeRecapPathForDay(p.day);
+      const outcomeRecap = await this.inputs.outcomeRecapForDay(p.day, snap);
       withKeys.push({
         day: p.day,
         keysContent: doc.content,
-        outcomeRecap: recapPath ? readFileSync(recapPath, 'utf8') : null,
+        outcomeRecap,
       });
     }
     const lookbackSet = withKeys.slice(-3); // 3 most recent, still oldest-first
@@ -193,7 +192,7 @@ export class SevenKeysService {
    * (logged) when generation/verification fails so the caller skips the scorecard
    * variant for the day.
    */
-  async ensureKeys(day: DayInput, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
+  async ensureKeys(day: DayInput, snap: InputsSnapshot, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
     const alias = this.flagshipAlias;
     const existing = await this.repo.getKeysArtifact(day.day, alias);
     const pinnedHashes = await this.repo.pinnedKeysHashes(day.day);
@@ -229,12 +228,12 @@ export class SevenKeysService {
     // (2) Refreshable until benchmarked: reuse only a VERIFIED artifact whose
     // generation inputs are unchanged. A corrected trade plan (inputsHash drift), an
     // unverified leftover, or an explicit force all fall through to (re)generation.
-    const inputsHash = this.computeInputsHash(day);
+    const inputsHash = this.computeInputsHash(day, snap.methodsDoc ?? '');
     if (!opts?.force && existing?.verified && existing.inputsHash === inputsHash) return existing;
 
     let result: KeysArtifact;
     try {
-      result = await this.generate(day);
+      result = await this.generate(day, snap);
     } catch (err) {
       this.logger.error(`Seven-keys generation failed for ${day.day}: ${(err as Error).message}`);
       return null;
@@ -273,14 +272,20 @@ export class SevenKeysService {
   // sha256 over the exact generation inputs (PDF bytes + both transcripts + the
   // methodology doc). ensureKeys reuses a not-yet-benchmarked artifact only while
   // this is unchanged, so a corrected trade plan regenerates instead of serving
-  // stale KEYS. (Only read on the non-immutable path — a benchmarked day returns
-  // before this is called.)
-  private computeInputsHash(day: DayInput): string {
-    const pdf = readFileSync(day.pdfPath);
-    const tp = readFileSync(day.planPath, 'utf8');
-    const recap = readFileSync(day.recapPath, 'utf8');
-    const methods = this.inputs.readMethodsDoc() ?? '';
-    return createHash('sha256').update(pdf).update('\x00').update(tp).update('\x00').update(recap).update('\x00').update(methods).digest('hex');
+  // stale KEYS. Pure: hashes the SAME in-memory values generation consumes
+  // (day.pdf, day.tpTranscript, day.recapTranscript, snap.methodsDoc) — never a
+  // second fetch. (Only read on the non-immutable path — a benchmarked day
+  // returns before this is called.)
+  private computeInputsHash(day: DayInput, methodsDoc: string): string {
+    return createHash('sha256')
+      .update(day.pdf)
+      .update('\x00')
+      .update(day.tpTranscript)
+      .update('\x00')
+      .update(day.recapTranscript)
+      .update('\x00')
+      .update(methodsDoc)
+      .digest('hex');
   }
 
   // Faithful port of the skill's committed KEYS file: YAML frontmatter + body.

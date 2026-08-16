@@ -205,7 +205,13 @@ export class BenchmarkService {
           );
           let keysDoc: DayArtifactDoc | null = null;
           try {
-            keysDoc = await this.sevenKeys.ensureKeys(day, { force: opts.regenerateKeys === true, pinned: scorecardInFlight });
+            // TODO(task-5 cloud-inputs migration): TEMPORARY compile shim.
+            // SevenKeysService.ensureKeys is now (day: DayInput, snap: InputsSnapshot,
+            // opts?) over cloud inputs; this legacy path still passes the repo day and
+            // the opts object in the snap position (casts below) so the build stays
+            // green until this whole run path is snapshot-threaded in the next task.
+            // Do NOT run a live benchmark against this interim state.
+            keysDoc = await this.sevenKeys.ensureKeys(day as never, { force: opts.regenerateKeys === true, pinned: scorecardInFlight } as never);
           } catch (err) {
             // A scorecard/KEYS infra failure must not abort this day's base/method cells —
             // treat a throw the same as a null (skip only the scorecard variant, retry next run).

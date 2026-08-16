@@ -3,6 +3,7 @@ import { MarketDataModule } from '../market-data/market-data.module';
 import { ExecutionModule } from '../execution/execution.module';
 import { BenchmarkRepository } from './benchmark.repository';
 import { RepoInputsService } from './repo-inputs.service';
+import { CloudInputsService } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
@@ -21,6 +22,7 @@ import { ScoreboardService } from './scoreboard.service';
   providers: [
     BenchmarkRepository,
     RepoInputsService,
+    CloudInputsService,
     DayArtifactsService,
     EnvelopeBuilder,
     SevenKeysService,
