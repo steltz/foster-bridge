@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FIRESTORE, STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { parseFrontmatter, extractBlock } from '../common/markdown-frontmatter';
+import { ES_STORAGE_PREFIX, dayPaths, manifestPath } from '../eminiplayer/eminiplayer-validation';
 
 const ZERO_BYTES_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
@@ -154,5 +155,155 @@ export class CloudInputsService {
           artifactSuffix: fm.artifactSuffix || null,
         };
       });
+  }
+
+  private async download(path: string): Promise<Buffer> {
+    const [buf] = await this.bucket.file(path).download();
+    return buf;
+  }
+
+  private async collectGeneralDocs(): Promise<GeneralDocs> {
+    const [objects] = await this.bucket.getFiles({ prefix: GENERAL_PREFIX });
+    const paths = objects.map((o) => o.name).filter((n) => !n.endsWith('/')).sort();
+    const files = await Promise.all(
+      paths.map(async (path) => ({ path, content: (await this.download(path)).toString('utf8') })),
+    );
+    const concatenated = files.map((f) => f.content).join('');
+    return { files, concatenated, sha256: concatenated ? this.sha256(concatenated) : ZERO_BYTES_SHA256 };
+  }
+
+  private async readMethodsDoc(): Promise<string | null> {
+    const [exists] = await this.bucket.file(METHODS_PATH).exists();
+    if (!exists) return null;
+    return (await this.download(METHODS_PATH)).toString('utf8');
+  }
+
+  // One list over the ES prefix; manifests download in PARALLEL. The matcher is
+  // built from manifestPath() so a prefix change can never silently zero the
+  // corpus (Global Constraint: no hand-built day paths, regexes included).
+  private async scanDays(): Promise<{ listings: DayListing[]; issues: DayIssue[] }> {
+    const [objects] = await this.bucket.getFiles({ prefix: ES_STORAGE_PREFIX });
+    const names = new Set(objects.map((o) => o.name));
+    const dayFolders = [...names]
+      .map((n) => {
+        const rest = n.slice(ES_STORAGE_PREFIX.length);
+        const day = rest.split('/')[0];
+        return /^\d{8}$/.test(day) && n === manifestPath(day) ? day : null;
+      })
+      .filter((d): d is string => d !== null);
+
+    const listings: DayListing[] = [];
+    const issues: DayIssue[] = [];
+    await Promise.all(
+      dayFolders.map(async (day) => {
+        let recapDate: string;
+        let fileSha256: DayListing['fileSha256'];
+        try {
+          const m = JSON.parse((await this.download(manifestPath(day))).toString('utf8')) as {
+            recapDate: string;
+            files: { tradePlanMd: { sha256: string }; tradePlanPdf: { sha256: string }; recap: { sha256: string } };
+          };
+          recapDate = m.recapDate;
+          if (!/^\d{8}$/.test(recapDate)) throw new Error(`bad recapDate ${recapDate}`);
+          fileSha256 = {
+            tradePlanMd: m.files.tradePlanMd.sha256,
+            tradePlanPdf: m.files.tradePlanPdf.sha256,
+            recap: m.files.recap.sha256,
+          };
+        } catch (err) {
+          issues.push({ day, missing: [`unreadable manifest: ${(err as Error).message}`] });
+          return;
+        }
+        const paths = dayPaths(day, recapDate);
+        const missing = [paths.tradePlanMd, paths.tradePlanPdf, paths.recap].filter((p) => !names.has(p));
+        if (missing.length) {
+          issues.push({ day, missing });
+          return;
+        }
+        listings.push({
+          day,
+          date: `${day.slice(4, 8)}-${day.slice(0, 2)}-${day.slice(2, 4)}`,
+          prefix: day,
+          recapDate,
+          fileSha256,
+        });
+      }),
+    );
+    listings.sort((a, b) => a.date.localeCompare(b.date));
+    issues.sort((a, b) => a.day.localeCompare(b.day));
+    return { listings, issues };
+  }
+
+  /** The single per-run fetch: everything concurrent, one bucket list. */
+  async snapshot(): Promise<InputsSnapshot> {
+    return this.wrap(async () => {
+      const [traders, general, methodsDoc, scan] = await Promise.all([
+        this.collectTraders(),
+        this.collectGeneralDocs(),
+        this.readMethodsDoc(),
+        this.scanDays(),
+      ]);
+      const features = await this.collectFeatures(methodsDoc);
+      return { traders, features, general, methodsDoc, days: scan.listings, issues: scan.issues };
+    });
+  }
+
+  /**
+   * Downloads the three artifacts and verifies each against the manifest
+   * FileRecord hashes captured in the listing. A mismatch means an eminiplayer
+   * force-rerun overwrote the day after the snapshot — throw so the run's
+   * per-day isolation records a daysSkipped instead of freezing torn inputs
+   * into cell provenance.
+   */
+  async loadDay(listing: DayListing): Promise<DayInput> {
+    const paths = dayPaths(listing.day, listing.recapDate);
+    const [pdf, tp, recap] = await Promise.all([
+      this.download(paths.tradePlanPdf),
+      this.download(paths.tradePlanMd),
+      this.download(paths.recap),
+    ]);
+    const mismatches = [
+      ['tradePlanPdf', this.sha256Bytes(pdf), listing.fileSha256.tradePlanPdf],
+      ['tradePlanMd', this.sha256Bytes(tp), listing.fileSha256.tradePlanMd],
+      ['recap', this.sha256Bytes(recap), listing.fileSha256.recap],
+    ].filter(([, actual, expected]) => actual !== expected);
+    if (mismatches.length) {
+      throw new Error(
+        `day ${listing.day} changed since the run snapshot (${mismatches.map(([k]) => k).join(', ')} no longer match the manifest) — likely a force-rerun; skip and re-run`,
+      );
+    }
+    return {
+      ...listing,
+      pdf,
+      tpTranscript: tp.toString('utf8'),
+      recapTranscript: recap.toString('utf8'),
+      recapFileName: `${listing.recapDate}_ES_RECAP.md`,
+    };
+  }
+
+  private sha256Bytes(buf: Buffer): string {
+    return createHash('sha256').update(buf).digest('hex');
+  }
+
+  /** Pure filter — no I/O; days come from the run's snapshot. */
+  priorCompleteDays(targetDay: string, snap: InputsSnapshot): DayListing[] {
+    const targetDate = `${targetDay.slice(4, 8)}-${targetDay.slice(0, 2)}-${targetDay.slice(2, 4)}`;
+    return snap.days.filter((d) => d.date < targetDate);
+  }
+
+  /**
+   * A day's OUTCOME recap is `<day>_ES_RECAP.md` in the FOLLOWING day's folder.
+   * Resolved through COMMITTED listings only (the listing whose recapDate is
+   * this day), sha-verified — an orphan recap in an uncommitted folder never
+   * satisfies this (spec deliberate choice 1).
+   */
+  async outcomeRecapForDay(day: string, snap: InputsSnapshot): Promise<string | null> {
+    const host = snap.days.find((d) => d.recapDate === day);
+    if (!host) return null;
+    const buf = await this.download(dayPaths(host.day, day).recap);
+    if (this.sha256Bytes(buf) !== host.fileSha256.recap) {
+      throw new Error(`outcome recap for ${day} changed since the run snapshot — likely a force-rerun`);
+    }
+    return buf.toString('utf8');
   }
 }
