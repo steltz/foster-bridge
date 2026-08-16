@@ -1,0 +1,29 @@
+backend/src/benchmark/drift.ts
+  s_54034df2c349b1::t_92640c90124852 66-68
+  s_54034df2c349b1::t_85545f786ff259 22
+  s_54034df2c349b1::t_8a68357c482ec5 38-39
+  s_54034df2c349b1::t_06181ace50220b 107,109-113
+  s_54034df2c349b1::t_5ee82bba0571e0 172
+backend/src/benchmark/drift.spec.ts
+  s_54034df2c349b1::t_127b3d64245fef 141
+  s_54034df2c349b1::t_3e34a2412d12b1 130
+  s_54034df2c349b1::t_8c71b91b6ba26b 189
+  s_54034df2c349b1::t_7048faefad249f 51
+  s_54034df2c349b1::t_9d6b61731987cc 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e844462a49d74f1abfcfae9f7e66ae0702efba9a",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
