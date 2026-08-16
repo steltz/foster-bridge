@@ -35,7 +35,7 @@ describe('ContractIngestService', () => {
   };
 
   function build(): ContractIngestService {
-    const config = { get: (key: string) => (key === 'benchmark.repoRoot' ? root : undefined) } as unknown as ConfigService;
+    const config = { get: (key: string) => (key === 'marketData.contractDataRoot' ? root : undefined) } as unknown as ConfigService;
     return new ContractIngestService(marketData as never, config);
   }
 

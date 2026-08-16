@@ -104,6 +104,29 @@ describe('configuration benchmark defaults', () => {
   });
 });
 
+describe('configuration marketData', () => {
+  const OLD_ENV = process.env;
+  beforeEach(() => {
+    process.env = { ...OLD_ENV };
+    delete process.env.CONTRACT_DATA_ROOT;
+  });
+  afterAll(() => {
+    process.env = OLD_ENV;
+  });
+
+  it('defaults contractDataRoot to the repo root (absolute)', () => {
+    const cfg = configuration();
+    // configuration.spec.ts and configuration.ts both live in src/config, so
+    // __dirname resolves identically: '../../..' is the repo root.
+    expect(cfg.marketData.contractDataRoot).toBe(resolve(__dirname, '..', '..', '..'));
+  });
+
+  it('honours CONTRACT_DATA_ROOT', () => {
+    process.env.CONTRACT_DATA_ROOT = '/tmp/contract-fixture';
+    expect(configuration().marketData.contractDataRoot).toBe('/tmp/contract-fixture');
+  });
+});
+
 describe('configuration benchmark schedulerEnabled', () => {
   const OLD_ENV = process.env;
   beforeEach(() => {

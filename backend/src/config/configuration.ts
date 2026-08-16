@@ -24,6 +24,9 @@ export interface AppConfig {
   llm: {
     provider: string;
   };
+  marketData: {
+    contractDataRoot: string;
+  };
   benchmark: {
     model: string;
     defaultRunCount: number;
@@ -87,6 +90,13 @@ export default (): AppConfig => ({
     // moonshot.baseUrl above — otherwise '' reaches llm.module.ts's switch and
     // throws `Unknown llm.provider: ""` instead of booting Anthropic.
     provider: process.env.LLM_PROVIDER || 'anthropic',
+  },
+  marketData: {
+    // Locates the repo-root `data/` directory the per-contract txt ingest
+    // walks (POST /markets/ingest-contracts). configuration.{ts,js} lives at
+    // backend/src/config (dist/config after build); '../../..' lands on the
+    // repo root (parent of backend/) in both layouts.
+    contractDataRoot: process.env.CONTRACT_DATA_ROOT ?? resolve(__dirname, '..', '..', '..'),
   },
   benchmark: {
     // Flagship benchmark model is provider-aware: Fable on Anthropic, Kimi K3 on

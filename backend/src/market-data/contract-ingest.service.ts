@@ -90,7 +90,7 @@ export class ContractIngestService {
 
   start(): ContractIngestSnapshot {
     if (this.job?.state === 'running') throw new ContractIngestAlreadyRunningError();
-    const dataRoot = join(this.config.get<string>('benchmark.repoRoot')!, 'data');
+    const dataRoot = join(this.config.get<string>('marketData.contractDataRoot')!, 'data');
 
     const files: { rel: string; abs: string; symbol: string; interval: Interval }[] = [];
     const skipped: string[] = [];
