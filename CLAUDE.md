@@ -3,10 +3,10 @@
 ## Use the API, not the skills
 
 Every trading-workflow operation goes through the NestJS backend in `backend/`.
-The five skills under `.claude/skills/` are **retired** — they are hidden from
-Claude by `skillOverrides` in `.claude/settings.json` and kept only as reference
-documentation. Do not reimplement their CLI-and-subagent flows; call the
-endpoints below instead.
+The five trading skills that lived under `.claude/skills/` are **retired and
+deleted**. Do not reimplement their CLI-and-subagent flows; call the endpoints
+below instead. All benchmark content — personas, features, knowledge docs, day
+inputs — lives in Firebase Storage/Firestore, not in this repo.
 
 ## Running the backend
 
@@ -24,8 +24,7 @@ Health check: `GET /health`, `GET /health/ready`.
 
 ## Endpoints by workflow
 
-Day keys are `MMDDYYYY` (matching `knowledge-base/es/<day>/`); candle dates are
-`YYYY-MM-DD`.
+Day keys are `MMDDYYYY`; candle dates are `YYYY-MM-DD`.
 
 ### Benchmark — replaces `trader-bench`, `trader-panel`, `seven-keys`
 
@@ -37,9 +36,13 @@ GET  /benchmark/scoreboard?model=<alias>
 ```
 
 `POST /benchmark/run` tops up the matrix — personas × days × variants — and only
-runs missing cells, so it is safe to re-issue. Omit `days` for every complete
+runs missing cells, so it is safe to re-issue. It is **single-flight**: a second
+`POST` while a run is in progress returns 409. Omit `days` for every complete
 day, omit `variants` for all declared variants, omit `model` to take
 `benchmark.model` from config.
+
+Day availability comes from committed eminiplayer manifests in the bucket —
+`POST /eminiplayer/ingest` is how a day becomes benchmarkable.
 
 **Seven-keys generation is part of this run**, not a separate step:
 `backend/src/benchmark/seven-keys/` runs the current-day analyst, lookback
@@ -62,13 +65,6 @@ cross-model scoreboard rows therefore rest on different keys per provider.
 The benchmark grades against ES min-1 at real $50/pt, and each cell records
 `result.contract` (the quarterly it actually ran on).
 
-**Warning: do not issue `POST /benchmark/run`, and do not deploy the flipped
-constants while old batches are in flight, until the legacy MES-era cells are
-retired.** Cells carry no symbol/interval in their key, so old $5/pt MES cells
-and new $50/pt ES cells would silently average into the same scoreboard rows —
-and the drift guard does NOT catch this: it hashes personas/docs, not grading
-constants. Drain check: `GET /benchmark/status` must be empty before deploying.
-
 Runs go through the Batch API and reconcile asynchronously — poll
 `GET /benchmark/status` rather than expecting `run` to return finished cells.
 
@@ -80,20 +76,38 @@ GET /benchmark/drift          read-only report; {} findings means clean
 
 Every cell records the sha256 of the inputs it ran under (persona, general
 docs, feature body, feature staticDoc). `POST /benchmark/run` compares the
-current files against those hashes **before** uploading or submitting anything
-and returns **409** if they disagree — otherwise an edited persona's new runs
+current stored content against those hashes **before** uploading or submitting
+anything and returns **409** if they disagree — otherwise an edited persona's new runs
 would average into the same scoreboard row as the old persona's, since the
 scoreboard groups by `(trader, alias, variant)` with no hash in the key.
 
-Two conditions are reported: `file-drift` (a file changed after cells were
+Two conditions are reported: `file-drift` (content changed after cells were
 written) and `internal-drift` (existing cells disagree with each other, so a row
 is *already* mixed). `GET /benchmark/drift` runs the same comparison without
 submitting, for checking before spending a batch.
 
-There is deliberately **no bypass flag**. The remedy is a new file, or reverting
+There is deliberately **no bypass flag**. The remedy is a new doc, or reverting
 the edit. Intentionally starting a new benchmark era means retiring the existing
 cells — there is no endpoint for that today, so it is a manual Firestore
 operation.
+
+### Content endpoints
+
+Benchmark inputs are cloud docs, managed through the API:
+
+```
+POST /traders                    create a persona (write-once; 409 if the name exists)
+POST /features                   create a feature (write-once; 409 if the name exists)
+PUT  /knowledge/general/:name    upsert a general knowledge doc
+PUT  /knowledge/methods          upsert the methods doc
+GET  /traders                    list personas
+GET  /features                   list features
+GET  /knowledge/general          list general docs
+```
+
+All bodies are `{ content: "<markdown with frontmatter>" }`. The methods doc has
+exactly **one copy** (`PUT /knowledge/methods`); features reference it live via
+their `staticDoc` frontmatter rather than embedding a duplicate.
 
 ### Backtest — the sole judge of a setup
 
@@ -153,13 +167,12 @@ GET /costs/report      HTML cost dashboard
 
 ## Trader personas
 
-Personas are files, not a service operation: add a `traders/*.md` directly.
-Keep the `origin` / `mutation` lineage frontmatter — the scoreboard renders the
-family tree from those fields. Trader files are **immutable once benchmarked**:
-refining a persona means a new file, never an edit to an existing one, so that
-recorded cells keep meaning what they meant when they ran. The backend enforces
-this — see the drift guard below. `.claude/skills/trader-spawn/SKILL.md` still
-documents the conventions.
+Personas are **write-once Firestore docs**, created via `POST /traders` — there
+are no persona files in the repo. Frontmatter requires `name`; `origin` and
+`mutation` are optional for root personas and are recorded as lineage when
+present — the scoreboard renders the family tree from those fields. Write-once
+means refining a persona is a **new name, never an edit** to an existing doc,
+so that recorded cells keep meaning what they meant when they ran.
 
-Never carry a persona list over from a previous run or a previous message; the
-set on disk is the only source of truth.
+`GET /traders` lists the current set. Never carry a persona list over from a
+previous run or a previous message; Firestore is the only source of truth.
