@@ -1,0 +1,55 @@
+backend/src/benchmark/scoreboard.service.spec.ts
+  s_54034df2c349b1::t_38be062e101028 20-28,30,35
+  s_54034df2c349b1::t_c0f96d4c885926 4
+backend/src/benchmark/scoreboard.service.ts
+  s_54034df2c349b1::t_7e4257ac81dde9 3
+  s_54034df2c349b1::t_c5a6e01c0ebbcb 18-20
+  s_54034df2c349b1::t_67da6a003182c1 10
+backend/src/config/configuration.ts
+  s_54034df2c349b1::t_0da52eb31da29f 145-147
+backend/src/benchmark/benchmark.service.ts
+  s_54034df2c349b1::t_6c57af9b1464ac 227
+  s_54034df2c349b1::t_9d4dc54d10d595 209-210
+  s_54034df2c349b1::t_4aef1958e5f08a 323-325,327
+  s_54034df2c349b1::t_871f6d3da15386 1,4
+  s_54034df2c349b1::t_866ddce0febc63 60
+  s_54034df2c349b1::t_3924366682b9cb 49
+  s_54034df2c349b1::t_70922cff59de97 200-205
+  s_54034df2c349b1::t_abc4cbe6963ed1 75-76,79-80,82-94,102-107,111,120,126
+backend/src/benchmark/benchmark.service.spec.ts
+  s_54034df2c349b1::t_8b3972ab7c7be9 70
+  s_54034df2c349b1::t_bee0cebcd34665 166
+  s_54034df2c349b1::t_a2697a6c784c4d 260
+  s_54034df2c349b1::t_fd21003292998b 239
+  s_54034df2c349b1::t_335f193894a2a5 6
+  s_54034df2c349b1::t_e4d81918e68724 79
+  s_54034df2c349b1::t_bfb92f7d5d50c1 176-177,180-181
+  s_54034df2c349b1::t_33df9035947915 31-47,49-54
+  s_54034df2c349b1::t_ca55bf746f950e 323-353
+backend/src/benchmark/cache-warmer.spec.ts
+  s_54034df2c349b1::t_32c45b42fcf9f8 6
+  s_54034df2c349b1::t_b5fe620cbe0561 32-40,42
+  s_54034df2c349b1::t_9acb13110d646e 66
+backend/src/config/configuration.spec.ts
+  s_54034df2c349b1::t_c24998c0e3a254 58
+backend/src/benchmark/cache-warmer.ts
+  s_54034df2c349b1::t_081fac5a7ac634 53-56
+  s_54034df2c349b1::t_9585f613575b8f 5
+  s_54034df2c349b1::t_51536ce082e05e 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "56e9f6f59be4e116d23f81a9579cff94b8aeefd1",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
