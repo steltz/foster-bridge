@@ -1,0 +1,19 @@
+backend/test/benchmark-scorecard.e2e-spec.ts
+  s_881f9ed6729261::t_5fc223d94ee505 5-11,19-20,23-26,36-69,71-104,107-109,113-117,176-178,196,202,212,218-219,224,235-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8fe479162125fb1f05480ea0a2279fdfd974f0af",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
