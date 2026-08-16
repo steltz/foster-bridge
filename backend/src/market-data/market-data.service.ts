@@ -150,7 +150,9 @@ export class MarketDataService {
         for (const c of incomingDeduped) {
           const prev = map.get(c.t);
           if (prev === undefined) added += 1;
-          else if (prev.o !== c.o || prev.h !== c.h || prev.l !== c.l || prev.c !== c.c) updated += 1;
+          // `v` participates so a volume-only change (backfilling volume onto
+          // an OHLC-only day) rewrites the doc instead of no-opping.
+          else if (prev.o !== c.o || prev.h !== c.h || prev.l !== c.l || prev.c !== c.c || prev.v !== c.v) updated += 1;
           map.set(c.t, c);
         }
         merged = [...map.values()].sort((a, b) => a.t - b.t);
@@ -160,7 +162,7 @@ export class MarketDataService {
         merged.length === existing.length &&
         merged.every((c, i) => {
           const e = existing[i];
-          return e && e.t === c.t && e.o === c.o && e.h === c.h && e.l === c.l && e.c === c.c;
+          return e && e.t === c.t && e.o === c.o && e.h === c.h && e.l === c.l && e.c === c.c && e.v === c.v;
         });
 
       if (unchanged) {

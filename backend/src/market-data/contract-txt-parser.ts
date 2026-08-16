@@ -2,9 +2,9 @@ import { Candle } from './candle';
 
 // Parses the local per-contract export format: headerless lines of
 //   YYYY-MM-DD HH:MM:SS,open,high,low,close,volume
-// with ET-naive wall times. Volume is parsed-and-dropped (day-docs are
-// OHLC-only; the files on disk remain the volume source). Any malformed
-// row fails the whole file — reject, don't guess.
+// with ET-naive wall times. Volume is required on every parsed candle and
+// stored as `v` on the day-doc. Any malformed row fails the whole file —
+// reject, don't guess.
 
 // Numeric fields are restricted to number-shaped characters — `[^,]+` would
 // let a whitespace-only field through, and Number(' ') === 0 silently. The
@@ -38,9 +38,12 @@ export function etWallTimeToEpochSeconds(
   return epoch / 1000;
 }
 
-export function parseContractTxt(text: string): Candle[] {
+/** Every txt-sourced candle carries volume — required, not optional. */
+export type ContractCandle = Candle & { volume: number };
+
+export function parseContractTxt(text: string): ContractCandle[] {
   const lines = text.split(/\r?\n/);
-  const candles: Candle[] = [];
+  const candles: ContractCandle[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (line === '') continue;
@@ -53,7 +56,7 @@ export function parseContractTxt(text: string): Candle[] {
     }
     candles.push({
       time: etWallTimeToEpochSeconds(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])),
-      open, high, low, close,
+      open, high, low, close, volume,
     });
   }
   if (candles.length === 0) throw new Error('contract txt has no data rows');

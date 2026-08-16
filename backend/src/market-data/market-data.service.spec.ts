@@ -202,4 +202,37 @@ describe('MarketDataService.ingestCandles', () => {
       service.ingestCandles('ESU26', 'min-5', [{ time: OPEN + 60, open: 1, high: 1, low: 1, close: 1 }], {}),
     ).rejects.toThrow(/align|interval/i);
   });
+
+  it('persists volume as v on the stored candle', async () => {
+    const { firestore, store } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
+    await service.ingestCandles(
+      'ESU26', 'min-5', [{ time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5, volume: 955 }], {},
+    );
+    expect(store.written.candles).toEqual([{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5, v: 955 }]);
+  });
+
+  it('a volume-only change counts as updated, not unchanged (backfilling v onto OHLC-only days)', async () => {
+    // The 5 day-docs written before volume support landed have no v; re-running
+    // the ingest with volume must rewrite them rather than no-op.
+    const existing = [{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5 }];
+    const { firestore, store } = makeIngestFirestore(existing);
+    const service = await buildWith(firestore);
+    const summary = await service.ingestCandles(
+      'ESU26', 'min-5', [{ time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5, volume: 955 }], {},
+    );
+    expect(summary.days[0]).toMatchObject({ added: 0, updated: 1, unchanged: false });
+    expect(store.written.candles).toEqual([{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5, v: 955 }]);
+  });
+
+  it('stays idempotent when volume is present and identical', async () => {
+    const existing = [{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5, v: 955 }];
+    const { firestore, tx } = makeIngestFirestore(existing);
+    const service = await buildWith(firestore);
+    const summary = await service.ingestCandles(
+      'ESU26', 'min-5', [{ time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5, volume: 955 }], {},
+    );
+    expect(summary.days[0]).toMatchObject({ added: 0, updated: 0, unchanged: true });
+    expect(tx.set).not.toHaveBeenCalled();
+  });
 });

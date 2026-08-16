@@ -47,7 +47,11 @@ the contract its TP levels were quoted on.
 - The TP prev-day-summary runtime assertion (~2-pt tolerance tripwire from
   the roll-convention doc). Follow-up feature; this design leaves an obvious
   seam for it (the backtest response records which contract was used).
-- Volume storage. The day-doc schema stays OHLC-only; `data/` files on disk
+- ~~Volume storage~~ *(superseded 2026-08-16: volume from the txt files IS
+  now stored — required on every txt-sourced candle, persisted as `v` on the
+  day-doc; the CSV upload path stays volume-less since its format has no
+  volume column)*. Original rationale: the day-doc schema stays OHLC-only;
+  `data/` files on disk
   remain the volume source if ever needed (they were only needed offline, to
   verify the roll rule).
 - Quarterly resolution for NQ/MNQ (no per-contract data exists for them; the
@@ -107,7 +111,9 @@ endpoint keeps working for any valid symbol, including quarterlies.
 **New parser** (`parseContractTxt` alongside `parseCsv`): the local format is
 headerless `YYYY-MM-DD HH:MM:SS,open,high,low,close,volume` with ET-naive
 timestamps. Conversion ET→epoch uses `America/New_York` (DST-correct; unit
-test spans a DST transition day). Volume column is parsed-and-dropped.
+test spans a DST transition day). Volume is required on every parsed candle
+and stored as `v` in the day-doc *(amended 2026-08-16; originally
+parsed-and-dropped)*.
 Malformed rows fail the file (all-or-nothing per file), matching the repo's
 reject-don't-guess validation posture.
 

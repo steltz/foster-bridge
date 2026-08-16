@@ -19,7 +19,7 @@ describe('etWallTimeToEpochSeconds', () => {
 });
 
 describe('parseContractTxt', () => {
-  it('parses headerless datetime rows, dropping volume, sorted by time', () => {
+  it('parses headerless datetime rows with volume, sorted by time', () => {
     const text = [
       '2026-06-15 09:35:00,7500.25,7501.0,7499.5,7500.0,321',
       '2026-06-15 09:30:00,7498.0,7500.5,7497.75,7500.25,955',
@@ -29,9 +29,17 @@ describe('parseContractTxt', () => {
     expect(candles).toHaveLength(2);
     expect(candles[0]).toEqual({
       time: etWallTimeToEpochSeconds(2026, 6, 15, 9, 30, 0),
-      open: 7498.0, high: 7500.5, low: 7497.75, close: 7500.25,
+      open: 7498.0, high: 7500.5, low: 7497.75, close: 7500.25, volume: 955,
     });
+    expect(candles[1].volume).toBe(321);
     expect(candles[1].time).toBeGreaterThan(candles[0].time);
+  });
+
+  it('every parsed candle carries volume (required, not optional)', () => {
+    const candles = parseContractTxt('2026-06-15 09:30:00,1,2,0.5,1.5,0\n');
+    // Zero is a legitimate volume for a quiet bar and must survive as 0, not
+    // be dropped or treated as missing.
+    expect(candles[0].volume).toBe(0);
   });
 
   it('rejects a malformed row with line context', () => {
