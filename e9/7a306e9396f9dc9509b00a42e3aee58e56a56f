@@ -1,0 +1,30 @@
+backend/src/market-data/contract-txt-parser.spec.ts
+  s_881f9ed6729261::t_8e614b90804f34 45-48
+CLAUDE.md
+  s_881f9ed6729261::t_9947e9775573db 108-112
+  s_881f9ed6729261::t_34fa2f40c26f90 119-120,123-126
+  s_881f9ed6729261::t_d38d020e522c4e 62-71
+  s_881f9ed6729261::t_66ff7f0bfb4bc0 127
+backend/src/market-data/contract-ingest.service.spec.ts
+  s_881f9ed6729261::t_408d4be81a8cd3 118-129
+backend/src/market-data/contract-ingest.service.ts
+  s_881f9ed6729261::t_7cb50f5b6da607 26-30
+backend/src/market-data/contract-txt-parser.ts
+  s_881f9ed6729261::t_07f47623789264 9-11,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e97a306e9396f9dc9509b00a42e3aee58e56a56f",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
