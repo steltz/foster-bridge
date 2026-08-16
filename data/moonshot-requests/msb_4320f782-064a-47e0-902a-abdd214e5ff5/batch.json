@@ -1,0 +1,56 @@
+{
+  "batchId": "msb_4320f782-064a-47e0-902a-abdd214e5ff5",
+  "model": "kimi-k3",
+  "opts": {
+    "schema": {
+      "type": "object",
+      "required": [
+        "side",
+        "entry",
+        "stopLoss",
+        "takeProfit",
+        "rationale",
+        "primaryZone",
+        "confidence"
+      ],
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "long",
+            "short"
+          ]
+        },
+        "entry": {
+          "type": "number"
+        },
+        "stopLoss": {
+          "type": "number"
+        },
+        "takeProfit": {
+          "type": "number"
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "primaryZone": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "integer"
+        },
+        "rejectedAlternative": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "maxTokens": 32000,
+    "effort": "high"
+  },
+  "total": 2,
+  "createdAt": "2026-08-16T17:36:34.799Z",
+  "expiresAt": "2026-08-16T20:36:34.799Z",
+  "endedAt": "2026-08-16T17:37:43.875Z",
+  "status": "ended"
+}

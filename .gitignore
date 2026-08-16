@@ -5,3 +5,10 @@ node_modules/
 # POST /markets/:symbol/:interval/candles, which is the source of truth —
 # the export is a transient input, not an artifact worth versioning.
 CME_MINI_*.csv
+
+# Per-contract ingest source files for POST /markets/ingest-contracts —
+# same rationale: transient input, not an artifact worth versioning.
+data/ES_1min_archive_*/
+data/ES_1min_update_*/
+data/ES_5min_archive_*/
+data/ES_5min_update_*/
