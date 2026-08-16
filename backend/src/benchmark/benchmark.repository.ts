@@ -72,6 +72,16 @@ export interface DayArtifactDoc {
   lookbackMissing?: string[];
 }
 
+export interface SampleDoc {
+  name: string;
+  days: string[]; // MMDDYYYY keys, sorted chronologically
+  requestedCount: number;
+  poolSize: number; // eligible days at creation time
+  from: string | null; // requested range bound, if any
+  to: string | null;
+  createdAt: string;
+}
+
 export interface ScoreboardDoc {
   json: unknown;
   markdown: string;
@@ -82,6 +92,7 @@ const RUNS = 'benchmarkRuns';
 const BATCHES = 'benchmarkBatches';
 const ARTIFACTS = 'dayArtifacts';
 const SCOREBOARD = 'benchmarkScoreboard';
+const SAMPLES = 'samples';
 
 @Injectable()
 export class BenchmarkRepository {
@@ -215,5 +226,20 @@ export class BenchmarkRepository {
 
   async saveScoreboard(modelAlias: string, doc: ScoreboardDoc): Promise<void> {
     await this.db.collection(SCOREBOARD).doc(modelAlias).set(doc as any);
+  }
+
+  /** Write-once; duplicate create surfaces the raw ALREADY_EXISTS (code 6) for the caller to map. */
+  async createSample(doc: SampleDoc): Promise<void> {
+    await this.db.collection(SAMPLES).doc(doc.name).create(doc as any);
+  }
+
+  async getSample(name: string): Promise<SampleDoc | null> {
+    const snap = await this.db.collection(SAMPLES).doc(name).get();
+    return snap.exists ? (snap.data() as SampleDoc) : null;
+  }
+
+  async listSamples(): Promise<SampleDoc[]> {
+    const snap = await this.db.collection(SAMPLES).get();
+    return snap.docs.map((d) => d.data() as SampleDoc);
   }
 }

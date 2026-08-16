@@ -193,4 +193,41 @@ describe('BenchmarkRepository', () => {
       expect((await repo.getKeysArtifact('07012026', 'fable'))?.content).toBe('# scoped');
     });
   });
+
+  describe('samples', () => {
+    const sample = {
+      name: 's1-2025-2026',
+      days: ['01062025', '03042026'],
+      requestedCount: 2,
+      poolSize: 300,
+      from: null,
+      to: null,
+      createdAt: '2026-08-16T00:00:00.000Z',
+    };
+
+    it('createSample persists and getSample round-trips', async () => {
+      const { repo } = await build();
+      await repo.createSample(sample);
+      expect(await repo.getSample('s1-2025-2026')).toEqual(sample);
+    });
+
+    it('getSample returns null for an unknown name', async () => {
+      const { repo } = await build();
+      expect(await repo.getSample('nope')).toBeNull();
+    });
+
+    it('createSample rejects a duplicate name with Firestore code 6', async () => {
+      const { repo } = await build();
+      await repo.createSample(sample);
+      await expect(repo.createSample({ ...sample, days: ['07012025'] })).rejects.toMatchObject({ code: 6 });
+    });
+
+    it('listSamples returns all stored samples', async () => {
+      const { repo } = await build();
+      await repo.createSample(sample);
+      await repo.createSample({ ...sample, name: 's2' });
+      const names = (await repo.listSamples()).map((s) => s.name).sort();
+      expect(names).toEqual(['s1-2025-2026', 's2']);
+    });
+  });
 });
