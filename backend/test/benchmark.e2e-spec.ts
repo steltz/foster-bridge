@@ -1,14 +1,9 @@
 // The SDK mock must be declared before importing AppModule.
-const succeeded = (side: string) => ({
-  type: 'succeeded',
-  message: {
-    stop_reason: 'end_turn',
-    usage: { cache_read_input_tokens: 10 },
-    content: [{ type: 'text', text: JSON.stringify({ side, entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 }) }],
-  },
-});
+const setupJson = (side: string) =>
+  JSON.stringify({ side, entry: 100, stopLoss: 95, takeProfit: 110, rationale: 'r', primaryZone: 'z', confidence: 3 });
 
-const batchState: { status: string } = { status: 'ended' };
+// Moonshot native batch status ('completed' -> lifecycle 'ended').
+const batchState: { status: string } = { status: 'completed' };
 
 class FakeAPIError extends Error {
   status?: number;
@@ -18,34 +13,82 @@ class FakeAPIError extends Error {
   }
 }
 
-jest.mock('@anthropic-ai/sdk', () => {
-  // Shared mock fns so the (memoized) client exposes the SAME batch across the
-  // non-beta and beta surfaces. Bench uses the BETA surface for warm/create/
-  // retrieve/results/files; the non-beta surface stays for the demo controller.
-  const messageCreate = jest.fn().mockResolvedValue({ model: 'claude-fable-5', usage: { cache_creation_input_tokens: 100, cache_read_input_tokens: 0 } });
-  const batchesCreate = jest.fn().mockResolvedValue({ id: 'batch_e2e', processing_status: 'in_progress' });
-  const batchesRetrieve = jest.fn(async () => ({ id: 'batch_e2e', processing_status: batchState.status, request_counts: {} }));
-  const batchesResults = jest.fn(async () => {
-    async function* gen() {
-      // Two cells for one trader x base x runCount 2.
-      yield { custom_id: 'context-trader__fable__07012026__base__run1', result: succeeded('long') };
-      yield { custom_id: 'context-trader__fable__07012026__base__run2', result: succeeded('short') };
-    }
-    return gen();
+jest.mock('openai', () => {
+  // Shared mock fns so every constructed (memoized) client sees the SAME state.
+  //
+  // Two batch surfaces are in play under the moonshot provider:
+  // - POST /benchmark/run with model 'k3' resolves to kimi-k3, which is NOT
+  //   native-batchable (moonshot.constants BATCHABLE_MODELS), so submitBatch
+  //   takes the EMULATED path: MoonshotBatchWorker drains each cell as a sync
+  //   chat.completions.create call. The drain is pure microtask work against
+  //   the fake Firestore and this mock, so it completes before the /benchmark/run
+  //   HTTP response even reaches supertest — reconcile() then sees 'ended'.
+  //   Test 1's two cells consume the side queue below in run order (run1, run2).
+  // - The startup-recovery test pre-seeds a batch id WITHOUT the emulated msb_
+  //   prefix ('batch_e2e'), so getBatch/getBatchResults route to the NATIVE
+  //   surface: batches.retrieve + files.content('out_e2e') JSONL rows.
+  //
+  // files.create/content/del also serve uploadFile's PDF-extract path
+  // (purpose 'file-extract': upload -> read extracted text -> delete remote).
+  const setupSides = ['long', 'short'];
+  const chatCreate = jest.fn(async (body: any) => {
+    // Structured (json_schema) calls are benchmark cells; anything else must
+    // still return content starting with '{' (moonshot.chat.ts's brace-repair
+    // would mangle non-JSON).
+    const structured = (body?.response_format as any)?.type === 'json_schema';
+    const content = structured ? setupJson(setupSides.shift() ?? 'long') : '{}';
+    return {
+      model: 'kimi-k3',
+      choices: [{ message: { content }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 10, completion_tokens: 5, cached_tokens: 10 },
+    };
   });
-  const filesUpload = jest.fn().mockResolvedValue({ id: 'file_e2e' });
-  const batches = { create: batchesCreate, retrieve: batchesRetrieve, results: batchesResults };
+  // One native output-file JSONL row (toItemResult needs status_code 200 + body;
+  // toChatResult reads choices[0].message.content / finish_reason).
+  const row = (customId: string, side: string) =>
+    JSON.stringify({
+      custom_id: customId,
+      response: {
+        status_code: 200,
+        body: {
+          choices: [{ message: { content: setupJson(side) }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 10, completion_tokens: 5, cached_tokens: 10 },
+        },
+      },
+    });
+  const filesCreate = jest.fn(async ({ purpose }: any) =>
+    purpose === 'batch' ? { id: 'file_e2e' } : { id: 'file_extract_e2e' });
+  const filesContent = jest.fn(async (fileId: string) => ({
+    text: async () =>
+      fileId === 'out_e2e'
+        ? [
+            row('context-trader__k3__07012026__base__run1', 'long'),
+            row('context-trader__k3__07012026__base__run2', 'short'),
+          ].join('\n')
+        : 'EXTRACTED PDF TEXT', // uploadFile's extract read; folded into envelopes
+  }));
+  const filesDel = jest.fn().mockResolvedValue({});
+  const batchesCreate = jest.fn().mockResolvedValue({ id: 'batch_e2e', status: 'validating' });
+  const batchesRetrieve = jest.fn(async (batchId: string) => ({
+    id: batchId,
+    status: batchState.status,
+    request_counts: {},
+    output_file_id: 'out_e2e',
+    // no input_file_id: nativeResults only GCs the input file when it is set.
+  }));
   const ctor: any = function () {
     return {
-      messages: { create: messageCreate, batches },
-      beta: {
-        messages: { create: messageCreate, batches },
-        files: { upload: filesUpload },
-      },
+      chat: { completions: { create: chatCreate } },
+      files: { create: filesCreate, content: filesContent, del: filesDel },
+      batches: { create: batchesCreate, retrieve: batchesRetrieve },
     };
   };
   ctor.APIError = FakeAPIError;
-  return { __esModule: true, default: ctor, toFile: jest.fn(async (bytes: Buffer, filename: string, o?: any) => ({ bytes, filename, type: o?.type })) };
+  return {
+    __esModule: true,
+    default: ctor,
+    toFile: jest.fn(async (bytes: Buffer, filename: string, o?: any) => ({ bytes, filename, type: o?.type })),
+  };
 });
 
 import { INestApplication } from '@nestjs/common';
@@ -103,9 +146,9 @@ describe('Benchmark (e2e)', () => {
     const db = fakeFirestore();
     if (preSeed) await preSeed(db);
     process.env.BENCHMARK_REPO_ROOT = repoRoot;
-    // The Anthropic client factory throws a 401 unless a key is configured; the
-    // SDK itself is mocked, so any non-empty value unlocks the (fake) client.
-    process.env.ANTHROPIC_API_KEY = 'test-key';
+    // LLM_PROVIDER=moonshot + MOONSHOT_API_KEY are pinned in set-test-env.ts
+    // (jest setupFiles), so the app boots the Moonshot provider against the
+    // mocked openai client above — nothing to set here.
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(FIRESTORE).useValue(db)
       .overrideProvider(STORAGE_BUCKET).useValue(fakeBucket())
@@ -121,14 +164,13 @@ describe('Benchmark (e2e)', () => {
   afterAll(() => {
     rmSync(repoRoot, { recursive: true, force: true });
     delete process.env.BENCHMARK_REPO_ROOT;
-    delete process.env.ANTHROPIC_API_KEY;
   });
   afterEach(async () => {
     if (app) await app.close();
   });
 
   it('runs -> submits -> reconciles -> persists cells -> renders scoreboard', async () => {
-    batchState.status = 'ended';
+    batchState.status = 'completed';
     const moduleRef = await boot();
     // Ingest candles for the day so the backtest can score. 2026-07-01 resolves
     // to the ESU26 quarterly, which is where the backtest reads them from.
@@ -136,7 +178,7 @@ describe('Benchmark (e2e)', () => {
 
     const runRes = await request(app.getHttpServer())
       .post('/benchmark/run')
-      .send({ model: 'fable', runCount: 2, variants: ['base'] })
+      .send({ model: 'k3', runCount: 2, variants: ['base'] })
       .expect(201);
     expect(runRes.body.batchesSubmitted).toBe(1);
     expect(runRes.body.cellsQueued).toBe(2);
@@ -144,13 +186,15 @@ describe('Benchmark (e2e)', () => {
     // Drive reconciliation directly. The @Cron would do this every minute, but
     // the scheduler is gated OFF under test (benchmark.schedulerEnabled=false
     // when NODE_ENV==='test'), so the cron never fires — call reconcile() itself.
+    // kimi-k3 batches are emulated: the worker already drained both items (see
+    // the mock block's timing note), so reconcile() finds the batch 'ended'.
     await moduleRef.get(BatchReconciler).reconcile();
 
     // Assert the cells actually persisted (this is the capstone guarantee — a
     // no-op createCell must fail here). run1 (long, entry 100 / SL 95 / TP 110)
     // fills and stops out -> SL; run2 (short with inverted SL<entry<TP geometry)
     // is rejected by order normalization -> INVALID.
-    const cells = await moduleRef.get(BenchmarkRepository).listCells('fable');
+    const cells = await moduleRef.get(BenchmarkRepository).listCells('k3');
     expect(cells).toHaveLength(2);
     expect(cells.map((c) => c.result.status).sort()).toEqual(['INVALID', 'SL']);
     // Threaded CellMeta provenance is persisted end-to-end (discovery -> batch
@@ -161,12 +205,12 @@ describe('Benchmark (e2e)', () => {
 
     // reconcile() already regenerates the scoreboard for each reconciled alias;
     // calling generate() again is idempotent and keeps the assertion explicit.
-    await moduleRef.get(ScoreboardService).generate('fable');
-    const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
+    await moduleRef.get(ScoreboardService).generate('k3');
+    const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=k3').expect(200);
     expect(sb.body.markdown).toContain('# Trader Scoreboard');
     // Per-group heading only rendered when groups.length > 0 (cells exist); the
     // Lineage section's bare 'context-trader' would pass with zero cells.
-    expect(sb.body.markdown).toContain('## context-trader @ fable [base]');
+    expect(sb.body.markdown).toContain('## context-trader @ k3 [base]');
     // And the JSON groups reflect the two persisted cells.
     expect((sb.body.json as any).groups).toHaveLength(1);
     expect((sb.body.json as any).groups[0].cellCount).toBe(2);
@@ -177,17 +221,19 @@ describe('Benchmark (e2e)', () => {
   });
 
   it('startup reconciliation drains a batch that ended while offline', async () => {
-    batchState.status = 'ended';
+    batchState.status = 'completed';
     // Pre-seed a non-terminal batch + candles BEFORE boot. In production
     // onApplicationBootstrap would drain it; under test the scheduler is gated
     // OFF, so we drive the same recovery path via a direct reconcile() below.
+    // The id has no msb_ prefix, so getBatch/getBatchResults take the NATIVE
+    // Moonshot branch (batches.retrieve + files.content JSONL in the mock).
     const moduleRef = await boot(async (db) => {
       await db.collection('benchmarkBatches').doc('batch_e2e').set({
         batchId: 'batch_e2e', day: '07012026', date: '2026-07-01', pdfPrefix: '07012026',
-        model: { alias: 'fable', id: 'claude-fable-5' }, status: 'submitted',
+        model: { alias: 'k3', id: 'kimi-k3' }, status: 'submitted',
         customIdToCell: {
-          'context-trader__fable__07012026__base__run1': { date: '2026-07-01', personaSha256: 'psha', generalSha256: 'gsha' },
-          'context-trader__fable__07012026__base__run2': { date: '2026-07-01', personaSha256: 'psha', generalSha256: 'gsha' },
+          'context-trader__k3__07012026__base__run1': { date: '2026-07-01', personaSha256: 'psha', generalSha256: 'gsha' },
+          'context-trader__k3__07012026__base__run2': { date: '2026-07-01', personaSha256: 'psha', generalSha256: 'gsha' },
         },
         submittedAt: 't',
       });
@@ -207,7 +253,7 @@ describe('Benchmark (e2e)', () => {
 
     // The recovered batch's two cells must have been written (a no-op createCell
     // must fail here). Same setups/candles as test 1 -> SL + INVALID.
-    const cells = await moduleRef.get(BenchmarkRepository).listCells('fable');
+    const cells = await moduleRef.get(BenchmarkRepository).listCells('k3');
     expect(cells).toHaveLength(2);
     expect(cells.map((c) => c.result.status).sort()).toEqual(['INVALID', 'SL']);
     // Provenance threaded from the pre-seeded CellMeta onto every cell.
@@ -216,9 +262,9 @@ describe('Benchmark (e2e)', () => {
 
     // Confirm cells landed by generating + serving the scoreboard — the
     // per-group heading only renders when groups (cells) exist.
-    await moduleRef.get(ScoreboardService).generate('fable');
-    const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=fable').expect(200);
-    expect(sb.body.markdown).toContain('## context-trader @ fable [base]');
+    await moduleRef.get(ScoreboardService).generate('k3');
+    const sb = await request(app.getHttpServer()).get('/benchmark/scoreboard?model=k3').expect(200);
+    expect(sb.body.markdown).toContain('## context-trader @ k3 [base]');
     expect((sb.body.json as any).groups[0].cellCount).toBe(2);
   });
 
@@ -226,7 +272,7 @@ describe('Benchmark (e2e)', () => {
     // A cell recording a persona hash that the seeded traders/context-trader.md
     // cannot produce — i.e. the file was edited after this cell was benchmarked.
     const staleCell = {
-      trader: 'context-trader', model: { alias: 'fable', id: 'claude-fable-5' }, modelAlias: 'fable',
+      trader: 'context-trader', model: { alias: 'k3', id: 'kimi-k3' }, modelAlias: 'k3',
       day: '07012026', date: '2026-07-01', variant: 'base', runIndex: 1,
       personaSha256: 'sha-from-a-since-edited-persona',
       result: { status: 'TP' }, createdAt: '2026-07-01T00:00:00.000Z',
@@ -243,19 +289,19 @@ describe('Benchmark (e2e)', () => {
       const moduleRef = await boot(async (d) => { db = d; });
       const generalSha256 = moduleRef.get(RepoInputsService).collectGeneralDocs().sha256;
       await db.collection('benchmarkRuns')
-        .doc('context-trader__fable__07012026__base__run1')
+        .doc('context-trader__k3__07012026__base__run1')
         .set({ ...staleCell, generalSha256 });
       return moduleRef;
     }
 
     it('rejects POST /benchmark/run with 409 and submits nothing', async () => {
-      batchState.status = 'ended';
+      batchState.status = 'completed';
       const moduleRef = await bootWithStaleCell();
       await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
 
       const res = await request(app.getHttpServer())
         .post('/benchmark/run')
-        .send({ model: 'fable', runCount: 2, variants: ['base'] })
+        .send({ model: 'k3', runCount: 2, variants: ['base'] })
         .expect(409);
       expect(res.body.message).toContain('context-trader');
       expect(res.body.drift.findings[0]).toMatchObject({ family: 'persona', kind: 'file-drift' });
@@ -264,7 +310,7 @@ describe('Benchmark (e2e)', () => {
       // and no batch was created.
       const status = await request(app.getHttpServer()).get('/benchmark/status').expect(200);
       expect(status.body.batches).toHaveLength(0);
-      expect(await moduleRef.get(BenchmarkRepository).listCells('fable')).toHaveLength(1);
+      expect(await moduleRef.get(BenchmarkRepository).listCells('k3')).toHaveLength(1);
     });
 
     it('reports the same drift read-only via GET /benchmark/drift', async () => {
