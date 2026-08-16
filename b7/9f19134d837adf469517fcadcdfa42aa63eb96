@@ -1,0 +1,23 @@
+backend/src/benchmark/cloud-inputs.service.ts
+  s_54034df2c349b1::t_78ed22b14fa497 6
+  s_54034df2c349b1::t_03c6c723223727 159-308
+backend/src/benchmark/cloud-inputs.service.spec.ts
+  s_54034df2c349b1::t_23e66592714252 1
+  s_54034df2c349b1::t_9dc80c5a18aea6 101-203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b79f19134d837adf469517fcadcdfa42aa63eb96",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
