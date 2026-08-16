@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import { BenchmarkRepository } from './benchmark.repository';
-import { RepoInputsService } from './repo-inputs.service';
+import { CloudInputsService } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { LLM_PROVIDER } from '../llm/llm.constants';
@@ -21,7 +21,7 @@ export class CacheWarmer {
 
   constructor(
     private readonly repo: BenchmarkRepository,
-    private readonly inputs: RepoInputsService,
+    private readonly inputs: CloudInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
@@ -50,9 +50,10 @@ export class CacheWarmer {
     requireCapabilities(this.llm, ['batch', 'fileUpload']);
     const batches = await this.repo.nonTerminalBatches();
     if (!batches.length) return;
-    const general = this.inputs.collectGeneralDocs().concatenated;
-    const traders = new Map(this.inputs.collectTraders().map((t) => [t.name, t]));
-    const features = new Map(this.inputs.collectFeatures().map((f) => [f.id, f]));
+    const snap = await this.inputs.snapshot();
+    const general = snap.general.concatenated;
+    const traders = new Map(snap.traders.map((t) => [t.name, t]));
+    const features = new Map(snap.features.map((f) => [f.id, f]));
     const effort = this.config.get<string>('benchmark.effort') ?? 'high';
     // Avoid re-warming the same (model, day, trader, variant) twice this pass.
     const seen = new Set<string>();

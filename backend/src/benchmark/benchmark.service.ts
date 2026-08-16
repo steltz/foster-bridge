@@ -1,8 +1,7 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, ConflictException, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { readFileSync } from 'node:fs';
 import { BenchmarkRepository, CellMeta, DayArtifactDoc } from './benchmark.repository';
-import { RepoInputsService, DayInput, TraderInput, FeatureInput } from './repo-inputs.service';
+import { CloudInputsService, DayInput, TraderInput, FeatureInput } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder, DayBundle, TRAILING_PROMPT } from './envelope.builder';
 import { LLM_PROVIDER } from '../llm/llm.constants';
@@ -47,7 +46,7 @@ export class BenchmarkService {
 
   constructor(
     private readonly repo: BenchmarkRepository,
-    private readonly inputs: RepoInputsService,
+    private readonly inputs: CloudInputsService,
     private readonly dayArtifacts: DayArtifactsService,
     private readonly envelopes: EnvelopeBuilder,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
@@ -58,7 +57,7 @@ export class BenchmarkService {
     private readonly config: ConfigService,
   ) {}
 
-  /** Narrow RepoInputsService output to what the drift comparison reads. */
+  /** Narrow CloudInputsService output to what the drift comparison reads. */
   private driftInputs(traders: TraderInput[], features: FeatureInput[], generalSha256: string): DriftInputs {
     return {
       traders: traders.map((t) => ({ name: t.name, sha256: t.sha256 })),
@@ -73,13 +72,26 @@ export class BenchmarkService {
    * answers "is my scoreboard already mixed?" before spending a batch.
    */
   async checkDrift(): Promise<DriftReport> {
-    return detectDrift(
-      this.driftInputs(this.inputs.collectTraders(), this.inputs.collectFeatures(), this.inputs.collectGeneralDocs().sha256),
-      await this.repo.listCellsForDrift(),
-    );
+    const snap = await this.inputs.snapshot();
+    return detectDrift(this.driftInputs(snap.traders, snap.features, snap.general.sha256), await this.repo.listCellsForDrift());
   }
 
+  private runInProgress = false;
+
   async run(opts: RunOptions = {}): Promise<RunSummary> {
+    // Single-flight: two concurrent runs racing ensureKeys can orphan a
+    // submitted batch's pinned KEYS hash (last-write-wins saveKeysArtifact) —
+    // a permanent per-day wedge. Same posture as BatchReconciler's guard.
+    if (this.runInProgress) throw new ConflictException('a benchmark run is already in progress');
+    this.runInProgress = true;
+    try {
+      return await this.runInner(opts);
+    } finally {
+      this.runInProgress = false;
+    }
+  }
+
+  private async runInner(opts: RunOptions): Promise<RunSummary> {
     requireCapabilities(this.llm, ['batch', 'fileUpload', 'structuredOutput']);
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
@@ -87,13 +99,16 @@ export class BenchmarkService {
     const effort = this.config.get<string>('benchmark.effort') ?? 'high';
     const variants = (opts.variants ?? ALL_VARIANTS).filter((v) => ALL_VARIANTS.includes(v));
 
-    const traders = this.inputs.collectTraders();
-    const features = this.inputs.collectFeatures();
-    const general = this.inputs.collectGeneralDocs();
+    // ONE snapshot for the whole run — every consumer below (drift guard,
+    // envelopes, seven-keys) reads these same values; nothing re-fetches mid-run.
+    const snap = await this.inputs.snapshot();
+    const { traders, features, general } = snap;
+    if (!traders.length) throw new UnprocessableEntityException('no traders in Firestore — create personas via POST /traders before running');
+    if (!features.length) throw new UnprocessableEntityException('no features in Firestore — create variants via POST /features before running');
     const featureById = new Map(features.map((f) => [f.id, f]));
 
     // Content-drift guard, BEFORE any artifact upload or batch submission, so
-    // an abort leaves nothing touched. Compares every input file against the
+    // an abort leaves nothing touched. Compares every stored input against the
     // provenance hashes recorded on existing cells; see drift.ts.
     const drift = detectDrift(this.driftInputs(traders, features, general.sha256), await this.repo.listCellsForDrift());
     if (hasDrift(drift)) {
@@ -102,13 +117,13 @@ export class BenchmarkService {
       throw new BenchmarkDriftError(drift, message);
     }
 
-    let days = this.inputs.collectDays();
+    let days = snap.days;
     if (opts.days?.length) days = days.filter((d) => opts.days!.includes(d.day));
 
     const summary: RunSummary = { model, batchesSubmitted: 0, cellsQueued: 0, daysSkipped: [] };
 
     // FIX 7: report day-folders dropped for missing docs.
-    let issues = this.inputs.collectDayIssues();
+    let issues = snap.issues;
     if (opts.days?.length) issues = issues.filter((i) => opts.days!.includes(i.day));
     for (const issue of issues) {
       summary.daysSkipped.push({ day: issue.day, reason: `missing docs: ${issue.missing.join(', ')}` });
@@ -182,13 +197,17 @@ export class BenchmarkService {
           continue;
         }
 
-        // Only now (real work confirmed) do the disk reads + PDF upload.
-        const bundle = await this.assembleDay(day);
+        // Only now (real work confirmed) do the bucket downloads + PDF upload.
+        // loadDay verifies each artifact against the snapshot's manifest hashes;
+        // a mismatch (force-rerun after the snapshot) throws into the per-day
+        // catch below -> daysSkipped.
+        const dayInput = await this.inputs.loadDay(day);
+        const bundle = await this.assembleDay(dayInput);
 
         // Seven-keys generation for the scorecard variant. assembleDay recorded the
         // PDF artifact, so ensureKeys can resolve a live file_id. Days are already
-        // walked oldest-first (collectDays sorts asc), so a day's prior-KEYS
-        // lookback dependency is generated before it is needed.
+        // walked oldest-first (the snapshot's day scan sorts asc), so a day's
+        // prior-KEYS lookback dependency is generated before it is needed.
         let keysContent: string | undefined;
         let keysSha: string | undefined;
         if (dayCells.some((c) => c.variant === SCORECARD_VARIANT)) {
@@ -205,13 +224,7 @@ export class BenchmarkService {
           );
           let keysDoc: DayArtifactDoc | null = null;
           try {
-            // TODO(task-5 cloud-inputs migration): TEMPORARY compile shim.
-            // SevenKeysService.ensureKeys is now (day: DayInput, snap: InputsSnapshot,
-            // opts?) over cloud inputs; this legacy path still passes the repo day and
-            // the opts object in the snap position (casts below) so the build stays
-            // green until this whole run path is snapshot-threaded in the next task.
-            // Do NOT run a live benchmark against this interim state.
-            keysDoc = await this.sevenKeys.ensureKeys(day as never, { force: opts.regenerateKeys === true, pinned: scorecardInFlight } as never);
+            keysDoc = await this.sevenKeys.ensureKeys(dayInput, snap, { force: opts.regenerateKeys === true, pinned: scorecardInFlight });
           } catch (err) {
             // A scorecard/KEYS infra failure must not abort this day's base/method cells —
             // treat a throw the same as a null (skip only the scorecard variant, retry next run).
@@ -307,18 +320,11 @@ export class BenchmarkService {
 
   // Store the PDF + transcripts, returning the assembled day bundle.
   private async assembleDay(day: DayInput): Promise<{ dayBundle: DayBundle }> {
-    const pdf = await this.dayArtifacts.ensurePdf(day.day, day.prefix, readFileSync(day.pdfPath));
-    const tpTranscript = readFileSync(day.planPath, 'utf8');
-    const recapTranscript = readFileSync(day.recapPath, 'utf8');
-    await this.dayArtifacts.ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, tpTranscript);
-    await this.dayArtifacts.ensureTranscript(day.day, 'recapTranscript', `${day.recapPath.split('/').pop()}`, recapTranscript);
+    const pdf = await this.dayArtifacts.ensurePdf(day.day, day.prefix, day.pdf);
+    await this.dayArtifacts.ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, day.tpTranscript);
+    await this.dayArtifacts.ensureTranscript(day.day, 'recapTranscript', day.recapFileName, day.recapTranscript);
     return {
-      dayBundle: {
-        date: day.date,
-        fileId: pdf.providerFileId,
-        tpTranscript,
-        recapTranscript,
-      },
+      dayBundle: { date: day.date, fileId: pdf.providerFileId, tpTranscript: day.tpTranscript, recapTranscript: day.recapTranscript },
     };
   }
 }

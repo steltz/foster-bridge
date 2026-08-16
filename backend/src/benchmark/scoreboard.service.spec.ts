@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkRepository } from './benchmark.repository';
-import { RepoInputsService } from './repo-inputs.service';
+import { CloudInputsService, InputsSnapshot } from './cloud-inputs.service';
 import { BenchmarkCell } from './benchmark.types';
 
 function cell(o: Partial<BenchmarkCell> = {}): BenchmarkCell {
@@ -17,15 +17,22 @@ function cell(o: Partial<BenchmarkCell> = {}): BenchmarkCell {
 
 async function build(cells: BenchmarkCell[]) {
   const repo = { listCells: jest.fn().mockResolvedValue(cells), saveScoreboard: jest.fn().mockResolvedValue(undefined), getScoreboard: jest.fn() };
-  const inputs = {
-    collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null }]),
-    collectFeatures: jest.fn().mockReturnValue([{ id: 'seven-keys-method', name: 'Seven-Keys methodology' }]),
+  // Snapshot-shaped inputs fake — the scoreboard reads trader lineage and
+  // feature names from one snapshot() call.
+  const snapValue: InputsSnapshot = {
+    traders: [{ name: 'context-trader', origin: null, mutation: null, content: 'C', sha256: 'ts' }],
+    features: [{ id: 'seven-keys-method', name: 'Seven-Keys methodology', block: 'B', sha256: 'fs', staticDocContent: 'M', staticDocSha256: 'ms', artifactSuffix: null }],
+    general: { files: [], concatenated: 'GEN', sha256: 'gs' },
+    methodsDoc: 'M',
+    days: [],
+    issues: [],
   };
+  const inputs = { snapshot: jest.fn(async () => snapValue) };
   const moduleRef = await Test.createTestingModule({
     providers: [
       ScoreboardService,
       { provide: BenchmarkRepository, useValue: repo },
-      { provide: RepoInputsService, useValue: inputs },
+      { provide: CloudInputsService, useValue: inputs },
     ],
   }).compile();
   return { svc: moduleRef.get(ScoreboardService), repo };

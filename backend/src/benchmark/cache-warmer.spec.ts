@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { CacheWarmer } from './cache-warmer';
 import { SETUP_SCHEMA } from './benchmark.types';
 import { BenchmarkRepository } from './benchmark.repository';
-import { RepoInputsService } from './repo-inputs.service';
+import { CloudInputsService, InputsSnapshot } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { FakeLlmProvider } from '../llm/fake-llm.provider';
@@ -29,11 +29,17 @@ function makeDeps() {
       contentHash: 'h', gcsPath: 'gs', content: kind === 'tpTranscript' ? 'TP' : 'RECAP', uploadedAt: 't',
     })),
   };
-  const inputs = {
-    collectGeneralDocs: jest.fn().mockReturnValue({ files: [], concatenated: 'GEN', sha256: 'g' }),
-    collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null, file: 'context-trader.md', content: 'PERSONA', sha256: 'p' }]),
-    collectFeatures: jest.fn().mockReturnValue([{ id: 'seven-keys-method', name: 'm', file: 'seven-keys-method.md', block: 'B', sha256: 'f', staticDoc: 'd', staticDocContent: 'METHODS', staticDocSha256: 'd' }]),
+  // Snapshot-shaped inputs fake — warm() reads general/traders/features from
+  // one snapshot() call.
+  const snapValue: InputsSnapshot = {
+    traders: [{ name: 'context-trader', origin: null, mutation: null, content: 'PERSONA', sha256: 'p' }],
+    features: [{ id: 'seven-keys-method', name: 'm', block: 'B', sha256: 'f', staticDocContent: 'METHODS', staticDocSha256: 'd', artifactSuffix: null }],
+    general: { files: [], concatenated: 'GEN', sha256: 'g' },
+    methodsDoc: 'METHODS',
+    days: [],
+    issues: [],
   };
+  const inputs = { snapshot: jest.fn(async () => snapValue) };
   const dayArtifacts = { ensureFileId: jest.fn().mockResolvedValue('file_live') };
   // Re-warming now submits a fire-and-forget BATCH request (same cache pool the
   // real BatchReconciler batches read from) instead of a sync/standard-tier
@@ -57,7 +63,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       CacheWarmer,
       EnvelopeBuilder,
       { provide: BenchmarkRepository, useValue: deps.repo },
-      { provide: RepoInputsService, useValue: deps.inputs },
+      { provide: CloudInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
       { provide: LLM_PROVIDER, useValue: deps.fake },
       { provide: ConfigService, useValue: deps.config },

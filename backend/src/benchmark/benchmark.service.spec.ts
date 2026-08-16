@@ -1,10 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { readFileSync } from 'node:fs';
 import { BenchmarkService } from './benchmark.service';
 import { BenchmarkRepository } from './benchmark.repository';
-import { RepoInputsService } from './repo-inputs.service';
+import { CloudInputsService, DayListing, InputsSnapshot } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
 import { EnvelopeBuilder } from './envelope.builder';
 import { FakeLlmProvider } from '../llm/fake-llm.provider';
@@ -16,7 +15,6 @@ import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { analyzeCoverage } from '../market-data/coverage';
 
-jest.mock('node:fs', () => ({ ...jest.requireActual('node:fs'), readFileSync: jest.fn() }));
 // Coverage is a pure import, not a provider — mock it so day-completeness is
 // controlled per test without hand-building 78-bar candle fixtures.
 jest.mock('../market-data/coverage', () => ({ analyzeCoverage: jest.fn() }));
@@ -30,18 +28,30 @@ function makeDeps() {
     // guard's own behavior is covered in drift.spec.ts and below.
     listCellsForDrift: jest.fn().mockResolvedValue([]),
   };
+  // Snapshot-shaped inputs fake: run() takes ONE snapshot at start and threads
+  // it everywhere; per-day bytes come from loadDay(listing).
+  const listings: DayListing[] = [
+    { day: '07012026', date: '2026-07-01', prefix: '07012026', recapDate: '06302026', fileSha256: { tradePlanMd: 'x1', tradePlanPdf: 'y1', recap: 'z1' } },
+    { day: '07022026', date: '2026-07-02', prefix: '07022026', recapDate: '07012026', fileSha256: { tradePlanMd: 'x2', tradePlanPdf: 'y2', recap: 'z2' } },
+  ];
+  const snapValue: InputsSnapshot = {
+    traders: [{ name: 'context-trader', origin: null, mutation: null, content: 'P', sha256: 'psha' }],
+    features: [
+      { id: 'seven-keys-method', name: 'm', block: 'Read ${DOC}.', sha256: 'fsha', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: null },
+      { id: 'seven-keys-scorecard', name: 's', block: 'Read ${DOC} then ${ARTIFACT}.', sha256: 'scsha', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: '_ES_KEYS.md' },
+    ],
+    general: { files: [], concatenated: 'GEN', sha256: 'gsha' },
+    methodsDoc: 'METHODS',
+    days: listings,
+    issues: [],
+  };
   const inputs = {
-    collectTraders: jest.fn().mockReturnValue([{ name: 'context-trader', origin: null, mutation: null, file: 'context-trader.md', content: 'P', sha256: 'psha' }]),
-    collectFeatures: jest.fn().mockReturnValue([
-      { id: 'seven-keys-method', name: 'm', file: 'seven-keys-method.md', block: 'Read ${DOC}.', sha256: 'fsha', staticDoc: 'knowledge-base/methods/seven-keys.md', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: null },
-      { id: 'seven-keys-scorecard', name: 's', file: 'seven-keys-scorecard.md', block: 'Read ${DOC} then ${ARTIFACT}.', sha256: 'scsha', staticDoc: 'knowledge-base/methods/seven-keys.md', staticDocContent: 'METHODS', staticDocSha256: 'dsha', artifactSuffix: '_ES_KEYS.md' },
-    ]),
-    collectGeneralDocs: jest.fn().mockReturnValue({ files: [], concatenated: 'GEN', sha256: 'gsha' }),
-    collectDays: jest.fn().mockReturnValue([
-      { day: '07012026', date: '2026-07-01', prefix: '07012026', pdfPath: '/x/07012026_ES_TP.pdf', planPath: '/x/07012026_ES_TP.md', recapPath: '/x/06302026_ES_RECAP.md' },
-      { day: '07022026', date: '2026-07-02', prefix: '07022026', pdfPath: '/y/07022026_ES_TP.pdf', planPath: '/y/07022026_ES_TP.md', recapPath: '/y/07012026_ES_RECAP.md' },
-    ]),
-    collectDayIssues: jest.fn().mockReturnValue([]),
+    snapshot: jest.fn(async (): Promise<InputsSnapshot> => snapValue),
+    loadDay: jest.fn(async (l: DayListing) => ({
+      ...l, pdf: Buffer.from('PDF'), tpTranscript: 'PLAN', recapTranscript: 'RECAP', recapFileName: `${l.recapDate}_ES_RECAP.md`,
+    })),
+    priorCompleteDays: jest.fn(() => []),
+    outcomeRecapForDay: jest.fn(async () => null),
   };
   const dayArtifacts = {
     ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' }),
@@ -57,7 +67,7 @@ function makeDeps() {
   const sevenKeys = {
     ensureKeys: jest.fn().mockResolvedValue({ content: 'KEYS BODY', contentHash: 'ksha' }),
   };
-  return { repo, inputs, dayArtifacts, fake, marketData, contracts, sevenKeys };
+  return { repo, inputs, snapValue, dayArtifacts, fake, marketData, contracts, sevenKeys };
 }
 
 async function build(deps: ReturnType<typeof makeDeps>) {
@@ -66,7 +76,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       BenchmarkService,
       EnvelopeBuilder,
       { provide: BenchmarkRepository, useValue: deps.repo },
-      { provide: RepoInputsService, useValue: deps.inputs },
+      { provide: CloudInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
       { provide: LLM_PROVIDER, useValue: deps.fake },
       { provide: MarketDataService, useValue: deps.marketData },
@@ -80,7 +90,6 @@ async function build(deps: ReturnType<typeof makeDeps>) {
 
 describe('BenchmarkService.run', () => {
   beforeEach(() => {
-    (readFileSync as jest.Mock).mockReturnValue(Buffer.from('BYTES'));
     (analyzeCoverage as jest.Mock).mockReturnValue({ complete: true });
   });
 
@@ -154,7 +163,7 @@ describe('BenchmarkService.run', () => {
 
   it('reports dropped day-folders missing docs (FIX 7)', async () => {
     const deps = makeDeps();
-    deps.inputs.collectDayIssues.mockReturnValue([{ day: '07032026', missing: ['*_ES_RECAP.md'] }]);
+    deps.inputs.snapshot.mockResolvedValueOnce({ ...deps.snapValue, issues: [{ day: '07032026', missing: ['*_ES_RECAP.md'] }] });
     const svc = await build(deps);
     const summary = await svc.run({ runCount: 1, variants: ['base'] });
     expect(summary.daysSkipped).toContainEqual({ day: '07032026', reason: 'missing docs: *_ES_RECAP.md' });
@@ -164,9 +173,12 @@ describe('BenchmarkService.run', () => {
     const deps = makeDeps();
     const svc = await build(deps);
     await svc.run({ runCount: 1, variants: ['base', 'seven-keys-method', 'seven-keys-scorecard'] });
-    // KEYS generated once for the only candle-backed day (07012026).
+    // KEYS generated once for the only candle-backed day (07012026), fed the
+    // loaded DayInput plus the run's single snapshot (no re-fetch mid-run).
     expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledTimes(1);
     expect(deps.sevenKeys.ensureKeys.mock.calls[0][0].day).toBe('07012026');
+    expect(deps.sevenKeys.ensureKeys.mock.calls[0][1]).toBe(deps.snapValue);
+    expect(deps.inputs.snapshot).toHaveBeenCalledTimes(1);
     const custIds = deps.fake.submittedBatches[0].requests.map((r) => r.customId);
     expect(custIds).toEqual(
       expect.arrayContaining([
@@ -224,7 +236,7 @@ describe('BenchmarkService.run', () => {
     const deps = makeDeps();
     const svc = await build(deps);
     await svc.run({ runCount: 1, variants: ['seven-keys-scorecard'], regenerateKeys: true });
-    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), { force: true, pinned: false });
+    expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(expect.objectContaining({ day: '07012026' }), deps.snapValue, { force: true, pinned: false });
   });
 
   it('pins the day (pinned:true) when an in-flight scorecard cell exists, even under regenerateKeys + raised runCount', async () => {
@@ -245,6 +257,7 @@ describe('BenchmarkService.run', () => {
     // cannot overwrite the KEYS hash those cells already recorded.
     expect(deps.sevenKeys.ensureKeys).toHaveBeenCalledWith(
       expect.objectContaining({ day: '07012026' }),
+      deps.snapValue,
       expect.objectContaining({ force: true, pinned: true }),
     );
   });
@@ -305,6 +318,37 @@ describe('BenchmarkService.run', () => {
     deps.fake.capabilities = { batch: false, fileUpload: true, promptCaching: true, structuredOutput: true };
     const svc = await build(deps);
     await expect(svc.run({})).rejects.toThrow(/lacks required capabilities: batch/);
+  });
+
+  it('refuses to run with zero traders', async () => {
+    const deps = makeDeps();
+    deps.inputs.snapshot.mockResolvedValueOnce({ ...deps.snapValue, traders: [] });
+    const svc = await build(deps);
+    await expect(svc.run({})).rejects.toThrow(/no traders/i);
+    expect(deps.fake.submittedBatches).toHaveLength(0);
+  });
+
+  it('refuses to run with zero features', async () => {
+    const deps = makeDeps();
+    deps.inputs.snapshot.mockResolvedValueOnce({ ...deps.snapValue, features: [] });
+    const svc = await build(deps);
+    await expect(svc.run({})).rejects.toThrow(/no features/i);
+    expect(deps.fake.submittedBatches).toHaveLength(0);
+  });
+
+  it('a second concurrent run gets 409', async () => {
+    const deps = makeDeps();
+    let release!: () => void;
+    deps.inputs.snapshot.mockImplementationOnce(
+      () => new Promise((r) => { release = () => r(deps.snapValue); }),
+    );
+    const svc = await build(deps);
+    const first = svc.run({});
+    await expect(svc.run({})).rejects.toThrow(/already in progress/i);
+    release();
+    await first;
+    // The flag clears in finally — a fresh run is admitted again.
+    await expect(svc.run({ runCount: 1, variants: ['base'] })).resolves.toBeDefined();
   });
 
   describe('content-drift guard', () => {

@@ -26,7 +26,6 @@ export interface AppConfig {
   };
   benchmark: {
     model: string;
-    repoRoot: string;
     defaultRunCount: number;
     maxTokens: number;
     effort: string;
@@ -98,9 +97,6 @@ export default (): AppConfig => ({
       // llm.provider above on a set-but-empty LLM_PROVIDER, or this resolves
       // 'claude-fable-5' while the seam crashes on the unfallback-ed ''.
       ((process.env.LLM_PROVIDER || 'anthropic') === 'moonshot' ? 'kimi-k3' : 'claude-fable-5'),
-    // configuration.{ts,js} lives at backend/src/config (dist/config after build);
-    // '../../..' lands on the repo root (parent of backend/) in both layouts.
-    repoRoot: process.env.BENCHMARK_REPO_ROOT ?? resolve(__dirname, '..', '..', '..'),
     defaultRunCount: parseInt(process.env.BENCHMARK_RUN_COUNT ?? '5', 10),
     // effort is the QUALITY dial (default 'high'; set BENCHMARK_EFFORT='max' for the
     // hardest runs) — NOT a cost lever. Cost is controlled by prompt caching + the
@@ -146,9 +142,9 @@ export default (): AppConfig => ({
     password: process.env.EMINIPLAYER_PASSWORD || undefined,
     // Headed mode is opt-in for local debugging: EMINIPLAYER_HEADLESS=false.
     headless: process.env.EMINIPLAYER_HEADLESS !== 'false',
-    // Anchored to the module location like benchmark.repoRoot above — NOT cwd,
-    // so screenshots of authenticated content can never land outside backend/
-    // (src/config and dist/config are both two levels below backend/).
+    // Anchored to the module location — NOT cwd — so screenshots of
+    // authenticated content can never land outside backend/ (src/config and
+    // dist/config are both two levels below backend/).
     // `||`, not `??`: a copied .env.example sets this to '', and '' would
     // otherwise survive as the screenshot dir and void that guarantee.
     screenshotDir:
