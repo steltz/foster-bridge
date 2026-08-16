@@ -1,0 +1,21 @@
+backend/src/market-data/contract-txt-parser.spec.ts
+  s_881f9ed6729261::t_87acb62d45efd7 1-52
+backend/src/market-data/contract-txt-parser.ts
+  s_881f9ed6729261::t_108608fb7b5457 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "138a02e0bc96c49d995d1f36c9a97b4de31a7e31",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
