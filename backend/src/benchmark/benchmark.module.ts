@@ -10,6 +10,7 @@ import { BenchmarkService } from './benchmark.service';
 import { BatchReconciler } from './batch-reconciler';
 import { CacheWarmer } from './cache-warmer';
 import { ScoreboardService } from './scoreboard.service';
+import { SamplesService } from './samples.service';
 
 @Module({
   // LlmModule (LLM_PROVIDER) + FirebaseModule + ContractsModule are @Global
@@ -28,7 +29,8 @@ import { ScoreboardService } from './scoreboard.service';
     BatchReconciler,
     CacheWarmer,
     ScoreboardService,
+    SamplesService,
   ],
-  exports: [BenchmarkService, ScoreboardService, BenchmarkRepository],
+  exports: [BenchmarkService, ScoreboardService, BenchmarkRepository, SamplesService],
 })
 export class BenchmarkModule {}

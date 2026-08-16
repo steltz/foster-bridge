@@ -201,3 +201,15 @@ describe('CloudInputsService (bucket half + snapshot)', () => {
     expect(await svc.outcomeRecapForDay('07022026', snap)).toBeNull();
   });
 });
+
+describe('CloudInputsService.listDays', () => {
+  it('returns the day scan without reading traders, features, or general docs', async () => {
+    const svc = new CloudInputsService(fakeDb({}), fakeBucket());
+    const scan = { listings: [{ day: '07012026', date: '2026-07-01', prefix: '07012026', recapDate: '06302026', fileSha256: { tradePlanMd: 'a', tradePlanPdf: 'b', recap: 'c' } }], issues: [] };
+    const scanSpy = jest.spyOn(svc as any, 'scanDays').mockResolvedValue(scan);
+    const tradersSpy = jest.spyOn(svc, 'collectTraders');
+    expect(await svc.listDays()).toEqual(scan);
+    expect(scanSpy).toHaveBeenCalledTimes(1);
+    expect(tradersSpy).not.toHaveBeenCalled();
+  });
+});

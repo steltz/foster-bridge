@@ -250,6 +250,15 @@ export class CloudInputsService {
   }
 
   /**
+   * Day listings only — no trader/feature/general-doc reads. For consumers
+   * (sampling) that need the committed corpus without inheriting the run's
+   * full input-availability failure surface.
+   */
+  async listDays(): Promise<{ listings: DayListing[]; issues: DayIssue[] }> {
+    return this.wrap(() => this.scanDays());
+  }
+
+  /**
    * Downloads the three artifacts and verifies each against the manifest
    * FileRecord hashes captured in the listing. A mismatch means an eminiplayer
    * force-rerun overwrote the day after the snapshot — throw so the run's
