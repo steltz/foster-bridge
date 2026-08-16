@@ -1,7 +1,8 @@
-# Cloud Inputs Migration — Design
+# Cloud Inputs Migration — Design (v2)
 
 **Date:** 2026-08-16
-**Status:** Approved
+**Status:** Approved (v2 — clean-slate rewrite after adversarial review; see
+`docs/superpowers/plans/2026-08-16-cloud-inputs-migration-review.md`)
 
 ## Problem
 
@@ -12,29 +13,40 @@ doc from `knowledge-base/methods/seven-keys.md`, personas from `traders/`, and
 features from `features/`. This is an artifact of the retired skills-based
 workflow. The local `knowledge-base/` tree has been deliberately deleted; the
 eminiplayer pipeline already writes day docs to Firebase Storage, and
-seven-keys KEYS artifacts already live in Firestore. The benchmark must read
-from those cloud stores, and nothing the benchmark consumes may live in the
-repo.
+seven-keys KEYS artifacts already live in Firestore.
+
+**This is a clean-slate migration.** The skills-era benchmark data — every
+recorded cell, batch, scoreboard, and day artifact — is retired and deleted as
+part of this work. Nothing carries over: no backward compatibility with old
+cells, old hashes, or old persona versions. The new era starts empty, with
+Firebase Storage + Firestore as the sole source of truth and nothing the
+benchmark consumes living in the repo. (This also retires the legacy MES-era
+$5/pt cells CLAUDE.md warns about — the fresh era makes that mixing hazard
+moot.)
 
 ## Goals
 
 - Firebase Storage + Firestore are the sole source of truth for every
   benchmark input. No local-file reads remain.
-- Preserve drift-guard semantics exactly (no bypass; 409 on mismatch; new era
-  = manual cell retirement).
-- Preserve the sha256 hashing scheme byte-for-byte so the 476 existing
-  scorecard cells' recorded hashes remain valid — the migration itself must
-  produce zero drift findings.
-- Provide validated write endpoints so future content management goes through
-  the API (write-once for personas/features).
+- A fresh benchmark era: the four benchmark Firestore collections
+  (`benchmarkRuns`, `benchmarkBatches`, `benchmarkScoreboard`, `dayArtifacts`)
+  are wiped before the first new run.
+- Drift-guard semantics preserved for the NEW era (no bypass; 409 on
+  mismatch; a future era change means retiring cells) — including restoring
+  the methods-doc protection that a naive embed-at-create design would lose.
+- One inputs fetch per run: a run operates on an immutable in-memory snapshot
+  of every input, taken once at run start.
+- Validated write endpoints so future content management goes through the API
+  (write-once for personas/features).
 
 ## Non-goals
 
+- No backward compatibility with skills-era cells, scorecards, hashes, or
+  persona versions. No migration-era dual-read paths.
 - No changes to grading, KEYS generation logic, the Batch API flow, or the
   scoreboard's grouping/keying.
-- No retirement/era tooling for existing cells (still a manual Firestore
-  operation, per the drift guard's design).
-- No backfill or re-run of existing cells.
+- No general era-retirement tooling — the one-time wipe is a documented
+  manual operation, and future era changes remain manual by design.
 
 ## Storage layout
 
@@ -47,182 +59,263 @@ knowledge-base/es/<MMDDYYYY>/            # already exists — eminiplayer writes
     <recapDay>_ES_RECAP.md
     manifest.json                        # commit marker = "this day exists"
 knowledge-base/general/<name>.md         # new: general docs
-knowledge-base/methods/seven-keys.md     # new: methods doc
+knowledge-base/methods/seven-keys.md     # new: THE methods doc (single copy)
 ```
 
-Path constants are shared with the eminiplayer module's single home of the
-storage contract (`eminiplayer-validation.ts`: `ES_STORAGE_PREFIX`,
-`dayPaths`, `manifestPath`) so the day-doc writer and the benchmark reader can
-never drift apart.
+Day-doc paths come from the eminiplayer module's single home of the storage
+contract (`eminiplayer-validation.ts`: `ES_STORAGE_PREFIX`, `dayPaths`,
+`manifestPath`). The two NEW paths (`general/`, `methods/`) get the same
+treatment: `GENERAL_PREFIX`, `generalDocPath(name)`, and `METHODS_PATH` are
+exported from exactly one module (`cloud-inputs.service.ts`) and imported by
+both the reader and the writer — a second definition anywhere is a defect.
 
-### Firestore (persona-scoped / structured, write-once)
+### Firestore (persona-scoped, write-once, content-canonical)
 
 ```
-traders/<name>    { name, origin, mutation, content, sha256, createdAt }
-features/<id>     { id, name, block, staticDocContent?, artifactSuffix?, sha256, createdAt }
+traders/<name>    { name, content, sha256, createdAt }
+features/<id>     { id, content, sha256, createdAt }
 ```
 
-The existing `benchmark-artifacts` collection (KEYS artifacts, day artifacts)
-is unchanged.
+**Content is canonical.** The full markdown (frontmatter included) is the
+stored truth; everything else — a trader's `origin`/`mutation` lineage, a
+feature's display `name`, `block`, `artifactSuffix`, and its `staticDoc`
+marker — is derived from `content` at read time by parsing frontmatter. The
+stored `sha256` is a convenience copy computed server-side at write time;
+readers always recompute from `content` so out-of-band edits are visible to
+the drift guard. Direct Firestore queries against derived fields (e.g.
+`where origin == ...`) are not supported and not needed.
 
 Deliberate choices:
 
 1. **Day existence = committed manifest.** A day is benchmarkable iff
-   `knowledge-base/es/<day>/manifest.json` exists in the bucket. This replaces
-   filename-suffix matching and means only days the eminiplayer pipeline
-   actually committed are visible to the benchmark.
-2. **Features embed their static doc.** `staticDoc` stops being a
-   repo-relative path; the document content is stored in the feature's
-   Firestore doc (`staticDocContent`) at creation time. There is no repo to
-   reference.
+   `knowledge-base/es/<day>/manifest.json` exists in the bucket AND every
+   artifact the manifest promises is present. Partial days are issues, never
+   days. This applies to every read — including outcome-recap lookups, which
+   must never read files out of an uncommitted (force-rerun-in-progress)
+   folder.
+2. **The methods doc has ONE copy.** A feature whose frontmatter carries a
+   `staticDoc` key does NOT embed the document; the reader resolves
+   `staticDocContent` live from the bucket's `knowledge-base/methods/seven-keys.md`
+   at snapshot time. This keeps prompts, KEYS generation, and the drift guard
+   all reading the same bytes, and preserves today's behavior where editing
+   the methods doc after cells exist trips the `staticDoc` drift family.
 
 ## CloudInputsService
 
-Replaces `RepoInputsService` (which is deleted). Same conceptual interface
-with two systematic changes: every method is **async**, and `DayInput`
-carries **content, not paths**.
+Replaces `RepoInputsService` (which is deleted). The interface is built
+around a **per-run snapshot**: one call fetches everything, and the run
+operates on those immutable values — no re-fetching mid-run, no N+1 bucket
+scans, no possibility of different days in one run seeing different inputs.
 
 ```ts
+interface TraderInput {
+  name: string;
+  origin: string | null;    // from frontmatter; null for root personas
+  mutation: string | null;
+  content: string;
+  sha256: string;
+}
+interface FeatureInput {
+  id: string;
+  name: string;
+  block: string;
+  sha256: string;
+  staticDocContent: string | null;  // live bucket methods doc when frontmatter has staticDoc
+  staticDocSha256: string | null;
+  artifactSuffix: string | null;
+}
+interface GeneralDocs {
+  files: { path: string; content: string }[];
+  concatenated: string;   // path-sorted concatenation
+  sha256: string;         // zero-bytes sentinel when empty
+}
 interface DayListing {
-  day: string;              // MMDDYYYY
-  date: string;             // YYYY-MM-DD
-  prefix: string;           // 8-digit TP filename prefix
+  day: string;        // MMDDYYYY
+  date: string;       // YYYY-MM-DD
+  prefix: string;     // TP filename prefix (== day in the bucket layout)
+  recapDate: string;  // from the manifest
+  fileSha256: { tradePlanMd: string; tradePlanPdf: string; recap: string }; // from manifest FileRecords
 }
-
 interface DayInput extends DayListing {
-  pdf: Buffer;              // was pdfPath
-  tpTranscript: string;     // was planPath
-  recapTranscript: string;  // was recapPath
+  pdf: Buffer;
+  tpTranscript: string;
+  recapTranscript: string;
+  recapFileName: string;  // `${recapDate}_ES_RECAP.md`
+}
+interface DayIssue { day: string; missing: string[] }
+
+interface InputsSnapshot {
+  traders: TraderInput[];
+  features: FeatureInput[];      // staticDocContent already resolved from methodsDoc
+  general: GeneralDocs;
+  methodsDoc: string | null;
+  days: DayListing[];            // committed, fully-present days, asc by date
+  issues: DayIssue[];
 }
 
-collectTraders(): Promise<TraderInput[]>       // Firestore traders/ — shape unchanged
-collectFeatures(): Promise<FeatureInput[]>     // Firestore features/
-collectGeneralDocs(): Promise<GeneralDocs>     // bucket general/*, path-sorted, concatenated — same sha256 scheme
-collectDays(): Promise<DayListing[]>           // bucket manifest listing (metadata only, one list call)
-loadDay(day: string): Promise<DayInput>        // downloads the 3 artifacts on demand
-collectDayIssues(): Promise<DayIssue[]>        // manifest present but artifacts missing/ambiguous
-readMethodsDoc(): Promise<string | null>
-priorCompleteDays(day: string): Promise<DayListing[]>
-outcomeRecapForDay(day: string): Promise<string | null>  // was outcomeRecapPathForDay; returns content
+snapshot(): Promise<InputsSnapshot>
+  // One bucket list over the ES prefix + parallel manifest downloads + the
+  // general/methods/traders/features fetches, all concurrent. The single
+  // fetch a run performs.
+
+loadDay(listing: DayListing): Promise<DayInput>
+  // Downloads the three artifacts and VERIFIES each one's sha256 against the
+  // manifest FileRecords captured in the listing. A mismatch (a force-rerun
+  // overwrote the day mid-run) throws — the run's per-day isolation turns it
+  // into a daysSkipped entry instead of freezing torn inputs into provenance.
+
+outcomeRecapForDay(day: string, snap: InputsSnapshot): Promise<string | null>
+  // A day's outcome recap is `<day>_ES_RECAP.md` in the FOLLOWING committed
+  // day's folder: found via the snapshot's listings (a listing whose
+  // recapDate === day), downloaded and sha256-verified. Committed days only.
+
+priorCompleteDays(targetDay: string, snap: InputsSnapshot): DayListing[]
+  // Pure filter over snap.days — no I/O.
 ```
 
-Performance:
+Consumers thread the snapshot down instead of re-fetching:
+`BenchmarkService.run()` takes one snapshot at start and passes it (or values
+from it) into seven-keys; `SevenKeysService.generate`/`ensureKeys` take
+`(day: DayInput, snap: InputsSnapshot)` and compute `inputsHash` from the
+same in-memory `snap.methodsDoc` the generation prompts consume — never from
+a second fetch. `checkDrift`, the scoreboard, and the cache-warmer each take
+their own snapshot per invocation (they run outside benchmark runs).
 
-- **Lazy day loading.** `collectDays()` returns listings only (day/date/prefix
-  derived from the manifest); artifacts download on first `loadDay()`.
-  Consumers materialize only the days they actually run.
-- **Per-run memoization.** Within one `POST /benchmark/run`, traders,
-  features, general docs, and the methods doc are fetched once and passed
-  down as values (largely how consumers already treat them).
+Hashing scheme (consistent, not legacy-bound): persona sha256 = sha256 of
+full markdown (frontmatter included); feature sha256 = sha256 of full
+markdown; `staticDocSha256` = sha256 of the resolved methods doc;
+general sha256 = sha256 of the path-sorted concatenation, zero-bytes sentinel
+(`e3b0c4...b855`) when empty.
 
-Hashing is byte-identical to today: persona `content` sha256, feature `block`
-sha256, `staticDocContent` sha256, general-docs concatenation sha256
-(path-sorted, zero-bytes sentinel when empty). Existing cells' recorded
-hashes therefore remain valid with no false drift.
+Malformed Firestore docs (missing `name`/`id`/`content` — only possible via
+out-of-band writes) produce a named error (`traders/<docid> is malformed`),
+never a bare TypeError.
 
 ### Consumers
 
-Six touchpoints switch to `await` + content fields; logic otherwise
-unchanged:
+Six touchpoints migrate; logic otherwise unchanged:
 
-- `benchmark.service.ts` — day materialization via `loadDay`; drops its
-  `readFileSync` calls.
-- `seven-keys/seven-keys.service.ts` — same; `outcomeRecapForDay` now returns
-  content directly.
-- `drift.ts` — pure comparison logic unchanged; inputs arrive as values.
-- `scoreboard.service.ts` — `collectTraders`/`collectFeatures` awaited.
-- `cache-warmer.ts` — awaited.
-- `benchmark.module.ts` — provides `CloudInputsService` (needs the
-  `STORAGE_BUCKET` and `FIRESTORE` providers from the Firebase module).
+- `benchmark.service.ts` — one `snapshot()` at run start; day materialization
+  via `loadDay`; refuses with 422 when the snapshot has zero traders or zero
+  features; **single-flight**: a second concurrent `POST /benchmark/run`
+  gets 409 (`a benchmark run is already in progress`), closing the
+  duplicate-KEYS / orphaned-pin race the review found.
+- `seven-keys/seven-keys.service.ts` — `(day, snap)` signatures; lookback and
+  outcome recaps resolved through the snapshot.
+- `drift.ts` — pure comparison unchanged; findings gain
+  `source: 'firestore' | 'bucket'` (`general` → bucket, others → firestore).
+- `scoreboard.service.ts`, `cache-warmer.ts` — take a snapshot per invocation.
+- `benchmark.module.ts` — provides `CloudInputsService`.
 
 ## Write endpoints
 
+All bodies are JSON.
+
 ```
-POST /traders                  body: { name, content }                  → 201; 409 if exists
-POST /features                 body: { id, content, staticDocContent? } → 201; 409 if exists
-PUT  /knowledge/general/:name  body: markdown                           → 200 (mutable)
-PUT  /knowledge/methods        body: markdown                           → 200 (mutable)
-GET  /traders                  list (name, origin, mutation, sha256)
-GET  /features                 list (id, name, sha256)
-GET  /knowledge/general        list (name, sha256)
+POST /traders                  { content }             → 201 { name, sha256 }; 400 invalid; 409 exists
+POST /features                 { content }             → 201 { id, sha256 };   400 invalid; 409 exists
+PUT  /knowledge/general/:name  { content }             → 200 { path, sha256 }  (mutable)
+PUT  /knowledge/methods        { content }             → 200 { path, sha256 }  (mutable)
+GET  /traders                  [{ name, origin, mutation, sha256 }]
+GET  /features                 [{ id, name, sha256 }]
+GET  /knowledge/general        [{ path, sha256 }]      (sha256 computed from content)
 ```
 
 Validation at the door:
 
-- `POST /traders` parses frontmatter and requires the `origin` / `mutation`
-  lineage fields (the scoreboard family tree depends on them). `sha256` is
-  computed server-side.
-- `POST /features` parses frontmatter for `name` / `artifactSuffix`, extracts
-  the body block server-side, hashes server-side.
-- Write-once is enforced with Firestore `create()` (atomic fail-on-existing),
-  not read-then-write.
+- `POST /traders` requires frontmatter `name` (matching `[A-Za-z0-9_-]+`).
+  `origin`/`mutation` are **optional** — a root persona (the head of a family
+  tree, like `context-trader`) legitimately has neither; when present they
+  are recorded as lineage. There is no root-persona penalty.
+- `POST /features` requires frontmatter `id` (same charset). No
+  `staticDocContent` in the body — the `staticDoc` frontmatter key is a
+  marker resolved live at read time (see deliberate choice 2).
+- Write-once via Firestore `create()` (atomic fail-on-existing → 409), not
+  read-then-write.
 - The mutable `PUT` endpoints overwrite freely — the drift guard, not the
-  write path, protects benchmarked eras.
+  write path, protects benchmarked eras. Avoid PUTs while a run is in flight
+  (the single-flight guard bounds a run; check `GET /benchmark/status`).
+- `:name` on the general PUT is validated against the same charset (this is
+  also the path-traversal guard).
 
 ## Drift guard
 
-Semantics unchanged: before uploading or submitting anything,
-`POST /benchmark/run` hashes current inputs and compares against every
-recorded cell; any mismatch → 409 with no bypass flag. What changes is the
-source of "current":
+Semantics unchanged for the new era: before uploading or submitting
+anything, `POST /benchmark/run` hashes the snapshot's inputs and compares
+against every recorded cell; any mismatch → 409 with no bypass flag.
 
-- **Personas & features** — read from Firestore. Drift is structurally
-  impossible via write-once `create()`, but the guard still verifies them
-  (cheap; defends against out-of-band console/script edits).
-- **General docs & methods doc** — mutable in the bucket; the guard does real
-  work here exactly as it did for local files. Editing after cells exist
-  blocks runs until reverted; "new era = manually retire cells" carries over.
-- **Day docs** — not a drift family (unchanged); KEYS provenance
-  (`sourceSha`) already handles force-regenerated days and keeps working
-  since hashes cover the same bytes.
-
-Addition: each drift finding gains a `source` field (`firestore` | `bucket`)
-so a 409 names where to look.
+- **Personas & features** — structurally immutable (write-once), still
+  verified (defends against out-of-band edits; content sha recomputed at
+  read).
+- **General docs** — mutable via PUT; the guard does the real work.
+- **Methods doc** — protected through the `staticDoc` family: because
+  `staticDocContent` is resolved live from the bucket, a `PUT
+  /knowledge/methods` after cells exist changes the computed
+  `staticDocSha256`, which mismatches the recorded one → 409. This is the
+  same protection the local-file era had.
+- **Day docs** — not a drift family; `loadDay`'s manifest verification plus
+  KEYS `inputsHash` provenance handle changed days.
+- Findings carry `source: 'firestore' | 'bucket'` so a 409 names where to
+  look.
 
 ## Error handling
 
-- Manifest exists but an artifact fails to download or is missing → the day
-  appears in `collectDayIssues` with the reason; never a crash, never a
-  silent disappearance.
-- Bucket or Firestore unavailable → `POST /benchmark/run` returns 503 before
-  anything is submitted (fail-closed, consistent with the guard).
-- Zero traders or zero features in Firestore → the run refuses with an
-  explicit message rather than benchmarking an empty matrix.
+- Unreachable bucket/Firestore during the run-start snapshot → 503 before
+  anything is uploaded or submitted (fail-closed). After batches start
+  submitting, a per-day failure (including a `loadDay` verification
+  mismatch) is isolated into `daysSkipped` — the 503 promise is scoped to
+  the up-front snapshot, matching today's behavior.
+- Manifest present but artifacts missing/unreadable → the day appears in
+  `snapshot().issues` with the reason.
+- Zero traders or zero features in the snapshot → 422 with an explicit
+  message naming the endpoint to call.
+- Malformed Firestore content docs → named 503, not a TypeError.
 
-## One-time migration
+## Fresh-era migration (one-time)
 
-Run against the local backend once the endpoints exist; content sourced from
-the working tree / git history. No migration scripts are kept in the repo —
-these are documented curl calls.
+Order matters: wipe first, then import, then verify. All commands documented
+in the plan; none kept as repo scripts.
 
-1. `POST /traders` × 2 — `traders/context-structured.md`,
-   `traders/context-trader.md` (still on disk).
-2. `POST /features` × 2 — `features/seven-keys-method.md`,
-   `features/seven-keys-scorecard.md` via
-   `git show HEAD:features/<file>` (variants are still active; 476 existing
-   cells reference them).
-3. `PUT /knowledge/general/support_and_resistance_zones` —
-   `git show HEAD:knowledge-base/general/support_and_resistance_zones.md`.
-4. `PUT /knowledge/methods` —
-   `git show HEAD:knowledge-base/methods/seven-keys.md`.
-5. **Verify:** `GET /benchmark/drift` returns `{}` findings — the migrated
-   content hashes match what the 476 existing cells recorded. This is the
-   acceptance gate for the migration.
+1. **Wipe the old era**: delete the Firestore collections `benchmarkRuns`,
+   `benchmarkBatches`, `benchmarkScoreboard`, `dayArtifacts` (firebase-tools
+   recursive delete, or the Firebase console). `GET /benchmark/status` must
+   be empty first (no in-flight batches).
+2. **Import personas** (2): `POST /traders` from the on-disk
+   `traders/context-trader.md` (root — no lineage) and
+   `traders/context-structured.md`.
+3. **Import features** (2): `POST /features` from `git show
+   HEAD:features/seven-keys-method.md` and `HEAD:features/seven-keys-scorecard.md`
+   — content only; their `staticDoc` frontmatter resolves live.
+4. **Upload shared docs**: `PUT /knowledge/general/support_and_resistance_zones`
+   and `PUT /knowledge/methods` from `git show HEAD:` of the corresponding
+   files. `HEAD` consistently — never `HEAD~1`.
+5. **Acceptance gate** (all MUST pass; the drift check alone cannot detect a
+   missing input, so the listings are load-bearing):
+   - `GET /traders` returns exactly `context-structured`, `context-trader`
+   - `GET /features` returns exactly `seven-keys-method`, `seven-keys-scorecard`
+   - `GET /knowledge/general` returns the doc with sha256 equal to
+     `git show HEAD:knowledge-base/general/support_and_resistance_zones.md | shasum -a 256`
+   - `GET /benchmark/drift` returns `{"findings":[],"cellsExamined":0}`
+   All curl steps use `-sS --fail-with-body` and are chained with `&&` so a
+   400/409/503 halts the sequence loudly instead of being swallowed.
 
 ## Testing
 
 - Unit: mock bucket + Firestore using the existing idioms from the
-  eminiplayer specs. Port the drift-guard spec matrix; add specs for
-  write-once 409s, lineage validation, manifest-without-artifacts day issues,
-  and the zero-traders/zero-features refusal.
-- E2e: existing benchmark e2e suites swap filesystem fixtures for mocked
-  storage/Firestore surfaces (same pattern as the moonshot batch e2e mocks).
+  eminiplayer specs. Port the drift-guard spec matrix and add: `source`
+  labels, write-once 409s, root-persona acceptance, malformed-doc named
+  errors, manifest-without-artifacts issues, `loadDay` sha mismatch, the
+  zero-traders/zero-features refusals, and the single-flight 409.
+- E2e: the benchmark suites replace their temp-repo seeding with seeded
+  fakes (`fakeFirestore` + a `fakeBucket` extended with `getFiles`), with
+  manifests that carry `FileRecord` sha256s so `loadDay` verification
+  passes.
 
-## Repo cleanup (after migration verifies)
+## Repo cleanup (after the migration gate passes)
 
-- Commit the ~1,544 pending deletions (`knowledge-base/`, `features/`,
-  retired `.claude/skills/`), plus delete `traders/` (migrated).
-- Update `CLAUDE.md`: document the new endpoints; rewrite "personas are
-  files" to "personas are write-once Firestore docs created via
-  `POST /traders`"; note that day availability comes from committed
-  eminiplayer manifests.
+- Commit the pending deletions (`knowledge-base/`, `features/`, retired
+  `.claude/skills/`), plus delete `traders/` (migrated).
+- Update `CLAUDE.md`: personas are write-once Firestore docs via
+  `POST /traders` (lineage optional for roots); content endpoints
+  documented; day availability = committed eminiplayer manifests; **remove
+  the legacy MES-era warning block** (obsolete — those cells are deleted).
