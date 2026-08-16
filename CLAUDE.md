@@ -33,7 +33,16 @@ POST /benchmark/run          body: { model?, days?: string[], runCount?,
                                      variants?: string[], regenerateKeys? }
 GET  /benchmark/status       non-terminal batches (batchId, day, status, cellCount)
 GET  /benchmark/scoreboard?model=<alias>
+POST /benchmark/samples        body: { name, count? (default 100), from?, to? (MMDDYYYY) }
+                               draws a write-once random sample of benchmarkable
+                               days (committed manifests ∩ complete candle days)
+GET  /benchmark/samples        list sample summaries
+GET  /benchmark/samples/:name  full day list
 ```
+
+On `POST /benchmark/run`, `sample: "<name>"` pins the run to a persisted
+sample's days (mutually exclusive with `days`; resolved before the run lock, so
+bad requests 400/404 instead of 409).
 
 `POST /benchmark/run` tops up the matrix — personas × days × variants — and only
 runs missing cells, so it is safe to re-issue. It is **single-flight**: a second

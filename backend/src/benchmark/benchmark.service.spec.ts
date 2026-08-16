@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkService } from './benchmark.service';
 import { BenchmarkRepository } from './benchmark.repository';
@@ -27,6 +27,7 @@ function makeDeps() {
     // No prior cells => nothing for the drift guard to disagree with; the
     // guard's own behavior is covered in drift.spec.ts and below.
     listCellsForDrift: jest.fn().mockResolvedValue([]),
+    getSample: jest.fn().mockResolvedValue(null),
   };
   // Snapshot-shaped inputs fake: run() takes ONE snapshot at start and threads
   // it everywhere; per-day bytes come from loadDay(listing).
@@ -359,6 +360,53 @@ describe('BenchmarkService.run', () => {
     await first;
     // The flag clears in finally — a fresh run is admitted again.
     await expect(svc.run({ runCount: 1, variants: ['base'] })).resolves.toBeDefined();
+  });
+
+  it('run({ sample }) restricts days to the persisted sample and reports snapshot-missing days', async () => {
+    const deps = makeDeps();
+    // 07012026 exists in the snapshot; 12252099 does not.
+    deps.repo.getSample.mockResolvedValue({ name: 's1', days: ['07012026', '12252099'], requestedCount: 2, poolSize: 2, from: null, to: null, createdAt: 't' });
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1, sample: 's1' });
+    expect(deps.repo.getSample).toHaveBeenCalledWith('s1');
+    expect(summary.cellsQueued).toBe(1);
+    const saved = deps.repo.saveBatch.mock.calls[0][0];
+    expect(Object.keys(saved.customIdToCell)).toEqual(['context-trader__fable__07012026__seven-keys-scorecard__run1']);
+    // The missing sampled day is surfaced, and the other listing day (07022026)
+    // is NOT reported skipped-for-candles — the sample filtered it out.
+    expect(summary.daysSkipped).toEqual([{ day: '12252099', reason: 'sample day not in snapshot' }]);
+  });
+
+  it('run rejects sample together with days, before taking the lock or reading inputs', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await expect(svc.run({ sample: 's1', days: ['07012026'] })).rejects.toBeInstanceOf(BadRequestException);
+    expect(deps.inputs.snapshot).not.toHaveBeenCalled();
+    // The failed request must not have latched the single-flight lock.
+    deps.repo.getSample.mockResolvedValue({ name: 's1', days: ['07012026'], requestedCount: 1, poolSize: 1, from: null, to: null, createdAt: 't' });
+    await expect(svc.run({ runCount: 1, sample: 's1' })).resolves.toBeDefined();
+  });
+
+  it('run 404s on an unknown sample without reading inputs', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await expect(svc.run({ sample: 'nope' })).rejects.toBeInstanceOf(NotFoundException);
+    expect(deps.inputs.snapshot).not.toHaveBeenCalled();
+  });
+
+  it('run 400s an invalid sample name before it can reach a Firestore doc id', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    await expect(svc.run({ sample: 'a/b' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(deps.repo.getSample).not.toHaveBeenCalled();
+  });
+
+  it('run 422s on a sample whose days are empty instead of falling through to a full run', async () => {
+    const deps = makeDeps();
+    deps.repo.getSample.mockResolvedValue({ name: 's1', days: [], requestedCount: 0, poolSize: 0, from: null, to: null, createdAt: 't' });
+    const svc = await build(deps);
+    await expect(svc.run({ sample: 's1' })).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(deps.fake.submittedBatches).toHaveLength(0);
   });
 
   describe('content-drift guard', () => {

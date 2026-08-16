@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, ConflictException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, Logger, Inject, BadRequestException, ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkRepository, CellMeta, DayArtifactDoc } from './benchmark.repository';
 import { CloudInputsService, DayInput, TraderInput, FeatureInput } from './cloud-inputs.service';
@@ -18,6 +18,7 @@ import { ALL_VARIANTS, SCORECARD_VARIANT, resolveModel, cellKey, parseCellKey, S
 import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { detectDrift, hasDrift, renderDrift, DriftInputs, DriftReport } from './drift';
 import { BenchmarkDriftError } from './benchmark.errors';
+import { assertSampleName } from './samples.service';
 
 // Symbol/interval the benchmark backtests against (see design §7).
 const SYMBOL = 'ES';
@@ -26,6 +27,7 @@ const INTERVAL = 'min-1' as const;
 export interface RunOptions {
   model?: string;
   days?: string[]; // MMDDYYYY filter
+  sample?: string; // name of a persisted day sample; mutually exclusive with days
   runCount?: number;
   variants?: Variant[];
   // Force seven-keys regeneration for not-yet-benchmarked scorecard days (a
@@ -79,19 +81,32 @@ export class BenchmarkService {
   private runInProgress = false;
 
   async run(opts: RunOptions = {}): Promise<RunSummary> {
+    // Sample resolution and mutual exclusion live OUTSIDE the single-flight
+    // lock and BEFORE any snapshot/drift work: a malformed request must never
+    // surface as a drift 409 or in-progress 409, cost a corpus read, or hold
+    // the lock (see the day-samples design doc, §4).
+    let daysFilter = opts.days;
+    if (opts.sample !== undefined) {
+      if (opts.days?.length) throw new BadRequestException('sample and days are mutually exclusive — a sample IS a days filter');
+      const sampleName = assertSampleName(opts.sample);
+      const sampleDoc = await this.repo.getSample(sampleName);
+      if (!sampleDoc) throw new NotFoundException(`No sample named ${sampleName}`);
+      if (!sampleDoc.days.length) throw new UnprocessableEntityException(`sample ${opts.sample} has no days — refusing to fall through to a full-corpus run`);
+      daysFilter = sampleDoc.days;
+    }
     // Single-flight: two concurrent runs racing ensureKeys can orphan a
     // submitted batch's pinned KEYS hash (last-write-wins saveKeysArtifact) —
     // a permanent per-day wedge. Same posture as BatchReconciler's guard.
     if (this.runInProgress) throw new ConflictException('a benchmark run is already in progress');
     this.runInProgress = true;
     try {
-      return await this.runInner(opts);
+      return await this.runInner(opts, daysFilter);
     } finally {
       this.runInProgress = false;
     }
   }
 
-  private async runInner(opts: RunOptions): Promise<RunSummary> {
+  private async runInner(opts: RunOptions, daysFilter?: string[]): Promise<RunSummary> {
     requireCapabilities(this.llm, ['batch', 'fileUpload', 'structuredOutput']);
     const model = resolveModel(opts.model ?? (this.config.get<string>('benchmark.model') as string));
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
@@ -120,15 +135,25 @@ export class BenchmarkService {
     }
 
     let days = snap.days;
-    if (opts.days?.length) days = days.filter((d) => opts.days!.includes(d.day));
+    if (daysFilter?.length) days = days.filter((d) => daysFilter.includes(d.day));
 
     const summary: RunSummary = { model, batchesSubmitted: 0, cellsQueued: 0, daysSkipped: [] };
 
     // FIX 7: report day-folders dropped for missing docs.
     let issues = snap.issues;
-    if (opts.days?.length) issues = issues.filter((i) => opts.days!.includes(i.day));
+    if (daysFilter?.length) issues = issues.filter((i) => daysFilter.includes(i.day));
     for (const issue of issues) {
       summary.daysSkipped.push({ day: issue.day, reason: `missing docs: ${issue.missing.join(', ')}` });
+    }
+
+    // A sampled day with no snapshot listing must be reported, not silently
+    // dropped: a 94-of-100-day run would otherwise masquerade as the full row.
+    if (opts.sample !== undefined) {
+      for (const d of daysFilter ?? []) {
+        if (!snap.days.some((l) => l.day === d)) {
+          summary.daysSkipped.push({ day: d, reason: 'sample day not in snapshot' });
+        }
+      }
     }
 
     // FIX 4: never re-submit a run-index already queued in an in-flight batch

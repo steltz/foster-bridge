@@ -36,8 +36,8 @@ async function build() {
 describe('BenchmarkController', () => {
   it('POST /benchmark/run forwards options to the service', async () => {
     const { ctrl, service } = await build();
-    const res = await ctrl.run({ model: 'fable', runCount: 3, variants: ['base'] });
-    expect(service.run).toHaveBeenCalledWith({ model: 'fable', runCount: 3, variants: ['base'], days: undefined });
+    const res = await ctrl.run({ model: 'fable', runCount: 3, variants: ['base'], sample: 's1' });
+    expect(service.run).toHaveBeenCalledWith({ model: 'fable', runCount: 3, variants: ['base'], days: undefined, sample: 's1' });
     expect(res.cellsQueued).toBe(5);
   });
 

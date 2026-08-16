@@ -11,6 +11,7 @@ import { DriftReport } from './drift';
 interface RunBody {
   model?: string;
   days?: string[];
+  sample?: string;
   runCount?: number;
   variants?: Variant[];
   regenerateKeys?: boolean;
@@ -33,6 +34,7 @@ export class BenchmarkController {
       return await this.benchmark.run({
         model: body.model,
         days: body.days,
+        sample: body.sample,
         runCount: body.runCount,
         variants: body.variants,
         regenerateKeys: body.regenerateKeys,
