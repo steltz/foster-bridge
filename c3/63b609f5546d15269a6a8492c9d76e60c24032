@@ -1,0 +1,28 @@
+backend/src/market-data/market-data.module.ts
+  s_881f9ed6729261::t_66e2b73221ede1 3,6-7
+backend/src/app.module.ts
+  s_881f9ed6729261::t_a461dd21843206 23
+  s_881f9ed6729261::t_c3632fd2b42466 50
+backend/src/market-data/contract-ingest.controller.ts
+  s_881f9ed6729261::t_aeee85e59adfa6 1-28
+backend/src/market-data/contract-ingest.service.ts
+  s_881f9ed6729261::t_a148b24b9c91e2 1-154
+backend/src/market-data/contract-ingest.service.spec.ts
+  s_881f9ed6729261::t_97785a5efb1b9d 1-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c363b609f5546d15269a6a8492c9d76e60c24032",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
