@@ -1,0 +1,57 @@
+.gitignore
+  s_6672e188d137e6::t_c11c857b314c06 8-14
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/messages/00-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-73
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/request-body.json
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-78
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/messages/02-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-38
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/messages/02-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-123
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/messages/00-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-73
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/item-meta.json
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-51
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/messages/03-user.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/response.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/item-meta.json
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-51
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/request-body.json
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-78
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/response.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/messages/01-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-534
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/batch.json
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-56
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-structured__k3__08142026__base__run1/messages/03-user.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1
+data/moonshot-requests/msb_4320f782-064a-47e0-902a-abdd214e5ff5/context-trader__k3__08142026__base__run1/messages/01-system.md
+  s_1f90ec2ede4b7c::t_a0228bc3e26943 1-534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "cc24caa7253be4fdbf23ce0518d3f1ec507eefa3",
+  "prompts": {},
+  "sessions": {
+    "s_1f90ec2ede4b7c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cafced1e-31db-4bc4-9dbf-b3518a1a0dd4",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    },
+    "s_6672e188d137e6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3bcaeea-febc-42e4-b639-4bcbb4a98477",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
