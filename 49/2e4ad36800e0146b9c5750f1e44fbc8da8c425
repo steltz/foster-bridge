@@ -1,0 +1,26 @@
+backend/test/set-test-env.ts
+  s_881f9ed6729261::t_1868caea52b3a8 8-11
+backend/test/benchmark.e2e-spec.ts
+  s_881f9ed6729261::t_a40868b609c3a2 39-49
+backend/test/anthropic-ready.e2e-spec.ts
+  s_881f9ed6729261::t_3ce2c128def595 10-13
+backend/test/benchmark-scorecard.e2e-spec.ts
+  s_881f9ed6729261::t_77f86855e1c24a 98
+  s_881f9ed6729261::t_7af815803567d8 85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "492e4ad36800e0146b9c5750f1e44fbc8da8c425",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
