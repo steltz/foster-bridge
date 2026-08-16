@@ -36,7 +36,14 @@ the contract its TP levels were quoted on.
 ## Non-goals (explicitly out of scope)
 
 - Deleting `markets/MES/min-5` and the benchmark runs that used it (separate
-  future task; nothing in this design blocks it).
+  future task). **Ordering constraint this design does depend on:** benchmark
+  cells carry no symbol/interval in their key, and the scoreboard groups by
+  `(trader, alias, variant)` — so old $5/pt MES cells and new $50/pt ES cells
+  would silently average into the same rows. The MES cells must be retired
+  (manual Firestore op) and in-flight batches drained **before the first
+  post-flip `POST /benchmark/run`**; the deletion itself can still happen
+  later. New cells record `result.contract` (see §5), which makes any
+  accidental mixing diagnosable after the fact.
 - The TP prev-day-summary runtime assertion (~2-pt tolerance tripwire from
   the roll-convention doc). Follow-up feature; this design leaves an obvious
   seam for it (the backtest response records which contract was used).
@@ -112,27 +119,38 @@ GET  /markets/ingest-contracts        current/last job snapshot
 ```
 
 Mirrors the eminiplayer backfill job pattern (in-memory job state, ledger of
-per-file outcomes, no persistence of job state across restarts).
+per-file outcomes, no persistence of job state across restarts). Because the
+state is in-memory only, the job **must run against a one-shot server**
+(`pnpm start`), never watch mode — a dev-mode restart kills the loop silently
+and `GET` then reports `{ state: 'idle' }`, which after a restart means "the
+job died; re-POST" (safe: upserts are idempotent).
 
 Behavior:
 
-- Walk `data/ES_{1min,5min}_{update,archive}_*/ES_<code>_<interval>.txt`
-  under the repo root (located like `benchmark.repoRoot` — anchored, not
-  cwd). Filename → contract symbol + interval; files that don't match the
-  pattern are reported as skipped, not errors.
+- Discover directories by pattern, not by name: `readdirSync(<repoRoot>/data)`
+  filtered to `/^ES_(1min|5min)_(archive|update)_/` — the trailing suffix is
+  an opaque export token and must not be hardcoded. Archive dirs are ordered
+  before update dirs. Within each dir, walk `ES_<code>_<interval>.txt`;
+  files that don't match the pattern are reported as skipped, not errors.
+  **Zero contract files found fails the POST** (422) rather than reporting a
+  vacuous `done` — a misconfigured root must not look like success.
 - Per file: parse, group candles by ET calendar day, upsert each day through
   the existing transactional `upsertDay` (idempotent; re-running the job on
   unchanged files is a no-op per day).
-- Update dirs are processed **after** archive dirs so that where both contain
-  the same contract, update (fresher) wins last-write.
+- Update dirs are processed **after** archive dirs so that, should both ever
+  contain the same contract, update (fresher) wins last-write. (Today there
+  is no overlap — archive holds ≤ Z24, update holds H25–U27 — so the
+  ordering is future-proofing, not a present case.)
 - Status payload: per-file `{ file, contract, interval, days, added, updated,
-  failed?, error? }` plus running totals. A file failure doesn't stop the
-  job; it's recorded and the job continues (per-file all-or-nothing, job-wide
-  keep-going).
-- Scale expectation: ~158 files, ~535MB, order 10⁴–10⁵ day-docs. Parse
-  file-by-file (stream or full read per file — largest is ~40MB, fine to
-  read whole), batch day upserts sequentially per file. No concurrency
-  tuning unless it proves too slow in practice (YAGNI).
+  error? }` plus running totals (`error` present iff the file failed). A file
+  failure doesn't stop the job; it's recorded and the job continues (per-file
+  all-or-nothing, job-wide keep-going).
+- Scale expectation: 158 files, ~590MB, order 10⁴–10⁵ day-docs. Parse
+  file-by-file (full read per file — largest is ~7.6MB), batch day upserts
+  sequentially per file. Each upsert is a Firestore transaction round-trip,
+  so the full run takes **one to several hours** — plan operations
+  accordingly. No concurrency tuning unless it proves too slow in practice
+  (YAGNI).
 
 ### 4. Backtest resolution (`backend/src/execution/`)
 
@@ -146,9 +164,14 @@ In `BacktestService.run`:
   resolution.
 - Any other symbol (`MES`, `NQ`, …): exactly today's behavior.
 - The response gains `contract: string` — the concrete contract the
-  simulation ran against (equal to `symbol` for non-resolved symbols). Every
-  stored grading result therefore records what it actually tested against;
-  this is also the seam the future prev-day assertion plugs into.
+  simulation ran against (equal to `symbol` for non-resolved symbols).
+  **This does not reach stored cells by itself**: the reconciler builds
+  `CellResult` by explicitly enumerating fields off `bt.results[0]`, so §5
+  requires an explicit persistence step. Once persisted, the stored
+  `result.contract` is the seam the future prev-day assertion plugs into.
+- Resolution failures for regex-valid but calendar-invalid dates
+  (`2026-13-01`) are rethrown as `BadRequestException` — the endpoint's 400
+  surface, never a 500.
 
 No changes to the engine, orders, session/coverage logic — `min-1` flows
 through the existing interval-generic code paths.
@@ -160,8 +183,18 @@ through the existing interval-generic code paths.
   day-data availability checks and coverage math).
 - Grading config (rrFloor, qty, management) unchanged; PnL is now real ES
   dollars at \$50/pt via the ES spec.
-- `CellResult` rows will implicitly carry the new `contract` field wherever
-  the backtest response is stored — additive, no migration needed.
+- `CellResult` gains an explicit `contract?: string` field, and the
+  reconciler explicitly persists `bt.contract` into it when building the
+  cell (it enumerates fields off `bt.results[0]`, so nothing carries over
+  implicitly). Additive, no migration needed; asserted by a reconciler spec.
+- `benchmark.service.ts` reads candles directly (`getDay`) for its
+  availability/coverage pre-check — a direct store read does not pass
+  through backtest resolution, so it resolves the per-day contract itself.
+- The two benchmark e2e suites (`test/benchmark.e2e-spec.ts`,
+  `test/benchmark-scorecard.e2e-spec.ts`) seed `markets/MES/min-5` today;
+  they move to seeding the resolved contract on the min-1 grid, and
+  `pnpm test:e2e` joins the verification steps (the default `pnpm test`
+  never runs `backend/test/`).
 
 ## Error handling
 
@@ -173,7 +206,8 @@ through the existing interval-generic code paths.
 - Ingest: malformed row → file marked failed with line context, job
   continues. Unknown filename shape → skipped, listed in status.
 - Resolution is total for valid dates (every date maps to some contract);
-  invalid date format → existing 400.
+  invalid date format → existing 400; regex-valid but calendar-invalid
+  dates → 400 via the rethrow in §4, not a 500.
 
 ## Testing
 
@@ -192,8 +226,12 @@ through the existing interval-generic code paths.
 
 ## Rollout
 
+0. Pre-flip gate: drain in-flight benchmark batches (`GET /benchmark/status`
+   empty) before deploying the constant flip, and retire the MES cells
+   before the first post-flip `POST /benchmark/run` (see Non-goals for why).
 1. Land code; run `POST /markets/ingest-contracts` once against production
-   Firestore (idempotent, safe to re-run after interruptions).
+   Firestore from a **one-shot** server process (idempotent, safe to re-run
+   after interruptions; expect one to several hours).
 2. Spot-check: `GET /markets/ESU26/min-1/days` shows the liquid window with
    `complete: true` days; a known TP day backtests with the expected
    `contract` echo.

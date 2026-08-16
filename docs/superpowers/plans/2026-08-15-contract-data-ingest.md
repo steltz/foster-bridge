@@ -64,6 +64,7 @@ describe('resolveContract', () => {
     ['2025-06-09', 'ESM25'],
     ['2025-06-17', 'ESU25'],
     ['2025-09-12', 'ESU25'],
+    ['2025-09-15', 'ESZ25'], // Sep switch Monday itself
     ['2025-09-16', 'ESZ25'],
     ['2025-12-12', 'ESZ25'],
     ['2025-12-15', 'ESH26'], // Dec rolls into next year's Mar
@@ -411,33 +412,67 @@ git commit -m "feat(market-data): parser for headerless ET-naive contract txt fi
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `src/market-data/market-data.service.spec.ts` (reuse the file's existing fake-Firestore builder and service construction pattern — the test body below is what matters):
+Append to `src/market-data/market-data.service.spec.ts` as a new top-level
+describe. It reuses the module-level `makeIngestFirestore(existingCandles)`
+fake already defined in that file (~line 75); the `buildWith` helper and
+`OPEN` const in that file are scoped inside the `ingestCsv` describe, so this
+block declares its own local equivalents:
 
 ```typescript
-describe('ingestCandles', () => {
+describe('MarketDataService.ingestCandles', () => {
+  // 09:30 ET 2026-07-14 — same anchor the ingestCsv describe uses.
+  const OPEN = Math.floor(Date.UTC(2026, 6, 14, 13, 30, 0) / 1000);
+
+  async function buildWith(firestore: any) {
+    const moduleRef = await Test.createTestingModule({
+      providers: [MarketDataService, ContractsService, { provide: FIRESTORE, useValue: firestore }],
+    }).compile();
+    return moduleRef.get(MarketDataService);
+  }
+
   it('accepts pre-parsed candles and produces the same summary as ingestCsv', async () => {
-    // Same construction as the existing ingest tests in this file.
-    const svc = buildService(); // <- use whatever helper/pattern the file already uses
+    const { firestore, store } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
     const candles = [
-      { time: 1750000200, open: 1, high: 2, low: 0.5, close: 1.5 },
-      { time: 1750000500, open: 1.5, high: 2.5, low: 1.0, close: 2.0 },
+      { time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5 },
+      { time: OPEN + 300, open: 1.5, high: 2.5, low: 1.0, close: 2.0 },
     ];
-    const summary = await svc.ingestCandles('ESU26', 'min-5', candles, {});
+    const summary = await service.ingestCandles('ESU26', 'min-5', candles, {});
     expect(summary.symbol).toBe('ESU26');
     expect(summary.totalRows).toBe(2);
     expect(summary.days).toHaveLength(1);
+    expect(store.written.candles).toEqual([
+      { t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5 },
+      { t: OPEN + 300, o: 1.5, h: 2.5, l: 1.0, c: 2.0 },
+    ]);
+  });
+
+  it('is idempotent: re-ingesting identical candles reports unchanged and writes nothing', async () => {
+    // Second run simulated by seeding the store with exactly what a first
+    // run would have written; the merge must detect no change and skip tx.set.
+    const existing = [{ t: OPEN, o: 1, h: 2, l: 0.5, c: 1.5 }];
+    const { firestore, tx } = makeIngestFirestore(existing);
+    const service = await buildWith(firestore);
+    const summary = await service.ingestCandles(
+      'ESU26', 'min-5', [{ time: OPEN, open: 1, high: 2, low: 0.5, close: 1.5 }], {},
+    );
+    expect(summary.days[0]).toMatchObject({ added: 0, updated: 0, unchanged: true });
+    expect(tx.set).not.toHaveBeenCalled();
   });
 
   it('rejects candles misaligned to the interval grid', async () => {
-    const svc = buildService();
+    const { firestore } = makeIngestFirestore(null);
+    const service = await buildWith(firestore);
     await expect(
-      svc.ingestCandles('ESU26', 'min-5', [{ time: 1750000201, open: 1, high: 1, low: 1, close: 1 }], {}),
-    ).rejects.toThrow('not aligned');
+      service.ingestCandles('ESU26', 'min-5', [{ time: OPEN + 60, open: 1, high: 1, low: 1, close: 1 }], {}),
+    ).rejects.toThrow(/align|interval/i);
   });
 });
 ```
 
-Note for the implementer: `1750000200 % 300 === 0` must hold — if you change the timestamps, keep them on the 5-minute grid (and the misaligned one off it).
+(The idempotency test discharges the spec's "idempotent re-run" testing
+requirement at the layer where it's observable — the ingest-job suite mocks
+`ingestCandles` entirely, so it cannot see merge behavior.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -536,7 +571,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigService } from '@nestjs/config';
-import { ContractIngestService, ContractIngestAlreadyRunningError, mapContractFile } from './contract-ingest.service';
+import {
+  ContractIngestService,
+  ContractIngestAlreadyRunningError,
+  ContractIngestNoFilesError,
+  mapContractFile,
+} from './contract-ingest.service';
 
 describe('mapContractFile', () => {
   it.each([
@@ -572,7 +612,10 @@ describe('ContractIngestService', () => {
     ingested.length = 0;
     marketData.ingestCandles.mockClear();
     root = mkdtempSync(join(tmpdir(), 'contract-ingest-'));
-    // archive processed before update: same-named contract in update must win last-write.
+    // Asserts archive-dirs-before-update-dirs ordering (the property
+    // last-write-wins rides on, should a contract ever appear in both —
+    // none does today; upsert-level overwrite itself is upsertDay's job
+    // and is not observable through the mocked ingestCandles).
     for (const dir of ['ES_5min_archive_t6h13g', 'ES_5min_update_t6h13g']) {
       mkdirSync(join(root, 'data', dir), { recursive: true });
     }
@@ -628,6 +671,25 @@ describe('ContractIngestService', () => {
     expect(() => svc.start()).toThrow(ContractIngestAlreadyRunningError);
     await svc.loopPromise;
   });
+
+  it('discovers dirs by pattern, not by name — the suffix is an opaque export token', async () => {
+    mkdirSync(join(root, 'data', 'ES_5min_update_x9k2f'), { recursive: true });
+    writeFileSync(
+      join(root, 'data', 'ES_5min_update_x9k2f', 'ES_Z26_5min.txt'),
+      '2026-12-01 09:30:00,7600,7601,7599,7600.5,10\n',
+    );
+    const svc = build();
+    svc.start();
+    await svc.loopPromise;
+    expect(ingested.map((r) => r.symbol)).toContain('ESZ26');
+  });
+
+  it('refuses to start when no contract files are found (misconfigured root must not look like success)', () => {
+    rmSync(join(root, 'data'), { recursive: true, force: true });
+    const svc = build();
+    expect(() => svc.start()).toThrow(ContractIngestNoFilesError);
+    expect(svc.snapshot()).toBeNull();
+  });
 });
 ```
 
@@ -657,14 +719,19 @@ import { Interval } from './candle';
 const FILE_RE = /^ES_([HMUZ]\d{2})_(1min|5min)\.txt$/;
 const INTERVAL_BY_SUFFIX: Record<string, Interval> = { '1min': 'min-1', '5min': 'min-5' };
 
-// Archive dirs FIRST: where a contract appears in both, update (fresher) wins
-// last-write in the per-candle merge.
-const DATA_DIRS = [
-  'ES_1min_archive_t6h13g',
-  'ES_5min_archive_t6h13g',
-  'ES_1min_update_t6h13g',
-  'ES_5min_update_t6h13g',
-];
+// Directory names carry an opaque export-token suffix (e.g. _t6h13g), so
+// discovery is by pattern, never by literal name. Archive dirs FIRST: should
+// a contract ever appear in both, update (fresher) wins last-write in the
+// per-candle merge.
+const DIR_RE = /^ES_(1min|5min)_(archive|update)_/;
+
+function discoverDataDirs(dataRoot: string): string[] {
+  if (!existsSync(dataRoot)) return [];
+  const rank = (d: string) => (d.includes('_archive_') ? 0 : 1);
+  return readdirSync(dataRoot)
+    .filter((d) => DIR_RE.test(d))
+    .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
 
 export function mapContractFile(name: string): { symbol: string; interval: Interval } | null {
   const m = FILE_RE.exec(name);
@@ -700,6 +767,13 @@ export class ContractIngestAlreadyRunningError extends Error {
   }
 }
 
+/** Zero contract files under the data root — controller maps to 422. */
+export class ContractIngestNoFilesError extends Error {
+  constructor(dataRoot: string) {
+    super(`no contract files found under ${dataRoot} — check the data directory layout`);
+  }
+}
+
 @Injectable()
 export class ContractIngestService {
   private readonly logger = new Logger(ContractIngestService.name);
@@ -722,9 +796,8 @@ export class ContractIngestService {
 
     const files: { rel: string; abs: string; symbol: string; interval: Interval }[] = [];
     const skipped: string[] = [];
-    for (const dir of DATA_DIRS) {
+    for (const dir of discoverDataDirs(dataRoot)) {
       const abs = join(dataRoot, dir);
-      if (!existsSync(abs)) continue;
       for (const name of readdirSync(abs).sort()) {
         const mapped = mapContractFile(name);
         if (!mapped) {
@@ -734,6 +807,7 @@ export class ContractIngestService {
         files.push({ rel: `${dir}/${name}`, abs: join(abs, name), ...mapped });
       }
     }
+    if (files.length === 0) throw new ContractIngestNoFilesError(dataRoot);
 
     this.job = {
       state: 'running',
@@ -797,8 +871,12 @@ Expected: PASS.
 `src/market-data/contract-ingest.controller.ts`:
 
 ```typescript
-import { ConflictException, Controller, Get, HttpCode, Post } from '@nestjs/common';
-import { ContractIngestAlreadyRunningError, ContractIngestService } from './contract-ingest.service';
+import { ConflictException, Controller, Get, HttpCode, Post, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ContractIngestAlreadyRunningError,
+  ContractIngestNoFilesError,
+  ContractIngestService,
+} from './contract-ingest.service';
 
 @Controller('markets')
 export class ContractIngestController {
@@ -811,6 +889,7 @@ export class ContractIngestController {
       return this.ingest.start();
     } catch (err) {
       if (err instanceof ContractIngestAlreadyRunningError) throw new ConflictException(err.message);
+      if (err instanceof ContractIngestNoFilesError) throw new UnprocessableEntityException(err.message);
       throw err;
     }
   }
@@ -868,41 +947,59 @@ git commit -m "feat(market-data): detached job ingesting per-contract txt files 
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `src/execution/backtest.service.spec.ts` (reuse the file's existing service/mocks construction pattern; the essential assertions):
+Append to `src/execution/backtest.service.spec.ts`. The file's real fixtures
+are `build(getDay)` (returns `{ service, marketData }`, where `marketData.getDay`
+is a jest.fn wrapping your `getDay`), the request fixture `req`
+(`symbol: 'MES', interval: 'min-5', date: '2026-07-14'`), and the `fullDay`
+candle array. The existing `build` mock ignores its arguments, so these tests
+supply a **symbol-keyed** `getDay` — only the expected contract returns
+candles; the wrong contract gets `null`, which is what makes the resolution
+assertions non-vacuous (`fullDay`'s candles work for any requested date
+because coverage/session logic reads time-of-day only):
 
 ```typescript
 describe('contract resolution', () => {
+  // getDay that returns candles ONLY for the given contract symbol.
+  const dayOnlyFor = (contract: string) => (sym: string) =>
+    Promise.resolve(sym === contract ? fullDay : null);
+
   it("resolves symbol 'ES' to the front contract and echoes it", async () => {
-    // Arrange the market-data mock to hold candles under 'ESM26' for 2026-06-12.
-    // (Same candle fixture the file's existing happy-path test uses.)
-    const result = await service.run({ ...baseRequest, symbol: 'ES', date: '2026-06-12' });
+    const { service, marketData } = await build(dayOnlyFor('ESM26'));
+    const result = await service.run({ ...req, symbol: 'ES', date: '2026-06-12' });
     expect(result.contract).toBe('ESM26');
     expect(result.symbol).toBe('ES');
-    expect(marketDataMock.getDay).toHaveBeenCalledWith('ESM26', baseRequest.interval, '2026-06-12');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESM26', 'min-5', '2026-06-12');
   });
 
   it('resolves to the next quarterly on/after the switch Monday', async () => {
-    // Candles under 'ESU26' for 2026-06-15.
-    const result = await service.run({ ...baseRequest, symbol: 'ES', date: '2026-06-15' });
+    const { service, marketData } = await build(dayOnlyFor('ESU26'));
+    const result = await service.run({ ...req, symbol: 'ES', date: '2026-06-15' });
     expect(result.contract).toBe('ESU26');
-    expect(marketDataMock.getDay).toHaveBeenCalledWith('ESU26', baseRequest.interval, '2026-06-15');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESU26', 'min-5', '2026-06-15');
   });
 
   it('explicit quarterly symbols bypass resolution', async () => {
-    const result = await service.run({ ...baseRequest, symbol: 'ESM26', date: '2026-06-15' });
+    const { service, marketData } = await build(dayOnlyFor('ESM26'));
+    const result = await service.run({ ...req, symbol: 'ESM26', date: '2026-06-15' });
     expect(result.contract).toBe('ESM26');
-    expect(marketDataMock.getDay).toHaveBeenCalledWith('ESM26', baseRequest.interval, '2026-06-15');
+    expect(marketData.getDay).toHaveBeenCalledWith('ESM26', 'min-5', '2026-06-15');
   });
 
   it('non-resolved symbols behave exactly as before, contract === symbol', async () => {
-    const result = await service.run({ ...baseRequest, symbol: 'MES', date: '2026-06-15' });
+    const { service, marketData } = await build(dayOnlyFor('MES'));
+    const result = await service.run({ ...req, date: '2026-06-15' }); // symbol stays 'MES'
     expect(result.contract).toBe('MES');
-    expect(marketDataMock.getDay).toHaveBeenCalledWith('MES', baseRequest.interval, '2026-06-15');
+    expect(marketData.getDay).toHaveBeenCalledWith('MES', 'min-5', '2026-06-15');
   });
 
   it('404 for a resolved-but-missing day names the contract', async () => {
-    // getDay mock returns null for 'ESU26'.
-    await expect(service.run({ ...baseRequest, symbol: 'ES', date: '2026-06-15' })).rejects.toThrow('ESU26');
+    const { service } = await build(() => Promise.resolve(null));
+    await expect(service.run({ ...req, symbol: 'ES', date: '2026-06-15' })).rejects.toThrow('ESU26');
+  });
+
+  it('400 (not 500) for a regex-valid but calendar-invalid date', async () => {
+    const { service } = await build(() => Promise.resolve(fullDay));
+    await expect(service.run({ ...req, symbol: 'ES', date: '2026-13-01' })).rejects.toThrow(BadRequestException);
   });
 });
 ```
@@ -925,8 +1022,17 @@ In `src/execution/backtest.service.ts`:
 // A roll-resolved base (ES) maps date -> concrete quarterly per the
 // verified roll rule; explicit contract symbols and every other symbol
 // pass through untouched. The spec is identical by derivation, so
-// pointValue/RTH math is unaffected.
-const contract = ROLL_RESOLVED_BASES.has(req.symbol) ? resolveContract('ES', req.date) : req.symbol;
+// pointValue/RTH math is unaffected. resolveContract throws a plain Error
+// for regex-valid but calendar-invalid dates (2026-13-01) — rethrow as the
+// endpoint's 400, never a 500.
+let contract = req.symbol;
+if (ROLL_RESOLVED_BASES.has(req.symbol)) {
+  try {
+    contract = resolveContract('ES', req.date);
+  } catch (err) {
+    throw new BadRequestException((err as Error).message);
+  }
+}
 ```
 
 5. Change the candle read to use `contract`:
@@ -941,12 +1047,30 @@ if (dayCandles === null || dayCandles.length === 0) {
 6. Also use `contract` in the incomplete-session error message (`Incomplete RTH session for ${contract} ${req.date}...`).
 7. Return: `return { symbol: req.symbol, contract, date: req.date, session, results, summary, coverage };`
 
-- [ ] **Step 4: Run the execution suite**
+- [ ] **Step 4: Repoint the one existing test whose meaning silently changes**
+
+The pre-existing test `"uses a different contract pointValue (ES=50)"` passes
+`symbol: 'ES'` — after this task that resolves to a quarterly, and it would
+keep passing only because its args-blind mock returns candles regardless.
+Make it explicit (same pointValue, no resolution ambiguity):
+
+```typescript
+  it('uses a different contract pointValue (ESU26=50, quarterly derives from ES)', async () => {
+    const { service } = await build(() => Promise.resolve(winningDay));
+    const r = await service.run({ ...req, symbol: 'ESU26' }); // pointValue 50, explicit contract
+    expect(r.results[0].points).toBe(10);
+    expect(r.results[0].dollars).toBe(500);
+  });
+```
+
+- [ ] **Step 5: Run the execution suite**
 
 Run: `pnpm test -- execution`
-Expected: PASS — new tests plus all pre-existing backtest tests (they use `MES`/`NQ`-style symbols, whose behavior is unchanged; if any assert an exact result-object shape, add `contract: <symbol>` to the expectation).
+Expected: PASS — new tests plus all pre-existing backtest tests (the rest use
+`MES`/`NQ`/`XYZ` symbols, whose behavior is unchanged; if any assert an exact
+result-object shape, add `contract: <symbol>` to the expectation).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/execution/backtest.service.ts src/execution/backtest.service.spec.ts
@@ -955,16 +1079,18 @@ git commit -m "feat(execution): backtest resolves ES quarterly contract per date
 
 ---
 
-### Task 7: Benchmark switches to ES / min-1
+### Task 7: Benchmark switches to ES / min-1, with contract provenance
 
 **Files:**
-- Modify: `src/benchmark/batch-reconciler.ts:14-15`
+- Modify: `src/benchmark/batch-reconciler.ts:14-15` (constants) and ~248-260 (CellResult construction)
 - Modify: `src/benchmark/benchmark.service.ts:23-24` and its per-day `getDay` call (~line 170)
+- Modify: `src/benchmark/benchmark.types.ts` (CellResult gains `contract?`)
+- Modify: `test/benchmark.e2e-spec.ts`, `test/benchmark-scorecard.e2e-spec.ts` (candle seeding)
 - Test: existing `src/benchmark/*.spec.ts` updated expectations
 
 **Interfaces:**
-- Consumes: `resolveContract` (Task 1); backtest auto-resolution (Task 6).
-- Produces: benchmark grades against `ES`/`min-1` at $50/pt.
+- Consumes: `resolveContract` (Task 1); backtest auto-resolution + `BacktestResult.contract` (Task 6).
+- Produces: benchmark grades against `ES`/`min-1` at $50/pt; every stored cell records `result.contract`.
 
 - [ ] **Step 1: Flip the constants**
 
@@ -1001,20 +1127,102 @@ const candles = await this.marketData.getDay(daySymbol, INTERVAL, day.date);
 
 The `spec`/`rthWindow` computed from `this.contracts.get(SYMBOL)` above the loop stays as-is — the quarterly spec is identical to the base by derivation.
 
-- [ ] **Step 3: Run the benchmark suite and fix expectations**
+- [ ] **Step 3: Persist the contract onto every stored cell**
+
+The reconciler builds `CellResult` by explicitly enumerating fields off
+`bt.results[0]` — nothing carries over from the top-level backtest response
+implicitly, so the contract must be persisted explicitly.
+
+In `src/benchmark/benchmark.types.ts`, add to the `CellResult` interface
+(next to its other optional fields):
+
+```typescript
+  /** Concrete contract the grading backtest ran against (e.g. 'ESU26'). */
+  contract?: string;
+```
+
+In `src/benchmark/batch-reconciler.ts` (~line 249), add `contract` to the
+constructed result:
+
+```typescript
+      const r = bt.results[0];
+      const result: CellResult = {
+        status: r.status as CellStatus,
+        contract: bt.contract,
+        points: r.points,
+        ...
+```
+
+(only the `contract: bt.contract,` line is new — keep the rest exactly as-is).
+
+In `src/benchmark/batch-reconciler.spec.ts`, the backtest mock's
+`mockResolvedValue` (~line 148 and the default in the `deps` builder ~line 41)
+returns a fake `BacktestResult` — add `contract: 'ESU26'` to it, and in the
+"writes a scored cell" test (~line 76) assert the persistence:
+
+```typescript
+    expect(created[0].result.contract).toBe('ESU26');
+```
+
+- [ ] **Step 4: Run the unit benchmark suite and fix expectations**
 
 Run: `pnpm test -- benchmark`
-Expected: failures only in specs that hard-code `'MES'`/`'min-5'` expectations (e.g. asserting `getDay` call args or backtest request shapes). Update those expectations to `ES`-resolved contracts / `min-1`. Do not weaken assertions — update the expected literals.
+Expected: failures only in specs that hard-code `'MES'`/`'min-5'`. The
+literals differ by call site — do not guess, use these:
 
-- [ ] **Step 4: Full suite**
+- `batch-reconciler.spec.ts:94` asserts the backtest request:
+  `symbol: 'MES', interval: 'min-5'` → `symbol: 'ES', interval: 'min-1'`
+  (the reconciler passes the **base** symbol; resolution happens inside the
+  backtest).
+- Any `benchmark.service` spec asserting `getDay` call args sees the
+  **resolved quarterly** at `min-1` (e.g. a 2026-07-01 day →
+  `getDay('ESU26', 'min-1', '2026-07-01')`) — because the service resolves
+  before its direct store read (Step 2).
 
-Run: `pnpm test`
-Expected: PASS.
+Do not weaken assertions — update the expected literals.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Update the two benchmark e2e suites**
+
+`pnpm test` never runs `backend/test/` (jest `rootDir: 'src'`); without this
+step the plan finishes green with a permanently red `pnpm test:e2e`. Both
+suites seed candles for day `2026-07-01`, which resolves to `ESU26`.
+
+In `test/benchmark.e2e-spec.ts` and `test/benchmark-scorecard.e2e-spec.ts`:
+
+1. Change the CSV fixture from 78 five-minute bars to 390 one-minute bars
+   (same `OPEN` anchor — 13:30 UTC = 09:30 ET):
+
+```typescript
+  const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 390 }, (_, i) => `${OPEN + i * 60},100,120,90,110`)].join('\n');
+```
+
+2. Change every candle upload route (benchmark.e2e-spec.ts lines ~134 and
+   ~253; benchmark-scorecard.e2e-spec.ts line ~139):
+
+```typescript
+    await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
+```
+
+3. Change the direct Firestore seed in benchmark.e2e-spec.ts (~line 194):
+
+```typescript
+      await db.collection('markets/ESU26/min-1').doc('2026-07-01').set({
+        candles: Array.from({ length: 390 }, (_, i) => ({ t: OPEN + i * 60, o: 100, h: 120, l: 90, c: 110 })),
+      });
+```
+
+Per-bar OHLC values are unchanged, so the simulated outcomes (`SL` +
+`INVALID`) and every downstream assertion stay valid.
+
+- [ ] **Step 6: Full suites — unit AND e2e**
+
+Run: `pnpm test && pnpm test:e2e`
+Expected: both PASS.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/benchmark/batch-reconciler.ts src/benchmark/benchmark.service.ts src/benchmark
+git add src/benchmark/batch-reconciler.ts src/benchmark/benchmark.service.ts src/benchmark/benchmark.types.ts src/benchmark test/benchmark.e2e-spec.ts test/benchmark-scorecard.e2e-spec.ts
 git commit -m "feat(benchmark): grade against per-contract ES min-1 data at real ES economics"
 ```
 
@@ -1024,13 +1232,31 @@ git commit -m "feat(benchmark): grade against per-contract ES min-1 data at real
 
 No new code — the rollout from the spec, executed and verified. Requires GCP ADC credentials (already configured for the dev backend).
 
-- [ ] **Step 1: Start the backend**
+- [ ] **Step 0: Pre-flip benchmark gate**
+
+The constant flip (Task 7) must not meet live MES-era benchmark state —
+cells carry no symbol/interval in their key, so old $5/pt MES cells and new
+$50/pt ES cells would silently average into the same scoreboard rows:
+
+1. `curl -s http://localhost:3000/benchmark/status` against the OLD deployed
+   code must show no non-terminal batches — drain (wait out) any in-flight
+   batch before deploying the flip, or it will be graded under post-flip
+   constants.
+2. Do NOT issue any post-flip `POST /benchmark/run` until the existing MES
+   cells are retired (manual Firestore operation — the separate,
+   out-of-scope deletion task). The ingest and backtest verification below
+   are safe regardless; only `POST /benchmark/run` is gated.
+
+- [ ] **Step 1: Start the backend — one-shot, NOT watch mode**
 
 ```bash
-cd /Users/nicholasstelter/Code/foster-bridge/backend && pnpm start:dev
+cd /Users/nicholasstelter/Code/foster-bridge/backend && pnpm start
 ```
 
-Wait for `GET http://localhost:3000/health/ready` → `{"status":"ok",...}`.
+`pnpm start:dev` is forbidden here: the job state is in-memory and the loop
+dies with the process, so a watch-mode restart on any file save silently
+kills a multi-hour job. Wait for `GET http://localhost:3000/health/ready` →
+`{"status":"ok",...}`.
 
 - [ ] **Step 2: Kick off the ingest**
 
@@ -1038,7 +1264,10 @@ Wait for `GET http://localhost:3000/health/ready` → `{"status":"ok",...}`.
 curl -s -X POST http://localhost:3000/markets/ingest-contracts
 ```
 
-Expected: 202 with `state: "running"`, `counts.files: 158` (79 contracts × 2 intervals; count may differ slightly if data dirs change — the point is all four dirs are walked).
+Expected: 202 with `state: "running"`, `counts.files: 158` (79 contracts × 2
+intervals; the discovery is pattern-based, so a renamed export dir changes
+the count rather than being silently skipped). A 422 means zero contract
+files were found — wrong repo root, fix before proceeding.
 
 - [ ] **Step 3: Poll until done**
 
@@ -1046,7 +1275,13 @@ Expected: 202 with `state: "running"`, `counts.files: 158` (79 contracts × 2 in
 curl -s http://localhost:3000/markets/ingest-contracts | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['state'], d['counts'])"
 ```
 
-Expected: eventually `done` with `failed: 0`. This is a large job (~535MB, order 10⁴–10⁵ day-docs) — expect tens of minutes. Any failed file: inspect `results[].error`, fix, re-POST (idempotent; unchanged days no-op).
+Expected: eventually `done` with `failed: 0`. Each day-doc upsert is a
+Firestore transaction round-trip and there are order 10⁴–10⁵ of them —
+budget **one to several hours**, not minutes. If the response ever reads
+`{"state":"idle"}` after it was previously `running`, the server restarted
+and the job died — safe to re-POST (idempotent; unchanged days no-op and the
+job fast-forwards through already-ingested files). Any failed file: inspect
+`results[].error`, fix, re-POST.
 
 - [ ] **Step 4: Spot-check stored data**
 
