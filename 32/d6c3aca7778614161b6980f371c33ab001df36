@@ -1,0 +1,23 @@
+backend/src/benchmark/benchmark.repository.spec.ts
+  s_32f41e41ddf017::t_5a0f9b84fecad0 196-232
+backend/src/benchmark/benchmark.repository.ts
+  s_32f41e41ddf017::t_17c8a5f58edc16 230-244
+  s_32f41e41ddf017::t_dce2a22f9976fe 75-84
+  s_32f41e41ddf017::t_670be1874c164a 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "32d6c3aca7778614161b6980f371c33ab001df36",
+  "prompts": {},
+  "sessions": {
+    "s_32f41e41ddf017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ffb845a-bf26-42fa-84a3-cd1709d43387",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
