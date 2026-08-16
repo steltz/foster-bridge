@@ -115,6 +115,18 @@ describe('ContractIngestService', () => {
     expect(ingested.map((r) => r.symbol)).toContain('ESZ26');
   });
 
+  it('ignores a stray FILE whose name matches the dir pattern (no ENOTDIR crash)', async () => {
+    writeFileSync(join(root, 'data', 'ES_5min_update_stray'), 'not a directory\n');
+    const svc = build();
+    svc.start();
+    await svc.loopPromise;
+    const done = svc.snapshot()!;
+    expect(done.state).toBe('done');
+    // The stray file contributes nothing; the real dirs still processed.
+    expect(done.counts.files).toBe(2);
+    expect(ingested.map((r) => r.symbol)).toEqual(['ESM25', 'ESU26']);
+  });
+
   it('refuses to start when no contract files are found (misconfigured root must not look like success)', () => {
     rmSync(join(root, 'data'), { recursive: true, force: true });
     const svc = build();

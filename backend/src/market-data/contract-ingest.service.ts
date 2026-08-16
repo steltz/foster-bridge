@@ -23,8 +23,11 @@ const DIR_RE = /^ES_(1min|5min)_(archive|update)_/;
 function discoverDataDirs(dataRoot: string): string[] {
   if (!existsSync(dataRoot)) return [];
   const rank = (d: string) => (d.includes('_archive_') ? 0 : 1);
-  return readdirSync(dataRoot)
-    .filter((d) => DIR_RE.test(d))
+  // withFileTypes: a stray FILE named like a dir must not reach readdirSync
+  // later (ENOTDIR would escape start() as an unmapped 500).
+  return readdirSync(dataRoot, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && DIR_RE.test(e.name))
+    .map((e) => e.name)
     .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 }
 

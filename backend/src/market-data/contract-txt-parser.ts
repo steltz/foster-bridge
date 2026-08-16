@@ -6,8 +6,11 @@ import { Candle } from './candle';
 // OHLC-only; the files on disk remain the volume source). Any malformed
 // row fails the whole file — reject, don't guess.
 
+// Numeric fields are restricted to number-shaped characters — `[^,]+` would
+// let a whitespace-only field through, and Number(' ') === 0 silently. The
+// Number.isFinite check below stays as backstop.
 const ROW_RE =
-  /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2}),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)$/;
+  /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2}),([0-9.eE+-]+),([0-9.eE+-]+),([0-9.eE+-]+),([0-9.eE+-]+),([0-9.eE+-]+)$/;
 
 const ET = 'America/New_York';
 const etFmt = new Intl.DateTimeFormat('en-CA', {

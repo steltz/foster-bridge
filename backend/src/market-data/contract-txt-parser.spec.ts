@@ -42,6 +42,10 @@ describe('parseContractTxt', () => {
     expect(() => parseContractTxt(text)).toThrow('line 2');
   });
 
+  it('rejects a whitespace-only numeric field (Number(" ") === 0 must not slip through)', () => {
+    expect(() => parseContractTxt('2026-06-15 09:30:00, ,7501.0,7499.5,7500.0,321')).toThrow('line 1');
+  });
+
   it('rejects rows without the expected shape', () => {
     expect(() => parseContractTxt('time,open,high,low,close\n123,1,2,3,4')).toThrow('line 1');
   });
