@@ -1,0 +1,21 @@
+backend/src/contracts/contracts-roll.ts
+  s_881f9ed6729261::t_eecbab0ef83b0f 1-43
+backend/src/contracts/contracts-roll.spec.ts
+  s_881f9ed6729261::t_f987ab586bce27 1-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "126f99b59211955c856e43b74cd1e2a547bf3085",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
