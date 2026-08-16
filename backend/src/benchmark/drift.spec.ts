@@ -48,6 +48,7 @@ describe('detectDrift', () => {
         kind: 'file-drift',
         family: 'persona',
         identity: 'context-trader',
+        source: 'firestore',
         currentSha256: 'persona-EDITED',
         recorded: [{ sha256: 'persona-a', cellCount: 1 }],
       });
@@ -99,7 +100,7 @@ describe('detectDrift', () => {
         cell({ trader: 'context-structured', variant: 'seven-keys-method', featureSha256: 'f-a' }),
       ]);
       const finding = report.findings.find((f) => f.family === 'general');
-      expect(finding).toMatchObject({ kind: 'file-drift', identity: 'knowledge-base/general' });
+      expect(finding).toMatchObject({ kind: 'file-drift', identity: 'knowledge-base/general', source: 'bucket' });
       expect(finding!.recorded[0].cellCount).toBe(2);
     });
 
@@ -126,6 +127,7 @@ describe('detectDrift', () => {
       expect(report.findings[0]).toMatchObject({
         family: 'feature',
         identity: 'seven-keys-method',
+        source: 'firestore',
         currentSha256: 'f-EDITED',
       });
     });
@@ -136,7 +138,7 @@ describe('detectDrift', () => {
         [cell({ variant: 'seven-keys-method', featureSha256: 'f-a', staticDocSha256: 's-a' })],
       );
       expect(report.findings).toHaveLength(1);
-      expect(report.findings[0]).toMatchObject({ family: 'staticDoc', identity: 'seven-keys-method' });
+      expect(report.findings[0]).toMatchObject({ family: 'staticDoc', identity: 'seven-keys-method', source: 'firestore' });
     });
 
     it('ignores base cells, which carry no featureSha256', () => {
@@ -184,6 +186,7 @@ describe('renderDrift', () => {
     expect(text).toContain('context-trader');
     expect(text).toContain('persona-EDITED');
     expect(text).toContain('persona-a');
+    expect(text).toContain('[firestore]');
     expect(text).toMatch(/create a NEW trader file/i);
   });
 });

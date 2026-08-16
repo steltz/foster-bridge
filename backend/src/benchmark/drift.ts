@@ -19,7 +19,7 @@ import { BenchmarkCell, cellKey } from './benchmark.types';
 export type DriftFamily = 'persona' | 'general' | 'feature' | 'staticDoc';
 
 export type DriftKind =
-  /** The file on disk no longer hashes to what existing cells recorded. */
+  /** The stored content no longer hashes to what existing cells recorded. */
   | 'file-drift'
   /** Existing cells disagree with each other — a row is ALREADY mixed. */
   | 'internal-drift';
@@ -35,6 +35,8 @@ export interface RecordedHash {
 export interface DriftFinding {
   kind: DriftKind;
   family: DriftFamily;
+  /** Which store holds this family's content, so a 409 names where to look. */
+  source: 'firestore' | 'bucket';
   /** Trader name, feature id, or the general-docs sentinel path. */
   identity: string;
   /** Hash of what is on disk right now. */
@@ -60,6 +62,9 @@ export interface DriftInputs {
 export const GENERAL_IDENTITY = 'knowledge-base/general';
 
 const SAMPLE_LIMIT = 3;
+
+/** Which store holds a family's content: general docs live in the bucket, the rest in Firestore. */
+const sourceFor = (family: DriftFamily): 'firestore' | 'bucket' => (family === 'general' ? 'bucket' : 'firestore');
 
 /**
  * Group cells by their recorded hash for one family, skipping cells where the
@@ -99,10 +104,13 @@ function compare(
 ): DriftFinding | null {
   const recorded = groupByHash(cells, pick);
   if (recorded.length === 0) return null;
+  const source = sourceFor(family);
   // Cells disagreeing among themselves is the more serious condition and
-  // subsumes any disagreement with the current file, so it is reported first.
-  if (recorded.length > 1) return { kind: 'internal-drift', family, identity, currentSha256, recorded };
-  if (recorded[0].sha256 !== currentSha256) return { kind: 'file-drift', family, identity, currentSha256, recorded };
+  // subsumes any disagreement with the current content, so it is reported first.
+  if (recorded.length > 1) return { kind: 'internal-drift', family, source, identity, currentSha256, recorded };
+  if (recorded[0].sha256 !== currentSha256) {
+    return { kind: 'file-drift', family, source, identity, currentSha256, recorded };
+  }
   return null;
 }
 
@@ -161,7 +169,7 @@ export function renderDrift(report: DriftReport): string {
       .map((r) => `      ${r.sha256} — ${r.cellCount} cell(s), e.g. ${r.sampleCells.join(', ')}`)
       .join('\n');
     lines.push(
-      `  ${f.family} "${f.identity}" — ${
+      `  ${f.family} "${f.identity}" [${f.source}] — ${
         f.kind === 'internal-drift'
           ? 'existing cells disagree with each other; results for this row are already mixed'
           : 'the file on disk changed after cells were written'
