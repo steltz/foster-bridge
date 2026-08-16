@@ -20,6 +20,7 @@ import { FirestoreDemoController } from './demo/firestore-demo.controller';
 import { StorageDemoController } from './demo/storage-demo.controller';
 import { AnthropicDemoController } from './demo/anthropic-demo.controller';
 import { MarketDataController } from './market-data/market-data.controller';
+import { ContractIngestController } from './market-data/contract-ingest.controller';
 import { BacktestController } from './execution/backtest.controller';
 import { BenchmarkController } from './benchmark/benchmark.controller';
 import { EminiplayerController } from './eminiplayer/eminiplayer.controller';
@@ -46,6 +47,7 @@ import { EminiplayerController } from './eminiplayer/eminiplayer.controller';
     StorageDemoController,
     AnthropicDemoController,
     MarketDataController,
+    ContractIngestController,
     BacktestController,
     BenchmarkController,
     EminiplayerController,
