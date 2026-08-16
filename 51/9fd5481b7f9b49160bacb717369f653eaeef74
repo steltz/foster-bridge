@@ -1,0 +1,32 @@
+backend/src/config/configuration.spec.ts
+  s_32f41e41ddf017::t_27bdcd7281da95 86
+  s_32f41e41ddf017::t_583450e9f8625b 66-74
+  s_32f41e41ddf017::t_b02fd0b654ae84 46
+backend/src/benchmark/benchmark.service.spec.ts
+  s_32f41e41ddf017::t_1830e3b17dd7b2 85
+  s_32f41e41ddf017::t_4fc504c3758ad0 124-131
+  s_32f41e41ddf017::t_958f38369dab91 132-133
+backend/src/benchmark/benchmark.service.ts
+  s_32f41e41ddf017::t_f0b2ee36db8313 100-102
+CLAUDE.md
+  s_32f41e41ddf017::t_5cb8525146134b 43-46
+backend/src/config/configuration.ts
+  s_32f41e41ddf017::t_88faead43c326f 120-126
+  s_32f41e41ddf017::t_40b548f5349db7 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "519fd5481b7f9b49160bacb717369f653eaeef74",
+  "prompts": {},
+  "sessions": {
+    "s_32f41e41ddf017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ffb845a-bf26-42fa-84a3-cd1709d43387",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
