@@ -1,0 +1,19 @@
+backend/test/benchmark.e2e-spec.ts
+  s_881f9ed6729261::t_11a5129da109a6 2-3,5-6,16-44,46-78,81-83,87-91,149-151,173,181,189-190,197,208-209,213,224,228-229,233,235-236,256,265-267,275,292,298,304,313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9c77765b171984c06910a21314f075de8caa6852",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
