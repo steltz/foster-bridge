@@ -1,0 +1,23 @@
+backend/jest.config.js
+  s_881f9ed6729261::t_f57dd9256cec69 9
+backend/test/set-test-env.ts
+  s_881f9ed6729261::t_9675ec33db43dd 1-7
+backend/test/jest-e2e.json
+  s_881f9ed6729261::t_e6a92973b0f1a5 6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "267c29fcbffebd81a3f9b01eaeeecc5138c4f39f",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
