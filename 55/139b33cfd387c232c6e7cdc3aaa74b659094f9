@@ -1,0 +1,28 @@
+backend/src/execution/backtest.service.spec.ts
+  s_881f9ed6729261::t_a6466b80898a11 63,65
+  s_881f9ed6729261::t_eef342105ec2da 108-152
+backend/src/execution/backtest.service.ts
+  s_881f9ed6729261::t_6789bb34175454 3
+  s_881f9ed6729261::t_d30387cb3d83de 92,94
+  s_881f9ed6729261::t_75567bf38d1abe 125
+  s_881f9ed6729261::t_d05f3227edc366 25
+  s_881f9ed6729261::t_69874b22d27cdf 42-43
+  s_881f9ed6729261::t_1dd0e51a0c6293 106
+  s_881f9ed6729261::t_40fa0b5af8f1b2 61-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "55139b33cfd387c232c6e7cdc3aaa74b659094f9",
+  "prompts": {},
+  "sessions": {
+    "s_881f9ed6729261": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "929fbd36-7397-4f64-8723-3195a9673623",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
