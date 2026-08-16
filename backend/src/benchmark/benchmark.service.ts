@@ -11,6 +11,7 @@ import { requireCapabilities } from '../llm/require-capabilities';
 import { BatchItemRequest } from '../llm/llm.types';
 import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
+import { resolveContract } from '../contracts/contracts-roll';
 import { analyzeCoverage } from '../market-data/coverage';
 import { intervalToSeconds } from '../market-data/candle';
 import { hhmmToMinutes } from '../common/session-time';
@@ -20,8 +21,8 @@ import { detectDrift, hasDrift, renderDrift, DriftInputs, DriftReport } from './
 import { BenchmarkDriftError } from './benchmark.errors';
 
 // Symbol/interval the benchmark backtests against (see design §7).
-const SYMBOL = 'MES';
-const INTERVAL = 'min-5' as const;
+const SYMBOL = 'ES';
+const INTERVAL = 'min-1' as const;
 
 export interface RunOptions {
   model?: string;
@@ -167,7 +168,10 @@ export class BenchmarkService {
       // failure, Firestore error) must not abort the whole run — report and move on.
       try {
         // Candle prerequisite: a day without ingested OHLC cannot be backtested.
-        const candles = await this.marketData.getDay(SYMBOL, INTERVAL, day.date);
+        // Direct store reads bypass backtest auto-resolution, so resolve the
+        // per-day quarterly contract here (candles live under e.g. ESU26).
+        const daySymbol = resolveContract('ES', day.date);
+        const candles = await this.marketData.getDay(daySymbol, INTERVAL, day.date);
         if (!candles || candles.length === 0) {
           summary.daysSkipped.push({ day: day.day, reason: 'no candles' });
           continue;

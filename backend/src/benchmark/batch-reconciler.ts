@@ -11,8 +11,8 @@ import { BacktestService } from '../execution/backtest.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkCell, CellGrading, CellResult, CellStatus, Setup, parseCellKey } from './benchmark.types';
 
-const SYMBOL = 'MES';
-const INTERVAL = 'min-5' as const;
+const SYMBOL = 'ES';
+const INTERVAL = 'min-1' as const;
 
 @Injectable()
 export class BatchReconciler implements OnApplicationBootstrap {
@@ -248,6 +248,7 @@ export class BatchReconciler implements OnApplicationBootstrap {
       const r = bt.results[0];
       const result: CellResult = {
         status: r.status as CellStatus,
+        contract: bt.contract,
         points: r.points,
         dollars: r.dollars,
         fillTime: r.fillTime,

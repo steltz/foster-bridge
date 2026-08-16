@@ -54,6 +54,8 @@ export const ALL_VARIANTS: readonly Variant[] = Object.freeze([...CORE_VARIANTS,
 
 export interface CellResult {
   status: CellStatus;
+  /** Concrete contract the grading backtest ran against (e.g. 'ESU26'). */
+  contract?: string;
   points?: number | null;
   dollars?: number | null;
   fillTime?: number | null;

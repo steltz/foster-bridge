@@ -92,9 +92,9 @@ function seedRepo(): string {
 describe('Benchmark (e2e)', () => {
   let app: INestApplication;
   let repoRoot: string;
-  // 09:30 ET 2026-07-01, 78 five-minute bars = a complete RTH session.
+  // 09:30 ET 2026-07-01, 390 one-minute bars = a complete RTH session.
   const OPEN = Math.floor(Date.UTC(2026, 6, 1, 13, 30, 0) / 1000);
-  const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 78 }, (_, i) => `${OPEN + i * 300},100,120,90,110`)].join('\n');
+  const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 390 }, (_, i) => `${OPEN + i * 60},100,120,90,110`)].join('\n');
 
   async function boot(preSeed?: (db: any) => Promise<void>) {
     // Null it first so an early throw here never leaves afterEach double-closing
@@ -130,8 +130,9 @@ describe('Benchmark (e2e)', () => {
   it('runs -> submits -> reconciles -> persists cells -> renders scoreboard', async () => {
     batchState.status = 'ended';
     const moduleRef = await boot();
-    // Ingest candles for the day so the backtest can score.
-    await request(app.getHttpServer()).post('/markets/MES/min-5/candles').attach('file', Buffer.from(fullCsv), 'mes.csv').expect(201);
+    // Ingest candles for the day so the backtest can score. 2026-07-01 resolves
+    // to the ESU26 quarterly, which is where the backtest reads them from.
+    await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
 
     const runRes = await request(app.getHttpServer())
       .post('/benchmark/run')
@@ -191,8 +192,8 @@ describe('Benchmark (e2e)', () => {
         submittedAt: 't',
       });
       // Candles must exist before the reconcile runs the backtest.
-      await db.collection('markets/MES/min-5').doc('2026-07-01').set({
-        candles: Array.from({ length: 78 }, (_, i) => ({ t: OPEN + i * 300, o: 100, h: 120, l: 90, c: 110 })),
+      await db.collection('markets/ESU26/min-1').doc('2026-07-01').set({
+        candles: Array.from({ length: 390 }, (_, i) => ({ t: OPEN + i * 60, o: 100, h: 120, l: 90, c: 110 })),
       });
     });
 
@@ -250,7 +251,7 @@ describe('Benchmark (e2e)', () => {
     it('rejects POST /benchmark/run with 409 and submits nothing', async () => {
       batchState.status = 'ended';
       const moduleRef = await bootWithStaleCell();
-      await request(app.getHttpServer()).post('/markets/MES/min-5/candles').attach('file', Buffer.from(fullCsv), 'mes.csv').expect(201);
+      await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
 
       const res = await request(app.getHttpServer())
         .post('/benchmark/run')

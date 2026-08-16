@@ -109,7 +109,7 @@ describe('Benchmark scorecard (e2e)', () => {
   let app: INestApplication;
   let repoRoot: string;
   const OPEN = Math.floor(Date.UTC(2026, 6, 1, 13, 30, 0) / 1000);
-  const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 78 }, (_, i) => `${OPEN + i * 300},100,120,90,110`)].join('\n');
+  const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 390 }, (_, i) => `${OPEN + i * 60},100,120,90,110`)].join('\n');
 
   async function boot() {
     app = undefined as any;
@@ -136,7 +136,7 @@ describe('Benchmark scorecard (e2e)', () => {
   it('generates + stores KEYS, persists a scorecard cell with artifactSha256, and shows a scorecard group', async () => {
     batchState.status = 'ended';
     const moduleRef = await boot();
-    await request(app.getHttpServer()).post('/markets/MES/min-5/candles').attach('file', Buffer.from(fullCsv), 'mes.csv').expect(201);
+    await request(app.getHttpServer()).post('/markets/ESU26/min-1/candles').attach('file', Buffer.from(fullCsv), 'es.csv').expect(201);
 
     const runRes = await request(app.getHttpServer())
       .post('/benchmark/run')
@@ -147,8 +147,10 @@ describe('Benchmark scorecard (e2e)', () => {
 
     const repo = moduleRef.get(BenchmarkRepository);
 
-    // KEYS were generated + stored (capstone: this fails if generation did not persist).
-    const keys = await repo.getDayArtifact('07012026', 'keys');
+    // KEYS were generated + stored (capstone: this fails if generation did not
+    // persist). KEYS live under the flagship's lineage-scoped id, so read them
+    // through the lineage-aware accessor.
+    const keys = await repo.getKeysArtifact('07012026', 'fable');
     expect(keys).not.toBeNull();
     expect(keys!.content).toContain('# Seven Keys — ES 2026-07-01');
     expect(keys!.verified).toBe(true);

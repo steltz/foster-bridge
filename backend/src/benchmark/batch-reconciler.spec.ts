@@ -40,6 +40,7 @@ function makeDeps() {
   ];
   const backtest = {
     run: jest.fn().mockResolvedValue({
+      contract: 'ESU26',
       results: [{ status: 'TP', points: 10, dollars: 50, fillTime: 1, exitTime: 2, maxAdverseExcursion: 1, maxFavorableExcursion: 2, rMultiple: 2, closestApproach: null }],
     }),
   };
@@ -82,6 +83,8 @@ describe('BatchReconciler.reconcile', () => {
     const cell = deps.created.find((c) => c.runIndex === 1);
     expect(cell.result.status).toBe('TP');
     expect(cell.result.dollars).toBe(50);
+    // Contract provenance persisted from the backtest response (Task 7).
+    expect(deps.created[0].result.contract).toBe('ESU26');
     expect(cell.setup.side).toBe('long');
     // Provenance threaded from the batch CellMeta (design §4): real hashes + date.
     expect(cell.personaSha256).toBe('psha');
@@ -91,7 +94,7 @@ describe('BatchReconciler.reconcile', () => {
     expect(getBatchSpy).toHaveBeenCalledWith('batch_1');
     expect(getBatchResultsSpy).toHaveBeenCalledWith('batch_1');
     expect(deps.backtest.run).toHaveBeenCalledWith(expect.objectContaining({
-      symbol: 'MES', interval: 'min-5', date: '2026-07-01', session: 'rth', allowIncomplete: false,
+      symbol: 'ES', interval: 'min-1', date: '2026-07-01', session: 'rth', allowIncomplete: false,
       // Grading constants stamped deterministically on every order — the LLM
       // never emits management (docs/order-contract-v2.md §4).
       orders: [{
@@ -146,6 +149,7 @@ describe('BatchReconciler.reconcile', () => {
   it('carries a BE outcome and its scaleExit into the cell result', async () => {
     const deps = makeDeps();
     deps.backtest.run.mockResolvedValue({
+      contract: 'ESU26',
       results: [{
         status: 'BE', points: 5.25, dollars: 26.25, fillTime: 1, exitTime: 3,
         maxAdverseExcursion: 1, maxFavorableExcursion: 12, rMultiple: 0.75, closestApproach: null,
