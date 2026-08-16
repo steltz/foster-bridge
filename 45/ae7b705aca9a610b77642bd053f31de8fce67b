@@ -1,0 +1,20 @@
+docs/superpowers/plans/2026-08-16-day-samples.md
+  s_32f41e41ddf017::t_e895d534011c94 1-224,232,237-658
+  s_32f41e41ddf017::t_385746c4a5b86f 225-231,233-236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "45ae7b705aca9a610b77642bd053f31de8fce67b",
+  "prompts": {},
+  "sessions": {
+    "s_32f41e41ddf017": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ffb845a-bf26-42fa-84a3-cd1709d43387",
+        "model": "unknown"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
