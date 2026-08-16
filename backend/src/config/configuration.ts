@@ -32,6 +32,7 @@ export interface AppConfig {
     defaultRunCount: number;
     maxTokens: number;
     effort: string;
+    defaultVariants: string[];
     schedulerEnabled: boolean;
     grading: {
       rrFloor: number;
@@ -116,6 +117,13 @@ export default (): AppConfig => ({
     // BENCHMARK_MAX_TOKENS if high/max effort ever truncates a setup (stop_reason max_tokens).
     maxTokens: parseInt(process.env.BENCHMARK_MAX_TOKENS ?? '32000', 10),
     effort: process.env.BENCHMARK_EFFORT ?? 'high',
+    // Variants a run fans out over when the request omits `variants`. The
+    // single-persona era benchmarks scorecard-only; base/method stay reachable
+    // by passing them explicitly (or via BENCHMARK_VARIANTS, comma-separated).
+    defaultVariants: (process.env.BENCHMARK_VARIANTS ?? 'seven-keys-scorecard')
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean),
     // Gates the batch reconciler + cache-warmer schedulers (cron/interval and the
     // boot-time reconcile). ON by default; OFF under jest (NODE_ENV==='test') so
     // unrelated specs never hit real Firestore at boot, and per-instance in prod

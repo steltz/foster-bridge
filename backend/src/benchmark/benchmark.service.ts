@@ -97,7 +97,9 @@ export class BenchmarkService {
     const runCount = opts.runCount ?? this.config.get<number>('benchmark.defaultRunCount') ?? 5;
     const maxTokens = this.config.get<number>('benchmark.maxTokens') ?? 32000;
     const effort = this.config.get<string>('benchmark.effort') ?? 'high';
-    const variants = (opts.variants ?? ALL_VARIANTS).filter((v) => ALL_VARIANTS.includes(v));
+    const variants = (opts.variants ?? this.config.get<Variant[]>('benchmark.defaultVariants') ?? [SCORECARD_VARIANT]).filter(
+      (v) => ALL_VARIANTS.includes(v),
+    );
 
     // ONE snapshot for the whole run — every consumer below (drift guard,
     // envelopes, seven-keys) reads these same values; nothing re-fetches mid-run.

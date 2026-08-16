@@ -40,9 +40,10 @@ runs missing cells, so it is safe to re-issue. It is **single-flight**: a second
 `POST` while a run is in progress returns 409 — note `POST /benchmark/run` has
 two 409 causes, a run in progress (check `GET /benchmark/status`) vs content
 drift (check `GET /benchmark/drift`), and the response body says which. Omit
-`days` for every complete
-day, omit `variants` for all declared variants, omit `model` to take
-`benchmark.model` from config.
+`days` for every complete day, omit `variants` for the configured default
+(`benchmark.defaultVariants`, env `BENCHMARK_VARIANTS`, comma-separated —
+ships as `seven-keys-scorecard` only; pass `variants` explicitly to run
+base/method), omit `model` to take `benchmark.model` from config.
 
 Day availability comes from committed eminiplayer manifests in the bucket —
 `POST /eminiplayer/ingest` is how a day becomes benchmarkable.

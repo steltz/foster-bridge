@@ -82,7 +82,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: MarketDataService, useValue: deps.marketData },
       { provide: ContractsService, useValue: deps.contracts },
       { provide: SevenKeysService, useValue: deps.sevenKeys },
-      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 32000, 'benchmark.effort': 'high' }[k]) } },
+      { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 32000, 'benchmark.effort': 'high', 'benchmark.defaultVariants': ['seven-keys-scorecard'] }[k]) } },
     ],
   }).compile();
   return moduleRef.get(BenchmarkService);
@@ -119,6 +119,16 @@ describe('BenchmarkService.run', () => {
     // day tier's file block of every submitted request's envelope.
     const blocks = submitted.requests.flatMap((r) => r.envelope?.tiers?.flatMap((t) => t.blocks) ?? []);
     expect(blocks).toContainEqual({ type: 'file', fileId: 'file_1' });
+  });
+
+  it('defaults to configured variants (seven-keys-scorecard) when variants are omitted', async () => {
+    const deps = makeDeps();
+    const svc = await build(deps);
+    const summary = await svc.run({ runCount: 1 });
+    expect(summary.cellsQueued).toBe(1);
+    const saved = deps.repo.saveBatch.mock.calls[0][0];
+    const keys = Object.keys(saved.customIdToCell);
+    expect(keys).toEqual(['context-trader__fable__07012026__seven-keys-scorecard__run1']);
   });
 
   it('threads feature + staticDoc hashes for the seven-keys-method variant', async () => {

@@ -43,6 +43,7 @@ describe('configuration benchmark defaults', () => {
     delete process.env.BENCHMARK_MAX_TOKENS;
     delete process.env.BENCHMARK_EFFORT;
     delete process.env.BENCHMARK_SCHEDULER;
+    delete process.env.BENCHMARK_VARIANTS;
     // benchmark.model is now provider-aware (see configuration.ts); isolate
     // these defaults from an ambient LLM_PROVIDER=moonshot.
     delete process.env.LLM_PROVIDER;
@@ -62,6 +63,15 @@ describe('configuration benchmark defaults', () => {
     expect(cfg.benchmark.effort).toBe('high');
   });
 
+  it('defaults defaultVariants to seven-keys-scorecard only', () => {
+    expect(configuration().benchmark.defaultVariants).toEqual(['seven-keys-scorecard']);
+  });
+
+  it('parses BENCHMARK_VARIANTS as a comma-separated list', () => {
+    process.env.BENCHMARK_VARIANTS = 'base, seven-keys-method';
+    expect(configuration().benchmark.defaultVariants).toEqual(['base', 'seven-keys-method']);
+  });
+
   it('honours env overrides', () => {
     process.env.BENCHMARK_MODEL = 'claude-opus-4-8';
     process.env.BENCHMARK_RUN_COUNT = '3';
@@ -73,6 +83,7 @@ describe('configuration benchmark defaults', () => {
       defaultRunCount: 3,
       maxTokens: 8000,
       effort: 'medium',
+      defaultVariants: ['seven-keys-scorecard'],
       // jest sets NODE_ENV='test' -> scheduler defaults OFF.
       schedulerEnabled: false,
       // Grading regime defaults: 2:1 floor, 2 contracts, scale-half +
