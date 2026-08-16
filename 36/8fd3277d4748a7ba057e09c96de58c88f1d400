@@ -1,0 +1,30 @@
+backend/src/content/content.controller.ts
+  s_54034df2c349b1::t_95de2360150cf6 1-49
+backend/src/app.module.ts
+  s_54034df2c349b1::t_d88ebc43affcc3 42
+  s_54034df2c349b1::t_5cbacd75cfc12a 15
+backend/src/content/content.service.spec.ts
+  s_54034df2c349b1::t_f449fd5f5ea526 1-89
+backend/src/content/content.service.ts
+  s_54034df2c349b1::t_48488077246f46 1-112
+backend/src/content/content.controller.spec.ts
+  s_54034df2c349b1::t_477710ab6673ac 1-79
+backend/src/content/content.module.ts
+  s_54034df2c349b1::t_2789ee13208f57 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "368fd3277d4748a7ba057e09c96de58c88f1d400",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
