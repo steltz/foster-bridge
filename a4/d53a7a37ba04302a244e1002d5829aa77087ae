@@ -1,0 +1,26 @@
+CLAUDE.md
+  s_54034df2c349b1::t_15bb0cebdcd03b 170-175,177-178
+  s_54034df2c349b1::t_96c1c17319418e 27
+  s_54034df2c349b1::t_0f9a03cd8cdeaa 84,89,94-110
+  s_54034df2c349b1::t_1e8b9dd60fcc6c 6-9
+  s_54034df2c349b1::t_071d79950c484a 79
+  s_54034df2c349b1::t_be749fd338d5d8 39-40,44-45
+  s_54034df2c349b1::t_28d6b99cece89a 46
+  s_54034df2c349b1::t_f584fd09a886c1 111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a4d53a7a37ba04302a244e1002d5829aa77087ae",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
