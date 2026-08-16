@@ -1,0 +1,39 @@
+docs/superpowers/specs/2026-08-16-cloud-inputs-migration-design.md
+  s_54034df2c349b1::t_658d86ca1e930d 206-209
+CLAUDE.md
+  s_54034df2c349b1::t_0681b743639e26 40-43
+backend/src/content/content.service.ts
+  s_54034df2c349b1::t_4e67abe1f0f888 104-108
+backend/src/content/content.service.spec.ts
+  s_54034df2c349b1::t_e73158937ae350 89-97
+backend/src/benchmark/drift.ts
+  s_54034df2c349b1::t_5a650452ab9d42 66-74
+  s_54034df2c349b1::t_790cf60e2a060a 182,184
+  s_54034df2c349b1::t_6768ef699a34d0 54
+  s_54034df2c349b1::t_b32b74eeddf198 168
+docs/persona-findings.md
+  s_54034df2c349b1::t_d7c50c9addc067 3-7
+.claude/settings.json
+  s_54034df2c349b1::t_d87e9c62146a8c 2
+backend/src/benchmark/cloud-inputs.service.ts
+  s_54034df2c349b1::t_f9b80fa6885af0 203-206
+  s_54034df2c349b1::t_852fd8165aa7bc 7
+backend/src/benchmark/drift.spec.ts
+  s_54034df2c349b1::t_8abaea3f1c378c 141-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "fb6d4f68a51f569bfbb581e7d929238d5cc7a379",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
