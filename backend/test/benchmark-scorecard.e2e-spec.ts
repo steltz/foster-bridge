@@ -122,9 +122,7 @@ jest.mock('openai', () => {
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { AppModule } from '../src/app.module';
 import { FIRESTORE, STORAGE_BUCKET } from '../src/firebase/firebase.constants';
 import { fakeFirestore } from './fake-firestore';
@@ -141,57 +139,69 @@ function fakeBucket() {
       exists: () => Promise.resolve([path in saved] as [boolean]),
       download: () => Promise.resolve([saved[path]] as [Buffer]),
     }),
+    getFiles: ({ prefix }: { prefix: string }) =>
+      Promise.resolve([Object.keys(saved).filter((n) => n.startsWith(prefix)).map((name) => ({ name }))] as [
+        { name: string }[],
+      ]),
   };
 }
 
-function seedRepo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'bench-sc-e2e-'));
-  mkdirSync(join(dir, 'traders'), { recursive: true });
-  writeFileSync(join(dir, 'traders', 'context-trader.md'), '---\nname: context-trader\n---\nbody');
-  mkdirSync(join(dir, 'features'), { recursive: true });
-  writeFileSync(
-    join(dir, 'features', 'seven-keys-scorecard.md'),
-    '---\nid: seven-keys-scorecard\nname: Seven-Keys precomputed scorecard\nstaticDoc: knowledge-base/methods/seven-keys.md\nartifactSuffix: _ES_KEYS.md\n---\nRead ${DOC} then adopt ${ARTIFACT}.',
-  );
-  mkdirSync(join(dir, 'knowledge-base', 'methods'), { recursive: true });
-  writeFileSync(join(dir, 'knowledge-base', 'methods', 'seven-keys.md'), 'METHODS DOC');
-  mkdirSync(join(dir, 'knowledge-base', 'general'), { recursive: true });
-  writeFileSync(join(dir, 'knowledge-base', 'general', 'g.md'), 'GEN');
-  const day = join(dir, 'knowledge-base', 'es', '07012026');
-  mkdirSync(day, { recursive: true });
-  writeFileSync(join(day, '07012026_ES_TP.pdf'), 'PDF');
-  writeFileSync(join(day, '07012026_ES_TP.md'), 'PLAN');
-  writeFileSync(join(day, '06302026_ES_RECAP.md'), 'RECAP');
-  return dir;
+const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+
+// Held at module scope so seedCloud() writes into the same instances the app
+// runs against (this suite boots once).
+const db = fakeFirestore();
+const bucket = fakeBucket();
+
+function seedCloud() {
+  // Same content strings the old temp-repo seed wrote (context-trader is a
+  // root persona — no lineage lines) so content-derived assertions keep meaning.
+  db.collection('traders').doc('context-trader').set({
+    name: 'context-trader',
+    content: '---\nname: context-trader\n---\nbody',
+  });
+  db.collection('features').doc('seven-keys-scorecard').set({
+    id: 'seven-keys-scorecard',
+    content: '---\nid: seven-keys-scorecard\nname: Seven-Keys precomputed scorecard\nstaticDoc: knowledge-base/methods/seven-keys.md\nartifactSuffix: _ES_KEYS.md\n---\nRead ${DOC} then adopt ${ARTIFACT}.',
+  });
+  bucket.saved['knowledge-base/methods/seven-keys.md'] = Buffer.from('METHODS DOC');
+  bucket.saved['knowledge-base/general/g.md'] = Buffer.from('GEN');
+  // Day listing requires a manifest whose FileRecord hashes match the artifact
+  // bytes exactly — loadDay verifies downloads against them.
+  bucket.saved['knowledge-base/es/07012026/manifest.json'] = Buffer.from(JSON.stringify({
+    date: '07012026',
+    recapDate: '06302026',
+    files: {
+      tradePlanMd: { sha256: sha('PLAN') },
+      tradePlanPdf: { sha256: sha('PDF') },
+      recap: { sha256: sha('RECAP') },
+    },
+  }));
+  bucket.saved['knowledge-base/es/07012026/07012026_ES_TP.pdf'] = Buffer.from('PDF');
+  bucket.saved['knowledge-base/es/07012026/07012026_ES_TP.md'] = Buffer.from('PLAN');
+  bucket.saved['knowledge-base/es/07012026/06302026_ES_RECAP.md'] = Buffer.from('RECAP');
 }
 
 describe('Benchmark scorecard (e2e)', () => {
   let app: INestApplication;
-  let repoRoot: string;
   const OPEN = Math.floor(Date.UTC(2026, 6, 1, 13, 30, 0) / 1000);
   const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 390 }, (_, i) => `${OPEN + i * 60},100,120,90,110`)].join('\n');
 
   async function boot() {
     app = undefined as any;
-    const db = fakeFirestore();
-    process.env.BENCHMARK_REPO_ROOT = repoRoot;
+    seedCloud();
     // LLM_PROVIDER=moonshot + MOONSHOT_API_KEY are pinned in set-test-env.ts
     // (jest setupFiles), so the app boots the Moonshot provider against the
     // mocked openai client above — nothing to set here.
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(FIRESTORE).useValue(db)
-      .overrideProvider(STORAGE_BUCKET).useValue(fakeBucket())
+      .overrideProvider(STORAGE_BUCKET).useValue(bucket)
       .compile();
     app = moduleRef.createNestApplication();
     await app.init();
     return moduleRef;
   }
 
-  beforeAll(() => { repoRoot = seedRepo(); });
-  afterAll(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
-    delete process.env.BENCHMARK_REPO_ROOT;
-  });
   afterEach(async () => { if (app) await app.close(); });
 
   it('generates + stores KEYS, persists a scorecard cell with artifactSha256, and shows a scorecard group', async () => {

@@ -104,16 +104,14 @@ jest.mock('openai', () => {
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { AppModule } from '../src/app.module';
 import { FIRESTORE, STORAGE_BUCKET } from '../src/firebase/firebase.constants';
 import { fakeFirestore } from './fake-firestore';
 import { BatchReconciler } from '../src/benchmark/batch-reconciler';
 import { ScoreboardService } from '../src/benchmark/scoreboard.service';
 import { BenchmarkRepository } from '../src/benchmark/benchmark.repository';
-import { RepoInputsService } from '../src/benchmark/repo-inputs.service';
+import { CloudInputsService } from '../src/benchmark/cloud-inputs.service';
 
 function fakeBucket() {
   const saved: Record<string, Buffer> = {};
@@ -124,27 +122,53 @@ function fakeBucket() {
       exists: () => Promise.resolve([path in saved] as [boolean]),
       download: () => Promise.resolve([saved[path]] as [Buffer]),
     }),
+    getFiles: ({ prefix }: { prefix: string }) =>
+      Promise.resolve([Object.keys(saved).filter((n) => n.startsWith(prefix)).map((name) => ({ name }))] as [
+        { name: string }[],
+      ]),
   };
 }
 
-function seedRepo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'bench-e2e-'));
-  mkdirSync(join(dir, 'traders'), { recursive: true });
-  writeFileSync(join(dir, 'traders', 'context-trader.md'), '---\nname: context-trader\n---\nbody');
-  mkdirSync(join(dir, 'features'), { recursive: true });
-  mkdirSync(join(dir, 'knowledge-base', 'general'), { recursive: true });
-  writeFileSync(join(dir, 'knowledge-base', 'general', 'g.md'), 'GEN');
-  const day = join(dir, 'knowledge-base', 'es', '07012026');
-  mkdirSync(day, { recursive: true });
-  writeFileSync(join(day, '07012026_ES_TP.pdf'), 'PDF');
-  writeFileSync(join(day, '07012026_ES_TP.md'), 'PLAN');
-  writeFileSync(join(day, '06302026_ES_RECAP.md'), 'RECAP');
-  return dir;
+const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+
+// Held at module scope so seedCloud() and the tests can reach into the same
+// instances the app runs against; recreated per boot() for per-test isolation.
+let db: any;
+let bucket: ReturnType<typeof fakeBucket>;
+
+function seedCloud() {
+  // Same content strings the old temp-repo seed wrote (context-trader is a
+  // root persona — no lineage lines) so content-derived assertions keep meaning.
+  db.collection('traders').doc('context-trader').set({
+    name: 'context-trader',
+    content: '---\nname: context-trader\n---\nbody',
+  });
+  // The old repo seed had an EMPTY features/ dir; BenchmarkService.run() now
+  // refuses (422) on zero features, so seed one (this suite only runs 'base').
+  db.collection('features').doc('seven-keys-scorecard').set({
+    id: 'seven-keys-scorecard',
+    content: '---\nid: seven-keys-scorecard\nname: Seven Keys Scorecard\nstaticDoc: knowledge-base/methods/seven-keys.md\nartifactSuffix: _ES_KEYS.md\n---\nblock',
+  });
+  bucket.saved['knowledge-base/general/g.md'] = Buffer.from('GEN');
+  bucket.saved['knowledge-base/methods/seven-keys.md'] = Buffer.from('METHODS');
+  // Day listing requires a manifest whose FileRecord hashes match the artifact
+  // bytes exactly — loadDay verifies downloads against them.
+  bucket.saved['knowledge-base/es/07012026/manifest.json'] = Buffer.from(JSON.stringify({
+    date: '07012026',
+    recapDate: '06302026',
+    files: {
+      tradePlanMd: { sha256: sha('PLAN') },
+      tradePlanPdf: { sha256: sha('PDF') },
+      recap: { sha256: sha('RECAP') },
+    },
+  }));
+  bucket.saved['knowledge-base/es/07012026/07012026_ES_TP.pdf'] = Buffer.from('PDF');
+  bucket.saved['knowledge-base/es/07012026/07012026_ES_TP.md'] = Buffer.from('PLAN');
+  bucket.saved['knowledge-base/es/07012026/06302026_ES_RECAP.md'] = Buffer.from('RECAP');
 }
 
 describe('Benchmark (e2e)', () => {
   let app: INestApplication;
-  let repoRoot: string;
   // 09:30 ET 2026-07-01, 390 one-minute bars = a complete RTH session.
   const OPEN = Math.floor(Date.UTC(2026, 6, 1, 13, 30, 0) / 1000);
   const fullCsv = ['time,open,high,low,close', ...Array.from({ length: 390 }, (_, i) => `${OPEN + i * 60},100,120,90,110`)].join('\n');
@@ -153,28 +177,22 @@ describe('Benchmark (e2e)', () => {
     // Null it first so an early throw here never leaves afterEach double-closing
     // the PREVIOUS test's app (which was already closed by its own afterEach).
     app = undefined as any;
-    const db = fakeFirestore();
+    db = fakeFirestore();
+    bucket = fakeBucket();
+    seedCloud();
     if (preSeed) await preSeed(db);
-    process.env.BENCHMARK_REPO_ROOT = repoRoot;
     // LLM_PROVIDER=moonshot + MOONSHOT_API_KEY are pinned in set-test-env.ts
     // (jest setupFiles), so the app boots the Moonshot provider against the
     // mocked openai client above — nothing to set here.
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(FIRESTORE).useValue(db)
-      .overrideProvider(STORAGE_BUCKET).useValue(fakeBucket())
+      .overrideProvider(STORAGE_BUCKET).useValue(bucket)
       .compile();
     app = moduleRef.createNestApplication();
     await app.init();
     return moduleRef;
   }
 
-  beforeAll(() => {
-    repoRoot = seedRepo();
-  });
-  afterAll(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
-    delete process.env.BENCHMARK_REPO_ROOT;
-  });
   afterEach(async () => {
     if (app) await app.close();
   });
@@ -279,8 +297,9 @@ describe('Benchmark (e2e)', () => {
   });
 
   describe('content-drift guard', () => {
-    // A cell recording a persona hash that the seeded traders/context-trader.md
-    // cannot produce — i.e. the file was edited after this cell was benchmarked.
+    // A cell recording a persona hash that the seeded traders/context-trader
+    // doc cannot produce — i.e. the persona was edited after this cell was
+    // benchmarked.
     const staleCell = {
       trader: 'context-trader', model: { alias: 'k3', id: 'kimi-k3' }, modelAlias: 'k3',
       day: '07012026', date: '2026-07-01', variant: 'base', runIndex: 1,
@@ -289,15 +308,14 @@ describe('Benchmark (e2e)', () => {
     };
 
     /**
-     * Boot, then seed a cell that differs from the seeded repo ONLY in its
-     * persona hash — its generalSha256 is the real one, read from the running
-     * app. A synthetic general hash would drift too and the assertions could
-     * not tell the two findings apart.
+     * Boot, then seed a cell that differs from the seeded cloud inputs ONLY in
+     * its persona hash — its generalSha256 is the real one, read from the
+     * running app. A synthetic general hash would drift too and the assertions
+     * could not tell the two findings apart.
      */
     async function bootWithStaleCell() {
-      let db: any;
-      const moduleRef = await boot(async (d) => { db = d; });
-      const generalSha256 = moduleRef.get(RepoInputsService).collectGeneralDocs().sha256;
+      const moduleRef = await boot();
+      const generalSha256 = (await moduleRef.get(CloudInputsService).snapshot()).general.sha256;
       await db.collection('benchmarkRuns')
         .doc('context-trader__k3__07012026__base__run1')
         .set({ ...staleCell, generalSha256 });
