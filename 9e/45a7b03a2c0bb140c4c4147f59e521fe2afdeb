@@ -1,0 +1,20 @@
+docs/superpowers/specs/2026-08-16-cloud-inputs-migration-design.md
+  s_54034df2c349b1::t_5efec239c37c87 1-85,87-89,93-228
+  s_54034df2c349b1::t_135925f3bbe4a8 86,90-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9e45a7b03a2c0bb140c4c4147f59e521fe2afdeb",
+  "prompts": {},
+  "sessions": {
+    "s_54034df2c349b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dba81807-6180-4d37-a5c0-617d3263d2f5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
