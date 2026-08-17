@@ -20,6 +20,7 @@ function build(
     ensureKeys?: jest.Mock;
     getKeysArtifact?: jest.Mock;
     loadDay?: jest.Mock;
+    nonTerminalBatches?: jest.Mock;
   } = {},
 ) {
   const inputs = {
@@ -52,7 +53,10 @@ function build(
     lineageAlias: 'k3',
     ensureKeys: overrides.ensureKeys ?? jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] })),
   };
-  const repo = { getKeysArtifact: overrides.getKeysArtifact ?? jest.fn(() => Promise.resolve(null)) };
+  const repo = {
+    getKeysArtifact: overrides.getKeysArtifact ?? jest.fn(() => Promise.resolve(null)),
+    nonTerminalBatches: overrides.nonTerminalBatches ?? jest.fn(() => Promise.resolve([])),
+  };
   const lock = new BenchmarkRunLock();
   const config = {
     get: jest.fn((key: string) => {
@@ -227,6 +231,19 @@ describe('KeysBackfillService', () => {
     expect(service.status()!.error).toMatch(/no committed days/i);
   });
 
+  it('fails the job when non-terminal batches exist, before any day runs', async () => {
+    const nonTerminalBatches = jest.fn(() => Promise.resolve([{ batchId: 'b1' }, { batchId: 'b2' }]));
+    const { service, sevenKeys } = build({ nonTerminalBatches });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toContain('2 non-terminal batch(es)');
+    expect(job.error).toContain('GET /benchmark/status');
+    expect(sevenKeys.ensureKeys).not.toHaveBeenCalled();
+  });
+
   it('fails the job when the methods doc is missing', async () => {
     const { service } = build({ methodsDoc: null });
     service.start({});
@@ -346,6 +363,27 @@ describe('KeysBackfillService', () => {
     expect(job.state).toBe('failed');
     expect(job.failures[0].attempts).toBe(1);
     expect(job.failures[0].message).toMatch(/re-POST to re-snapshot/i);
+  });
+
+  it('stops after ONE attempt when the snapshot mismatch is reported via onFailure', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({
+        kind: 'error',
+        message: 'day 01022025 changed since the run snapshot (recap no longer matches)',
+        mismatches: [],
+      });
+      return Promise.resolve(null);
+    });
+    const { service, sleep } = build({ ensureKeys });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(ensureKeys).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+    expect(job.state).toBe('failed');
+    expect(job.failures[0].attempts).toBe(1);
+    expect(job.failures[0].message).toMatch(/^corpus changed mid-job — re-POST to re-snapshot \(/);
   });
 
   it('cancel lets the in-flight day finish, then stops before the next day', async () => {

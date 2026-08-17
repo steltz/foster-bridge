@@ -165,6 +165,18 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
         throw new Error('methods doc missing — PUT /knowledge/methods before running the keys backfill');
       }
 
+      // A submitted-but-unreconciled batch holds pins that pinnedKeysHashes
+      // cannot see yet. Force-regenerating such a day would leave the
+      // reconciler writing cells that pin an artifact we just replaced —
+      // a permanent wedge. The run path guards this with `pinned`; we refuse
+      // to start instead. Mirrors the era-reset script's own precondition.
+      const inFlight = await this.repo.nonTerminalBatches();
+      if (inFlight.length) {
+        throw new Error(
+          `${inFlight.length} non-terminal batch(es) exist — let them reconcile (GET /benchmark/status) before starting the keys backfill; regenerating a day they pinned would wedge it`,
+        );
+      }
+
       const all = [...snap.days].sort((a, b) => a.date.localeCompare(b.date));
       const inRange = all.filter((d) => this.inWindow(d, opts));
       job.counts.candidates = inRange.length;
@@ -298,6 +310,18 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
           message: 'ensureKeys returned null without reporting a reason',
           mismatches: [],
         };
+        // outcomeRecapForDay throws the mismatch inside generate(), so
+        // ensureKeys catches it and reports it here via onFailure rather than
+        // throwing. Same deterministic corpus change as the catch below —
+        // retrying is waste. Keep the two paths' wording identical.
+        if (SNAPSHOT_MISMATCH.test(last.message)) {
+          last = {
+            kind: 'error',
+            message: `corpus changed mid-job — re-POST to re-snapshot (${last.message})`,
+            mismatches: [],
+          };
+          break;
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (err instanceof KeysBackfillDayTimeoutError) {

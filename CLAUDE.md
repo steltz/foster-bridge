@@ -65,7 +65,7 @@ Corpus-wide KEYS generation — build the lookback chain before benchmarking:
 ```
 POST   /benchmark/keys-backfill?confirm=true&from=MMDDYYYY&to=MMDDYYYY   202, detached; omit from/to for the whole committed corpus
 GET    /benchmark/keys-backfill                                          snapshot + progress/ETA + reducedLookback; 404 if none since boot
-DELETE /benchmark/keys-backfill?startedAt=<iso>                          cancel; the in-flight day finishes; 409 if startedAt does not match
+DELETE /benchmark/keys-backfill?startedAt=<iso>                          cancel; the in-flight attempt finishes (a mid-retry cancel ends that day early); 409 if startedAt does not match
 ```
 
 **Sequence: era-reset script → keys-backfill to completion → benchmark runs.**
@@ -88,6 +88,19 @@ ingest/backfill concurrently — a re-ingest of any corpus day stops the job by
 design. Run against a one-shot server (`pnpm start`), never watch mode: job
 state is in-memory. Budget ~$130 and 20-40 hours for a cold corpus (352
 committed days at ~$0.37/day).
+
+Operator notes:
+- Before the era reset, confirm the script's lineage matches the backend's:
+  `KEYS_LINEAGE` (default `k3`) must equal the `flagshipAlias` in the
+  backfill's GET snapshot, or the reset clears one lineage while the backfill
+  builds another.
+- The reset script runs `dist/`, so `pnpm build` first.
+- Do not start or re-POST the backfill while `GET /benchmark/status` shows
+  non-terminal batches — the job refuses to start (job-level `failed`),
+  because regenerating a day an unreconciled batch pinned would wedge it.
+- If the job sticks at `running` with no progress and DELETE seems ignored,
+  it is hung in an unguarded read: restart the process and re-POST — built
+  days short-circuit.
 
 `POST /benchmark/run` tops up the matrix — personas × days × variants — and only
 runs missing cells, so it is safe to re-issue. It is **single-flight**: a second
