@@ -19,6 +19,12 @@ export interface KeysArtifact {
   lookbackMissing: string[]; // recent prior complete day(s) with no KEYS (reduced-lookback signal; [] normally)
 }
 
+export interface KeysFailure {
+  kind: 'unverified' | 'error' | 'refused';
+  message: string;
+  mismatches: string[];
+}
+
 /** Prior days the lookback analyst calibrates against, newest-first then reversed. */
 const LOOKBACK_DAYS = 3;
 
@@ -60,6 +66,11 @@ export class SevenKeysService {
 
   private get flagshipAlias(): string {
     return this.flagship.alias;
+  }
+
+  /** The KEYS lineage this instance reads and writes (e.g. 'k3'). */
+  get lineageAlias(): string {
+    return this.flagshipAlias;
   }
 
   private pdfContext(fileId: string): PromptEnvelope {
@@ -205,7 +216,11 @@ export class SevenKeysService {
    * (logged) when generation/verification fails so the caller skips the scorecard
    * variant for the day.
    */
-  async ensureKeys(day: DayInput, snap: InputsSnapshot, opts?: { force?: boolean; pinned?: boolean }): Promise<DayArtifactDoc | null> {
+  async ensureKeys(
+    day: DayInput,
+    snap: InputsSnapshot,
+    opts?: { force?: boolean; pinned?: boolean; onFailure?: (f: KeysFailure) => void },
+  ): Promise<DayArtifactDoc | null> {
     const alias = this.flagshipAlias;
     const existing = await this.repo.getKeysArtifact(day.day, alias);
     const pinnedHashes = await this.repo.pinnedKeysHashes(day.day);
@@ -218,9 +233,9 @@ export class SevenKeysService {
       if (existing) return existing;
       // Anomaly: in-flight cells pinned this lineage's KEYS but the artifact is
       // missing. Regenerating would break those pins, so refuse.
-      this.logger.error(
-        `Seven-keys for ${day.day}: in-flight scorecard cells pinned this lineage's KEYS but the artifact is missing; refusing to regenerate (would break cell provenance).`,
-      );
+      const msg = `Seven-keys for ${day.day}: in-flight scorecard cells pinned this lineage's KEYS but the artifact is missing; refusing to regenerate (would break cell provenance).`;
+      this.logger.error(msg);
+      opts?.onFailure?.({ kind: 'refused', message: msg, mismatches: [] });
       return null;
     }
     // Orphaned-pin anomaly: this lineage has no artifact, yet the day carries pins
@@ -232,9 +247,9 @@ export class SevenKeysService {
       const legacy = await this.repo.getDayArtifact(day.day, 'keys');
       const orphaned = [...pinnedHashes].filter((h) => h !== legacy?.contentHash);
       if (orphaned.length > 0) {
-        this.logger.error(
-          `Seven-keys for ${day.day}: scorecard cells pinned KEYS hash(es) ${orphaned.join(', ')} that match no stored artifact; refusing to generate for lineage ${alias} (possible deleted artifact).`,
-        );
+        const msg = `Seven-keys for ${day.day}: scorecard cells pinned KEYS hash(es) ${orphaned.join(', ')} that match no stored artifact; refusing to generate for lineage ${alias} (possible deleted artifact).`;
+        this.logger.error(msg);
+        opts?.onFailure?.({ kind: 'refused', message: msg, mismatches: [] });
         return null;
       }
     }
@@ -248,11 +263,14 @@ export class SevenKeysService {
     try {
       result = await this.generate(day, snap);
     } catch (err) {
-      this.logger.error(`Seven-keys generation failed for ${day.day}: ${(err as Error).message}`);
+      const message = (err as Error).message;
+      this.logger.error(`Seven-keys generation failed for ${day.day}: ${message}`);
+      opts?.onFailure?.({ kind: 'error', message, mismatches: [] });
       return null;
     }
     if (!result.verified) {
       this.logger.warn(`Seven-keys verifier failed for ${day.day}: ${result.mismatches.join('; ')}`);
+      opts?.onFailure?.({ kind: 'unverified', message: `verifier rejected the artifact: ${result.mismatches.join('; ')}`, mismatches: result.mismatches });
       return null;
     }
     if (result.lookbackMissing.length) {

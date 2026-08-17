@@ -24,19 +24,7 @@ import {
 import { EminiplayerPruneService, PruneReport } from './eminiplayer-prune.service';
 import { IngestStageError, IngestValidationError } from './eminiplayer-ingest.errors';
 import { ArchiveNotFoundError } from './eminiplayer.constants';
-import { parseMmddyyyy } from './eminiplayer-validation';
-
-/** MMDDYYYY, and a real calendar date (rejects 13012026 and 02302026). */
-function isValidMmddyyyy(date: string): boolean {
-  if (!/^\d{8}$/.test(date)) return false;
-  const mm = Number(date.slice(0, 2));
-  const dd = Number(date.slice(2, 4));
-  const yyyy = Number(date.slice(4));
-  const parsed = new Date(Date.UTC(yyyy, mm - 1, dd));
-  return (
-    parsed.getUTCFullYear() === yyyy && parsed.getUTCMonth() === mm - 1 && parsed.getUTCDate() === dd
-  );
-}
+import { isValidMmddyyyy, parseMmddyyyy } from './eminiplayer-validation';
 
 /**
  * Today as MMDDYYYY in America/New_York — the site's trading-date timezone.

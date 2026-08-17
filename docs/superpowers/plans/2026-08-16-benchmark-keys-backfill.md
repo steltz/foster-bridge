@@ -18,7 +18,7 @@
 - `refused` (pin anomaly), `timeout`, and a snapshot mismatch are **non-retryable** — stop on the first occurrence.
 - **`ensureKeys` never throws.** It catches everything from `generate()` and returns `null`. All failure classification must come from the `onFailure` callback, never from a `catch` around `ensureKeys`.
 - Reuse requires `verified === true` **and** empty `lookbackMissing`. `verified` alone is written even for degraded artifacts.
-- The job never passes `force`. Job state is **in-memory only**.
+- The job passes `force` on **exactly one branch** — regenerating a verified-but-degraded artifact. Clean days never see it. (`ensureKeys` reuses any verified artifact with a matching `inputsHash`, so without `force` the degraded-regeneration decision is a silent no-op; the pin check runs before `force`, so benchmarked days stay frozen either way.) Job state is **in-memory only**.
 - Day keys are `MMDDYYYY`; listing dates are `YYYY-MM-DD`.
 - The existing 409 message for a concurrent run must stay `a benchmark run is already in progress` (asserted by `/already in progress/i` at `benchmark.service.spec.ts:358`).
 - **Existing specs use `Test.createTestingModule`, never `new Service(...)`.** New constructor params require a new entry in the spec's `providers` array, or that whole spec file fails at `.compile()`.

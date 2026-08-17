@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Logger, NotFoundException, UnprocessableEntityException, Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkService } from './benchmark.service';
 import { BenchmarkRepository } from './benchmark.repository';
@@ -14,6 +14,7 @@ import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { analyzeCoverage } from '../market-data/coverage';
+import { BenchmarkRunLock } from './run-lock';
 
 // Coverage is a pure import, not a provider — mock it so day-completeness is
 // controlled per test without hand-building 78-bar candle fixtures.
@@ -54,9 +55,19 @@ function makeDeps() {
     priorCompleteDays: jest.fn(() => []),
     outcomeRecapForDay: jest.fn(async () => null),
   };
+  const ensurePdf = jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' });
+  const ensureTranscript = jest.fn().mockResolvedValue(undefined);
   const dayArtifacts = {
-    ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' }),
-    ensureTranscript: jest.fn().mockResolvedValue(undefined),
+    ensurePdf,
+    ensureTranscript,
+    // Delegates like the real ensureDayRecorded, so `ensurePdf not called` still
+    // proves assembleDay never ran for a skipped day.
+    ensureDayRecorded: jest.fn(async (day: { day: string; prefix: string; pdf: Buffer; tpTranscript: string; recapTranscript: string; recapFileName: string }) => {
+      const pdf = await ensurePdf(day.day, day.prefix, day.pdf);
+      await ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, day.tpTranscript);
+      await ensureTranscript(day.day, 'recapTranscript', day.recapFileName, day.recapTranscript);
+      return pdf;
+    }),
   };
   // Provider-neutral fake: proves the benchmark is provider-agnostic — no
   // Anthropic SDK involved. Read back what was submitted via fake.submittedBatches.
@@ -71,11 +82,12 @@ function makeDeps() {
   return { repo, inputs, snapValue, dayArtifacts, fake, marketData, contracts, sevenKeys };
 }
 
-async function build(deps: ReturnType<typeof makeDeps>) {
+async function build(deps: ReturnType<typeof makeDeps>, extraProviders: Provider[] = []) {
   const moduleRef = await Test.createTestingModule({
     providers: [
       BenchmarkService,
       EnvelopeBuilder,
+      BenchmarkRunLock,
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: CloudInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },
@@ -84,6 +96,9 @@ async function build(deps: ReturnType<typeof makeDeps>) {
       { provide: ContractsService, useValue: deps.contracts },
       { provide: SevenKeysService, useValue: deps.sevenKeys },
       { provide: ConfigService, useValue: { get: (k: string) => ({ 'benchmark.model': 'claude-fable-5', 'benchmark.defaultRunCount': 5, 'benchmark.maxTokens': 32000, 'benchmark.effort': 'high', 'benchmark.defaultVariants': ['seven-keys-scorecard'] }[k]) } },
+      // Later entries win in Nest's provider resolution — lets a test swap in a
+      // pre-acquired real BenchmarkRunLock without touching other call sites.
+      ...extraProviders,
     ],
   }).compile();
   return moduleRef.get(BenchmarkService);
@@ -360,6 +375,26 @@ describe('BenchmarkService.run', () => {
     await first;
     // The flag clears in finally — a fresh run is admitted again.
     await expect(svc.run({ runCount: 1, variants: ['base'] })).resolves.toBeDefined();
+  });
+
+  it('run 409 while a keys backfill holds the lock carries holder: keys-backfill in the body', async () => {
+    const deps = makeDeps();
+    // Real lock instance, pre-acquired by the backfill side, registered as the
+    // module's BenchmarkRunLock provider.
+    const lock = new BenchmarkRunLock();
+    lock.acquire('keys-backfill');
+    const svc = await build(deps, [{ provide: BenchmarkRunLock, useValue: lock }]);
+    let caught: unknown;
+    try {
+      await svc.run({});
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ConflictException);
+    expect((caught as ConflictException).getResponse()).toMatchObject({
+      message: expect.stringMatching(/keys backfill is already in progress/i),
+      holder: 'keys-backfill',
+    });
   });
 
   it('run({ sample }) restricts days to the persisted sample and reports snapshot-missing days', async () => {

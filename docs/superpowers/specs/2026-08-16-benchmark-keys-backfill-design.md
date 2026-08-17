@@ -178,8 +178,17 @@ fixed resumes precisely where it stopped.
 
 Mirrors the eminiplayer backfill's core principle. The job object is in-memory
 and disposable; the durable state is the KEYS artifacts in Firestore. Resume is
-just a re-POST, and the job never passes `force` — reuse *is* the resume
-mechanism.
+just a re-POST — reuse *is* the resume mechanism.
+
+**`force` is passed on exactly one branch: regenerating a verified-but-degraded
+artifact.** This corrects an earlier revision of this spec, which said the job
+never passes `force` at all. That was wrong and self-defeating: `ensureKeys`
+reuses any verified artifact whose `inputsHash` still matches, so without
+`force` the "degraded → regenerate" decision below is a silent no-op — the old
+degraded doc is handed straight back, counted as generated, and the whole run
+eliminates nothing. Passing `force` is safe because the pin check returns
+**before** `force` is consulted, so a benchmarked day stays frozen regardless.
+Clean days never see `force`.
 
 **A day is "already built" only when its artifact is verified AND has empty
 `lookbackMissing`.** `saveKeysArtifact` writes `verified: true` even for a

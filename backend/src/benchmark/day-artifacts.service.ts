@@ -5,6 +5,7 @@ import { STORAGE_BUCKET } from '../firebase/firebase.constants';
 import { LLM_PROVIDER } from '../llm/llm.constants';
 import { LlmProvider } from '../llm/llm.provider';
 import { BenchmarkRepository, DayArtifactDoc, DayArtifactKind } from './benchmark.repository';
+import type { DayInput } from './cloud-inputs.service';
 
 // The GCS-backed Bucket surface this service uses (kept minimal so a fake bucket
 // satisfies it in tests). `download()` returns GCS's [Buffer] tuple.
@@ -151,5 +152,18 @@ export class DayArtifactsService {
       content: text,
       uploadedAt: new Date().toISOString(),
     });
+  }
+
+  /**
+   * Records everything a day needs before seven-keys can run: the PDF (so
+   * ensureFileId resolves a live provider file id) plus both transcripts.
+   * MUST be called before SevenKeysService.ensureKeys for the same day —
+   * generate() calls ensureFileId, which throws without the pdfFile record.
+   */
+  async ensureDayRecorded(day: DayInput): Promise<PdfArtifact> {
+    const pdf = await this.ensurePdf(day.day, day.prefix, day.pdf);
+    await this.ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, day.tpTranscript);
+    await this.ensureTranscript(day.day, 'recapTranscript', day.recapFileName, day.recapTranscript);
+    return pdf;
   }
 }

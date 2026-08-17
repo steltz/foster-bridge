@@ -60,11 +60,55 @@ bad requests 400/404/422 (empty sample) instead of 409). The run also 422s if
 Firestore has no personas or no features — create them via `POST /traders` /
 `POST /features` first.
 
+Corpus-wide KEYS generation — build the lookback chain before benchmarking:
+
+```
+POST   /benchmark/keys-backfill?confirm=true&from=MMDDYYYY&to=MMDDYYYY   202, detached; omit from/to for the whole committed corpus
+GET    /benchmark/keys-backfill                                          snapshot + progress/ETA + reducedLookback; 404 if none since boot
+DELETE /benchmark/keys-backfill?startedAt=<iso>                          cancel; the in-flight attempt finishes (a mid-retry cancel ends that day early); 409 if startedAt does not match
+```
+
+**Sequence: era-reset script → keys-backfill to completion → benchmark runs.**
+Running the backfill without `backend/scripts/reset-keys-era.mjs` silently
+reuses the 11 already-pinned artifacts, 4 of which have degraded lookback.
+
+Sequential and oldest-first so every day gets a full 3-day lookback — which a
+sampled run cannot provide, because a sample's scattered days almost never have
+KEYS for their 3 prior days. A day is reused only when its artifact is
+`verified` **and** has an empty `lookbackMissing`. Failures are classified
+(`unverified` / `error` / `refused` / `timeout`); `unverified` and `error` retry
+up to 3 times with backoff, `refused` and `timeout` stop immediately, and any
+stop ends the job (`state: "failed"`, `failures[0]` names the day) rather than
+leaving a hole. Re-POST resumes — built days short-circuit on one read.
+
+`POST /benchmark/keys-backfill` and `POST /benchmark/run` are **mutually
+exclusive**: whichever starts first holds a shared lock, the other gets 409 with
+a `holder` field. Assumes a single backend process. Do not run eminiplayer
+ingest/backfill concurrently — a re-ingest of any corpus day stops the job by
+design. Run against a one-shot server (`pnpm start`), never watch mode: job
+state is in-memory. Budget ~$130 and 20-40 hours for a cold corpus (352
+committed days at ~$0.37/day).
+
+Operator notes:
+- Before the era reset, confirm the script's lineage matches the backend's:
+  `KEYS_LINEAGE` (default `k3`) must equal the `flagshipAlias` in the
+  backfill's GET snapshot, or the reset clears one lineage while the backfill
+  builds another.
+- The reset script runs `dist/`, so `pnpm build` first.
+- Do not start or re-POST the backfill while `GET /benchmark/status` shows
+  non-terminal batches — the job refuses to start (job-level `failed`),
+  because regenerating a day an unreconciled batch pinned would wedge it.
+- If the job sticks at `running` with no progress and DELETE seems ignored,
+  it is hung in an unguarded read: restart the process and re-POST — built
+  days short-circuit.
+
 `POST /benchmark/run` tops up the matrix — personas × days × variants — and only
 runs missing cells, so it is safe to re-issue. It is **single-flight**: a second
 `POST` while a run is in progress returns 409 — note `POST /benchmark/run` has
-two 409 causes, a run in progress (check `GET /benchmark/status`) vs content
-drift (check `GET /benchmark/drift`), and the response body says which. Omit
+three 409 causes — a run in progress, a keys backfill in progress (both name
+the `holder`; check `GET /benchmark/status` and `GET /benchmark/keys-backfill`),
+vs content drift (check `GET /benchmark/drift`) — and the response body says
+which. Omit
 `days` for every complete day, omit `variants` for the configured default
 (`benchmark.defaultVariants`, env `BENCHMARK_VARIANTS`, comma-separated —
 ships as `seven-keys-scorecard` only; pass `variants` explicitly to run

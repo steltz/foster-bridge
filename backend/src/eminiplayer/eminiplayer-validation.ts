@@ -40,6 +40,16 @@ export function parseMmddyyyy(date: string): Date {
   return parsed;
 }
 
+/** MMDDYYYY, and a real calendar date (rejects 13012026 and 02302026). */
+export function isValidMmddyyyy(date: string): boolean {
+  if (!/^\d{8}$/.test(date)) return false;
+  const mm = Number(date.slice(0, 2));
+  const dd = Number(date.slice(2, 4));
+  const yyyy = Number(date.slice(4));
+  const parsed = new Date(Date.UTC(yyyy, mm - 1, dd));
+  return parsed.getUTCFullYear() === yyyy && parsed.getUTCMonth() === mm - 1 && parsed.getUTCDate() === dd;
+}
+
 export function isWeekday(date: string): boolean {
   const day = parseMmddyyyy(date).getUTCDay();
   return day >= 1 && day <= 5;

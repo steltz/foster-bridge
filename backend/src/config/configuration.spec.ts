@@ -93,7 +93,22 @@ describe('configuration benchmark defaults', () => {
         qty: 2,
         management: { triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 },
       },
+      // Keys-backfill defaults: 15-min day ceiling, 5-min read ceiling,
+      // 30s/180s retry backoff.
+      keysBackfillDayTimeoutMs: 900000,
+      keysBackfillReadTimeoutMs: 300000,
+      keysBackfillRetryDelaysMs: [30000, 180000],
     });
+  });
+
+  it('parses keys-backfill env overrides', () => {
+    process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS = '600000';
+    process.env.BENCHMARK_KEYS_READ_TIMEOUT_MS = '120000';
+    process.env.BENCHMARK_KEYS_RETRY_DELAYS_MS = '1000, 5000,25000';
+    const cfg = configuration();
+    expect(cfg.benchmark.keysBackfillDayTimeoutMs).toBe(600000);
+    expect(cfg.benchmark.keysBackfillReadTimeoutMs).toBe(120000);
+    expect(cfg.benchmark.keysBackfillRetryDelaysMs).toEqual([1000, 5000, 25000]);
   });
 
   it('honours grading env overrides', () => {
