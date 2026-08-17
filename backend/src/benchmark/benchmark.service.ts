@@ -100,7 +100,7 @@ export class BenchmarkService {
     try {
       this.lock.acquire('benchmark-run');
     } catch (err) {
-      if (err instanceof LockHeldError) throw new ConflictException(err.message);
+      if (err instanceof LockHeldError) throw new ConflictException({ message: err.message, holder: err.holder });
       throw err;
     }
     try {
