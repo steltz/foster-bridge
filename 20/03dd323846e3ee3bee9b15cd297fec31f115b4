@@ -1,0 +1,23 @@
+backend/src/benchmark/keys-backfill.service.spec.ts
+  s_45cdafe2b2bb50::t_986205c4c136ab 241-364
+backend/src/benchmark/keys-backfill.service.ts
+  s_45cdafe2b2bb50::t_5cb09a387a0dff 205-273,275,277,281-301
+  s_45cdafe2b2bb50::t_49abcde57f849d 43-51
+  s_45cdafe2b2bb50::t_6202248023aea1 302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2003dd323846e3ee3bee9b15cd297fec31f115b4",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
