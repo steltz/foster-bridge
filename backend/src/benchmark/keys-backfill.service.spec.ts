@@ -157,13 +157,41 @@ describe('KeysBackfillService', () => {
     expect(sevenKeys.ensureKeys).not.toHaveBeenCalled();
   });
 
-  it('never passes force to ensureKeys', async () => {
+  it('passes a falsy force to ensureKeys for clean days (no existing artifact)', async () => {
     const { service, sevenKeys } = build();
     service.start({});
     await settle(service);
+    expect(sevenKeys.ensureKeys.mock.calls.length).toBeGreaterThan(0);
     for (const call of sevenKeys.ensureKeys.mock.calls) {
       expect((call[2] as { force?: boolean } | undefined)?.force).toBeFalsy();
     }
+  });
+
+  it('passes force: true when regenerating a verified-but-degraded artifact', async () => {
+    const getKeysArtifact = jest.fn(() =>
+      Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: ['01012025'] }),
+    );
+    const { service, sevenKeys } = build({ getKeysArtifact });
+    service.start({});
+    await settle(service);
+    expect(sevenKeys.ensureKeys.mock.calls.length).toBeGreaterThan(0);
+    for (const call of sevenKeys.ensureKeys.mock.calls) {
+      expect((call[2] as { force?: boolean }).force).toBe(true);
+    }
+  });
+
+  it('refuses a windowed start when a prior has only a degraded KEYS artifact', async () => {
+    const getKeysArtifact = jest.fn((day: string) =>
+      Promise.resolve(day === '01022025' ? { contentHash: 'kh', verified: true, lookbackMissing: ['01012025'] } : null),
+    );
+    const { service, sevenKeys } = build({ getKeysArtifact });
+    service.start({ from: '01032025' });
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toContain('01022025');
+    expect(sevenKeys.ensureKeys).not.toHaveBeenCalled();
   });
 
   it('holds the lock while running and releases it when done', async () => {

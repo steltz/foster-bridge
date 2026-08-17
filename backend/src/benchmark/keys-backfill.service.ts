@@ -118,6 +118,11 @@ export class KeysBackfillService {
       const all = [...snap.days].sort((a, b) => a.date.localeCompare(b.date));
       const inRange = all.filter((d) => this.inWindow(d, opts));
       job.counts.candidates = inRange.length;
+      if (!inRange.length) {
+        this.logger.warn(
+          `keys-backfill: window ${opts.from ?? 'corpus-start'}..${opts.to ?? 'corpus-end'} matched no committed days`,
+        );
+      }
       job.from = inRange[0]?.day ?? null;
       job.to = inRange[inRange.length - 1]?.day ?? null;
       if (inRange.length) await this.assertLookbackReady(job, all, inRange[0]);
@@ -170,11 +175,11 @@ export class KeysBackfillService {
     const missing: string[] = [];
     for (const p of priors) {
       const doc = await this.repo.getKeysArtifact(p.day, job.flagshipAlias);
-      if (!doc?.verified) missing.push(p.day);
+      if (!doc?.verified || doc.lookbackMissing?.length) missing.push(p.day);
     }
     if (missing.length) {
       throw new Error(
-        `refusing to start at ${first.day}: prior day(s) ${missing.join(', ')} have no KEYS for lineage ${job.flagshipAlias}, so the window's first days would be generated with reduced lookback. Omit "from" to build the whole corpus.`,
+        `refusing to start at ${first.day}: prior day(s) ${missing.join(', ')} have no finalized KEYS for lineage ${job.flagshipAlias}, so the window's first days would be generated with reduced lookback. Omit "from" to build the whole corpus.`,
       );
     }
   }
@@ -193,12 +198,17 @@ export class KeysBackfillService {
       job.counts.reused += 1;
       return 'reused';
     }
-    if (existing?.verified) {
+    // A verified-but-degraded artifact must be REPLACED. ensureKeys reuses any
+    // verified artifact whose inputsHash still matches unless forced, so without
+    // this the regeneration decision is a silent no-op. Pins are checked before
+    // force, so a benchmarked day stays frozen either way.
+    const regenerateDegraded = Boolean(existing?.verified);
+    if (regenerateDegraded) {
       this.logger.log(
-        `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing.lookbackMissing!.join(', ')}) — regenerating`,
+        `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing!.lookbackMissing!.join(', ')}) — regenerating`,
       );
     }
-    const doc = await this.generateDay(l, snap, () => undefined);
+    const doc = await this.generateDay(l, snap, () => undefined, regenerateDegraded);
     if (doc) {
       job.counts.generated += 1;
       this.recordReducedLookback(job, l.day, doc);
@@ -219,10 +229,11 @@ export class KeysBackfillService {
     l: DayListing,
     snap: InputsSnapshot,
     onFailure: (f: KeysFailure) => void,
+    force = false,
   ): Promise<DayArtifactDoc | null> {
     const dayInput = await this.inputs.loadDay(l);
     await this.dayArtifacts.ensureDayRecorded(dayInput);
-    return this.sevenKeys.ensureKeys(dayInput, snap, { onFailure });
+    return this.sevenKeys.ensureKeys(dayInput, snap, { onFailure, force });
   }
 
   /** Seam so specs can pin the clock. */
