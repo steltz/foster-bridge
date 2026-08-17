@@ -1,0 +1,237 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { BenchmarkRepository, DayArtifactDoc } from './benchmark.repository';
+import { CloudInputsService, DayListing, InputsSnapshot } from './cloud-inputs.service';
+import { DayArtifactsService } from './day-artifacts.service';
+import { SevenKeysService, KeysFailure } from './seven-keys/seven-keys.service';
+import { BenchmarkRunLock } from './run-lock';
+
+/** Attempts per day before the job stops for manual investigation. */
+export const MAX_DAY_ATTEMPTS = 3;
+/** Must match SevenKeysService's LOOKBACK_DAYS — used only by the `from` guard. */
+const LOOKBACK_DAYS = 3;
+
+export type KeysBackfillState = 'running' | 'done' | 'cancelled' | 'failed';
+export type KeysFailureKind = KeysFailure['kind'] | 'timeout';
+
+export interface KeysBackfillFailure {
+  day: string;
+  attempts: number;
+  kind: KeysFailureKind;
+  message: string;
+  mismatches: string[];
+}
+
+export interface KeysBackfillSnapshot {
+  state: KeysBackfillState;
+  flagshipAlias: string;
+  from: string | null;
+  to: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+  currentDay: string | null;
+  cancelRequested: boolean;
+  counts: { candidates: number; processed: number; generated: number; reused: number; failed: number };
+  reducedLookback: { day: string; missing: string[] }[];
+  failures: KeysBackfillFailure[];
+  error: string | null;
+  progress: { avgSecondsPerDay: number | null; etaIso: string | null };
+}
+
+type DayOutcome = 'generated' | 'reused' | 'failed' | 'cancelled';
+
+/**
+ * Corpus-wide seven-keys generation, strictly sequential and oldest-first so
+ * every day's lookback analyst sees three finalized prior assessments. The job
+ * object is in-memory and disposable — durable state is the KEYS artifacts, so
+ * resume is just a re-POST and already-built days short-circuit on one read.
+ */
+@Injectable()
+export class KeysBackfillService {
+  private readonly logger = new Logger(KeysBackfillService.name);
+  private job: KeysBackfillSnapshot | null = null;
+  private cancelRequested = false;
+  /** Test seam: the detached loop, awaitable. */
+  private loopPromise: Promise<void> = Promise.resolve();
+
+  constructor(
+    private readonly inputs: CloudInputsService,
+    private readonly dayArtifacts: DayArtifactsService,
+    private readonly sevenKeys: SevenKeysService,
+    private readonly repo: BenchmarkRepository,
+    private readonly lock: BenchmarkRunLock,
+    private readonly config: ConfigService,
+  ) {}
+
+  start(opts: { from?: string; to?: string }): KeysBackfillSnapshot {
+    this.lock.acquire('keys-backfill');
+    this.cancelRequested = false;
+    this.job = {
+      state: 'running',
+      flagshipAlias: this.sevenKeys.lineageAlias,
+      from: opts.from ?? null,
+      to: opts.to ?? null,
+      startedAt: new Date(this.nowMs()).toISOString(),
+      finishedAt: null,
+      currentDay: null,
+      cancelRequested: false,
+      counts: { candidates: 0, processed: 0, generated: 0, reused: 0, failed: 0 },
+      reducedLookback: [],
+      failures: [],
+      error: null,
+      progress: { avgSecondsPerDay: null, etaIso: null },
+    };
+    // .catch so a throw in runLoop's finally can never become an unhandled
+    // rejection that kills the process hosting a 40-hour job.
+    this.loopPromise = this.runLoop(this.job, opts).catch((err) =>
+      this.logger.error(`keys-backfill loop crashed: ${(err as Error).message}`),
+    );
+    return structuredClone(this.job);
+  }
+
+  status(): KeysBackfillSnapshot | null {
+    return this.job ? structuredClone(this.job) : null;
+  }
+
+  cancel(): KeysBackfillSnapshot | null {
+    if (!this.job) return null;
+    if (this.job.state === 'running') {
+      this.cancelRequested = true;
+      this.job.cancelRequested = true;
+    }
+    return structuredClone(this.job);
+  }
+
+  private async runLoop(job: KeysBackfillSnapshot, opts: { from?: string; to?: string }): Promise<void> {
+    try {
+      const snap = await this.inputs.snapshot();
+      // A bucket/prefix/permissions failure must not read as "done, 0 days".
+      if (!snap.days.length) {
+        throw new Error('corpus scan returned no committed days — check the bucket prefix and credentials');
+      }
+      // generate() throws on a null methods doc; preflight it into a clean
+      // job-level failure instead of three opaque day failures.
+      if (!snap.methodsDoc) {
+        throw new Error('methods doc missing — PUT /knowledge/methods before running the keys backfill');
+      }
+
+      const all = [...snap.days].sort((a, b) => a.date.localeCompare(b.date));
+      const inRange = all.filter((d) => this.inWindow(d, opts));
+      job.counts.candidates = inRange.length;
+      job.from = inRange[0]?.day ?? null;
+      job.to = inRange[inRange.length - 1]?.day ?? null;
+      if (inRange.length) await this.assertLookbackReady(job, all, inRange[0]);
+      this.logger.log(`keys-backfill: ${inRange.length} candidate days for lineage ${job.flagshipAlias}`);
+
+      for (const l of inRange) {
+        if (this.cancelRequested) {
+          job.state = 'cancelled';
+          break;
+        }
+        job.currentDay = l.day;
+        const outcome = await this.runDay(job, l, snap);
+        job.currentDay = null;
+        if (outcome === 'cancelled') {
+          job.state = 'cancelled';
+          break;
+        }
+        job.counts.processed += 1;
+        if (outcome === 'failed') {
+          job.state = 'failed';
+          job.error = `day ${l.day} failed (${job.failures[job.failures.length - 1]?.kind}) — investigate before re-POSTing; later days were not attempted`;
+          this.logger.error(job.error);
+          break;
+        }
+      }
+      if (job.state === 'running') job.state = 'done';
+    } catch (err) {
+      job.state = 'failed';
+      job.error = err instanceof Error ? err.message : String(err);
+      this.logger.error(`keys-backfill failed: ${job.error}`);
+    } finally {
+      job.currentDay = null;
+      job.finishedAt = new Date(this.nowMs()).toISOString();
+      this.lock.release('keys-backfill');
+      this.logger.log(
+        `keys-backfill ${job.state}: ${job.counts.generated} generated, ${job.counts.reused} reused, ${job.counts.failed} failed`,
+      );
+    }
+  }
+
+  /**
+   * Starting mid-corpus would generate the window's first days with reduced
+   * lookback, and the reuse rule would then freeze them. Refuse instead.
+   * Fewer than LOOKBACK_DAYS priors existing at all (a `from` at the corpus
+   * start) is fine.
+   */
+  private async assertLookbackReady(job: KeysBackfillSnapshot, all: DayListing[], first: DayListing): Promise<void> {
+    const idx = all.findIndex((d) => d.day === first.day);
+    const priors = all.slice(Math.max(0, idx - LOOKBACK_DAYS), idx);
+    const missing: string[] = [];
+    for (const p of priors) {
+      const doc = await this.repo.getKeysArtifact(p.day, job.flagshipAlias);
+      if (!doc?.verified) missing.push(p.day);
+    }
+    if (missing.length) {
+      throw new Error(
+        `refusing to start at ${first.day}: prior day(s) ${missing.join(', ')} have no KEYS for lineage ${job.flagshipAlias}, so the window's first days would be generated with reduced lookback. Omit "from" to build the whole corpus.`,
+      );
+    }
+  }
+
+  /** Inclusive MMDDYYYY window against the listing's YYYY-MM-DD date. */
+  private inWindow(l: DayListing, opts: { from?: string; to?: string }): boolean {
+    const iso = (d: string) => `${d.slice(4, 8)}-${d.slice(0, 2)}-${d.slice(2, 4)}`;
+    if (opts.from && l.date < iso(opts.from)) return false;
+    if (opts.to && l.date > iso(opts.to)) return false;
+    return true;
+  }
+
+  private async runDay(job: KeysBackfillSnapshot, l: DayListing, snap: InputsSnapshot): Promise<DayOutcome> {
+    const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
+    if (existing?.verified && !existing.lookbackMissing?.length) {
+      job.counts.reused += 1;
+      return 'reused';
+    }
+    if (existing?.verified) {
+      this.logger.log(
+        `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing.lookbackMissing!.join(', ')}) — regenerating`,
+      );
+    }
+    const doc = await this.generateDay(l, snap, () => undefined);
+    if (doc) {
+      job.counts.generated += 1;
+      this.recordReducedLookback(job, l.day, doc);
+      return 'generated';
+    }
+    job.counts.failed += 1;
+    job.failures.push({ day: l.day, attempts: 1, kind: 'error', message: 'generation failed', mismatches: [] });
+    return 'failed';
+  }
+
+  protected recordReducedLookback(job: KeysBackfillSnapshot, day: string, doc: DayArtifactDoc): void {
+    if (!doc.lookbackMissing?.length) return;
+    job.reducedLookback.push({ day, missing: doc.lookbackMissing });
+    this.logger.warn(`keys-backfill ${day}: generated with reduced lookback — ${doc.lookbackMissing.join(', ')}`);
+  }
+
+  protected async generateDay(
+    l: DayListing,
+    snap: InputsSnapshot,
+    onFailure: (f: KeysFailure) => void,
+  ): Promise<DayArtifactDoc | null> {
+    const dayInput = await this.inputs.loadDay(l);
+    await this.dayArtifacts.ensureDayRecorded(dayInput);
+    return this.sevenKeys.ensureKeys(dayInput, snap, { onFailure });
+  }
+
+  /** Seam so specs can pin the clock. */
+  protected nowMs(): number {
+    return Date.now();
+  }
+
+  /** Seam so specs skip real backoff waits. */
+  protected sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
