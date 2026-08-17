@@ -1,0 +1,20 @@
+CLAUDE.md
+  s_45cdafe2b2bb50::t_aefbe308798d0c 95-98
+  s_45cdafe2b2bb50::t_255194b43435ee 63-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "0c83b4689a621a9f3fcf6f7ebdeb1bde39bdc2c0",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
