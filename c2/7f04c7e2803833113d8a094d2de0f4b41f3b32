@@ -1,0 +1,27 @@
+backend/src/benchmark/keys-era-reset.ts
+  s_45cdafe2b2bb50::t_a0eec0756dad9e 22-32
+  s_45cdafe2b2bb50::t_df6747b586572b 52-62
+backend/scripts/reset-keys-era.mjs
+  s_45cdafe2b2bb50::t_3d187e635cb9f4 69-80
+  s_45cdafe2b2bb50::t_88348824bc6d05 24
+  s_45cdafe2b2bb50::t_3f8b77792a1c60 6-9,13-15
+  s_45cdafe2b2bb50::t_9132a806a6168b 89-91
+backend/src/benchmark/keys-era-reset.spec.ts
+  s_45cdafe2b2bb50::t_39ee18c64f56a5 31-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c27f04c7e2803833113d8a094d2de0f4b41f3b32",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
