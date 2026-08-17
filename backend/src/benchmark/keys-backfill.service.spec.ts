@@ -348,6 +348,62 @@ describe('KeysBackfillService', () => {
     expect(job.failures[0].message).toMatch(/re-POST to re-snapshot/i);
   });
 
+  it('cancel lets the in-flight day finish, then stops before the next day', async () => {
+    const seen: string[] = [];
+    let svc: KeysBackfillService;
+    const ensureKeys = jest.fn((d: { day: string }) => {
+      seen.push(d.day);
+      svc.cancel();
+      return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
+    });
+    const built = build({ ensureKeys });
+    svc = built.service;
+    svc.start({});
+    await settle(svc);
+
+    const job = svc.status()!;
+    expect(seen).toEqual(['01022025']);
+    expect(job.state).toBe('cancelled');
+    expect(job.cancelRequested).toBe(true);
+    expect(job.counts.generated).toBe(1);
+    expect(built.lock.heldBy).toBeNull();
+  });
+
+  it('cancel before any job exists returns null', () => {
+    expect(build().service.cancel()).toBeNull();
+  });
+
+  it('shutdown hooks request cancellation', async () => {
+    const { service } = build();
+    service.start({});
+    service.onApplicationShutdown();
+    expect(service.status()!.cancelRequested).toBe(true);
+    await settle(service);
+    expect(service.status()!.state).toBe('cancelled');
+  });
+
+  it('reports avgSecondsPerDay from generated days and an eta', async () => {
+    const { service } = build();
+    let clock = Date.parse('2026-08-16T00:00:00.000Z');
+    jest
+      .spyOn(service as never as { nowMs: () => number }, 'nowMs')
+      .mockImplementation(() => (clock += 10_000));
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.progress.avgSecondsPerDay).toBe(10);
+    expect(job.progress.etaIso).not.toBeNull();
+  });
+
+  it('leaves progress null when every day was reused', async () => {
+    const getKeysArtifact = jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] }));
+    const { service } = build({ getKeysArtifact });
+    service.start({});
+    await settle(service);
+    expect(service.status()!.progress.avgSecondsPerDay).toBeNull();
+  });
+
   it('retries a transient Firestore error on the classification read', async () => {
     let reads = 0;
     const getKeysArtifact = jest.fn(() => {

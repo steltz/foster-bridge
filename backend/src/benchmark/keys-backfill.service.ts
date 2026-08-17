@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationShutdown, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkRepository, DayArtifactDoc } from './benchmark.repository';
 import { CloudInputsService, DayListing, InputsSnapshot } from './cloud-inputs.service';
@@ -10,6 +10,8 @@ import { BenchmarkRunLock } from './run-lock';
 export const MAX_DAY_ATTEMPTS = 3;
 /** Must match SevenKeysService's LOOKBACK_DAYS — used only by the `from` guard. */
 const LOOKBACK_DAYS = 3;
+/** Sliding window of generated-day durations feeding the ETA. */
+const PROGRESS_WINDOW = 10;
 
 export type KeysBackfillState = 'running' | 'done' | 'cancelled' | 'failed';
 export type KeysFailureKind = KeysFailure['kind'] | 'timeout';
@@ -56,10 +58,12 @@ const SNAPSHOT_MISMATCH = /changed since the run snapshot/;
  * resume is just a re-POST and already-built days short-circuit on one read.
  */
 @Injectable()
-export class KeysBackfillService {
+export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdown {
   private readonly logger = new Logger(KeysBackfillService.name);
   private job: KeysBackfillSnapshot | null = null;
   private cancelRequested = false;
+  /** Seconds per GENERATED day, most recent PROGRESS_WINDOW entries. */
+  private generatedDurations: number[] = [];
   /** Test seam: the detached loop, awaitable. */
   private loopPromise: Promise<void> = Promise.resolve();
 
@@ -75,6 +79,7 @@ export class KeysBackfillService {
   start(opts: { from?: string; to?: string }): KeysBackfillSnapshot {
     this.lock.acquire('keys-backfill');
     this.cancelRequested = false;
+    this.generatedDurations = [];
     this.job = {
       state: 'running',
       flagshipAlias: this.sevenKeys.lineageAlias,
@@ -111,6 +116,42 @@ export class KeysBackfillService {
     return structuredClone(this.job);
   }
 
+  /**
+   * A 20-40 hour run WILL meet a SIGTERM. Both lifecycle phases set the flag so
+   * no further day starts regardless of provider ordering; the in-flight
+   * attempt finishes and its artifact either saved or did not.
+   */
+  onModuleDestroy(): void {
+    this.requestShutdownCancel();
+  }
+
+  onApplicationShutdown(): void {
+    this.requestShutdownCancel();
+  }
+
+  private requestShutdownCancel(): void {
+    if (this.job?.state === 'running' && !this.cancelRequested) {
+      this.logger.log('shutdown: cancelling the running keys-backfill job');
+      this.cancelRequested = true;
+      this.job.cancelRequested = true;
+    }
+  }
+
+  /**
+   * Averages GENERATED days only. A cumulative average including reused days
+   * makes the common resume case (300 reused at ~1s, then 52 at ~7min) report
+   * "done in a minute" for a six-hour job.
+   */
+  private updateProgress(job: KeysBackfillSnapshot): void {
+    if (!this.generatedDurations.length) return;
+    const avg = this.generatedDurations.reduce((a, b) => a + b, 0) / this.generatedDurations.length;
+    const remaining = Math.max(0, job.counts.candidates - job.counts.processed);
+    job.progress = {
+      avgSecondsPerDay: Math.round(avg),
+      etaIso: new Date(this.nowMs() + remaining * avg * 1000).toISOString(),
+    };
+  }
+
   private async runLoop(job: KeysBackfillSnapshot, opts: { from?: string; to?: string }): Promise<void> {
     try {
       const snap = await this.inputs.snapshot();
@@ -143,13 +184,19 @@ export class KeysBackfillService {
           break;
         }
         job.currentDay = l.day;
+        const startedMs = this.nowMs();
         const outcome = await this.runDay(job, l, snap);
         job.currentDay = null;
         if (outcome === 'cancelled') {
           job.state = 'cancelled';
           break;
         }
+        if (outcome === 'generated') {
+          this.generatedDurations.push((this.nowMs() - startedMs) / 1000);
+          if (this.generatedDurations.length > PROGRESS_WINDOW) this.generatedDurations.shift();
+        }
         job.counts.processed += 1;
+        this.updateProgress(job);
         if (outcome === 'failed') {
           job.state = 'failed';
           job.error = `day ${l.day} failed (${job.failures[job.failures.length - 1]?.kind}) — investigate before re-POSTing; later days were not attempted`;
