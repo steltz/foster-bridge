@@ -1,0 +1,34 @@
+backend/src/benchmark/keys-backfill.service.spec.ts
+  s_45cdafe2b2bb50::t_c591d563607629 64
+  s_45cdafe2b2bb50::t_bc330f371b360a 446-509
+backend/src/benchmark/keys-backfill.service.ts
+  s_45cdafe2b2bb50::t_4dd6f358f1520b 374-394
+  s_45cdafe2b2bb50::t_142ef1afa5cb9d 51-58
+  s_45cdafe2b2bb50::t_331424843db5c9 181
+  s_45cdafe2b2bb50::t_13dca8e99d4e80 256-259
+  s_45cdafe2b2bb50::t_1b8773f0033001 235-237
+  s_45cdafe2b2bb50::t_aee49538c90124 165
+  s_45cdafe2b2bb50::t_be6eab5d8509f5 298-301
+backend/src/config/configuration.spec.ts
+  s_45cdafe2b2bb50::t_f88355928a5186 96-97,99
+  s_45cdafe2b2bb50::t_9299d30ce7eff7 106,110
+backend/src/config/configuration.ts
+  s_45cdafe2b2bb50::t_dd836b017206d3 159-163
+  s_45cdafe2b2bb50::t_9ebfb3b744dde5 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4e7fcf13642454993f9a7a89310d5726545266e3",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
