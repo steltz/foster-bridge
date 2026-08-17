@@ -55,9 +55,19 @@ function makeDeps() {
     priorCompleteDays: jest.fn(() => []),
     outcomeRecapForDay: jest.fn(async () => null),
   };
+  const ensurePdf = jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' });
+  const ensureTranscript = jest.fn().mockResolvedValue(undefined);
   const dayArtifacts = {
-    ensurePdf: jest.fn().mockResolvedValue({ gcsPath: 'gs', providerFileId: 'file_1', contentHash: 'h' }),
-    ensureTranscript: jest.fn().mockResolvedValue(undefined),
+    ensurePdf,
+    ensureTranscript,
+    // Delegates like the real ensureDayRecorded, so `ensurePdf not called` still
+    // proves assembleDay never ran for a skipped day.
+    ensureDayRecorded: jest.fn(async (day: { day: string; prefix: string; pdf: Buffer; tpTranscript: string; recapTranscript: string; recapFileName: string }) => {
+      const pdf = await ensurePdf(day.day, day.prefix, day.pdf);
+      await ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, day.tpTranscript);
+      await ensureTranscript(day.day, 'recapTranscript', day.recapFileName, day.recapTranscript);
+      return pdf;
+    }),
   };
   // Provider-neutral fake: proves the benchmark is provider-agnostic — no
   // Anthropic SDK involved. Read back what was submitted via fake.submittedBatches.

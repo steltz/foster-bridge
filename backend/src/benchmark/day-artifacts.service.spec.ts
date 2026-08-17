@@ -189,4 +189,28 @@ describe('DayArtifactsService', () => {
     expect(bucket.saved['benchmark/es/07012026/07012026_ES_TP.md']).toBeDefined();
     expect((await repo.getDayArtifact('07012026', 'tpTranscript'))?.content).toBe('PLAN TEXT');
   });
+
+  it('ensureDayRecorded mirrors the pdf and both transcripts and returns the pdf artifact', async () => {
+    const { svc } = await build();
+    const day = {
+      day: '01022025',
+      date: '2025-01-02',
+      prefix: '01022025',
+      recapDate: '12312024',
+      fileSha256: { tradePlanMd: 'a', tradePlanPdf: 'b', recap: 'c' },
+      pdf: Buffer.from('pdf-bytes'),
+      tpTranscript: 'tp text',
+      recapTranscript: 'recap text',
+      recapFileName: '12312024_ES_RECAP.md',
+    };
+    const ensurePdf = jest.spyOn(svc, 'ensurePdf');
+    const ensureTranscript = jest.spyOn(svc, 'ensureTranscript');
+
+    const pdf = await svc.ensureDayRecorded(day as never);
+
+    expect(ensurePdf).toHaveBeenCalledWith('01022025', '01022025', day.pdf);
+    expect(ensureTranscript).toHaveBeenCalledWith('01022025', 'tpTranscript', '01022025_ES_TP.md', 'tp text');
+    expect(ensureTranscript).toHaveBeenCalledWith('01022025', 'recapTranscript', '12312024_ES_RECAP.md', 'recap text');
+    expect(pdf.providerFileId).toBeDefined();
+  });
 });

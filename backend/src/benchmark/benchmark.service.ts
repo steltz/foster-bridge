@@ -351,9 +351,7 @@ export class BenchmarkService {
 
   // Store the PDF + transcripts, returning the assembled day bundle.
   private async assembleDay(day: DayInput): Promise<{ dayBundle: DayBundle }> {
-    const pdf = await this.dayArtifacts.ensurePdf(day.day, day.prefix, day.pdf);
-    await this.dayArtifacts.ensureTranscript(day.day, 'tpTranscript', `${day.prefix}_ES_TP.md`, day.tpTranscript);
-    await this.dayArtifacts.ensureTranscript(day.day, 'recapTranscript', day.recapFileName, day.recapTranscript);
+    const pdf = await this.dayArtifacts.ensureDayRecorded(day);
     return {
       dayBundle: { date: day.date, fileId: pdf.providerFileId, tpTranscript: day.tpTranscript, recapTranscript: day.recapTranscript },
     };
