@@ -12,6 +12,7 @@ import { CacheWarmer } from './cache-warmer';
 import { ScoreboardService } from './scoreboard.service';
 import { SamplesService } from './samples.service';
 import { BenchmarkRunLock } from './run-lock';
+import { KeysBackfillService } from './keys-backfill.service';
 
 @Module({
   // LlmModule (LLM_PROVIDER) + FirebaseModule + ContractsModule are @Global
@@ -32,7 +33,11 @@ import { BenchmarkRunLock } from './run-lock';
     CacheWarmer,
     ScoreboardService,
     SamplesService,
+    KeysBackfillService,
   ],
-  exports: [BenchmarkService, ScoreboardService, BenchmarkRepository, SamplesService, BenchmarkRunLock],
+  // KeysBackfillService MUST be exported: BenchmarkController is declared in
+  // app.module.ts, not here, so it resolves constructor deps only through this
+  // exports array — provider-only registration passes jest and fails at boot.
+  exports: [BenchmarkService, ScoreboardService, BenchmarkRepository, SamplesService, BenchmarkRunLock, KeysBackfillService],
 })
 export class BenchmarkModule {}

@@ -1,11 +1,13 @@
 import { Test } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BenchmarkController } from './benchmark.controller';
 import { BenchmarkService } from './benchmark.service';
 import { ScoreboardService } from './scoreboard.service';
 import { BenchmarkRepository } from './benchmark.repository';
 import { SamplesService } from './samples.service';
+import { KeysBackfillService } from './keys-backfill.service';
+import { LockHeldError } from './run-lock';
 
 async function build() {
   const service = { run: jest.fn().mockResolvedValue({ batchesSubmitted: 1, cellsQueued: 5, daysSkipped: [] }) };
@@ -20,6 +22,11 @@ async function build() {
     list: jest.fn().mockResolvedValue([{ name: 's1', count: 1, poolSize: 10, firstDay: '01062025', lastDay: '01062025', createdAt: 't' }]),
     get: jest.fn().mockResolvedValue({ name: 's1', days: ['01062025'], requestedCount: 1, poolSize: 10, from: null, to: null, createdAt: 't' }),
   };
+  const keysBackfill = {
+    start: jest.fn().mockReturnValue({ state: 'running', from: null, to: null }),
+    status: jest.fn().mockReturnValue({ state: 'running', startedAt: 'T0' }),
+    cancel: jest.fn().mockReturnValue({ state: 'cancelled', startedAt: 'T0' }),
+  };
   const moduleRef = await Test.createTestingModule({
     controllers: [BenchmarkController],
     providers: [
@@ -28,9 +35,10 @@ async function build() {
       { provide: BenchmarkRepository, useValue: repo },
       { provide: ConfigService, useValue: config },
       { provide: SamplesService, useValue: samples },
+      { provide: KeysBackfillService, useValue: keysBackfill },
     ],
   }).compile();
-  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config, samples };
+  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config, samples, keysBackfill };
 }
 
 describe('BenchmarkController', () => {
@@ -104,5 +112,58 @@ describe('BenchmarkController samples', () => {
     const notFound = new NotFoundException('nope');
     samples.get.mockRejectedValue(notFound);
     await expect(ctrl.getSample('nope')).rejects.toBe(notFound);
+  });
+});
+
+describe('BenchmarkController keys-backfill', () => {
+  it('POST requires confirm=true', async () => {
+    const { ctrl, keysBackfill } = await build();
+    expect(() => ctrl.startKeysBackfill(undefined, undefined, undefined)).toThrow(BadRequestException);
+    expect(keysBackfill.start).not.toHaveBeenCalled();
+  });
+
+  it('POST starts the job and returns its snapshot', async () => {
+    const { ctrl, keysBackfill } = await build();
+    const res = ctrl.startKeysBackfill('true', undefined, undefined);
+    expect(keysBackfill.start).toHaveBeenCalledWith({ from: undefined, to: undefined });
+    expect(res.state).toBe('running');
+  });
+
+  it('POST rejects a malformed date and a reversed range', async () => {
+    const { ctrl } = await build();
+    expect(() => ctrl.startKeysBackfill('true', '2025-01-02', undefined)).toThrow(BadRequestException);
+    expect(() => ctrl.startKeysBackfill('true', '01062025', '01022025')).toThrow(BadRequestException);
+  });
+
+  it('POST maps a held lock to 409', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.start.mockImplementation(() => {
+      throw new LockHeldError('benchmark-run');
+    });
+    expect(() => ctrl.startKeysBackfill('true', undefined, undefined)).toThrow(ConflictException);
+  });
+
+  it('GET 404s when no job has run', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.status.mockReturnValue(null);
+    expect(() => ctrl.keysBackfillStatus()).toThrow(NotFoundException);
+  });
+
+  it('DELETE requires a matching startedAt', async () => {
+    const { ctrl } = await build();
+    expect(() => ctrl.cancelKeysBackfill('wrong')).toThrow(ConflictException);
+  });
+
+  it('DELETE cancels when startedAt matches', async () => {
+    const { ctrl, keysBackfill } = await build();
+    const res = ctrl.cancelKeysBackfill('T0');
+    expect(keysBackfill.cancel).toHaveBeenCalled();
+    expect(res.state).toBe('cancelled');
+  });
+
+  it('DELETE 404s when no job has run', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.status.mockReturnValue(null);
+    expect(() => ctrl.cancelKeysBackfill('T0')).toThrow(NotFoundException);
   });
 });

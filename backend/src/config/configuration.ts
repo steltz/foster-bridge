@@ -39,6 +39,8 @@ export interface AppConfig {
       qty: number;
       management: { triggerR: number; takeFraction: number; moveStopToR: number } | null;
     };
+    keysBackfillDayTimeoutMs: number;
+    keysBackfillRetryDelaysMs: number[];
   };
   eminiplayer: {
     username?: string;
@@ -150,6 +152,16 @@ export default (): AppConfig => ({
               moveStopToR: parseFloat(process.env.BENCHMARK_MGMT_MOVE_STOP_TO_R ?? '0'),
             },
     },
+    // Ceiling for one day's whole attempt (loadDay + record + seven-keys).
+    // A day is 4-6 LLM calls at high effort, ~3.5 min of model time.
+    keysBackfillDayTimeoutMs: parseInt(process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS ?? '900000', 10),
+    // Backoff before retry attempts 2 and 3. Without it, SevenKeysService's own
+    // withRetry means ~9 immediate provider calls, so any brief rate-limit
+    // window would end a 40-hour run.
+    keysBackfillRetryDelaysMs: (process.env.BENCHMARK_KEYS_RETRY_DELAYS_MS ?? '30000,180000')
+      .split(',')
+      .map((v) => parseInt(v.trim(), 10))
+      .filter((v) => Number.isFinite(v)),
   },
   eminiplayer: {
     // `|| undefined`, not a bare read: .env.example ships these keys empty, so
