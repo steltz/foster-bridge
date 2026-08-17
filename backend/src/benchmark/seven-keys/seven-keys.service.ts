@@ -19,6 +19,9 @@ export interface KeysArtifact {
   lookbackMissing: string[]; // recent prior complete day(s) with no KEYS (reduced-lookback signal; [] normally)
 }
 
+/** Prior days the lookback analyst calibrates against, newest-first then reversed. */
+const LOOKBACK_DAYS = 3;
+
 @Injectable()
 export class SevenKeysService {
   private readonly logger = new Logger(SevenKeysService.name);
@@ -94,23 +97,33 @@ export class SevenKeysService {
     // later days is observable.
     const prior = this.inputs.priorCompleteDays(day.day, snap);
     const haveKeys = new Set<string>();
-    const withKeys: LookbackEntry[] = [];
-    for (const p of prior) {
+    // Walk NEWEST-first and stop once LOOKBACK_DAYS are in hand. Scanning the
+    // whole prior list and slicing the tail costs one Firestore read (plus a
+    // recap download) per prior day and discards all but three — O(days²) over
+    // a corpus-wide sequential build, where every prior day has KEYS.
+    const newestFirst: LookbackEntry[] = [];
+    for (let i = prior.length - 1; i >= 0 && newestFirst.length < LOOKBACK_DAYS; i--) {
+      const p = prior[i];
       // Same-lineage lookback: a flagship calibrates only against its own prior
       // assessments — Kimi never reads Fable's keys (nor vice versa).
       const doc = await this.repo.getKeysArtifact(p.day, this.flagshipAlias);
       if (!doc?.content) continue;
       haveKeys.add(p.day);
       const outcomeRecap = await this.inputs.outcomeRecapForDay(p.day, snap);
-      withKeys.push({
+      newestFirst.push({
         day: p.day,
         keysContent: doc.content,
         outcomeRecap,
       });
     }
-    const lookbackSet = withKeys.slice(-3); // 3 most recent, still oldest-first
+    // The loop always reaches the most recent LOOKBACK_DAYS prior days before it
+    // can stop, so haveKeys is authoritative for the lookbackMissing check below.
+    const lookbackSet = newestFirst.reverse(); // oldest-first, as lookbackPrompt expects
     const lookbackSources = lookbackSet.map((l) => `${l.day}_ES_KEYS.md`);
-    const lookbackMissing = prior.slice(-3).filter((p) => !haveKeys.has(p.day)).map((p) => p.day);
+    const lookbackMissing = prior
+      .slice(-LOOKBACK_DAYS)
+      .filter((p) => !haveKeys.has(p.day))
+      .map((p) => p.day);
 
     // Each call is retried on a transient upstream failure so one flaky step does
     // not throw away the prior flagship calls (a 422 refusal is NOT retried).
