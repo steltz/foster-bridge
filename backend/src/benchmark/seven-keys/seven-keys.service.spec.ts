@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { HttpException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
-import { SevenKeysService } from './seven-keys.service';
+import { KeysFailure, SevenKeysService } from './seven-keys.service';
 import { BenchmarkRepository } from '../benchmark.repository';
 import { CloudInputsService, DayInput, InputsSnapshot } from '../cloud-inputs.service';
 import { DayArtifactsService } from '../day-artifacts.service';
@@ -459,5 +459,62 @@ describe('SevenKeysService.ensureKeys', () => {
     expect(out).toBeNull();
     expect(genSpy).not.toHaveBeenCalled(); // never regenerate — would break in-flight artifactSha256
     expect(deps.repo.saveKeysArtifact).not.toHaveBeenCalled();
+  });
+
+  it('exposes the flagship lineage alias from config', async () => {
+    const svc = await build(makeDeps(), { 'benchmark.model': 'kimi-k3' });
+    expect(svc.lineageAlias).toBe('k3');
+  });
+
+  it('defaults the lineage alias to the anthropic flagship', async () => {
+    const svc = await build(makeDeps());
+    expect(svc.lineageAlias).toBe('fable');
+  });
+
+  it('reports a verifier rejection through onFailure as kind "unverified"', async () => {
+    const svc = await build(makeDeps());
+    jest.spyOn(svc, 'generate').mockResolvedValue({
+      verified: false,
+      mismatches: ['7495.25-7502.75: side mismatch'],
+      artifact: '# x',
+      lookbackSources: [],
+      lookbackMissing: [],
+    });
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
+    expect(doc).toBeNull();
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ kind: 'unverified', mismatches: ['7495.25-7502.75: side mismatch'] });
+  });
+
+  it('reports a generation throw through onFailure as kind "error"', async () => {
+    const svc = await build(makeDeps());
+    jest.spyOn(svc, 'generate').mockRejectedValue(new Error('moonshot 529 rate limited'));
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
+    expect(doc).toBeNull();
+    expect(seen[0].kind).toBe('error');
+    expect(seen[0].message).toContain('moonshot 529 rate limited');
+  });
+
+  it('reports an orphaned-pin anomaly through onFailure as kind "refused"', async () => {
+    const deps = makeDeps();
+    deps.repo.getKeysArtifact.mockResolvedValue(null);
+    deps.repo.pinnedKeysHashes.mockResolvedValue(new Set(['dangling-kh']));
+    const svc = await build(deps);
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
+    expect(doc).toBeNull();
+    expect(seen[0].kind).toBe('refused');
+    expect(seen[0].message).toContain('dangling-kh');
+  });
+
+  it('does not call onFailure when the artifact verifies', async () => {
+    const deps = makeDeps();
+    queueGenerationRun(deps.fake, { lookback: false });
+    const svc = await build(deps);
+    const onFailure = jest.fn();
+    await svc.ensureKeys(DAY, SNAP, { onFailure });
+    expect(onFailure).not.toHaveBeenCalled();
   });
 });
