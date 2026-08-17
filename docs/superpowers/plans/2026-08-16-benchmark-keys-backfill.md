@@ -4,36 +4,39 @@
 
 **Goal:** Add a detached, resumable, strictly sequential job that generates seven-keys KEYS artifacts for the entire committed eminiplayer corpus, so every day is graded with a full 3-day lookback.
 
-**Architecture:** A new in-memory singleton `KeysBackfillService` walks committed days oldest-first, calling the existing `SevenKeysService.ensureKeys` one day at a time. Durable state lives in the KEYS artifacts themselves, so a re-POST resumes. A new shared `BenchmarkRunLock` makes the job and `POST /benchmark/run` mutually exclusive, closing the `ensureKeys` race that the old private `runInProgress` flag guarded against. A day that fails three attempts stops the job for manual investigation rather than leaving a lookback hole.
+**Architecture:** A new in-memory singleton `KeysBackfillService` walks committed days oldest-first, calling the existing `SevenKeysService.ensureKeys` one day at a time. Durable state lives in the KEYS artifacts, so a re-POST resumes. A shared `BenchmarkRunLock` makes the job and `POST /benchmark/run` mutually exclusive. A day that fails three attempts stops the job for manual investigation rather than leaving a lookback hole.
 
-**Tech Stack:** NestJS 10, TypeScript, Jest + ts-jest (`rootDir: src`, `testRegex: .*\.spec\.ts$`), firebase-admin (Firestore + Storage), pnpm.
+**Tech Stack:** NestJS 10, TypeScript, Jest + ts-jest (`rootDir: src`, `testRegex: .*\.spec\.ts$`), firebase-admin, pnpm.
 
 **Spec:** `docs/superpowers/specs/2026-08-16-benchmark-keys-backfill-design.md`
+**Review this plan answers:** `docs/superpowers/plans/2026-08-16-benchmark-keys-backfill-review.md`
 
 ## Global Constraints
 
-- `LOOKBACK_DAYS` stays **3** and stays hardcoded. Do not change seven-keys prompts, the current-day/lookback weighting rule, or the fidelity-only verifier.
-- Max attempts per day is **3**; on exhaustion the job **stops** (`state: 'failed'`). Never continue past a failed day.
-- The job never passes `force` to `ensureKeys` — reuse is the resume mechanism.
-- Job state is **in-memory only**. No persisted ledger, no checkpoint file.
-- Day keys are `MMDDYYYY`; candle/listing dates are `YYYY-MM-DD`.
-- The existing 409 message for a concurrent benchmark run must stay exactly `a benchmark run is already in progress` (existing specs assert it).
-- No auth token guard on these routes (single-operator, local).
-- Tests live under `src/` (jest `rootDir` is `src`); anything under `backend/scripts/` is not test-discovered, so testable logic belongs in `src/`.
-- Run all tests with `npx jest <path>` from `backend/`.
+- `LOOKBACK_DAYS` stays **3** and stays hardcoded. Do not change seven-keys prompts, the weighting rule, or the verifier.
+- Max **3** attempts per day; on exhaustion the job **stops** (`state: 'failed'`). Never continue past a failed day.
+- `refused` (pin anomaly), `timeout`, and a snapshot mismatch are **non-retryable** — stop on the first occurrence.
+- **`ensureKeys` never throws.** It catches everything from `generate()` and returns `null`. All failure classification must come from the `onFailure` callback, never from a `catch` around `ensureKeys`.
+- Reuse requires `verified === true` **and** empty `lookbackMissing`. `verified` alone is written even for degraded artifacts.
+- The job never passes `force`. Job state is **in-memory only**.
+- Day keys are `MMDDYYYY`; listing dates are `YYYY-MM-DD`.
+- The existing 409 message for a concurrent run must stay `a benchmark run is already in progress` (asserted by `/already in progress/i` at `benchmark.service.spec.ts:358`).
+- **Existing specs use `Test.createTestingModule`, never `new Service(...)`.** New constructor params require a new entry in the spec's `providers` array, or that whole spec file fails at `.compile()`.
+- Tests live under `src/` (jest `rootDir` is `src`). `backend/scripts/` is not test-discovered, so logic belongs in `src/`.
+- Run tests with `npx jest <path>` from `backend/`.
 
 ---
 
 ### Task 1: Shared single-flight lock
 
 **Files:**
-- Create: `backend/src/benchmark/run-lock.ts`
-- Create: `backend/src/benchmark/run-lock.spec.ts`
-- Modify: `backend/src/benchmark/benchmark.service.ts` (field at :81, guard at :100-105, constructor)
-- Modify: `backend/src/benchmark/benchmark.module.ts` (providers)
+- Create: `backend/src/benchmark/run-lock.ts`, `backend/src/benchmark/run-lock.spec.ts`
+- Modify: `backend/src/benchmark/benchmark.service.ts` (field `:81`, guard `:97-106`, constructor)
+- Modify: `backend/src/benchmark/benchmark.service.spec.ts` (providers array in `build()`)
+- Modify: `backend/src/benchmark/benchmark.module.ts`
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks.
+- Consumes: nothing.
 - Produces: `BenchmarkRunLock` with `acquire(holder: LockHolder): void`, `release(holder: LockHolder): void`, `get heldBy(): LockHolder | null`; `type LockHolder = 'benchmark-run' | 'keys-backfill'`; `class LockHeldError extends Error { readonly holder: LockHolder }`.
 
 - [ ] **Step 1: Write the failing test**
@@ -57,16 +60,17 @@ describe('BenchmarkRunLock', () => {
   it('rejects a second acquire naming the current holder', () => {
     const lock = new BenchmarkRunLock();
     lock.acquire('keys-backfill');
-    expect(() => lock.acquire('benchmark-run')).toThrow(LockHeldError);
     try {
       lock.acquire('benchmark-run');
+      throw new Error('expected LockHeldError');
     } catch (err) {
+      expect(err).toBeInstanceOf(LockHeldError);
       expect((err as LockHeldError).holder).toBe('keys-backfill');
       expect((err as Error).message).toBe('a keys backfill is already in progress');
     }
   });
 
-  it('uses the legacy wording for a held benchmark run', () => {
+  it('keeps the legacy wording for a held benchmark run', () => {
     const lock = new BenchmarkRunLock();
     lock.acquire('benchmark-run');
     expect(() => lock.acquire('keys-backfill')).toThrow('a benchmark run is already in progress');
@@ -118,9 +122,11 @@ export class LockHeldError extends Error {
 /**
  * Single-flight across everything that calls SevenKeysService.ensureKeys.
  * Two concurrent writers race saveKeysArtifact (last-write-wins) and can orphan
- * a submitted batch's pinned KEYS hash — a permanent per-day wedge. In-memory
- * by design: a process death resets it, which is correct, because nothing is
- * running after a process death.
+ * a submitted batch's pinned KEYS hash — a permanent per-day wedge.
+ *
+ * In-memory, so this assumes a SINGLE backend process. BENCHMARK_SCHEDULER
+ * exists to split API from worker; running the keys backfill in a multi-process
+ * deployment would need a Firestore lease instead. Out of scope by design.
  */
 @Injectable()
 export class BenchmarkRunLock {
@@ -148,22 +154,10 @@ Expected: PASS (6 tests)
 
 - [ ] **Step 5: Wire BenchmarkService onto the lock**
 
-In `backend/src/benchmark/benchmark.service.ts`, delete the `private runInProgress = false;` field (:81) and add the lock to the constructor (append to the existing parameter list):
+In `benchmark.service.ts`: add the import `import { BenchmarkRunLock, LockHeldError } from './run-lock';`, delete `private runInProgress = false;` (`:81`), append `private readonly lock: BenchmarkRunLock,` to the constructor parameter list, and replace the guard block at `:97-106`:
 
 ```ts
-    private readonly lock: BenchmarkRunLock,
-```
-
-Add the import:
-
-```ts
-import { BenchmarkRunLock, LockHeldError } from './run-lock';
-```
-
-Replace the guard block (currently :97-106):
-
-```ts
-    // Single-flight: two concurrent runs racing ensureKeys can orphan a
+    // Single-flight: two concurrent callers racing ensureKeys can orphan a
     // submitted batch's pinned KEYS hash (last-write-wins saveKeysArtifact) —
     // a permanent per-day wedge. Shared with the keys-backfill job.
     try {
@@ -179,16 +173,26 @@ Replace the guard block (currently :97-106):
     }
 ```
 
-- [ ] **Step 6: Register the provider**
+- [ ] **Step 6: Register the provider in the spec's testing module**
 
-In `backend/src/benchmark/benchmark.module.ts`, add `BenchmarkRunLock` to the import list and to `providers` (before `BenchmarkService`), and add it to `exports`.
+`benchmark.service.spec.ts` builds via `Test.createTestingModule({ providers: [BenchmarkService, EnvelopeBuilder, { provide: BenchmarkRepository, useValue: deps.repo }, …] })`. Add the **real** class (not a fake — the concurrency test needs working `heldBy` semantics) to that array:
 
-- [ ] **Step 7: Run the full benchmark suite**
+```ts
+import { BenchmarkRunLock } from './run-lock';
+// …inside providers:
+      BenchmarkRunLock,
+```
+
+- [ ] **Step 7: Register the provider in the module**
+
+In `benchmark.module.ts` import `BenchmarkRunLock`, add it to `providers` (before `BenchmarkService`) **and** to `exports`.
+
+- [ ] **Step 8: Run the full benchmark suite**
 
 Run: `npx jest src/benchmark`
-Expected: PASS — 215+ tests. `benchmark.service.spec.ts` constructs `BenchmarkService` directly, so add `new BenchmarkRunLock()` as the new final constructor argument wherever it is built; the existing "already in progress" assertion must still pass unchanged.
+Expected: PASS — 215 existing + 6 new. The `/already in progress/i` assertion must still pass.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add backend/src/benchmark/run-lock.ts backend/src/benchmark/run-lock.spec.ts backend/src/benchmark/benchmark.service.ts backend/src/benchmark/benchmark.service.spec.ts backend/src/benchmark/benchmark.module.ts
@@ -197,54 +201,101 @@ git commit -m "feat(benchmark): shared single-flight run lock"
 
 ---
 
-### Task 2: Seven-keys seams for the backfill
+### Task 2: Seven-keys failure seam
 
 **Files:**
 - Modify: `backend/src/benchmark/seven-keys/seven-keys.service.ts`
 - Modify: `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts`
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks.
-- Produces: `SevenKeysService.lineageAlias: string` (public getter); `ensureKeys(day, snap, opts?)` where `opts` gains `onUnverified?: (mismatches: string[]) => void`.
+- Consumes: nothing.
+- Produces: `SevenKeysService.lineageAlias: string` (public getter); exported `interface KeysFailure { kind: 'unverified' | 'error' | 'refused'; message: string; mismatches: string[] }`; `ensureKeys(day, snap, opts?)` where `opts` gains `onFailure?: (f: KeysFailure) => void`.
 
-Both additive. `ensureKeys` already returns `DayArtifactDoc | null` and must keep doing so — existing callers are untouched.
+`ensureKeys` still returns `DayArtifactDoc | null` — existing callers are untouched. The seam exists because `ensureKeys` **swallows every generation error**, so `null` alone cannot be diagnosed.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `backend/src/benchmark/seven-keys/seven-keys.service.spec.ts` (reuse whatever `build()`/fake helpers the file already defines; the assertions below are the contract):
+Append inside the existing top-level `describe` in `seven-keys.service.spec.ts`. These use the file's real helpers — `makeDeps()`, `await build(deps, configOverrides)` (returns the service **bare**), and the module-level `DAY` / `SNAP` constants:
 
 ```ts
-  it('exposes the flagship lineage alias', () => {
-    const { service } = build();
-    expect(service.lineageAlias).toBe('k3');
+  it('exposes the flagship lineage alias from config', async () => {
+    const svc = await build(makeDeps(), { 'benchmark.model': 'kimi-k3' });
+    expect(svc.lineageAlias).toBe('k3');
   });
 
-  it('reports verifier mismatches through onUnverified', async () => {
-    const { service, day, snap } = build({
-      verify: { pass: false, mismatches: ['7495.25-7502.75: side mismatch'] },
+  it('defaults the lineage alias to the anthropic flagship', async () => {
+    const svc = await build(makeDeps());
+    expect(svc.lineageAlias).toBe('fable');
+  });
+
+  it('reports a verifier rejection through onFailure as kind "unverified"', async () => {
+    const svc = await build(makeDeps());
+    jest.spyOn(svc, 'generate').mockResolvedValue({
+      verified: false,
+      mismatches: ['7495.25-7502.75: side mismatch'],
+      artifact: '# x',
+      lookbackSources: [],
+      lookbackMissing: [],
     });
-    const seen: string[] = [];
-    const doc = await service.ensureKeys(day, snap, { onUnverified: (m) => seen.push(...m) });
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
     expect(doc).toBeNull();
-    expect(seen).toEqual(['7495.25-7502.75: side mismatch']);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({ kind: 'unverified', mismatches: ['7495.25-7502.75: side mismatch'] });
   });
 
-  it('does not call onUnverified when the artifact verifies', async () => {
-    const { service, day, snap } = build();
-    const onUnverified = jest.fn();
-    await service.ensureKeys(day, snap, { onUnverified });
-    expect(onUnverified).not.toHaveBeenCalled();
+  it('reports a generation throw through onFailure as kind "error"', async () => {
+    const svc = await build(makeDeps());
+    jest.spyOn(svc, 'generate').mockRejectedValue(new Error('moonshot 529 rate limited'));
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
+    expect(doc).toBeNull();
+    expect(seen[0].kind).toBe('error');
+    expect(seen[0].message).toContain('moonshot 529 rate limited');
+  });
+
+  it('reports an orphaned-pin anomaly through onFailure as kind "refused"', async () => {
+    const deps = makeDeps();
+    deps.repo.getKeysArtifact.mockResolvedValue(null);
+    deps.repo.pinnedKeysHashes.mockResolvedValue(new Set(['dangling-kh']));
+    const svc = await build(deps);
+    const seen: KeysFailure[] = [];
+    const doc = await svc.ensureKeys(DAY, SNAP, { onFailure: (f) => seen.push(f) });
+    expect(doc).toBeNull();
+    expect(seen[0].kind).toBe('refused');
+    expect(seen[0].message).toContain('dangling-kh');
+  });
+
+  it('does not call onFailure when the artifact verifies', async () => {
+    const deps = makeDeps();
+    queueGenerationRun(deps.fake, { lookback: false });
+    const svc = await build(deps);
+    const onFailure = jest.fn();
+    await svc.ensureKeys(DAY, SNAP, { onFailure });
+    expect(onFailure).not.toHaveBeenCalled();
   });
 ```
+
+Add `KeysFailure` to the file's existing import from `./seven-keys.service`.
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/benchmark/seven-keys/seven-keys.service.spec.ts`
-Expected: FAIL — `service.lineageAlias` is undefined and `onUnverified` is never invoked.
+Expected: FAIL — `lineageAlias` undefined and `onFailure` never invoked.
 
 - [ ] **Step 3: Write minimal implementation**
 
-In `seven-keys.service.ts`, add the public getter next to the existing private `flagshipAlias` getter:
+In `seven-keys.service.ts`, export the failure type near the top:
+
+```ts
+export interface KeysFailure {
+  kind: 'unverified' | 'error' | 'refused';
+  message: string;
+  mismatches: string[];
+}
+```
+
+Add the public getter beside the private `flagshipAlias` getter:
 
 ```ts
   /** The KEYS lineage this instance reads and writes (e.g. 'k3'). */
@@ -253,40 +304,54 @@ In `seven-keys.service.ts`, add the public getter next to the existing private `
   }
 ```
 
-Widen the `ensureKeys` options type:
+Widen the options:
 
 ```ts
   async ensureKeys(
     day: DayInput,
     snap: InputsSnapshot,
-    opts?: { force?: boolean; pinned?: boolean; onUnverified?: (mismatches: string[]) => void },
+    opts?: { force?: boolean; pinned?: boolean; onFailure?: (f: KeysFailure) => void },
   ): Promise<DayArtifactDoc | null> {
 ```
 
-Find the branch where generation completes and the artifact fails verification (`result.verified` is false, currently returning `null` after logging). Invoke the callback immediately before that `return null`:
+Then invoke it at all four `return null` sites, keeping every existing log line exactly as-is and adding only the callback:
 
-```ts
-    if (!result.verified) {
-      opts?.onUnverified?.(result.mismatches ?? []);
-      this.logger.warn(
-        `Seven-keys verifier failed for ${day.day}: ${(result.mismatches ?? []).join('; ')}`,
-      );
+- The **in-flight-pin anomaly** return — before it:
+  ```ts
+      opts?.onFailure?.({ kind: 'refused', message: msg, mismatches: [] });
+  ```
+  where `msg` is the same string passed to `this.logger.error(...)` on the line above.
+- The **orphaned-pin anomaly** return — same pattern, `kind: 'refused'`.
+- The generation `catch`:
+  ```ts
+    } catch (err) {
+      const message = (err as Error).message;
+      this.logger.error(`Seven-keys generation failed for ${day.day}: ${message}`);
+      opts?.onFailure?.({ kind: 'error', message, mismatches: [] });
       return null;
     }
-```
+  ```
+- The verifier branch:
+  ```ts
+    if (!result.verified) {
+      this.logger.warn(`Seven-keys verifier failed for ${day.day}: ${result.mismatches.join('; ')}`);
+      opts?.onFailure?.({ kind: 'unverified', message: `verifier rejected the artifact: ${result.mismatches.join('; ')}`, mismatches: result.mismatches });
+      return null;
+    }
+  ```
 
-Keep the existing log wording; only the callback line is new.
+Where the anomaly branches currently build their message inline in the `logger.error(...)` call, hoist it to a `const msg = ...` first so both the log and the callback use one string.
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/benchmark/seven-keys`
-Expected: PASS — 32 existing + 3 new.
+Expected: PASS — 32 existing + 6 new.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/benchmark/seven-keys/seven-keys.service.ts backend/src/benchmark/seven-keys/seven-keys.service.spec.ts
-git commit -m "feat(seven-keys): expose lineage alias and verifier mismatch seam"
+git commit -m "feat(seven-keys): classified failure seam and lineage alias"
 ```
 
 ---
@@ -294,23 +359,22 @@ git commit -m "feat(seven-keys): expose lineage alias and verifier mismatch seam
 ### Task 3: Extract day-artifact recording
 
 **Files:**
-- Modify: `backend/src/benchmark/day-artifacts.service.ts`
-- Modify: `backend/src/benchmark/day-artifacts.service.spec.ts`
-- Modify: `backend/src/benchmark/benchmark.service.ts:349-356` (`assembleDay`)
+- Modify: `backend/src/benchmark/day-artifacts.service.ts`, `backend/src/benchmark/day-artifacts.service.spec.ts`
+- Modify: `backend/src/benchmark/benchmark.service.ts:349-356`
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks.
-- Produces: `DayArtifactsService.ensureDayRecorded(day: DayInput): Promise<PdfArtifact>` — mirrors the PDF and both transcripts to GCS/Firestore and returns the PDF artifact (whose `providerFileId` is a live file id). Callers that only need `ensureFileId` to work afterwards can ignore the return value.
+- Consumes: nothing.
+- Produces: `DayArtifactsService.ensureDayRecorded(day: DayInput): Promise<PdfArtifact>` — mirrors the PDF and both transcripts and returns the PDF artifact.
 
-`assembleDay` currently inlines these three calls; the backfill needs the same preparation without the envelope `DayBundle`, so the shared part moves down into `DayArtifactsService`.
+**Ordering contract:** `SevenKeysService.generate` calls `dayArtifacts.ensureFileId(day)`, which throws `No pdfFile artifact recorded for day X` if this ran first. `ensureDayRecorded` **must** precede `ensureKeys` for any day. That coupling is invisible in the signatures, so it is stated in both doc comments.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `backend/src/benchmark/day-artifacts.service.spec.ts`:
+Append to `day-artifacts.service.spec.ts`. The file's helper is `async function build(provider?)` returning `{ svc, bucket, upload, repo }` — note `svc`, and note the `await`:
 
 ```ts
   it('ensureDayRecorded mirrors the pdf and both transcripts and returns the pdf artifact', async () => {
-    const { service } = build();
+    const { svc } = await build();
     const day = {
       day: '01022025',
       date: '2025-01-02',
@@ -322,10 +386,10 @@ Append to `backend/src/benchmark/day-artifacts.service.spec.ts`:
       recapTranscript: 'recap text',
       recapFileName: '12312024_ES_RECAP.md',
     };
-    const ensurePdf = jest.spyOn(service, 'ensurePdf');
-    const ensureTranscript = jest.spyOn(service, 'ensureTranscript');
+    const ensurePdf = jest.spyOn(svc, 'ensurePdf');
+    const ensureTranscript = jest.spyOn(svc, 'ensureTranscript');
 
-    const pdf = await service.ensureDayRecorded(day as never);
+    const pdf = await svc.ensureDayRecorded(day as never);
 
     expect(ensurePdf).toHaveBeenCalledWith('01022025', '01022025', day.pdf);
     expect(ensureTranscript).toHaveBeenCalledWith('01022025', 'tpTranscript', '01022025_ES_TP.md', 'tp text');
@@ -337,23 +401,18 @@ Append to `backend/src/benchmark/day-artifacts.service.spec.ts`:
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/benchmark/day-artifacts.service.spec.ts`
-Expected: FAIL — `service.ensureDayRecorded is not a function`
+Expected: FAIL — `svc.ensureDayRecorded is not a function`
 
 - [ ] **Step 3: Write minimal implementation**
 
-In `day-artifacts.service.ts` add the type-only import (type-only avoids any module cycle):
-
-```ts
-import type { DayInput } from './cloud-inputs.service';
-```
-
-Add the method after `ensureTranscript`:
+In `day-artifacts.service.ts` add `import type { DayInput } from './cloud-inputs.service';` (type-only, so no module cycle), then after `ensureTranscript`:
 
 ```ts
   /**
    * Records everything a day needs before seven-keys can run: the PDF (so
    * ensureFileId resolves a live provider file id) plus both transcripts.
-   * Shared by the benchmark run's envelope assembly and the keys backfill.
+   * MUST be called before SevenKeysService.ensureKeys for the same day —
+   * generate() calls ensureFileId, which throws without the pdfFile record.
    */
   async ensureDayRecorded(day: DayInput): Promise<PdfArtifact> {
     const pdf = await this.ensurePdf(day.day, day.prefix, day.pdf);
@@ -365,7 +424,7 @@ Add the method after `ensureTranscript`:
 
 - [ ] **Step 4: Collapse `assembleDay` onto it**
 
-Replace `backend/src/benchmark/benchmark.service.ts:349-356` with:
+Replace `benchmark.service.ts:349-356`:
 
 ```ts
   private async assembleDay(day: DayInput): Promise<{ dayBundle: DayBundle }> {
@@ -376,10 +435,10 @@ Replace `backend/src/benchmark/benchmark.service.ts:349-356` with:
   }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Step 5: Run tests**
 
 Run: `npx jest src/benchmark`
-Expected: PASS — behaviour is unchanged, so every existing benchmark test still passes.
+Expected: PASS — behaviour unchanged.
 
 - [ ] **Step 6: Commit**
 
@@ -390,17 +449,16 @@ git commit -m "refactor(benchmark): extract ensureDayRecorded for reuse"
 
 ---
 
-### Task 4: KeysBackfillService — sequential loop
+### Task 4: KeysBackfillService — sequential loop and preflights
 
 **Files:**
-- Create: `backend/src/benchmark/keys-backfill.service.ts`
-- Create: `backend/src/benchmark/keys-backfill.service.spec.ts`
+- Create: `backend/src/benchmark/keys-backfill.service.ts`, `backend/src/benchmark/keys-backfill.service.spec.ts`
 
 **Interfaces:**
-- Consumes: `BenchmarkRunLock` (Task 1); `SevenKeysService.lineageAlias` + `ensureKeys(..., { onUnverified })` (Task 2); `DayArtifactsService.ensureDayRecorded` (Task 3).
-- Produces: `KeysBackfillService` with `start(opts: { from?: string; to?: string }): KeysBackfillSnapshot`, `status(): KeysBackfillSnapshot | null`, `cancel(): KeysBackfillSnapshot | null`; exported types `KeysBackfillState`, `KeysBackfillFailure`, `KeysBackfillSnapshot`; private awaitable `loopPromise` test seam.
+- Consumes: `BenchmarkRunLock` (T1); `SevenKeysService.lineageAlias` + `onFailure` + `KeysFailure` (T2); `DayArtifactsService.ensureDayRecorded` (T3).
+- Produces: `KeysBackfillService` with `start(opts: { from?: string; to?: string }): KeysBackfillSnapshot`, `status()`, `cancel()`; exported `MAX_DAY_ATTEMPTS`, `KeysBackfillState`, `KeysBackfillFailure`, `KeysBackfillSnapshot`; private seams `loopPromise`, `nowMs()`, `sleep(ms)`.
 
-Retry, timeout, cancellation, and progress arrive in Tasks 5-6 — this task establishes ordering, reuse, and lock handling only.
+Retry/backoff/classification land in Task 5; cancellation and progress in Task 6.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -413,13 +471,7 @@ import { BenchmarkRunLock } from './run-lock';
 import type { DayListing } from './cloud-inputs.service';
 
 function listing(day: string, date: string): DayListing {
-  return {
-    day,
-    date,
-    prefix: day,
-    recapDate: day,
-    fileSha256: { tradePlanMd: 'a', tradePlanPdf: 'b', recap: 'c' },
-  };
+  return { day, date, prefix: day, recapDate: day, fileSha256: { tradePlanMd: 'a', tradePlanPdf: 'b', recap: 'c' } };
 }
 
 const DAYS = [
@@ -431,8 +483,10 @@ const DAYS = [
 function build(
   overrides: {
     days?: DayListing[];
+    methodsDoc?: string | null;
     ensureKeys?: jest.Mock;
     getKeysArtifact?: jest.Mock;
+    loadDay?: jest.Mock;
   } = {},
 ) {
   const inputs = {
@@ -440,35 +494,39 @@ function build(
       Promise.resolve({
         traders: [],
         features: [],
-        general: { files: [], concatenated: '', sha256: 'g' },
-        methodsDoc: 'methods',
+        general: { files: [], concatenated: 'GEN', sha256: 'g' },
+        methodsDoc: overrides.methodsDoc === undefined ? 'METHODS' : overrides.methodsDoc,
         days: overrides.days ?? DAYS,
         issues: [],
       }),
     ),
-    loadDay: jest.fn((l: DayListing) =>
-      Promise.resolve({
-        ...l,
-        pdf: Buffer.from('p'),
-        tpTranscript: 't',
-        recapTranscript: 'r',
-        recapFileName: `${l.recapDate}_ES_RECAP.md`,
-      }),
-    ),
+    loadDay:
+      overrides.loadDay ??
+      jest.fn((l: DayListing) =>
+        Promise.resolve({
+          ...l,
+          pdf: Buffer.from('p'),
+          tpTranscript: 't',
+          recapTranscript: 'r',
+          recapFileName: `${l.recapDate}_ES_RECAP.md`,
+        }),
+      ),
   };
   const dayArtifacts = {
     ensureDayRecorded: jest.fn(() => Promise.resolve({ providerFileId: 'f', gcsPath: 'g', contentHash: 'h' })),
   };
   const sevenKeys = {
     lineageAlias: 'k3',
-    ensureKeys: overrides.ensureKeys ?? jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true })),
+    ensureKeys: overrides.ensureKeys ?? jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] })),
   };
   const repo = { getKeysArtifact: overrides.getKeysArtifact ?? jest.fn(() => Promise.resolve(null)) };
   const lock = new BenchmarkRunLock();
   const config = {
-    get: jest.fn((key: string) =>
-      key === 'benchmark.keysBackfillDayTimeoutMs' ? 60_000 : undefined,
-    ),
+    get: jest.fn((key: string) => {
+      if (key === 'benchmark.keysBackfillDayTimeoutMs') return 60_000;
+      if (key === 'benchmark.keysBackfillRetryDelaysMs') return [10, 20];
+      return undefined;
+    }),
   } as unknown as ConfigService;
 
   const service = new KeysBackfillService(
@@ -479,7 +537,9 @@ function build(
     lock,
     config,
   );
-  return { service, inputs, dayArtifacts, sevenKeys, repo, lock };
+  const seams = service as never as { sleep: (ms: number) => Promise<void>; loopPromise: Promise<void> };
+  const sleep = jest.spyOn(seams, 'sleep').mockResolvedValue(undefined);
+  return { service, inputs, dayArtifacts, sevenKeys, repo, lock, sleep };
 }
 
 /** Await the detached loop. */
@@ -487,51 +547,81 @@ async function settle(service: KeysBackfillService): Promise<void> {
   await (service as never as { loopPromise: Promise<void> }).loopPromise;
 }
 
+const daysPassedTo = (m: jest.Mock) => m.mock.calls.map((c: unknown[]) => (c[0] as DayListing).day);
+
 describe('KeysBackfillService', () => {
   it('generates every day oldest-first and finishes done', async () => {
     const { service, sevenKeys } = build();
     service.start({});
     await settle(service);
 
-    const daysSeen = sevenKeys.ensureKeys.mock.calls.map((c: unknown[]) => (c[0] as DayListing).day);
-    expect(daysSeen).toEqual(['01022025', '01032025', '01062025']);
+    expect(daysPassedTo(sevenKeys.ensureKeys)).toEqual(['01022025', '01032025', '01062025']);
     const job = service.status()!;
     expect(job.state).toBe('done');
     expect(job.counts).toMatchObject({ candidates: 3, processed: 3, generated: 3, reused: 0, failed: 0 });
     expect(job.flagshipAlias).toBe('k3');
     expect(job.from).toBe('01022025');
     expect(job.to).toBe('01062025');
+    expect(job.reducedLookback).toEqual([]);
   });
 
-  it('reuses an existing verified artifact without generating or loading the day', async () => {
+  it('reuses a verified artifact with empty lookbackMissing without loading the day', async () => {
     const getKeysArtifact = jest.fn((day: string) =>
-      Promise.resolve(day === '01032025' ? { contentHash: 'kh', verified: true } : null),
+      Promise.resolve(day === '01032025' ? { contentHash: 'kh', verified: true, lookbackMissing: [] } : null),
     );
     const { service, sevenKeys, inputs } = build({ getKeysArtifact });
     service.start({});
     await settle(service);
 
-    const daysSeen = sevenKeys.ensureKeys.mock.calls.map((c: unknown[]) => (c[0] as DayListing).day);
-    expect(daysSeen).toEqual(['01022025', '01062025']);
+    expect(daysPassedTo(sevenKeys.ensureKeys)).toEqual(['01022025', '01062025']);
     expect(inputs.loadDay).toHaveBeenCalledTimes(2);
     expect(service.status()!.counts).toMatchObject({ generated: 2, reused: 1, processed: 3 });
   });
 
-  it('regenerates a stored artifact that is not verified', async () => {
-    const getKeysArtifact = jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: false }));
+  it('REGENERATES a verified artifact that has a non-empty lookbackMissing', async () => {
+    const getKeysArtifact = jest.fn(() =>
+      Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: ['01012025'] }),
+    );
     const { service, sevenKeys } = build({ getKeysArtifact });
     service.start({});
     await settle(service);
+
     expect(sevenKeys.ensureKeys).toHaveBeenCalledTimes(3);
+    expect(service.status()!.counts).toMatchObject({ generated: 3, reused: 0 });
   });
 
-  it('honours a from/to window', async () => {
-    const { service, sevenKeys } = build();
+  it('records a generated day that still has reduced lookback', async () => {
+    const ensureKeys = jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: ['12312024'] }));
+    const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys });
+    service.start({});
+    await settle(service);
+
+    expect(service.status()!.reducedLookback).toEqual([{ day: '01022025', missing: ['12312024'] }]);
+    expect(service.status()!.state).toBe('done');
+  });
+
+  it('honours a from/to window when the priors already have KEYS', async () => {
+    const getKeysArtifact = jest.fn((day: string) =>
+      Promise.resolve(day === '01022025' ? { contentHash: 'kh', verified: true, lookbackMissing: [] } : null),
+    );
+    const { service, sevenKeys } = build({ getKeysArtifact });
     service.start({ from: '01032025', to: '01032025' });
     await settle(service);
-    const daysSeen = sevenKeys.ensureKeys.mock.calls.map((c: unknown[]) => (c[0] as DayListing).day);
-    expect(daysSeen).toEqual(['01032025']);
+
+    expect(daysPassedTo(sevenKeys.ensureKeys)).toEqual(['01032025']);
     expect(service.status()!.counts.candidates).toBe(1);
+  });
+
+  it('refuses a from whose priors have no KEYS', async () => {
+    const { service, sevenKeys } = build();
+    service.start({ from: '01062025' });
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.error).toContain('01022025');
+    expect(job.error).toContain('01032025');
+    expect(sevenKeys.ensureKeys).not.toHaveBeenCalled();
   });
 
   it('never passes force to ensureKeys', async () => {
@@ -551,22 +641,37 @@ describe('KeysBackfillService', () => {
     expect(lock.heldBy).toBeNull();
   });
 
-  it('throws when the lock is already held and does not create a job', () => {
+  it('throws when the lock is held and creates no job', () => {
     const { service, lock } = build();
     lock.acquire('benchmark-run');
     expect(() => service.start({})).toThrow('a benchmark run is already in progress');
     expect(service.status()).toBeNull();
   });
 
-  it('fails the job and releases the lock when the corpus scan throws', async () => {
+  it('fails the job when the corpus scan throws, and releases the lock', async () => {
     const { service, inputs, lock } = build();
     inputs.snapshot.mockRejectedValueOnce(new Error('bucket down'));
     service.start({});
     await settle(service);
-    const job = service.status()!;
-    expect(job.state).toBe('failed');
-    expect(job.error).toContain('bucket down');
+    expect(service.status()!.state).toBe('failed');
+    expect(service.status()!.error).toContain('bucket down');
     expect(lock.heldBy).toBeNull();
+  });
+
+  it('fails the job when the corpus scan returns zero days', async () => {
+    const { service } = build({ days: [] });
+    service.start({});
+    await settle(service);
+    expect(service.status()!.state).toBe('failed');
+    expect(service.status()!.error).toMatch(/no committed days/i);
+  });
+
+  it('fails the job when the methods doc is missing', async () => {
+    const { service } = build({ methodsDoc: null });
+    service.start({});
+    await settle(service);
+    expect(service.status()!.state).toBe('failed');
+    expect(service.status()!.error).toMatch(/methods doc/i);
   });
 
   it('status is null before the first start', () => {
@@ -587,18 +692,24 @@ Create `backend/src/benchmark/keys-backfill.service.ts`:
 ```ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BenchmarkRepository } from './benchmark.repository';
+import { BenchmarkRepository, DayArtifactDoc } from './benchmark.repository';
 import { CloudInputsService, DayListing, InputsSnapshot } from './cloud-inputs.service';
 import { DayArtifactsService } from './day-artifacts.service';
-import { SevenKeysService } from './seven-keys/seven-keys.service';
+import { SevenKeysService, KeysFailure } from './seven-keys/seven-keys.service';
 import { BenchmarkRunLock } from './run-lock';
 
+/** Attempts per day before the job stops for manual investigation. */
+export const MAX_DAY_ATTEMPTS = 3;
+/** Must match SevenKeysService's LOOKBACK_DAYS — used only by the `from` guard. */
+const LOOKBACK_DAYS = 3;
+
 export type KeysBackfillState = 'running' | 'done' | 'cancelled' | 'failed';
+export type KeysFailureKind = KeysFailure['kind'] | 'timeout';
 
 export interface KeysBackfillFailure {
   day: string;
   attempts: number;
-  kind: 'unverified' | 'error';
+  kind: KeysFailureKind;
   message: string;
   mismatches: string[];
 }
@@ -606,20 +717,14 @@ export interface KeysBackfillFailure {
 export interface KeysBackfillSnapshot {
   state: KeysBackfillState;
   flagshipAlias: string;
-  /** Resolved corpus bounds; null until the corpus scan completes. */
   from: string | null;
   to: string | null;
   startedAt: string;
   finishedAt: string | null;
   currentDay: string | null;
   cancelRequested: boolean;
-  counts: {
-    candidates: number;
-    processed: number;
-    generated: number;
-    reused: number;
-    failed: number;
-  };
+  counts: { candidates: number; processed: number; generated: number; reused: number; failed: number };
+  reducedLookback: { day: string; missing: string[] }[];
   failures: KeysBackfillFailure[];
   error: string | null;
   progress: { avgSecondsPerDay: number | null; etaIso: string | null };
@@ -658,16 +763,21 @@ export class KeysBackfillService {
       flagshipAlias: this.sevenKeys.lineageAlias,
       from: opts.from ?? null,
       to: opts.to ?? null,
-      startedAt: new Date().toISOString(),
+      startedAt: new Date(this.nowMs()).toISOString(),
       finishedAt: null,
       currentDay: null,
       cancelRequested: false,
       counts: { candidates: 0, processed: 0, generated: 0, reused: 0, failed: 0 },
+      reducedLookback: [],
       failures: [],
       error: null,
       progress: { avgSecondsPerDay: null, etaIso: null },
     };
-    this.loopPromise = this.runLoop(this.job, opts);
+    // .catch so a throw in runLoop's finally can never become an unhandled
+    // rejection that kills the process hosting a 40-hour job.
+    this.loopPromise = this.runLoop(this.job, opts).catch((err) =>
+      this.logger.error(`keys-backfill loop crashed: ${(err as Error).message}`),
+    );
     return structuredClone(this.job);
   }
 
@@ -687,21 +797,31 @@ export class KeysBackfillService {
   private async runLoop(job: KeysBackfillSnapshot, opts: { from?: string; to?: string }): Promise<void> {
     try {
       const snap = await this.inputs.snapshot();
-      const inRange = [...snap.days]
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .filter((d) => this.inWindow(d, opts));
+      // A bucket/prefix/permissions failure must not read as "done, 0 days".
+      if (!snap.days.length) {
+        throw new Error('corpus scan returned no committed days — check the bucket prefix and credentials');
+      }
+      // generate() throws on a null methods doc; preflight it into a clean
+      // job-level failure instead of three opaque day failures.
+      if (!snap.methodsDoc) {
+        throw new Error('methods doc missing — PUT /knowledge/methods before running the keys backfill');
+      }
+
+      const all = [...snap.days].sort((a, b) => a.date.localeCompare(b.date));
+      const inRange = all.filter((d) => this.inWindow(d, opts));
       job.counts.candidates = inRange.length;
       job.from = inRange[0]?.day ?? null;
       job.to = inRange[inRange.length - 1]?.day ?? null;
+      if (inRange.length) await this.assertLookbackReady(job, all, inRange[0]);
       this.logger.log(`keys-backfill: ${inRange.length} candidate days for lineage ${job.flagshipAlias}`);
 
-      for (const listing of inRange) {
+      for (const l of inRange) {
         if (this.cancelRequested) {
           job.state = 'cancelled';
           break;
         }
-        job.currentDay = listing.day;
-        const outcome = await this.runDay(job, listing, snap);
+        job.currentDay = l.day;
+        const outcome = await this.runDay(job, l, snap);
         job.currentDay = null;
         if (outcome === 'cancelled') {
           job.state = 'cancelled';
@@ -710,9 +830,7 @@ export class KeysBackfillService {
         job.counts.processed += 1;
         if (outcome === 'failed') {
           job.state = 'failed';
-          job.error =
-            `day ${listing.day} failed all attempts — investigate before re-POSTing; ` +
-            `days after it were not attempted`;
+          job.error = `day ${l.day} failed (${job.failures[job.failures.length - 1]?.kind}) — investigate before re-POSTing; later days were not attempted`;
           this.logger.error(job.error);
           break;
         }
@@ -724,7 +842,7 @@ export class KeysBackfillService {
       this.logger.error(`keys-backfill failed: ${job.error}`);
     } finally {
       job.currentDay = null;
-      job.finishedAt = new Date().toISOString();
+      job.finishedAt = new Date(this.nowMs()).toISOString();
       this.lock.release('keys-backfill');
       this.logger.log(
         `keys-backfill ${job.state}: ${job.counts.generated} generated, ${job.counts.reused} reused, ${job.counts.failed} failed`,
@@ -732,43 +850,81 @@ export class KeysBackfillService {
     }
   }
 
+  /**
+   * Starting mid-corpus would generate the window's first days with reduced
+   * lookback, and the reuse rule would then freeze them. Refuse instead.
+   * Fewer than LOOKBACK_DAYS priors existing at all (a `from` at the corpus
+   * start) is fine.
+   */
+  private async assertLookbackReady(job: KeysBackfillSnapshot, all: DayListing[], first: DayListing): Promise<void> {
+    const idx = all.findIndex((d) => d.day === first.day);
+    const priors = all.slice(Math.max(0, idx - LOOKBACK_DAYS), idx);
+    const missing: string[] = [];
+    for (const p of priors) {
+      const doc = await this.repo.getKeysArtifact(p.day, job.flagshipAlias);
+      if (!doc?.verified) missing.push(p.day);
+    }
+    if (missing.length) {
+      throw new Error(
+        `refusing to start at ${first.day}: prior day(s) ${missing.join(', ')} have no KEYS for lineage ${job.flagshipAlias}, so the window's first days would be generated with reduced lookback. Omit "from" to build the whole corpus.`,
+      );
+    }
+  }
+
   /** Inclusive MMDDYYYY window against the listing's YYYY-MM-DD date. */
-  private inWindow(listing: DayListing, opts: { from?: string; to?: string }): boolean {
-    const iso = (mmddyyyy: string) => `${mmddyyyy.slice(4, 8)}-${mmddyyyy.slice(0, 2)}-${mmddyyyy.slice(2, 4)}`;
-    if (opts.from && listing.date < iso(opts.from)) return false;
-    if (opts.to && listing.date > iso(opts.to)) return false;
+  private inWindow(l: DayListing, opts: { from?: string; to?: string }): boolean {
+    const iso = (d: string) => `${d.slice(4, 8)}-${d.slice(0, 2)}-${d.slice(2, 4)}`;
+    if (opts.from && l.date < iso(opts.from)) return false;
+    if (opts.to && l.date > iso(opts.to)) return false;
     return true;
   }
 
-  private async runDay(
-    job: KeysBackfillSnapshot,
-    listing: DayListing,
-    snap: InputsSnapshot,
-  ): Promise<DayOutcome> {
-    const existing = await this.repo.getKeysArtifact(listing.day, job.flagshipAlias);
-    if (existing?.verified) {
+  private async runDay(job: KeysBackfillSnapshot, l: DayListing, snap: InputsSnapshot): Promise<DayOutcome> {
+    const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
+    if (existing?.verified && !existing.lookbackMissing?.length) {
       job.counts.reused += 1;
       return 'reused';
     }
-    const dayInput = await this.inputs.loadDay(listing);
-    await this.dayArtifacts.ensureDayRecorded(dayInput);
-    const mismatches: string[] = [];
-    const doc = await this.sevenKeys.ensureKeys(dayInput, snap, {
-      onUnverified: (m) => mismatches.push(...m),
-    });
+    if (existing?.verified) {
+      this.logger.log(
+        `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing.lookbackMissing!.join(', ')}) — regenerating`,
+      );
+    }
+    const doc = await this.generateDay(l, snap, () => undefined);
     if (doc) {
       job.counts.generated += 1;
+      this.recordReducedLookback(job, l.day, doc);
       return 'generated';
     }
     job.counts.failed += 1;
-    job.failures.push({
-      day: listing.day,
-      attempts: 1,
-      kind: 'unverified',
-      message: `verifier rejected the artifact: ${mismatches.join('; ') || 'no mismatch detail'}`,
-      mismatches,
-    });
+    job.failures.push({ day: l.day, attempts: 1, kind: 'error', message: 'generation failed', mismatches: [] });
     return 'failed';
+  }
+
+  protected recordReducedLookback(job: KeysBackfillSnapshot, day: string, doc: DayArtifactDoc): void {
+    if (!doc.lookbackMissing?.length) return;
+    job.reducedLookback.push({ day, missing: doc.lookbackMissing });
+    this.logger.warn(`keys-backfill ${day}: generated with reduced lookback — ${doc.lookbackMissing.join(', ')}`);
+  }
+
+  protected async generateDay(
+    l: DayListing,
+    snap: InputsSnapshot,
+    onFailure: (f: KeysFailure) => void,
+  ): Promise<DayArtifactDoc | null> {
+    const dayInput = await this.inputs.loadDay(l);
+    await this.dayArtifacts.ensureDayRecorded(dayInput);
+    return this.sevenKeys.ensureKeys(dayInput, snap, { onFailure });
+  }
+
+  /** Seam so specs can pin the clock. */
+  protected nowMs(): number {
+    return Date.now();
+  }
+
+  /** Seam so specs skip real backoff waits. */
+  protected sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 ```
@@ -776,56 +932,65 @@ export class KeysBackfillService {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/benchmark/keys-backfill.service.spec.ts`
-Expected: PASS (9 tests)
+Expected: PASS (13 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/benchmark/keys-backfill.service.ts backend/src/benchmark/keys-backfill.service.spec.ts
-git commit -m "feat(benchmark): sequential keys backfill job loop"
+git commit -m "feat(benchmark): sequential keys backfill loop with preflights"
 ```
 
 ---
 
-### Task 5: Retry three times, then stop
+### Task 5: Retry, backoff, classification, and fail-fast
 
 **Files:**
-- Modify: `backend/src/benchmark/keys-backfill.service.ts` (`runDay`, new constants and timeout helper)
+- Modify: `backend/src/benchmark/keys-backfill.service.ts` (`runDay`, timeout helper)
 - Modify: `backend/src/benchmark/keys-backfill.service.spec.ts`
 
 **Interfaces:**
-- Consumes: `KeysBackfillService.runDay` from Task 4.
-- Produces: exported `MAX_DAY_ATTEMPTS = 3`. `runDay` retries the whole generate cycle and records a `KeysBackfillFailure` with `attempts: 3` on exhaustion. A per-day timeout counts as one failed attempt.
+- Consumes: `runDay` and `generateDay` from Task 4.
+- Produces: `class KeysBackfillDayTimeoutError extends Error`; `runDay` retries with backoff and records a classified `KeysBackfillFailure`.
+
+Three rules, all load-bearing:
+1. Classification comes from the `onFailure` callback — never from a `catch` around `ensureKeys`, which does not throw.
+2. `refused` and `timeout` are **non-retryable**. Retrying a timeout would leave the abandoned `ensureKeys` chain racing `saveKeysArtifact` against the new attempt.
+3. The timeout wraps the **whole attempt body**, so a hung GCS socket cannot park the loop forever.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `keys-backfill.service.spec.ts` (inside the top-level `describe`):
+Append inside the `describe`:
 
 ```ts
-  it('retries a failed day and continues when a later attempt succeeds', async () => {
+  it('retries a failed day with backoff and continues to the next day on success', async () => {
     let calls = 0;
-    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onUnverified?: (m: string[]) => void }) => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
       calls += 1;
       if (calls <= 2) {
-        opts.onUnverified?.([`attempt ${calls} mismatch`]);
+        opts.onFailure({ kind: 'unverified', message: `attempt ${calls}`, mismatches: [`m${calls}`] });
         return Promise.resolve(null);
       }
-      return Promise.resolve({ contentHash: 'kh', verified: true });
+      return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
     });
-    const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys });
+    const { service, sleep } = build({
+      days: [listing('01022025', '2025-01-02'), listing('01032025', '2025-01-03')],
+      ensureKeys,
+    });
     service.start({});
     await settle(service);
 
     const job = service.status()!;
-    expect(ensureKeys).toHaveBeenCalledTimes(3);
+    expect(sleep).toHaveBeenCalledTimes(2); // backoff before attempts 2 and 3
+    expect(daysPassedTo(ensureKeys)).toEqual(['01022025', '01022025', '01022025', '01032025']);
     expect(job.state).toBe('done');
-    expect(job.counts).toMatchObject({ generated: 1, failed: 0 });
+    expect(job.counts).toMatchObject({ generated: 2, failed: 0, processed: 2 });
     expect(job.failures).toEqual([]);
   });
 
   it('stops the whole job after three failed attempts and records diagnostics', async () => {
-    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onUnverified?: (m: string[]) => void }) => {
-      opts.onUnverified?.(['5777.75-5781.75: side mismatch']);
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'unverified', message: 'verifier rejected the artifact: side mismatch', mismatches: ['5777.75-5781.75: side mismatch'] });
       return Promise.resolve(null);
     });
     const { service } = build({ ensureKeys });
@@ -833,11 +998,10 @@ Append to `keys-backfill.service.spec.ts` (inside the top-level `describe`):
     await settle(service);
 
     const job = service.status()!;
-    expect(ensureKeys).toHaveBeenCalledTimes(3); // first day only — never reached day 2
+    expect(ensureKeys).toHaveBeenCalledTimes(3); // first day only — day 2 never attempted
     expect(job.state).toBe('failed');
     expect(job.counts.failed).toBe(1);
     expect(job.error).toContain('01022025');
-    expect(job.failures).toHaveLength(1);
     expect(job.failures[0]).toMatchObject({
       day: '01022025',
       attempts: 3,
@@ -846,123 +1010,188 @@ Append to `keys-backfill.service.spec.ts` (inside the top-level `describe`):
     });
   });
 
-  it('classifies a thrown error as kind "error" and still stops after three attempts', async () => {
-    const ensureKeys = jest.fn(() => Promise.reject(new Error('firestore blip')));
+  it('classifies a generation error as kind "error", not unverified', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'error', message: 'moonshot 529 rate limited', mismatches: [] });
+      return Promise.resolve(null);
+    });
     const { service } = build({ ensureKeys });
     service.start({});
     await settle(service);
 
     const job = service.status()!;
     expect(ensureKeys).toHaveBeenCalledTimes(3);
-    expect(job.state).toBe('failed');
-    expect(job.failures[0]).toMatchObject({ day: '01022025', attempts: 3, kind: 'error' });
-    expect(job.failures[0].message).toContain('firestore blip');
+    expect(job.failures[0]).toMatchObject({ kind: 'error', attempts: 3 });
+    expect(job.failures[0].message).toContain('moonshot 529');
   });
 
-  it('treats a per-day timeout as a failed attempt', async () => {
+  it('does NOT retry a refused pin anomaly', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'refused', message: 'pinned KEYS hash matches no stored artifact', mismatches: [] });
+      return Promise.resolve(null);
+    });
+    const { service, sleep } = build({ ensureKeys });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(ensureKeys).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+    expect(job.state).toBe('failed');
+    expect(job.failures[0]).toMatchObject({ kind: 'refused', attempts: 1 });
+  });
+
+  it('does NOT retry a per-day timeout, and stops the job', async () => {
     jest.useFakeTimers();
     try {
       const ensureKeys = jest.fn(() => new Promise(() => undefined));
       const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys });
       service.start({});
-      await jest.advanceTimersByTimeAsync(60_000 * 3 + 10);
+      await jest.advanceTimersByTimeAsync(60_001);
       await settle(service);
 
       const job = service.status()!;
+      expect(ensureKeys).toHaveBeenCalledTimes(1);
       expect(job.state).toBe('failed');
+      expect(job.failures[0]).toMatchObject({ kind: 'timeout', attempts: 1 });
       expect(job.failures[0].message).toMatch(/timeout/i);
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('stops immediately when the corpus changed under the snapshot', async () => {
+    const loadDay = jest.fn(() => Promise.reject(new Error('day 01022025 changed since the run snapshot (tradePlanPdf no longer match)')));
+    const { service } = build({ loadDay });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.failures[0].attempts).toBe(1);
+    expect(job.failures[0].message).toMatch(/re-POST to re-snapshot/i);
+  });
+
+  it('retries a transient Firestore error on the classification read', async () => {
+    let reads = 0;
+    const getKeysArtifact = jest.fn(() => {
+      reads += 1;
+      if (reads === 1) return Promise.reject(new Error('DEADLINE_EXCEEDED'));
+      return Promise.resolve(null);
+    });
+    const { service } = build({ days: [listing('01022025', '2025-01-02')], getKeysArtifact });
+    service.start({});
+    await settle(service);
+
+    expect(service.status()!.state).toBe('done');
+    expect(service.status()!.counts.generated).toBe(1);
   });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/benchmark/keys-backfill.service.spec.ts`
-Expected: FAIL — `ensureKeys` is called once, not three times; `attempts` is 1.
+Expected: FAIL — `ensureKeys` called once where 3 expected; `attempts` always 1; no `timeout` kind.
 
 - [ ] **Step 3: Write minimal implementation**
 
-In `keys-backfill.service.ts`, add above the class:
+Add above the class in `keys-backfill.service.ts`:
 
 ```ts
-/** Attempts per day before the job stops for manual investigation. */
-export const MAX_DAY_ATTEMPTS = 3;
-
-class KeysBackfillDayTimeoutError extends Error {
+export class KeysBackfillDayTimeoutError extends Error {
   constructor(day: string, ms: number) {
     super(`day ${day} exceeded the ${ms}ms keys-backfill day timeout`);
   }
 }
+
+/** loadDay/outcomeRecapForDay throw this wording when the corpus moved under us. */
+const SNAPSHOT_MISMATCH = /changed since the run snapshot/;
 ```
 
-Replace `runDay` with the retrying version:
+Replace `runDay` wholesale:
 
 ```ts
-  private async runDay(
-    job: KeysBackfillSnapshot,
-    listing: DayListing,
-    snap: InputsSnapshot,
-  ): Promise<DayOutcome> {
-    const existing = await this.repo.getKeysArtifact(listing.day, job.flagshipAlias);
-    if (existing?.verified) {
-      job.counts.reused += 1;
-      return 'reused';
-    }
-
-    let lastKind: KeysBackfillFailure['kind'] = 'error';
-    let lastMessage = 'no attempt was made';
-    let lastMismatches: string[] = [];
+  private async runDay(job: KeysBackfillSnapshot, l: DayListing, snap: InputsSnapshot): Promise<DayOutcome> {
+    let last: { kind: KeysFailureKind; message: string; mismatches: string[] } = {
+      kind: 'error',
+      message: 'no attempt was made',
+      mismatches: [],
+    };
+    let attempts = 0;
 
     for (let attempt = 1; attempt <= MAX_DAY_ATTEMPTS; attempt++) {
       // Cancellation is checked BETWEEN attempts: the in-flight attempt always
       // finishes, matching the eminiplayer backfill's "in-flight day finishes".
       if (this.cancelRequested && attempt > 1) return 'cancelled';
-      const mismatches: string[] = [];
+      if (attempt > 1) await this.sleep(this.retryDelayMs(attempt));
+      attempts = attempt;
+      // An array, not a scalar: TS narrows a `let x: T | null = null` assigned
+      // only inside a callback back to `null` at the read site.
+      const reported: KeysFailure[] = [];
       try {
-        const dayInput = await this.inputs.loadDay(listing);
-        await this.dayArtifacts.ensureDayRecorded(dayInput);
+        // Inside the loop so a transient Firestore error is retried rather than
+        // killing the job with an empty failures[], and so a late save from an
+        // abandoned attempt is picked up.
+        const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
+        if (existing?.verified && !existing.lookbackMissing?.length) {
+          job.counts.reused += 1;
+          return 'reused';
+        }
+        if (existing?.verified) {
+          this.logger.log(
+            `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing.lookbackMissing!.join(', ')}) — regenerating`,
+          );
+        }
         const doc = await this.withDayTimeout(
-          this.sevenKeys.ensureKeys(dayInput, snap, {
-            onUnverified: (m) => mismatches.push(...m),
-          }),
-          listing.day,
+          this.generateDay(l, snap, (f) => reported.push(f)),
+          l.day,
         );
         if (doc) {
           job.counts.generated += 1;
+          this.recordReducedLookback(job, l.day, doc);
           return 'generated';
         }
-        lastKind = 'unverified';
-        lastMismatches = mismatches;
-        lastMessage = `verifier rejected the artifact: ${mismatches.join('; ') || 'no mismatch detail'}`;
+        last = reported[0] ?? {
+          kind: 'error',
+          message: 'ensureKeys returned null without reporting a reason',
+          mismatches: [],
+        };
       } catch (err) {
-        lastKind = 'error';
-        lastMismatches = [];
-        lastMessage = err instanceof Error ? err.message : String(err);
+        const message = err instanceof Error ? err.message : String(err);
+        if (err instanceof KeysBackfillDayTimeoutError) {
+          last = { kind: 'timeout', message, mismatches: [] };
+        } else if (SNAPSHOT_MISMATCH.test(message)) {
+          // A concurrent eminiplayer re-ingest. Deterministic — retrying is waste.
+          last = {
+            kind: 'error',
+            message: `corpus changed mid-job — re-POST to re-snapshot (${message})`,
+            mismatches: [],
+          };
+          break;
+        } else {
+          last = { kind: 'error', message, mismatches: [] };
+        }
       }
-      this.logger.warn(
-        `keys-backfill ${listing.day} attempt ${attempt}/${MAX_DAY_ATTEMPTS} failed: ${lastMessage}`,
-      );
+      this.logger.warn(`keys-backfill ${l.day} attempt ${attempt}/${MAX_DAY_ATTEMPTS} failed [${last.kind}]: ${last.message}`);
+      // Neither can succeed on retry; a timeout would also leave the abandoned
+      // chain racing saveKeysArtifact against the next attempt.
+      if (last.kind === 'refused' || last.kind === 'timeout') break;
     }
 
     job.counts.failed += 1;
-    job.failures.push({
-      day: listing.day,
-      attempts: MAX_DAY_ATTEMPTS,
-      kind: lastKind,
-      message: lastMessage,
-      mismatches: lastMismatches,
-    });
+    job.failures.push({ day: l.day, attempts, kind: last.kind, message: last.message, mismatches: last.mismatches });
     return 'failed';
+  }
+
+  private retryDelayMs(attempt: number): number {
+    const delays = this.config.get<number[]>('benchmark.keysBackfillRetryDelaysMs') ?? [30_000, 180_000];
+    return delays[Math.min(attempt - 2, delays.length - 1)] ?? 30_000;
   }
 
   private withDayTimeout<T>(work: Promise<T>, day: string): Promise<T> {
     const ms = this.config.get<number>('benchmark.keysBackfillDayTimeoutMs') ?? 900_000;
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => reject(new KeysBackfillDayTimeoutError(day, ms)), ms);
-      // The abandoned promise keeps running harmlessly: a late save is just a
-      // stored artifact the next attempt reuses.
       work.then(
         (v) => {
           clearTimeout(timer);
@@ -980,13 +1209,13 @@ Replace `runDay` with the retrying version:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/benchmark/keys-backfill.service.spec.ts`
-Expected: PASS (13 tests)
+Expected: PASS (20 tests)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/benchmark/keys-backfill.service.ts backend/src/benchmark/keys-backfill.service.spec.ts
-git commit -m "feat(benchmark): retry keys days three times then stop the job"
+git commit -m "feat(benchmark): classified retries with backoff and fail-fast"
 ```
 
 ---
@@ -994,16 +1223,13 @@ git commit -m "feat(benchmark): retry keys days three times then stop the job"
 ### Task 6: Cancellation, shutdown, and progress
 
 **Files:**
-- Modify: `backend/src/benchmark/keys-backfill.service.ts`
-- Modify: `backend/src/benchmark/keys-backfill.service.spec.ts`
+- Modify: `backend/src/benchmark/keys-backfill.service.ts`, `backend/src/benchmark/keys-backfill.service.spec.ts`
 
 **Interfaces:**
 - Consumes: the loop from Tasks 4-5.
-- Produces: `KeysBackfillService implements OnModuleDestroy, OnApplicationShutdown`; `progress.avgSecondsPerDay` / `progress.etaIso` populated after each completed day; private `nowMs()` seam for tests.
+- Produces: `KeysBackfillService implements OnModuleDestroy, OnApplicationShutdown`; `progress` populated from **generated days only**.
 
 - [ ] **Step 1: Write the failing test**
-
-Append to `keys-backfill.service.spec.ts`:
 
 ```ts
   it('cancel lets the in-flight day finish, then stops before the next day', async () => {
@@ -1011,8 +1237,8 @@ Append to `keys-backfill.service.spec.ts`:
     let svc: KeysBackfillService;
     const ensureKeys = jest.fn((d: { day: string }) => {
       seen.push(d.day);
-      svc.cancel(); // cancel while day 1 is in flight
-      return Promise.resolve({ contentHash: 'kh', verified: true });
+      svc.cancel();
+      return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
     });
     const built = build({ ensureKeys });
     svc = built.service;
@@ -1020,7 +1246,7 @@ Append to `keys-backfill.service.spec.ts`:
     await settle(svc);
 
     const job = svc.status()!;
-    expect(seen).toEqual(['01022025']); // day 1 completed, day 2 never started
+    expect(seen).toEqual(['01022025']);
     expect(job.state).toBe('cancelled');
     expect(job.cancelRequested).toBe(true);
     expect(job.counts.generated).toBe(1);
@@ -1040,29 +1266,37 @@ Append to `keys-backfill.service.spec.ts`:
     expect(service.status()!.state).toBe('cancelled');
   });
 
-  it('reports progress and an eta after a completed day', async () => {
+  it('reports avgSecondsPerDay from generated days and an eta', async () => {
     const { service } = build();
-    let clock = 1_000_000;
+    let clock = Date.parse('2026-08-16T00:00:00.000Z');
     jest
       .spyOn(service as never as { nowMs: () => number }, 'nowMs')
-      .mockImplementation(() => (clock += 10_000)); // 10s per call
+      .mockImplementation(() => (clock += 10_000));
     service.start({});
     await settle(service);
 
     const job = service.status()!;
-    expect(job.progress.avgSecondsPerDay).toBeGreaterThan(0);
+    expect(job.progress.avgSecondsPerDay).toBe(10);
     expect(job.progress.etaIso).not.toBeNull();
+  });
+
+  it('leaves progress null when every day was reused', async () => {
+    const getKeysArtifact = jest.fn(() => Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] }));
+    const { service } = build({ getKeysArtifact });
+    service.start({});
+    await settle(service);
+    expect(service.status()!.progress.avgSecondsPerDay).toBeNull();
   });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/benchmark/keys-backfill.service.spec.ts`
-Expected: FAIL — `service.onApplicationShutdown is not a function`; `progress.avgSecondsPerDay` stays null.
+Expected: FAIL — `service.onApplicationShutdown is not a function`; `avgSecondsPerDay` stays `null`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Change the class declaration and imports:
+Change the imports and class declaration:
 
 ```ts
 import { Injectable, Logger, OnApplicationShutdown, OnModuleDestroy } from '@nestjs/common';
@@ -1072,13 +1306,32 @@ import { Injectable, Logger, OnApplicationShutdown, OnModuleDestroy } from '@nes
 export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdown {
 ```
 
-Add the shutdown hooks and seams:
+Add a field beside `cancelRequested`:
+
+```ts
+  /** Seconds per GENERATED day, most recent PROGRESS_WINDOW entries. */
+  private generatedDurations: number[] = [];
+```
+
+and the constant beside `MAX_DAY_ATTEMPTS`:
+
+```ts
+const PROGRESS_WINDOW = 10;
+```
+
+Reset it in `start()` next to `this.cancelRequested = false;`:
+
+```ts
+    this.generatedDurations = [];
+```
+
+Add the hooks and progress helpers:
 
 ```ts
   /**
    * A 20-40 hour run WILL meet a SIGTERM. Both lifecycle phases set the flag so
-   * no further day starts regardless of provider ordering; the in-flight day
-   * finishes and its artifact either saved or did not.
+   * no further day starts regardless of provider ordering; the in-flight
+   * attempt finishes and its artifact either saved or did not.
    */
   onModuleDestroy(): void {
     this.requestShutdownCancel();
@@ -1096,18 +1349,15 @@ Add the shutdown hooks and seams:
     }
   }
 
-  /** Seam so specs can pin the clock. */
-  private nowMs(): number {
-    return Date.now();
-  }
-
+  /**
+   * Averages GENERATED days only. A cumulative average including reused days
+   * makes the common resume case (300 reused at ~1s, then 52 at ~7min) report
+   * "done in a minute" for a six-hour job.
+   */
   private updateProgress(job: KeysBackfillSnapshot): void {
-    const done = job.counts.processed;
-    if (done <= 0) return;
-    const elapsedSeconds = (this.nowMs() - Date.parse(job.startedAt)) / 1000;
-    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) return;
-    const avg = elapsedSeconds / done;
-    const remaining = Math.max(0, job.counts.candidates - done);
+    if (!this.generatedDurations.length) return;
+    const avg = this.generatedDurations.reduce((a, b) => a + b, 0) / this.generatedDurations.length;
+    const remaining = Math.max(0, job.counts.candidates - job.counts.processed);
     job.progress = {
       avgSecondsPerDay: Math.round(avg),
       etaIso: new Date(this.nowMs() + remaining * avg * 1000).toISOString(),
@@ -1115,12 +1365,29 @@ Add the shutdown hooks and seams:
   }
 ```
 
-In `runLoop`, call `this.updateProgress(job);` immediately after `job.counts.processed += 1;`.
+In `runLoop`'s day loop, time each day and update after each completed one:
+
+```ts
+        job.currentDay = l.day;
+        const startedMs = this.nowMs();
+        const outcome = await this.runDay(job, l, snap);
+        job.currentDay = null;
+        if (outcome === 'cancelled') {
+          job.state = 'cancelled';
+          break;
+        }
+        if (outcome === 'generated') {
+          this.generatedDurations.push((this.nowMs() - startedMs) / 1000);
+          if (this.generatedDurations.length > PROGRESS_WINDOW) this.generatedDurations.shift();
+        }
+        job.counts.processed += 1;
+        this.updateProgress(job);
+```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx jest src/benchmark/keys-backfill.service.spec.ts`
-Expected: PASS (17 tests)
+Expected: PASS (25 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -1135,65 +1402,92 @@ git commit -m "feat(benchmark): keys backfill cancellation, shutdown hooks, prog
 
 **Files:**
 - Modify: `backend/src/eminiplayer/eminiplayer-validation.ts` (export `isValidMmddyyyy`)
-- Modify: `backend/src/eminiplayer/eminiplayer.controller.ts:29-36` (drop the local copy, import instead)
-- Modify: `backend/src/benchmark/benchmark.controller.ts`
-- Modify: `backend/src/benchmark/benchmark.controller.spec.ts`
+- Modify: `backend/src/eminiplayer/eminiplayer.controller.ts:29-39` (delete the local copy; merge the import)
+- Modify: `backend/src/benchmark/benchmark.controller.ts`, `backend/src/benchmark/benchmark.controller.spec.ts`
 - Modify: `backend/src/benchmark/benchmark.module.ts`
-- Modify: `backend/src/config/configuration.ts` (benchmark block, after `grading`)
+- Modify: `backend/src/config/configuration.ts` (**interface and literal**)
 
 **Interfaces:**
-- Consumes: `KeysBackfillService` (Tasks 4-6), `LockHeldError` (Task 1).
-- Produces: `POST /benchmark/keys-backfill` (202), `GET /benchmark/keys-backfill`, `DELETE /benchmark/keys-backfill`; config key `benchmark.keysBackfillDayTimeoutMs` (env `BENCHMARK_KEYS_DAY_TIMEOUT_MS`, default 900000).
+- Consumes: `KeysBackfillService` (T4-6), `LockHeldError` (T1).
+- Produces: `POST /benchmark/keys-backfill` (202), `GET`, `DELETE`; config `benchmark.keysBackfillDayTimeoutMs` (env `BENCHMARK_KEYS_DAY_TIMEOUT_MS`, default 900000) and `benchmark.keysBackfillRetryDelaysMs` (env `BENCHMARK_KEYS_RETRY_DELAYS_MS`, comma-separated, default `30000,180000`).
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `backend/src/benchmark/benchmark.controller.spec.ts` (matching however the file already constructs the controller — pass a `keysBackfill` fake as the new constructor argument):
+`benchmark.controller.spec.ts` builds via `Test.createTestingModule`. Extend its imports:
+
+```ts
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { KeysBackfillService } from './keys-backfill.service';
+import { LockHeldError } from './run-lock';
+```
+
+Add a fake to the existing `build()` — declare it beside the others and register it, and return it:
+
+```ts
+  const keysBackfill = {
+    start: jest.fn().mockReturnValue({ state: 'running', from: null, to: null }),
+    status: jest.fn().mockReturnValue({ state: 'running', startedAt: 'T0' }),
+    cancel: jest.fn().mockReturnValue({ state: 'cancelled', startedAt: 'T0' }),
+  };
+  // …in providers:
+      { provide: KeysBackfillService, useValue: keysBackfill },
+  // …in the return object:
+  return { ctrl: moduleRef.get(BenchmarkController), service, scoreboard, repo, config, samples, keysBackfill };
+```
+
+Then append a new describe block:
 
 ```ts
 describe('BenchmarkController keys-backfill', () => {
-  function buildController(keysBackfill: Partial<Record<string, unknown>>) {
-    return new BenchmarkController(
-      {} as never, // benchmark
-      {} as never, // scoreboardService
-      {} as never, // repo
-      { get: () => 'kimi-k3' } as never, // config
-      {} as never, // samples
-      keysBackfill as never,
-    );
-  }
-
-  it('POST returns the snapshot', () => {
-    const snapshot = { state: 'running' };
-    const controller = buildController({ start: jest.fn(() => snapshot) });
-    expect(controller.startKeysBackfill(undefined, undefined)).toBe(snapshot);
+  it('POST requires confirm=true', async () => {
+    const { ctrl, keysBackfill } = await build();
+    expect(() => ctrl.startKeysBackfill(undefined, undefined, undefined)).toThrow(BadRequestException);
+    expect(keysBackfill.start).not.toHaveBeenCalled();
   });
 
-  it('POST rejects a malformed from', () => {
-    const controller = buildController({ start: jest.fn() });
-    expect(() => controller.startKeysBackfill('2025-01-02', undefined)).toThrow(BadRequestException);
+  it('POST starts the job and returns its snapshot', async () => {
+    const { ctrl, keysBackfill } = await build();
+    const res = ctrl.startKeysBackfill('true', undefined, undefined);
+    expect(keysBackfill.start).toHaveBeenCalledWith({ from: undefined, to: undefined });
+    expect(res.state).toBe('running');
   });
 
-  it('POST rejects a reversed range', () => {
-    const controller = buildController({ start: jest.fn() });
-    expect(() => controller.startKeysBackfill('01062025', '01022025')).toThrow(BadRequestException);
+  it('POST rejects a malformed date and a reversed range', async () => {
+    const { ctrl } = await build();
+    expect(() => ctrl.startKeysBackfill('true', '2025-01-02', undefined)).toThrow(BadRequestException);
+    expect(() => ctrl.startKeysBackfill('true', '01062025', '01022025')).toThrow(BadRequestException);
   });
 
-  it('POST maps a held lock to 409 naming the holder', () => {
-    const start = jest.fn(() => {
+  it('POST maps a held lock to 409', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.start.mockImplementation(() => {
       throw new LockHeldError('benchmark-run');
     });
-    const controller = buildController({ start, status: () => null });
-    expect(() => controller.startKeysBackfill(undefined, undefined)).toThrow(ConflictException);
+    expect(() => ctrl.startKeysBackfill('true', undefined, undefined)).toThrow(ConflictException);
   });
 
-  it('GET 404s when no job has run', () => {
-    const controller = buildController({ status: () => null });
-    expect(() => controller.keysBackfillStatus()).toThrow(NotFoundException);
+  it('GET 404s when no job has run', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.status.mockReturnValue(null);
+    expect(() => ctrl.keysBackfillStatus()).toThrow(NotFoundException);
   });
 
-  it('DELETE 404s when no job has run', () => {
-    const controller = buildController({ cancel: () => null });
-    expect(() => controller.cancelKeysBackfill()).toThrow(NotFoundException);
+  it('DELETE requires a matching startedAt', async () => {
+    const { ctrl } = await build();
+    expect(() => ctrl.cancelKeysBackfill('wrong')).toThrow(ConflictException);
+  });
+
+  it('DELETE cancels when startedAt matches', async () => {
+    const { ctrl, keysBackfill } = await build();
+    const res = ctrl.cancelKeysBackfill('T0');
+    expect(keysBackfill.cancel).toHaveBeenCalled();
+    expect(res.state).toBe('cancelled');
+  });
+
+  it('DELETE 404s when no job has run', async () => {
+    const { ctrl, keysBackfill } = await build();
+    keysBackfill.status.mockReturnValue(null);
+    expect(() => ctrl.cancelKeysBackfill('T0')).toThrow(NotFoundException);
   });
 });
 ```
@@ -1201,11 +1495,11 @@ describe('BenchmarkController keys-backfill', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx jest src/benchmark/benchmark.controller.spec.ts`
-Expected: FAIL — `controller.startKeysBackfill is not a function`
+Expected: FAIL — `ctrl.startKeysBackfill is not a function`
 
 - [ ] **Step 3: Export the date validator**
 
-In `backend/src/eminiplayer/eminiplayer-validation.ts`, move the validator in and export it:
+Move the validator into `eminiplayer-validation.ts` and export it:
 
 ```ts
 /** MMDDYYYY, and a real calendar date (rejects 13012026 and 02302026). */
@@ -1215,41 +1509,42 @@ export function isValidMmddyyyy(date: string): boolean {
   const dd = Number(date.slice(2, 4));
   const yyyy = Number(date.slice(4));
   const parsed = new Date(Date.UTC(yyyy, mm - 1, dd));
-  return (
-    parsed.getUTCFullYear() === yyyy &&
-    parsed.getUTCMonth() === mm - 1 &&
-    parsed.getUTCDate() === dd
-  );
+  return parsed.getUTCFullYear() === yyyy && parsed.getUTCMonth() === mm - 1 && parsed.getUTCDate() === dd;
 }
 ```
 
-In `eminiplayer.controller.ts`, delete the local `isValidMmddyyyy` (:29-36) and add it to the existing `eminiplayer-validation` import.
+In `eminiplayer.controller.ts`, delete the local copy at **lines 29-39** (the jsdoc through the closing brace — deleting only 29-36 leaves a dangling expression and a syntax error) and add `isValidMmddyyyy` to the **existing** `eminiplayer-validation` import on line 27 rather than adding a second import statement.
 
 - [ ] **Step 4: Add the routes**
 
-In `benchmark.controller.ts`, extend the imports:
+In `benchmark.controller.ts` extend the `@nestjs/common` import with `BadRequestException, Delete, HttpCode`, and add:
 
 ```ts
-import { BadRequestException, Delete, HttpCode } from '@nestjs/common';
 import { KeysBackfillService, KeysBackfillSnapshot } from './keys-backfill.service';
 import { LockHeldError } from './run-lock';
 import { isValidMmddyyyy, parseMmddyyyy } from '../eminiplayer/eminiplayer-validation';
 ```
 
-Add `private readonly keysBackfill: KeysBackfillService,` as the last constructor parameter, then append these routes:
+Append `private readonly keysBackfill: KeysBackfillService,` to the constructor, then:
 
 ```ts
   /**
-   * Corpus-wide seven-keys generation. Sequential and oldest-first so every day
-   * gets a full 3-day lookback; omit from/to to build the entire committed
-   * corpus. Detached — poll GET, and expect 20-40 hours for a cold corpus.
+   * Corpus-wide seven-keys generation: sequential, oldest-first, so every day
+   * gets a full 3-day lookback. Omit from/to to build the whole committed
+   * corpus. Detached — poll GET; expect 20-40 hours for a cold corpus.
    */
   @Post('keys-backfill')
   @HttpCode(202)
   startKeysBackfill(
+    @Query('confirm') confirm: string | undefined,
     @Query('from') from: string | undefined,
     @Query('to') to: string | undefined,
   ): KeysBackfillSnapshot {
+    // A bare POST commits ~$130 and 40 hours; the already-running 409 only
+    // guards a SECOND start, not the first accidental one.
+    if (confirm !== 'true') {
+      throw new BadRequestException('confirm=true is required — this starts a ~$130, 20-40 hour job');
+    }
     for (const [name, value] of [['from', from], ['to', to]] as const) {
       if (value !== undefined && !isValidMmddyyyy(value)) {
         throw new BadRequestException(`Query param "${name}" must be MMDDYYYY when present`);
@@ -1275,32 +1570,57 @@ Add `private readonly keysBackfill: KeysBackfillService,` as the last constructo
     return job;
   }
 
+  /** startedAt must match, so a stale tab or blind curl cannot kill a 29-hour run. */
   @Delete('keys-backfill')
-  cancelKeysBackfill(): KeysBackfillSnapshot {
-    const job = this.keysBackfill.cancel();
+  cancelKeysBackfill(@Query('startedAt') startedAt: string | undefined): KeysBackfillSnapshot {
+    const job = this.keysBackfill.status();
     if (!job) throw new NotFoundException('no keys-backfill job has run since boot');
-    return job;
+    if (startedAt !== job.startedAt) {
+      throw new ConflictException(`startedAt does not match the current job (${job.startedAt}) — pass ?startedAt=<that value> to confirm`);
+    }
+    return this.keysBackfill.cancel() as KeysBackfillSnapshot;
   }
 ```
 
-- [ ] **Step 5: Wire the module and config**
+- [ ] **Step 5: Wire the module**
 
-In `benchmark.module.ts`, add `KeysBackfillService` to the imports and `providers`.
+In `benchmark.module.ts` import `KeysBackfillService` and add it to **`providers` and `exports`**. `BenchmarkController` is declared in `app.module.ts`, not here, so it resolves its dependencies only through this module's `exports` — a provider-only registration compiles, passes every test, and then fails at `pnpm start` with an unresolved-dependency error.
 
-In `configuration.ts`, inside the `benchmark` block after `grading`, add:
+- [ ] **Step 6: Add config — interface AND literal**
+
+`configuration.ts` declares an explicit `AppConfig` interface with `export default (): AppConfig => ({...})`, so adding a key to the literal alone is TS2353 and breaks the build. Add to the `benchmark` block of the **interface**:
 
 ```ts
-    // Ceiling for one day's full seven-keys cycle in the corpus backfill.
-    // Generous: a day is 4-6 LLM calls at high effort, ~3.5 min of model time.
-    keysBackfillDayTimeoutMs: parseInt(process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS ?? '900000', 10),
+    keysBackfillDayTimeoutMs: number;
+    keysBackfillRetryDelaysMs: number[];
 ```
 
-- [ ] **Step 6: Run the full suite**
+and to the literal, after `grading`:
+
+```ts
+    // Ceiling for one day's whole attempt (loadDay + record + seven-keys).
+    // A day is 4-6 LLM calls at high effort, ~3.5 min of model time.
+    keysBackfillDayTimeoutMs: parseInt(process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS ?? '900000', 10),
+    // Backoff before retry attempts 2 and 3. Without it, SevenKeysService's own
+    // withRetry means ~9 immediate provider calls, so any brief rate-limit
+    // window would end a 40-hour run.
+    keysBackfillRetryDelaysMs: (process.env.BENCHMARK_KEYS_RETRY_DELAYS_MS ?? '30000,180000')
+      .split(',')
+      .map((v) => parseInt(v.trim(), 10))
+      .filter((v) => Number.isFinite(v)),
+```
+
+- [ ] **Step 7: Run the full suite**
 
 Run: `npx jest`
-Expected: PASS — all suites, including eminiplayer (the validator move must not break it).
+Expected: PASS — all suites, including eminiplayer after the validator move.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Verify the app actually boots**
+
+Run: `pnpm build && timeout 25 node dist/main.js 2>&1 | tail -20`
+Expected: `Nest application successfully started`, with `{/benchmark/keys-backfill, POST|GET|DELETE}` among the mapped routes. This step exists because the module-exports defect is invisible to jest.
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add backend/src/benchmark/benchmark.controller.ts backend/src/benchmark/benchmark.controller.spec.ts backend/src/benchmark/benchmark.module.ts backend/src/config/configuration.ts backend/src/eminiplayer/eminiplayer-validation.ts backend/src/eminiplayer/eminiplayer.controller.ts
@@ -1312,15 +1632,13 @@ git commit -m "feat(benchmark): keys-backfill endpoints"
 ### Task 8: One-time era reset
 
 **Files:**
-- Create: `backend/src/benchmark/keys-era-reset.ts`
-- Create: `backend/src/benchmark/keys-era-reset.spec.ts`
-- Create: `backend/scripts/reset-keys-era.mjs`
+- Create: `backend/src/benchmark/keys-era-reset.ts`, `backend/src/benchmark/keys-era-reset.spec.ts`, `backend/scripts/reset-keys-era.mjs`
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks.
-- Produces: `planKeysEraReset(artifactIds: string[], cells: EraCell[], lineageAlias: string): EraResetPlan` where `EraCell = { id: string; artifactSha256?: string | null }` and `EraResetPlan = { artifactIdsToDelete: string[]; cellIdsToDelete: string[]; keptCellCount: number }`.
+- Consumes: `resolveModel` from `./benchmark.types`.
+- Produces: `planKeysEraReset(artifacts: EraArtifact[], cells: EraCell[], lineageAlias: string): EraResetPlan`, where `EraArtifact = { id: string; contentHash?: string | null; generatedBy?: string | null }`, `EraCell = { id: string; artifactSha256?: string | null }`, `EraResetPlan = { artifactIdsToDelete: string[]; cellIdsToDelete: string[]; keptCellCount: number }`.
 
-The decision logic is pure and unit-tested in `src/`; the script is a thin Firestore runner (jest's `rootDir` is `src`, so logic must live there to be tested).
+Cells are selected by **hash membership**, not by "has an `artifactSha256`" — that field is the KEYS hash for scorecard cells of *any* lineage, so the loose filter would irreversibly delete another provider's scoreboard.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1329,28 +1647,36 @@ Create `backend/src/benchmark/keys-era-reset.spec.ts`:
 ```ts
 import { planKeysEraReset } from './keys-era-reset';
 
-describe('planKeysEraReset', () => {
-  const artifacts = ['01062025__keys__k3', '08032026__keys__k3', '08032026__pdfFile', '07012026__keys__fable'];
+const artifacts = [
+  { id: '01062025__keys__k3', contentHash: 'h-k3-a' },
+  { id: '08032026__keys__k3', contentHash: 'h-k3-b' },
+  { id: '08032026__pdfFile', contentHash: 'h-pdf' },
+  { id: '07012026__keys__fable', contentHash: 'h-fable' },
+  { id: '05052025__keys', contentHash: 'h-legacy-k3', generatedBy: 'kimi-k3' },
+  { id: '05062025__keys', contentHash: 'h-legacy-fable', generatedBy: 'claude-fable-5' },
+];
 
-  it('deletes only this lineage\'s keys artifacts', () => {
+describe('planKeysEraReset', () => {
+  it("deletes this lineage's scoped artifacts and its legacy unscoped docs only", () => {
     const plan = planKeysEraReset(artifacts, [], 'k3');
-    expect(plan.artifactIdsToDelete).toEqual(['01062025__keys__k3', '08032026__keys__k3']);
+    expect(plan.artifactIdsToDelete).toEqual(['01062025__keys__k3', '08032026__keys__k3', '05052025__keys']);
   });
 
-  it('deletes exactly the cells that pin a KEYS hash', () => {
+  it('deletes only cells pinning a hash of a deleted artifact', () => {
     const cells = [
-      { id: 'c1', artifactSha256: 'h1' },
-      { id: 'c2', artifactSha256: null },
-      { id: 'c3' },
-      { id: 'c4', artifactSha256: 'h2' },
+      { id: 'c-k3-a', artifactSha256: 'h-k3-a' },
+      { id: 'c-fable', artifactSha256: 'h-fable' },
+      { id: 'c-base', artifactSha256: null },
+      { id: 'c-method' },
+      { id: 'c-legacy', artifactSha256: 'h-legacy-k3' },
     ];
     const plan = planKeysEraReset(artifacts, cells, 'k3');
-    expect(plan.cellIdsToDelete).toEqual(['c1', 'c4']);
-    expect(plan.keptCellCount).toBe(2);
+    expect(plan.cellIdsToDelete).toEqual(['c-k3-a', 'c-legacy']);
+    expect(plan.keptCellCount).toBe(3); // fable + base + method survive
   });
 
   it('is a no-op on an already-clean era', () => {
-    const plan = planKeysEraReset(['08032026__pdfFile'], [{ id: 'c1' }], 'k3');
+    const plan = planKeysEraReset([{ id: '08032026__pdfFile' }], [{ id: 'c1' }], 'k3');
     expect(plan).toEqual({ artifactIdsToDelete: [], cellIdsToDelete: [], keptCellCount: 1 });
   });
 });
@@ -1366,6 +1692,14 @@ Expected: FAIL — `Cannot find module './keys-era-reset'`
 Create `backend/src/benchmark/keys-era-reset.ts`:
 
 ```ts
+import { resolveModel } from './benchmark.types';
+
+export interface EraArtifact {
+  id: string;
+  contentHash?: string | null;
+  generatedBy?: string | null;
+}
+
 export interface EraCell {
   id: string;
   artifactSha256?: string | null;
@@ -1377,24 +1711,39 @@ export interface EraResetPlan {
   keptCellCount: number;
 }
 
+const LEGACY_KEYS_ID = /^\d{8}__keys$/;
+
 /**
  * A one-time reset so the corpus can be rebuilt in strict order.
  *
- * Deleting KEYS artifacts alone would WEDGE those days: ensureKeys refuses to
+ * Deleting KEYS artifacts alone WEDGES those days: ensureKeys refuses to
  * generate when cells pin a hash matching no stored artifact ("possible deleted
- * artifact"). So every cell that pins a KEYS hash goes too. Cells with no
- * artifactSha256 (base / seven-keys-method) pin nothing and are kept.
+ * artifact"), so the pinning cells must go too. Cells are matched by HASH
+ * MEMBERSHIP, not by merely carrying an artifactSha256 — that field is the KEYS
+ * hash for scorecard cells of any lineage, and the loose filter would delete
+ * another provider's scoreboard irreversibly.
+ *
+ * Legacy unscoped `${day}__keys` docs are included when their generatedBy
+ * resolves to this lineage: getKeysArtifact falls back to them, so a survivor
+ * would be seen by the backfill's reuse pre-check and silently skip the day.
  */
 export function planKeysEraReset(
-  artifactIds: string[],
+  artifacts: EraArtifact[],
   cells: EraCell[],
   lineageAlias: string,
 ): EraResetPlan {
   const suffix = `__keys__${lineageAlias}`;
-  const artifactIdsToDelete = artifactIds.filter((id) => id.endsWith(suffix));
-  const cellIdsToDelete = cells.filter((c) => Boolean(c.artifactSha256)).map((c) => c.id);
+  const doomed = artifacts.filter(
+    (a) =>
+      a.id.endsWith(suffix) ||
+      (LEGACY_KEYS_ID.test(a.id) && resolveModel(a.generatedBy ?? 'claude-fable-5').alias === lineageAlias),
+  );
+  const hashes = new Set(doomed.map((a) => a.contentHash).filter((h): h is string => Boolean(h)));
+  const cellIdsToDelete = cells
+    .filter((c) => c.artifactSha256 && hashes.has(c.artifactSha256))
+    .map((c) => c.id);
   return {
-    artifactIdsToDelete,
+    artifactIdsToDelete: doomed.map((a) => a.id),
     cellIdsToDelete,
     keptCellCount: cells.length - cellIdsToDelete.length,
   };
@@ -1408,37 +1757,49 @@ Expected: PASS (3 tests)
 
 - [ ] **Step 5: Write the runner script**
 
-Create `backend/scripts/reset-keys-era.mjs`. Run it from `backend/` so firebase-admin resolves. Dry-run by default:
+Create `backend/scripts/reset-keys-era.mjs`:
 
 ```js
-// Usage (from backend/):  node scripts/reset-keys-era.mjs [--apply]
-// Deletes this lineage's KEYS artifacts AND every scorecard cell pinning one,
-// so the corpus can be regenerated in strict chronological order.
+// Usage (from backend/, after `pnpm build`):  node scripts/reset-keys-era.mjs [--apply]
+// Deletes this lineage's KEYS artifacts AND the cells pinning them, so the
+// corpus can be regenerated in strict chronological order.
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { planKeysEraReset } from '../dist/benchmark/keys-era-reset.js';
 
 const apply = process.argv.includes('--apply');
 const lineage = process.env.KEYS_LINEAGE ?? 'k3';
+const NON_TERMINAL = ['created', 'submitted', 'in_progress', 'ended'];
 
 initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID ?? 'app-foster-bridge' });
 const db = getFirestore();
 
-const [artifacts, cells] = await Promise.all([
+// The in-memory BenchmarkRunLock is invisible from this process, so the
+// enforceable precondition is the batch check: if a batch is still unreconciled,
+// BatchReconciler's cron will re-write pins for the artifacts we just deleted
+// within a minute and wedge those days permanently.
+const batches = await db.collection('benchmarkBatches').where('status', 'in', NON_TERMINAL).get();
+if (!batches.empty) {
+  console.error(`ABORT: ${batches.size} non-terminal batch(es) exist. Let them reconcile first —`);
+  console.error('otherwise the reconciler re-creates pins for deleted artifacts and wedges those days.');
+  process.exit(1);
+}
+
+const [artifactSnap, cellSnap] = await Promise.all([
   db.collection('dayArtifacts').get(),
   db.collection('benchmarkRuns').get(),
 ]);
 
 const plan = planKeysEraReset(
-  artifacts.docs.map((d) => d.id),
-  cells.docs.map((d) => ({ id: d.id, artifactSha256: d.data().artifactSha256 ?? null })),
+  artifactSnap.docs.map((d) => ({ id: d.id, contentHash: d.data().contentHash ?? null, generatedBy: d.data().generatedBy ?? null })),
+  cellSnap.docs.map((d) => ({ id: d.id, artifactSha256: d.data().artifactSha256 ?? null })),
   lineage,
 );
 
-console.log(`lineage:                 ${lineage}`);
+console.log(`lineage:                  ${lineage}`);
 console.log(`KEYS artifacts to delete: ${plan.artifactIdsToDelete.length}`);
 console.log(`pinning cells to delete:  ${plan.cellIdsToDelete.length}`);
-console.log(`cells kept (pin nothing): ${plan.keptCellCount}`);
+console.log(`cells kept (pin nothing or another lineage): ${plan.keptCellCount}`);
 
 if (!apply) {
   console.log('\nDRY RUN — re-run with --apply to execute.');
@@ -1447,10 +1808,14 @@ if (!apply) {
 
 let batch = db.batch();
 let queued = 0;
-const flush = async () => { await batch.commit(); batch = db.batch(); queued = 0; };
+const flush = async () => {
+  await batch.commit();
+  batch = db.batch();
+  queued = 0;
+};
 for (const id of plan.cellIdsToDelete) {
   batch.delete(db.collection('benchmarkRuns').doc(id));
-  if (++queued === 400) await flush();
+  if (++queued === 400) await flush(); // Firestore caps a batch at 500
 }
 for (const id of plan.artifactIdsToDelete) {
   batch.delete(db.collection('dayArtifacts').doc(id));
@@ -1458,11 +1823,23 @@ for (const id of plan.artifactIdsToDelete) {
 }
 if (queued) await flush();
 
-// Post-condition: no cell may pin a hash with no stored artifact.
-const after = await db.collection('benchmarkRuns').get();
-const dangling = after.docs.filter((d) => d.data().artifactSha256).length;
-console.log(`\nDone. Cells still pinning a KEYS hash: ${dangling} (must be 0).`);
-process.exit(dangling === 0 ? 0 : 1);
+// Real post-conditions: (a) no surviving KEYS doc for this lineage, and (b) no
+// surviving cell pinning a hash that no surviving artifact carries. Counting
+// "cells that still have an artifactSha256" would be tautological.
+const [afterArtifacts, afterCells] = await Promise.all([
+  db.collection('dayArtifacts').get(),
+  db.collection('benchmarkRuns').get(),
+]);
+const survivingHashes = new Set(afterArtifacts.docs.map((d) => d.data().contentHash).filter(Boolean));
+const stillLineage = afterArtifacts.docs.filter((d) => d.id.endsWith(`__keys__${lineage}`)).length;
+const dangling = afterCells.docs.filter((d) => {
+  const h = d.data().artifactSha256;
+  return h && !survivingHashes.has(h);
+}).length;
+
+console.log(`\nDone. Surviving ${lineage} KEYS docs: ${stillLineage} (must be 0).`);
+console.log(`Cells pinning a missing artifact: ${dangling} (must be 0).`);
+process.exit(stillLineage === 0 && dangling === 0 ? 0 : 1);
 ```
 
 - [ ] **Step 6: Verify the dry run against real data**
@@ -1473,7 +1850,7 @@ Run from `backend/`:
 pnpm build && node scripts/reset-keys-era.mjs
 ```
 
-Expected: reports 11 KEYS artifacts and 101 pinning cells to delete, 200 cells kept, and exits without writing. Do **not** pass `--apply` yet — that is an operational step, run deliberately when starting the build.
+Expected: aborts if any batch is non-terminal; otherwise reports 11 KEYS artifacts and 101 pinning cells to delete, 200 cells kept, and exits without writing. Do **not** pass `--apply` — that is an operational step for when the build actually starts.
 
 - [ ] **Step 7: Commit**
 
@@ -1489,38 +1866,46 @@ git commit -m "feat(benchmark): one-time keys era reset"
 **Files:**
 - Modify: `CLAUDE.md` (Benchmark section)
 
-**Interfaces:**
-- Consumes: the routes from Task 7.
-- Produces: no code.
-
 - [ ] **Step 1: Add the endpoint block**
 
-In `CLAUDE.md`, inside the Benchmark section after the samples block, add:
+In `CLAUDE.md`, in the Benchmark section after the samples block, add:
 
 ````markdown
 Corpus-wide KEYS generation — build the lookback chain before benchmarking:
 
 ```
-POST   /benchmark/keys-backfill?from=MMDDYYYY&to=MMDDYYYY   202, detached; omit from/to for the whole committed corpus
-GET    /benchmark/keys-backfill                             job snapshot + progress/ETA; 404 if none since boot
-DELETE /benchmark/keys-backfill                             cancel; the in-flight day finishes first
+POST   /benchmark/keys-backfill?confirm=true&from=MMDDYYYY&to=MMDDYYYY   202, detached; omit from/to for the whole committed corpus
+GET    /benchmark/keys-backfill                                          snapshot + progress/ETA + reducedLookback; 404 if none since boot
+DELETE /benchmark/keys-backfill?startedAt=<iso>                          cancel; the in-flight day finishes; 409 if startedAt does not match
 ```
+
+**Sequence: era-reset script → keys-backfill to completion → benchmark runs.**
+Running the backfill without `backend/scripts/reset-keys-era.mjs` silently
+reuses the 11 already-pinned artifacts, 4 of which have degraded lookback.
 
 Sequential and oldest-first so every day gets a full 3-day lookback — which a
 sampled run cannot provide, because a sample's scattered days almost never have
-KEYS for their 3 prior days. A day that fails **3 attempts stops the job**
-(`state: "failed"`, `failures[0]` carries the day and the verifier mismatches)
-rather than leaving a hole that degrades the next three days. Re-POST resumes:
-days with a stored verified artifact short-circuit on one read.
+KEYS for their 3 prior days. A day is reused only when its artifact is
+`verified` **and** has an empty `lookbackMissing`. Failures are classified
+(`unverified` / `error` / `refused` / `timeout`); `unverified` and `error` retry
+up to 3 times with backoff, `refused` and `timeout` stop immediately, and any
+stop ends the job (`state: "failed"`, `failures[0]` names the day) rather than
+leaving a hole. Re-POST resumes — built days short-circuit on one read.
 
 `POST /benchmark/keys-backfill` and `POST /benchmark/run` are **mutually
-exclusive** — whichever starts first holds a shared lock and the other gets 409
-naming the holder. Run against a one-shot server (`pnpm start`), never watch
-mode: job state is in-memory. Budget ~$130 and 20-40 hours for a cold corpus
-(352 committed days at ~$0.37/day).
+exclusive**: whichever starts first holds a shared lock, the other gets 409 with
+a `holder` field. Assumes a single backend process. Do not run eminiplayer
+ingest/backfill concurrently — a re-ingest of any corpus day stops the job by
+design. Run against a one-shot server (`pnpm start`), never watch mode: job
+state is in-memory. Budget ~$130 and 20-40 hours for a cold corpus (352
+committed days at ~$0.37/day).
 ````
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Fix the stale 409 sentence**
+
+The existing text says `POST /benchmark/run` has "two 409 causes". It now has three. Change that sentence to read: *"note `POST /benchmark/run` has three 409 causes — a run in progress, a keys backfill in progress (both name the `holder`; check `GET /benchmark/status` and `GET /benchmark/keys-backfill`), vs content drift (check `GET /benchmark/drift`) — and the response body says which."*
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add CLAUDE.md
@@ -1531,10 +1916,10 @@ git commit -m "docs(claude-md): keys-backfill endpoints"
 
 ## Self-Review
 
-**Spec coverage:** Mutual exclusion → Task 1. `onUnverified` seam → Task 2. `assembleDay` extraction → Task 3. Sequential oldest-first loop, reuse pre-check, resume, corpus snapshot taken once → Task 4. Retry-3-then-stop, failure ledger with mismatches, per-day timeout → Task 5. Cancellation, shutdown hooks, lock release on every terminal state, progress/ETA → Task 6. Three routes, 202/404/409, `from`/`to` defaults and validation, config knob → Task 7. Era reset incl. the orphaned-pin constraint → Task 8. Operational notes → Task 9. Non-goals (chunking, two-phase, prompt changes, `LOOKBACK_DAYS`, token guard, general retirement endpoint) have no tasks, by design.
+**Spec coverage:** shared lock + single-process caveat → T1. `onFailure` classification seam + `lineageAlias` → T2. `ensureDayRecorded` extraction with its ordering contract → T3. Sequential loop, reuse-requires-empty-`lookbackMissing`, `reducedLookback` reporting, empty-corpus and methods-doc preflights, `from` guard, snapshot-once → T4. Retry with backoff, classification, `refused`/`timeout`/snapshot-mismatch fail-fast, whole-body timeout, classification read inside the retry → T5. Cancellation, shutdown hooks, generated-only progress → T6. Three routes with `confirm`/`startedAt` guards, module **exports**, `AppConfig` interface + literal, boot verification → T7. Era reset with batch guard, hash-scoped cell deletion, legacy docs, real post-conditions → T8. Operational sequencing + 409 correction → T9.
 
-**Placeholder scan:** No TBDs. Every code step carries real code.
+**Placeholder scan:** no TBDs; every code step carries real code.
 
-**Type consistency:** `KeysBackfillSnapshot`, `KeysBackfillFailure`, `DayOutcome`, `LockHolder`, `LockHeldError`, `EraResetPlan`, and `EraCell` are defined once and referenced consistently. `ensureDayRecorded` returns `PdfArtifact` in Task 3 and its return value is used (`pdf.providerFileId`) only in `assembleDay`; the backfill ignores it. `lineageAlias` is a getter in Task 2 and read as a property in Task 4.
+**Type consistency:** `KeysFailure` (T2) is imported by T4 and reused for `KeysFailureKind = KeysFailure['kind'] | 'timeout'`. `generateDay`, `recordReducedLookback`, `nowMs`, `sleep` are declared `protected` in T4 and referenced in T5/T6. `EraArtifact` gained `contentHash`/`generatedBy` and the script supplies both. `ensureDayRecorded` returns `PdfArtifact`, consumed only by `assembleDay`.
 
-**Known wiring detail for executors:** Tasks 1 and 7 change constructor arities of `BenchmarkService` and `BenchmarkController`. Their existing specs construct these directly and must be updated in the same task, or the suite breaks.
+**Fixture accuracy (the review's largest defect class):** every test above is written against the file's real helper. `seven-keys.service.spec.ts` → `makeDeps()` + `await build(deps, configOverrides)` returning the service bare, with module-level `DAY`/`SNAP`, and `benchmark.model` pinned wherever the alias is asserted (the default resolves to `fable`, not `k3`). `day-artifacts.service.spec.ts` → `const { svc } = await build()`. `benchmark.service.spec.ts` and `benchmark.controller.spec.ts` → new constructor deps registered in their `providers` arrays, never constructed directly.

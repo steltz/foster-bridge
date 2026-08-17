@@ -489,9 +489,46 @@ reintroduced.
 
 ## Disposition
 
-| # | Severity | Applied? |
-|---|---|---|
-| 1-4 | Critical | pending |
-| 5-14 | High | pending |
-| 15-27 | Medium | pending |
-| 28-37 | Low | pending |
+**All 37 findings applied** (2026-08-16) by rewriting both documents. The spec is
+at revision 2; the plan grew from 9 tasks to 9 tasks with substantially revised
+content and two new verification steps.
+
+| # | Severity | Applied? | Where |
+|---|---|---|---|
+| 1 | Critical | ✅ | Spec §2 rewritten around "ensureKeys never throws"; `onUnverified` → `onFailure` with `unverified`/`error`/`refused` kinds (plan T2), classification from the callback only (T5) |
+| 2 | Critical | ✅ | Spec §3 reuse rule now requires empty `lookbackMissing`; `reducedLookback` added to the snapshot; regeneration test added (plan T4) |
+| 3 | Critical | ✅ | Plan T7 Step 5 adds `exports`, plus a new Step 8 that boots the app to catch exactly this class |
+| 4 | Critical | ✅ | Spec §4 replaces the unimplementable lock check with a non-terminal-batch abort; plan T8 script implements it |
+| 5 | High | ✅ | Plan T2 tests rewritten against `makeDeps()` / `await build(deps, overrides)` / `DAY` / `SNAP`, with `benchmark.model` pinned and `'fable'` asserted as the default |
+| 6 | High | ✅ | Plan T3 uses `const { svc } = await build()` |
+| 7 | High | ✅ | Plan T1 Step 6 and T7 Step 1 register providers in the testing modules; the false "constructs directly" claim is deleted from the self-review |
+| 8 | High | ✅ | `startedAt` now derives from the `nowMs()` seam (plan T4 `start()`); the T6 test pins the clock to a real epoch and asserts `avgSecondsPerDay === 10` |
+| 9 | High | ✅ | Timeouts are non-retryable (spec §2, plan T5); the classification read moved inside the retry loop so a late save is picked up |
+| 10 | High | ✅ | `withDayTimeout` wraps the whole attempt via `generateDay` (plan T5) |
+| 11 | High | ✅ | `planKeysEraReset` now takes `contentHash` and selects cells by hash membership (plan T8) |
+| 12 | High | ✅ | Spec "API surface" `from` guard; `assertLookbackReady` + a refusal test (plan T4) |
+| 13 | High | ✅ | Spec §1 documents the eminiplayer limitation; snapshot mismatch is a non-retryable stop with a re-POST instruction (plan T5) |
+| 14 | High | ✅ | `keysBackfillRetryDelaysMs` (default `30000,180000`), backoff awaited between attempts, `sleep` seam spied in tests |
+| 15 | Medium | ✅ | Plan T8 script checks surviving lineage docs and genuinely dangling pins |
+| 16 | Medium | ✅ | `LEGACY_KEYS_ID` matching with `generatedBy` resolution (plan T8) |
+| 17 | Medium | ✅ | Spec §3 "Known divergence from `ensureKeys`" states the `inputsHash` tradeoff and the repair path |
+| 18 | Medium | ✅ | `refused` breaks immediately (spec §2 table, plan T5) |
+| 19 | Medium | ✅ | Classification read is inside the try/retry; transient-Firestore test added (plan T5) |
+| 20 | Medium | ✅ | Plan T7 Step 6 updates the `AppConfig` interface *and* the literal |
+| 21 | Medium | ✅ | Empty corpus scan throws a job-level failure; test added (plan T4) |
+| 22 | Medium | ✅ | `methodsDoc` preflight; test added (plan T4) |
+| 23 | Medium | ✅ | Plan T7 Step 1 lists the imports explicitly |
+| 24 | Medium | ✅ | `generatedDurations` ring buffer over generated days only; "all reused → null progress" test (plan T6) |
+| 25 | Medium | ✅ | Plan T9 leads with the era-reset-first sequence |
+| 26 | Medium | ✅ | Single-process assumption stated in spec §1 and in `run-lock.ts`'s docblock |
+| 27 | Medium | ✅ | `confirm=true` on POST, `startedAt` echo on DELETE, both tested (spec API surface, plan T7) |
+| 28 | Low | ✅ | Plan T7 Step 3 cites `:29-39` and merges into the existing import |
+| 29 | Low | ✅ | Spec snapshot declares `from`/`to` as `string \| null`; day-loop reordered to classify first |
+| 30 | Low | ✅ | Timeout test asserts `attempts: 1` and `kind: 'timeout'` (non-retry is now the spec'd behavior) |
+| 31 | Low | ✅ | The retry test uses two days and asserts the second was attempted |
+| 32 | Low | ✅ | Plan T2 Step 3 no longer claims "only the callback line is new"; the `?? []` is gone |
+| 33 | Low | ✅ | `start()` attaches `.catch()` to `loopPromise` (plan T4) |
+| 34 | Low | ✅ | Spec "Corpus facts" states manifest-days ⊃ benchmarkable-days and why |
+| 35 | Low | ✅ | `ensureDayRecorded`'s docblock states the ordering requirement; plan T3 Interfaces calls it out |
+| 36 | Low | ✅ | Plan T9 Step 2 corrects "two 409 causes" → three and threads `holder` |
+| 37 | Low | ✅ | Noted in spec §1's eminiplayer/limitations discussion; `CacheWarmer` overlap is bounded to in-flight batch days, which the batch guard now blocks during reset |
