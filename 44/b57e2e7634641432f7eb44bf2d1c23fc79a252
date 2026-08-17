@@ -1,0 +1,23 @@
+backend/src/benchmark/seven-keys/seven-keys.service.ts
+  s_45cdafe2b2bb50::t_d2a7907d1a839f 22-24
+  s_45cdafe2b2bb50::t_c3747989fff7d8 100-106,113,119-121,123-126
+docs/superpowers/specs/2026-08-16-benchmark-keys-backfill-design.md
+  s_45cdafe2b2bb50::t_d8ae23b32941ab 236-246
+  s_45cdafe2b2bb50::t_1cafd6e874c7aa 1-235,247-289
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "44b57e2e7634641432f7eb44bf2d1c23fc79a252",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
