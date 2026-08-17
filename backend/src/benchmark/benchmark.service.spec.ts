@@ -14,6 +14,7 @@ import { MarketDataService } from '../market-data/market-data.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { analyzeCoverage } from '../market-data/coverage';
+import { BenchmarkRunLock } from './run-lock';
 
 // Coverage is a pure import, not a provider — mock it so day-completeness is
 // controlled per test without hand-building 78-bar candle fixtures.
@@ -76,6 +77,7 @@ async function build(deps: ReturnType<typeof makeDeps>) {
     providers: [
       BenchmarkService,
       EnvelopeBuilder,
+      BenchmarkRunLock,
       { provide: BenchmarkRepository, useValue: deps.repo },
       { provide: CloudInputsService, useValue: deps.inputs },
       { provide: DayArtifactsService, useValue: deps.dayArtifacts },

@@ -19,6 +19,7 @@ import { SevenKeysService } from './seven-keys/seven-keys.service';
 import { detectDrift, hasDrift, renderDrift, DriftInputs, DriftReport } from './drift';
 import { BenchmarkDriftError } from './benchmark.errors';
 import { assertSampleName } from './samples.service';
+import { BenchmarkRunLock, LockHeldError } from './run-lock';
 
 // Symbol/interval the benchmark backtests against (see design §7).
 const SYMBOL = 'ES';
@@ -57,6 +58,7 @@ export class BenchmarkService {
     private readonly contracts: ContractsService,
     private readonly sevenKeys: SevenKeysService,
     private readonly config: ConfigService,
+    private readonly lock: BenchmarkRunLock,
   ) {}
 
   /** Narrow CloudInputsService output to what the drift comparison reads. */
@@ -78,8 +80,6 @@ export class BenchmarkService {
     return detectDrift(this.driftInputs(snap.traders, snap.features, snap.general.sha256), await this.repo.listCellsForDrift());
   }
 
-  private runInProgress = false;
-
   async run(opts: RunOptions = {}): Promise<RunSummary> {
     // Sample resolution and mutual exclusion live OUTSIDE the single-flight
     // lock and BEFORE any snapshot/drift work: a malformed request must never
@@ -94,15 +94,19 @@ export class BenchmarkService {
       if (!sampleDoc.days.length) throw new UnprocessableEntityException(`sample ${opts.sample} has no days — refusing to fall through to a full-corpus run`);
       daysFilter = sampleDoc.days;
     }
-    // Single-flight: two concurrent runs racing ensureKeys can orphan a
+    // Single-flight: two concurrent callers racing ensureKeys can orphan a
     // submitted batch's pinned KEYS hash (last-write-wins saveKeysArtifact) —
-    // a permanent per-day wedge. Same posture as BatchReconciler's guard.
-    if (this.runInProgress) throw new ConflictException('a benchmark run is already in progress');
-    this.runInProgress = true;
+    // a permanent per-day wedge. Shared with the keys-backfill job.
+    try {
+      this.lock.acquire('benchmark-run');
+    } catch (err) {
+      if (err instanceof LockHeldError) throw new ConflictException(err.message);
+      throw err;
+    }
     try {
       return await this.runInner(opts, daysFilter);
     } finally {
-      this.runInProgress = false;
+      this.lock.release('benchmark-run');
     }
   }
 
