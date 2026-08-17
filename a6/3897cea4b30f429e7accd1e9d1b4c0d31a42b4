@@ -1,0 +1,38 @@
+backend/src/config/configuration.ts
+  s_45cdafe2b2bb50::t_9c98b132ccd6e8 155-164
+  s_45cdafe2b2bb50::t_ac492931d1f643 42-43
+backend/src/benchmark/benchmark.controller.ts
+  s_45cdafe2b2bb50::t_47af269dbbfef0 98-150
+  s_45cdafe2b2bb50::t_39b17ef81859b5 32
+  s_45cdafe2b2bb50::t_7e6fd53e14e621 1,3-5
+backend/src/config/configuration.spec.ts
+  s_45cdafe2b2bb50::t_53f0f71f6c707e 96-98,102-107
+  s_45cdafe2b2bb50::t_c750180b3c1ff8 108-109
+backend/src/eminiplayer/eminiplayer.controller.ts
+  s_45cdafe2b2bb50::t_3950db2e510c32 27
+backend/src/eminiplayer/eminiplayer-validation.ts
+  s_45cdafe2b2bb50::t_b8621a218f6d57 43-52
+backend/src/benchmark/benchmark.module.ts
+  s_45cdafe2b2bb50::t_f29b332055389b 36,38-41
+  s_45cdafe2b2bb50::t_29a6ccd9713210 15
+backend/src/benchmark/benchmark.controller.spec.ts
+  s_45cdafe2b2bb50::t_9b8481d1133d37 2,9-10
+  s_45cdafe2b2bb50::t_db571677bc7da5 25-29,38,41
+  s_45cdafe2b2bb50::t_bef09aa2996109 117-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a63897cea4b30f429e7accd1e9d1b4c0d31a42b4",
+  "prompts": {},
+  "sessions": {
+    "s_45cdafe2b2bb50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c114a82-99b7-4c7a-82cb-a6d053da01f7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
