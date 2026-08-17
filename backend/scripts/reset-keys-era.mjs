@@ -3,11 +3,16 @@
 // corpus can be regenerated in strict chronological order.
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { planKeysEraReset } from '../dist/benchmark/keys-era-reset.js';
+import { planKeysEraReset, isLineageKeysDoc } from '../dist/benchmark/keys-era-reset.js';
+// The repo's own definition of "still needs reconciler attention"
+// (benchmark.repository.ts:16) — imported so a future status cannot drift.
+import { NON_TERMINAL } from '../dist/benchmark/benchmark.repository.js';
 
 const apply = process.argv.includes('--apply');
 const lineage = process.env.KEYS_LINEAGE ?? 'k3';
-const NON_TERMINAL = ['created', 'submitted', 'in_progress', 'ended'];
+
+const nonTerminalBatches = () =>
+  db.collection('benchmarkBatches').where('status', 'in', NON_TERMINAL).get();
 
 initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID ?? 'app-foster-bridge' });
 const db = getFirestore();
@@ -16,7 +21,7 @@ const db = getFirestore();
 // enforceable precondition is the batch check: if a batch is still unreconciled,
 // BatchReconciler's cron will re-write pins for the artifacts we just deleted
 // within a minute and wedge those days permanently.
-const batches = await db.collection('benchmarkBatches').where('status', 'in', NON_TERMINAL).get();
+const batches = await nonTerminalBatches();
 if (!batches.empty) {
   console.error(`ABORT: ${batches.size} non-terminal batch(es) exist. Let them reconcile first —`);
   console.error('otherwise the reconciler re-creates pins for deleted artifacts and wedges those days.');
@@ -61,6 +66,18 @@ for (const id of plan.artifactIdsToDelete) {
 }
 if (queued) await flush();
 
+// TOCTOU check: a batch created between the pre-check and the deletes means a
+// concurrent run may pin an artifact we just deleted the moment it reconciles.
+// Convert that silent future wedge into an immediate signal.
+const batchesAfter = await nonTerminalBatches();
+if (!batchesAfter.empty) {
+  console.error(`\nWARNING: ${batchesAfter.size} non-terminal batch(es) appeared DURING the reset.`);
+  console.error('A concurrent benchmark run may have pinned an artifact that was just deleted.');
+  console.error('Check GET /benchmark/keys-backfill and re-run the dry run (no --apply) once the');
+  console.error('batches reconcile; any day it reports as still pinned must be investigated.');
+  process.exit(1);
+}
+
 // Real post-conditions: (a) no surviving KEYS doc for this lineage, and (b) no
 // surviving cell pinning a hash that no surviving artifact carries. Counting
 // "cells that still have an artifactSha256" would be tautological.
@@ -69,7 +86,9 @@ const [afterArtifacts, afterCells] = await Promise.all([
   db.collection('benchmarkRuns').get(),
 ]);
 const survivingHashes = new Set(afterArtifacts.docs.map((d) => d.data().contentHash).filter(Boolean));
-const stillLineage = afterArtifacts.docs.filter((d) => d.id.endsWith(`__keys__${lineage}`)).length;
+const stillLineage = afterArtifacts.docs.filter((d) =>
+  isLineageKeysDoc({ id: d.id, generatedBy: d.data().generatedBy ?? null }, lineage),
+).length;
 const dangling = afterCells.docs.filter((d) => {
   const h = d.data().artifactSha256;
   return h && !survivingHashes.has(h);

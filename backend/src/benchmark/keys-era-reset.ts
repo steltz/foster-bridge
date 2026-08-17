@@ -19,6 +19,17 @@ export interface EraResetPlan {
 
 const LEGACY_KEYS_ID = /^\d{8}__keys$/;
 
+// True when a doc belongs to this lineage's KEYS corpus: either a scoped
+// `${day}__keys__${alias}` doc, or a legacy unscoped `${day}__keys` doc whose
+// generatedBy resolves to the lineage. Shared with the runner script's
+// post-condition so both sides apply the identical predicate.
+export function isLineageKeysDoc(a: EraArtifact, lineageAlias: string): boolean {
+  return (
+    a.id.endsWith(`__keys__${lineageAlias}`) ||
+    (LEGACY_KEYS_ID.test(a.id) && resolveModel(a.generatedBy ?? 'claude-fable-5').alias === lineageAlias)
+  );
+}
+
 /**
  * A one-time reset so the corpus can be rebuilt in strict order.
  *
@@ -38,12 +49,17 @@ export function planKeysEraReset(
   cells: EraCell[],
   lineageAlias: string,
 ): EraResetPlan {
-  const suffix = `__keys__${lineageAlias}`;
-  const doomed = artifacts.filter(
-    (a) =>
-      a.id.endsWith(suffix) ||
-      (LEGACY_KEYS_ID.test(a.id) && resolveModel(a.generatedBy ?? 'claude-fable-5').alias === lineageAlias),
-  );
+  const doomed = artifacts.filter((a) => isLineageKeysDoc(a, lineageAlias));
+  // A doomed artifact without a contentHash would still be deleted, but its
+  // pinning cells could not be identified — leaving pins that match no stored
+  // artifact, the exact wedge (ensureKeys' "possible deleted artifact" refusal)
+  // this reset exists to avoid. Refuse to plan at all rather than plan a wedge.
+  const hashless = doomed.filter((a) => !a.contentHash).map((a) => a.id);
+  if (hashless.length) {
+    throw new Error(
+      `refusing to plan a reset: KEYS artifact(s) ${hashless.join(', ')} have no contentHash, so their pinning cells cannot be identified and those days would wedge`,
+    );
+  }
   const hashes = new Set(doomed.map((a) => a.contentHash).filter((h): h is string => Boolean(h)));
   const cellIdsToDelete = cells
     .filter((c) => c.artifactSha256 && hashes.has(c.artifactSha256))

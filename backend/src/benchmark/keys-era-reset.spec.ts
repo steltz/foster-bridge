@@ -28,6 +28,12 @@ describe('planKeysEraReset', () => {
     expect(plan.keptCellCount).toBe(3); // fable + base + method survive
   });
 
+  it('throws when a doomed artifact has no contentHash, naming the offending id', () => {
+    const withHashless = [...artifacts, { id: '02022025__keys__k3', contentHash: null }];
+    expect(() => planKeysEraReset(withHashless, [], 'k3')).toThrow(/02022025__keys__k3/);
+    expect(() => planKeysEraReset(withHashless, [], 'k3')).toThrow(/no contentHash/);
+  });
+
   it('is a no-op on an already-clean era', () => {
     const plan = planKeysEraReset([{ id: '08032026__pdfFile' }], [{ id: 'c1' }], 'k3');
     expect(plan).toEqual({ artifactIdsToDelete: [], cellIdsToDelete: [], keptCellCount: 1 });
