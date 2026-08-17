@@ -238,4 +238,128 @@ describe('KeysBackfillService', () => {
   it('status is null before the first start', () => {
     expect(build().service.status()).toBeNull();
   });
+
+  it('retries a failed day with backoff and continues to the next day on success', async () => {
+    let calls = 0;
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      calls += 1;
+      if (calls <= 2) {
+        opts.onFailure({ kind: 'unverified', message: `attempt ${calls}`, mismatches: [`m${calls}`] });
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
+    });
+    const { service, sleep } = build({
+      days: [listing('01022025', '2025-01-02'), listing('01032025', '2025-01-03')],
+      ensureKeys,
+    });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(sleep).toHaveBeenCalledTimes(2); // backoff before attempts 2 and 3
+    expect(daysPassedTo(ensureKeys)).toEqual(['01022025', '01022025', '01022025', '01032025']);
+    expect(job.state).toBe('done');
+    expect(job.counts).toMatchObject({ generated: 2, failed: 0, processed: 2 });
+    expect(job.failures).toEqual([]);
+  });
+
+  it('stops the whole job after three failed attempts and records diagnostics', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'unverified', message: 'verifier rejected the artifact: side mismatch', mismatches: ['5777.75-5781.75: side mismatch'] });
+      return Promise.resolve(null);
+    });
+    const { service } = build({ ensureKeys });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(ensureKeys).toHaveBeenCalledTimes(3); // first day only — day 2 never attempted
+    expect(job.state).toBe('failed');
+    expect(job.counts.failed).toBe(1);
+    expect(job.error).toContain('01022025');
+    expect(job.failures[0]).toMatchObject({
+      day: '01022025',
+      attempts: 3,
+      kind: 'unverified',
+      mismatches: ['5777.75-5781.75: side mismatch'],
+    });
+  });
+
+  it('classifies a generation error as kind "error", not unverified', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'error', message: 'moonshot 529 rate limited', mismatches: [] });
+      return Promise.resolve(null);
+    });
+    const { service } = build({ ensureKeys });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(ensureKeys).toHaveBeenCalledTimes(3);
+    expect(job.failures[0]).toMatchObject({ kind: 'error', attempts: 3 });
+    expect(job.failures[0].message).toContain('moonshot 529');
+  });
+
+  it('does NOT retry a refused pin anomaly', async () => {
+    const ensureKeys = jest.fn((_d: unknown, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      opts.onFailure({ kind: 'refused', message: 'pinned KEYS hash matches no stored artifact', mismatches: [] });
+      return Promise.resolve(null);
+    });
+    const { service, sleep } = build({ ensureKeys });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(ensureKeys).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+    expect(job.state).toBe('failed');
+    expect(job.failures[0]).toMatchObject({ kind: 'refused', attempts: 1 });
+  });
+
+  it('does NOT retry a per-day timeout, and stops the job', async () => {
+    jest.useFakeTimers();
+    try {
+      const ensureKeys = jest.fn(() => new Promise(() => undefined));
+      const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys });
+      service.start({});
+      await jest.advanceTimersByTimeAsync(60_001);
+      await settle(service);
+
+      const job = service.status()!;
+      expect(ensureKeys).toHaveBeenCalledTimes(1);
+      expect(job.state).toBe('failed');
+      expect(job.failures[0]).toMatchObject({ kind: 'timeout', attempts: 1 });
+      expect(job.failures[0].message).toMatch(/timeout/i);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('stops immediately when the corpus changed under the snapshot', async () => {
+    const loadDay = jest.fn(() => Promise.reject(new Error('day 01022025 changed since the run snapshot (tradePlanPdf no longer match)')));
+    const { service } = build({ loadDay });
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.failures[0].attempts).toBe(1);
+    expect(job.failures[0].message).toMatch(/re-POST to re-snapshot/i);
+  });
+
+  it('retries a transient Firestore error on the classification read', async () => {
+    let reads = 0;
+    const getKeysArtifact = jest.fn(() => {
+      reads += 1;
+      if (reads === 1) return Promise.reject(new Error('DEADLINE_EXCEEDED'));
+      return Promise.resolve(null);
+    });
+    const { service } = build({ days: [listing('01022025', '2025-01-02')], getKeysArtifact });
+    service.start({});
+    await settle(service);
+
+    expect(service.status()!.state).toBe('done');
+    expect(service.status()!.counts.generated).toBe(1);
+  });
 });

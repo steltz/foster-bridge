@@ -40,6 +40,15 @@ export interface KeysBackfillSnapshot {
 
 type DayOutcome = 'generated' | 'reused' | 'failed' | 'cancelled';
 
+export class KeysBackfillDayTimeoutError extends Error {
+  constructor(day: string, ms: number) {
+    super(`day ${day} exceeded the ${ms}ms keys-backfill day timeout`);
+  }
+}
+
+/** loadDay/outcomeRecapForDay throw this wording when the corpus moved under us. */
+const SNAPSHOT_MISMATCH = /changed since the run snapshot/;
+
 /**
  * Corpus-wide seven-keys generation, strictly sequential and oldest-first so
  * every day's lookback analyst sees three finalized prior assessments. The job
@@ -193,30 +202,102 @@ export class KeysBackfillService {
   }
 
   private async runDay(job: KeysBackfillSnapshot, l: DayListing, snap: InputsSnapshot): Promise<DayOutcome> {
-    const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
-    if (existing?.verified && !existing.lookbackMissing?.length) {
-      job.counts.reused += 1;
-      return 'reused';
+    let last: { kind: KeysFailureKind; message: string; mismatches: string[] } = {
+      kind: 'error',
+      message: 'no attempt was made',
+      mismatches: [],
+    };
+    let attempts = 0;
+
+    for (let attempt = 1; attempt <= MAX_DAY_ATTEMPTS; attempt++) {
+      // Cancellation is checked BETWEEN attempts: the in-flight attempt always
+      // finishes, matching the eminiplayer backfill's "in-flight day finishes".
+      if (this.cancelRequested && attempt > 1) return 'cancelled';
+      if (attempt > 1) await this.sleep(this.retryDelayMs(attempt));
+      attempts = attempt;
+      // An array, not a scalar: TS narrows a `let x: T | null = null` assigned
+      // only inside a callback back to `null` at the read site.
+      const reported: KeysFailure[] = [];
+      try {
+        // Inside the loop so a transient Firestore error is retried rather than
+        // killing the job with an empty failures[], and so a late save from an
+        // abandoned attempt is picked up.
+        const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
+        if (existing?.verified && !existing.lookbackMissing?.length) {
+          job.counts.reused += 1;
+          return 'reused';
+        }
+        // A verified-but-degraded artifact must be REPLACED. ensureKeys reuses any
+        // verified artifact whose inputsHash still matches unless forced, so without
+        // this the regeneration decision is a silent no-op. Pins are checked before
+        // force, so a benchmarked day stays frozen either way.
+        const regenerateDegraded = Boolean(existing?.verified);
+        if (regenerateDegraded) {
+          this.logger.log(
+            `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing!.lookbackMissing!.join(', ')}) — regenerating`,
+          );
+        }
+        const doc = await this.withDayTimeout(
+          this.generateDay(l, snap, (f) => reported.push(f), regenerateDegraded),
+          l.day,
+        );
+        if (doc) {
+          job.counts.generated += 1;
+          this.recordReducedLookback(job, l.day, doc);
+          return 'generated';
+        }
+        last = reported[0] ?? {
+          kind: 'error',
+          message: 'ensureKeys returned null without reporting a reason',
+          mismatches: [],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (err instanceof KeysBackfillDayTimeoutError) {
+          last = { kind: 'timeout', message, mismatches: [] };
+        } else if (SNAPSHOT_MISMATCH.test(message)) {
+          // A concurrent eminiplayer re-ingest. Deterministic — retrying is waste.
+          last = {
+            kind: 'error',
+            message: `corpus changed mid-job — re-POST to re-snapshot (${message})`,
+            mismatches: [],
+          };
+          break;
+        } else {
+          last = { kind: 'error', message, mismatches: [] };
+        }
+      }
+      this.logger.warn(`keys-backfill ${l.day} attempt ${attempt}/${MAX_DAY_ATTEMPTS} failed [${last.kind}]: ${last.message}`);
+      // Neither can succeed on retry; a timeout would also leave the abandoned
+      // chain racing saveKeysArtifact against the next attempt.
+      if (last.kind === 'refused' || last.kind === 'timeout') break;
     }
-    // A verified-but-degraded artifact must be REPLACED. ensureKeys reuses any
-    // verified artifact whose inputsHash still matches unless forced, so without
-    // this the regeneration decision is a silent no-op. Pins are checked before
-    // force, so a benchmarked day stays frozen either way.
-    const regenerateDegraded = Boolean(existing?.verified);
-    if (regenerateDegraded) {
-      this.logger.log(
-        `keys-backfill ${l.day}: stored artifact has reduced lookback (${existing!.lookbackMissing!.join(', ')}) — regenerating`,
-      );
-    }
-    const doc = await this.generateDay(l, snap, () => undefined, regenerateDegraded);
-    if (doc) {
-      job.counts.generated += 1;
-      this.recordReducedLookback(job, l.day, doc);
-      return 'generated';
-    }
+
     job.counts.failed += 1;
-    job.failures.push({ day: l.day, attempts: 1, kind: 'error', message: 'generation failed', mismatches: [] });
+    job.failures.push({ day: l.day, attempts, kind: last.kind, message: last.message, mismatches: last.mismatches });
     return 'failed';
+  }
+
+  private retryDelayMs(attempt: number): number {
+    const delays = this.config.get<number[]>('benchmark.keysBackfillRetryDelaysMs') ?? [30_000, 180_000];
+    return delays[Math.min(attempt - 2, delays.length - 1)] ?? 30_000;
+  }
+
+  private withDayTimeout<T>(work: Promise<T>, day: string): Promise<T> {
+    const ms = this.config.get<number>('benchmark.keysBackfillDayTimeoutMs') ?? 900_000;
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new KeysBackfillDayTimeoutError(day, ms)), ms);
+      work.then(
+        (v) => {
+          clearTimeout(timer);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(timer);
+          reject(e);
+        },
+      );
+    });
   }
 
   protected recordReducedLookback(job: KeysBackfillSnapshot, day: string, doc: DayArtifactDoc): void {
