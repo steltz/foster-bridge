@@ -40,6 +40,7 @@ export interface AppConfig {
       management: { triggerR: number; takeFraction: number; moveStopToR: number } | null;
     };
     keysBackfillDayTimeoutMs: number;
+    keysBackfillReadTimeoutMs: number;
     keysBackfillRetryDelaysMs: number[];
   };
   eminiplayer: {
@@ -155,6 +156,11 @@ export default (): AppConfig => ({
     // Ceiling for one day's whole attempt (loadDay + record + seven-keys).
     // A day is 4-6 LLM calls at high effort, ~3.5 min of model time.
     keysBackfillDayTimeoutMs: parseInt(process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS ?? '900000', 10),
+    // Ceiling for a single unguarded infrastructure read (corpus snapshot,
+    // non-terminal batch check, KEYS artifact reads). A hung GCS/Firestore
+    // socket must fail the read, not park a 40-hour job at `running` while it
+    // holds the run lock and ignores DELETE.
+    keysBackfillReadTimeoutMs: parseInt(process.env.BENCHMARK_KEYS_READ_TIMEOUT_MS ?? '300000', 10),
     // Backoff before retry attempts 2 and 3. Without it, SevenKeysService's own
     // withRetry means ~9 immediate provider calls, so any brief rate-limit
     // window would end a 40-hour run.

@@ -61,6 +61,7 @@ function build(
   const config = {
     get: jest.fn((key: string) => {
       if (key === 'benchmark.keysBackfillDayTimeoutMs') return 60_000;
+      if (key === 'benchmark.keysBackfillReadTimeoutMs') return 300_000;
       if (key === 'benchmark.keysBackfillRetryDelaysMs') return [10, 20];
       return undefined;
     }),
@@ -440,6 +441,70 @@ describe('KeysBackfillService', () => {
     service.start({});
     await settle(service);
     expect(service.status()!.progress.avgSecondsPerDay).toBeNull();
+  });
+
+  it('fails the job when the corpus snapshot read hangs past the read timeout', async () => {
+    jest.useFakeTimers();
+    try {
+      const { service, inputs, sevenKeys, lock } = build();
+      inputs.snapshot.mockImplementationOnce(() => new Promise(() => undefined) as never);
+      service.start({});
+      await jest.advanceTimersByTimeAsync(300_001);
+      await settle(service);
+
+      const job = service.status()!;
+      expect(job.state).toBe('failed');
+      expect(job.error).toMatch(/corpus snapshot exceeded the 300000ms keys-backfill read timeout/);
+      expect(sevenKeys.ensureKeys).not.toHaveBeenCalled();
+      expect(lock.heldBy).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('RETRIES a hung classification read instead of stopping the job on the first timeout', async () => {
+    jest.useFakeTimers();
+    try {
+      let reads = 0;
+      const getKeysArtifact = jest.fn(() => {
+        reads += 1;
+        if (reads === 1) return new Promise(() => undefined); // hangs — read timeout fires
+        return Promise.resolve(null);
+      });
+      const { service } = build({ days: [listing('01022025', '2025-01-02')], getKeysArtifact });
+      service.start({});
+      await jest.advanceTimersByTimeAsync(300_001);
+      await settle(service);
+
+      const job = service.status()!;
+      expect(getKeysArtifact.mock.calls.length).toBeGreaterThan(1);
+      expect(job.state).toBe('done');
+      expect(job.counts).toMatchObject({ generated: 1, failed: 0, processed: 1 });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('nulls etaIso when the job stops on a failed day, keeping avgSecondsPerDay', async () => {
+    const ensureKeys = jest.fn((d: DayListing, _s: unknown, opts: { onFailure: (f: unknown) => void }) => {
+      if (d.day === '01022025') {
+        return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
+      }
+      opts.onFailure({ kind: 'refused', message: 'pinned KEYS hash matches no stored artifact', mismatches: [] });
+      return Promise.resolve(null);
+    });
+    const { service } = build({ ensureKeys });
+    let clock = Date.parse('2026-08-16T00:00:00.000Z');
+    jest
+      .spyOn(service as never as { nowMs: () => number }, 'nowMs')
+      .mockImplementation(() => (clock += 10_000));
+    service.start({});
+    await settle(service);
+
+    const job = service.status()!;
+    expect(job.state).toBe('failed');
+    expect(job.progress.avgSecondsPerDay).not.toBeNull();
+    expect(job.progress.etaIso).toBeNull();
   });
 
   it('retries a transient Firestore error on the classification read', async () => {

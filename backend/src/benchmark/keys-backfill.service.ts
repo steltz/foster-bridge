@@ -48,6 +48,14 @@ export class KeysBackfillDayTimeoutError extends Error {
   }
 }
 
+/** An infrastructure read exceeded its ceiling. Distinct from the day timeout:
+ *  a slow read is transient and retryable, an over-running day is not. */
+export class KeysBackfillReadTimeoutError extends Error {
+  constructor(what: string, ms: number) {
+    super(`${what} exceeded the ${ms}ms keys-backfill read timeout`);
+  }
+}
+
 /** loadDay/outcomeRecapForDay throw this wording when the corpus moved under us. */
 const SNAPSHOT_MISMATCH = /changed since the run snapshot/;
 
@@ -154,7 +162,7 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
 
   private async runLoop(job: KeysBackfillSnapshot, opts: { from?: string; to?: string }): Promise<void> {
     try {
-      const snap = await this.inputs.snapshot();
+      const snap = await this.withReadTimeout(this.inputs.snapshot(), 'corpus snapshot');
       // A bucket/prefix/permissions failure must not read as "done, 0 days".
       if (!snap.days.length) {
         throw new Error('corpus scan returned no committed days — check the bucket prefix and credentials');
@@ -170,7 +178,7 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
       // reconciler writing cells that pin an artifact we just replaced —
       // a permanent wedge. The run path guards this with `pinned`; we refuse
       // to start instead. Mirrors the era-reset script's own precondition.
-      const inFlight = await this.repo.nonTerminalBatches();
+      const inFlight = await this.withReadTimeout(this.repo.nonTerminalBatches(), 'non-terminal batch check');
       if (inFlight.length) {
         throw new Error(
           `${inFlight.length} non-terminal batch(es) exist — let them reconcile (GET /benchmark/status) before starting the keys backfill; regenerating a day they pinned would wedge it`,
@@ -224,6 +232,9 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
     } finally {
       job.currentDay = null;
       job.finishedAt = new Date(this.nowMs()).toISOString();
+      // A job that did not finish has no completion to project. avgSecondsPerDay
+      // stays — it is a real measurement of what did run.
+      if (job.state !== 'done') job.progress.etaIso = null;
       this.lock.release('keys-backfill');
       this.logger.log(
         `keys-backfill ${job.state}: ${job.counts.generated} generated, ${job.counts.reused} reused, ${job.counts.failed} failed`,
@@ -242,7 +253,10 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
     const priors = all.slice(Math.max(0, idx - LOOKBACK_DAYS), idx);
     const missing: string[] = [];
     for (const p of priors) {
-      const doc = await this.repo.getKeysArtifact(p.day, job.flagshipAlias);
+      const doc = await this.withReadTimeout(
+        this.repo.getKeysArtifact(p.day, job.flagshipAlias),
+        `lookback readiness check for ${p.day}`,
+      );
       if (!doc?.verified || doc.lookbackMissing?.length) missing.push(p.day);
     }
     if (missing.length) {
@@ -281,7 +295,10 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
         // Inside the loop so a transient Firestore error is retried rather than
         // killing the job with an empty failures[], and so a late save from an
         // abandoned attempt is picked up.
-        const existing = await this.repo.getKeysArtifact(l.day, job.flagshipAlias);
+        const existing = await this.withReadTimeout(
+          this.repo.getKeysArtifact(l.day, job.flagshipAlias),
+          `classification read for ${l.day}`,
+        );
         if (existing?.verified && !existing.lookbackMissing?.length) {
           job.counts.reused += 1;
           return 'reused';
@@ -352,6 +369,27 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
   private retryDelayMs(attempt: number): number {
     const delays = this.config.get<number[]>('benchmark.keysBackfillRetryDelaysMs') ?? [30_000, 180_000];
     return delays[Math.min(attempt - 2, delays.length - 1)] ?? 30_000;
+  }
+
+  /** Bounds an unguarded infrastructure read (GCS/Firestore) so a hung socket
+   *  cannot park the job at `running` holding the lock forever. A timed-out
+   *  classification read surfaces as a plain KeysBackfillReadTimeoutError,
+   *  which runDay's catch classifies as kind 'error' — retryable by design. */
+  private withReadTimeout<T>(work: Promise<T>, what: string): Promise<T> {
+    const ms = this.config.get<number>('benchmark.keysBackfillReadTimeoutMs') ?? 300_000;
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new KeysBackfillReadTimeoutError(what, ms)), ms);
+      work.then(
+        (v) => {
+          clearTimeout(timer);
+          resolve(v);
+        },
+        (e) => {
+          clearTimeout(timer);
+          reject(e);
+        },
+      );
+    });
   }
 
   private withDayTimeout<T>(work: Promise<T>, day: string): Promise<T> {
