@@ -47,6 +47,16 @@ describe('ScoreboardService.generate', () => {
     expect(repo.saveScoreboard).toHaveBeenCalledWith('fable', expect.objectContaining({ markdown: expect.any(String), json: expect.any(Object) }));
   });
 
+  it('strips per-cell detail from the persisted/returned json — it is what blows Firestore\'s 1MB doc limit as cells accumulate', async () => {
+    const { svc, repo } = await build([cell({ runIndex: 1 }), cell({ runIndex: 2, result: { status: 'SL', points: -5, dollars: -25 } })]);
+    const out = await svc.generate('fable');
+    const groups = (out.json as { groups: Record<string, unknown>[] }).groups;
+    expect(groups[0].cells).toBeUndefined();
+    expect(groups[0].runTotals).toBeDefined(); // the summary stats callers need stay
+    const saved = repo.saveScoreboard.mock.calls[0][1] as { json: { groups: Record<string, unknown>[] } };
+    expect(saved.json.groups[0].cells).toBeUndefined();
+  });
+
   it('handles an empty cell set without throwing', async () => {
     const { svc, repo } = await build([]);
     const out = await svc.generate('fable');

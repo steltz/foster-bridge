@@ -58,15 +58,25 @@ function summarizeGroup(cells: ScoreCell[]) {
 
   const runTotals = runIndices.map((runIndex) => {
     const runCells = cells.filter((c) => c.runIndex === runIndex);
+    const runFilled = runCells.filter((c) => FILLED.has(c.result.status));
+    const runWins = runFilled.filter((c) => (c.result.points ?? 0) > 0);
+    const runLosses = runFilled.filter((c) => (c.result.points ?? 0) < 0);
     let points = 0;
     let dollars = 0;
-    for (const c of runCells) {
-      if (FILLED.has(c.result.status)) {
-        points += c.result.points ?? 0;
-        dollars += c.result.dollars ?? 0;
-      }
+    for (const c of runFilled) {
+      points += c.result.points ?? 0;
+      dollars += c.result.dollars ?? 0;
     }
-    return { runIndex, days: runCells.length, points, dollars };
+    return {
+      runIndex,
+      days: runCells.length,
+      points,
+      dollars,
+      filledCount: runFilled.length,
+      winCount: runWins.length,
+      lossCount: runLosses.length,
+      winRate: runFilled.length ? runWins.length / runFilled.length : null,
+    };
   });
 
   const dollarSeries = runTotals.map((r) => r.dollars);

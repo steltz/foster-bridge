@@ -31,6 +31,18 @@ describe('computeScoreboard', () => {
     expect(sb.groups[0].meanDollars).toBeCloseTo(0.625); // mean(26.25, -25)
   });
 
+  it('breaks out win/loss per run in runTotals', () => {
+    const sb = computeScoreboard([
+      cell({ runIndex: 1, day: '07012026', result: { status: 'TP', points: 10, dollars: 50 } }),
+      cell({ runIndex: 1, day: '07022026', result: { status: 'SL', points: -5, dollars: -25 } }),
+      cell({ runIndex: 1, day: '07032026', result: { status: 'NOT_FILLED' } }),
+      cell({ runIndex: 2, day: '07012026', result: { status: 'TP', points: 20, dollars: 100 } }),
+    ]);
+    const [r1, r2] = sb.groups[0].runTotals;
+    expect(r1).toMatchObject({ runIndex: 1, filledCount: 2, winCount: 1, lossCount: 1, winRate: 0.5 });
+    expect(r2).toMatchObject({ runIndex: 2, filledCount: 1, winCount: 1, lossCount: 0, winRate: 1 });
+  });
+
   it('renders a ranking table and a coverage table', () => {
     const md = renderScoreboard(computeScoreboard([cell({})]), [], []);
     expect(md).toContain('## Ranking (mean net USD per run)');
