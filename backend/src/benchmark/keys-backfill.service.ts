@@ -342,6 +342,20 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (err instanceof KeysBackfillDayTimeoutError) {
+          // Node cannot cancel the generateDay() call this raced against, so it
+          // is usually still running detached and lands a verified artifact a
+          // few minutes later — re-POSTing the job has always picked those up
+          // via the classification read above. Poll for that same landing here
+          // instead of stopping the job on what is very often a false alarm.
+          const landed = await this.awaitGraceLanding(job, l);
+          if (landed) {
+            job.counts.generated += 1;
+            this.recordReducedLookback(job, l.day, landed);
+            return 'generated';
+          }
+          // A cancel that cut the poll short is a deliberate stop, not a
+          // failure — don't record a spurious timeout against the day.
+          if (this.cancelRequested) return 'cancelled';
           last = { kind: 'timeout', message, mismatches: [] };
         } else if (SNAPSHOT_MISMATCH.test(message)) {
           // A concurrent eminiplayer re-ingest. Deterministic — retrying is waste.
@@ -407,6 +421,35 @@ export class KeysBackfillService implements OnModuleDestroy, OnApplicationShutdo
         },
       );
     });
+  }
+
+  /**
+   * The day timeout only stops US waiting — the underlying generateDay() call
+   * has no AbortSignal and keeps running. Poll the artifact doc for it to land
+   * verified before treating the timeout as a real failure; a cancel wins over
+   * an open-ended poll rather than blocking DELETE on it.
+   */
+  private async awaitGraceLanding(job: KeysBackfillSnapshot, l: DayListing): Promise<DayArtifactDoc | null> {
+    const graceMs = this.config.get<number>('benchmark.keysBackfillDayGraceMs') ?? 1_800_000;
+    const pollMs = this.config.get<number>('benchmark.keysBackfillGracePollMs') ?? 30_000;
+    const deadline = this.nowMs() + graceMs;
+    this.logger.warn(
+      `keys-backfill ${l.day}: exceeded the day timeout — polling up to ${graceMs}ms for the in-flight attempt to land before failing the job`,
+    );
+    while (this.nowMs() < deadline) {
+      if (this.cancelRequested) return null;
+      await this.sleep(pollMs);
+      const doc = await this.withReadTimeout(
+        this.repo.getKeysArtifact(l.day, job.flagshipAlias),
+        `grace-period check for ${l.day}`,
+      ).catch(() => null);
+      if (doc?.verified && !doc.lookbackMissing?.length) {
+        this.logger.log(`keys-backfill ${l.day}: in-flight attempt landed during the grace period — continuing`);
+        return doc;
+      }
+    }
+    this.logger.warn(`keys-backfill ${l.day}: grace period elapsed with no landing — failing the job`);
+    return null;
   }
 
   protected recordReducedLookback(job: KeysBackfillSnapshot, day: string, doc: DayArtifactDoc): void {

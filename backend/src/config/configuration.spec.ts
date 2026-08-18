@@ -93,9 +93,12 @@ describe('configuration benchmark defaults', () => {
         qty: 2,
         management: { triggerR: 1.5, takeFraction: 0.5, moveStopToR: 0 },
       },
-      // Keys-backfill defaults: 15-min day ceiling, 5-min read ceiling,
-      // 30s/180s retry backoff.
+      // Keys-backfill defaults: 15-min day ceiling, 30-min grace poll (every
+      // 30s) for a day that trips the ceiling, 5-min read ceiling, 30s/180s
+      // retry backoff.
       keysBackfillDayTimeoutMs: 900000,
+      keysBackfillDayGraceMs: 1800000,
+      keysBackfillGracePollMs: 30000,
       keysBackfillReadTimeoutMs: 300000,
       keysBackfillRetryDelaysMs: [30000, 180000],
     });
@@ -103,10 +106,14 @@ describe('configuration benchmark defaults', () => {
 
   it('parses keys-backfill env overrides', () => {
     process.env.BENCHMARK_KEYS_DAY_TIMEOUT_MS = '600000';
+    process.env.BENCHMARK_KEYS_DAY_GRACE_MS = '900000';
+    process.env.BENCHMARK_KEYS_GRACE_POLL_MS = '15000';
     process.env.BENCHMARK_KEYS_READ_TIMEOUT_MS = '120000';
     process.env.BENCHMARK_KEYS_RETRY_DELAYS_MS = '1000, 5000,25000';
     const cfg = configuration();
     expect(cfg.benchmark.keysBackfillDayTimeoutMs).toBe(600000);
+    expect(cfg.benchmark.keysBackfillDayGraceMs).toBe(900000);
+    expect(cfg.benchmark.keysBackfillGracePollMs).toBe(15000);
     expect(cfg.benchmark.keysBackfillReadTimeoutMs).toBe(120000);
     expect(cfg.benchmark.keysBackfillRetryDelaysMs).toEqual([1000, 5000, 25000]);
   });

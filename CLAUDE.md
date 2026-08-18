@@ -77,9 +77,21 @@ sampled run cannot provide, because a sample's scattered days almost never have
 KEYS for their 3 prior days. A day is reused only when its artifact is
 `verified` **and** has an empty `lookbackMissing`. Failures are classified
 (`unverified` / `error` / `refused` / `timeout`); `unverified` and `error` retry
-up to 3 times with backoff, `refused` and `timeout` stop immediately, and any
-stop ends the job (`state: "failed"`, `failures[0]` names the day) rather than
-leaving a hole. Re-POST resumes — built days short-circuit on one read.
+up to 3 times with backoff, `refused` stops immediately, and any stop ends the
+job (`state: "failed"`, `failures[0]` names the day) rather than leaving a
+hole. Re-POST resumes — built days short-circuit on one read.
+
+`timeout` is a false alarm more often than not: Node cannot cancel the
+in-flight seven-keys generation the day timeout (`BENCHMARK_KEYS_DAY_TIMEOUT_MS`,
+15 min default) races against, so the call is usually still running detached
+and lands a verified artifact a few minutes later. Rather than stopping the job
+on that, a `timeout` triggers a grace-period poll of the artifact doc
+(`BENCHMARK_KEYS_DAY_GRACE_MS`, 30 min default; polled every
+`BENCHMARK_KEYS_GRACE_POLL_MS`, 30s default) — a landing during the poll counts
+the day as generated and the job continues; a DELETE cancel during the poll
+ends it as `cancelled` rather than a spurious failure; only a poll that
+exhausts the grace window with nothing landed stops the job as a real
+`timeout` failure.
 
 `POST /benchmark/keys-backfill` and `POST /benchmark/run` are **mutually
 exclusive**: whichever starts first holds a shared lock, the other gets 409 with

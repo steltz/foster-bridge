@@ -61,6 +61,8 @@ function build(
   const config = {
     get: jest.fn((key: string) => {
       if (key === 'benchmark.keysBackfillDayTimeoutMs') return 60_000;
+      if (key === 'benchmark.keysBackfillDayGraceMs') return 40_000;
+      if (key === 'benchmark.keysBackfillGracePollMs') return 10_000;
       if (key === 'benchmark.keysBackfillReadTimeoutMs') return 300_000;
       if (key === 'benchmark.keysBackfillRetryDelaysMs') return [10, 20];
       return undefined;
@@ -335,11 +337,14 @@ describe('KeysBackfillService', () => {
     expect(job.failures[0]).toMatchObject({ kind: 'refused', attempts: 1 });
   });
 
-  it('does NOT retry a per-day timeout, and stops the job', async () => {
+  it('does NOT retry a per-day timeout, and fails the job once the grace period finds nothing landed', async () => {
     jest.useFakeTimers();
     try {
       const ensureKeys = jest.fn(() => new Promise(() => undefined));
-      const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys });
+      const getKeysArtifact = jest.fn(() => Promise.resolve(null)); // never lands
+      const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys, getKeysArtifact });
+      let clock = 0;
+      jest.spyOn(service as never as { nowMs: () => number }, 'nowMs').mockImplementation(() => (clock += 15_000));
       service.start({});
       await jest.advanceTimersByTimeAsync(60_001);
       await settle(service);
@@ -349,6 +354,59 @@ describe('KeysBackfillService', () => {
       expect(job.state).toBe('failed');
       expect(job.failures[0]).toMatchObject({ kind: 'timeout', attempts: 1 });
       expect(job.failures[0].message).toMatch(/timeout/i);
+      // the classification read, plus at least one grace-period poll
+      expect(getKeysArtifact.mock.calls.length).toBeGreaterThan(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('day timeout: the in-flight attempt landing during the grace period counts as generated, not failed', async () => {
+    jest.useFakeTimers();
+    try {
+      // ensureKeys never resolves within the test — simulates the detached
+      // attempt the day timeout gave up waiting on.
+      const ensureKeys = jest.fn(() => new Promise(() => undefined));
+      let reads = 0;
+      const getKeysArtifact = jest.fn(() => {
+        reads += 1;
+        // read 1 is runDay's own classification read; reads 2-3 are grace polls
+        // that haven't landed yet; read 4 is the poll that finds it landed.
+        if (reads < 4) return Promise.resolve(null);
+        return Promise.resolve({ contentHash: 'kh', verified: true, lookbackMissing: [] });
+      });
+      const { service } = build({ days: [listing('01022025', '2025-01-02')], ensureKeys, getKeysArtifact });
+      service.start({});
+      await jest.advanceTimersByTimeAsync(60_001);
+      await settle(service);
+
+      const job = service.status()!;
+      expect(job.state).toBe('done');
+      expect(job.counts).toMatchObject({ generated: 1, failed: 0, processed: 1 });
+      expect(job.failures).toEqual([]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('day timeout: a cancel during the grace period ends the wait instead of polling to the deadline', async () => {
+    jest.useFakeTimers();
+    try {
+      let svc: KeysBackfillService;
+      const ensureKeys = jest.fn(() => new Promise(() => undefined));
+      const getKeysArtifact = jest.fn(() => {
+        svc.cancel();
+        return Promise.resolve(null); // never lands, but cancel should win anyway
+      });
+      const built = build({ days: [listing('01022025', '2025-01-02')], ensureKeys, getKeysArtifact });
+      svc = built.service;
+      svc.start({});
+      await jest.advanceTimersByTimeAsync(60_001);
+      await settle(svc);
+
+      const job = svc.status()!;
+      expect(job.cancelRequested).toBe(true);
+      expect(job.state).toBe('cancelled');
     } finally {
       jest.useRealTimers();
     }
