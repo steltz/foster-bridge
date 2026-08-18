@@ -1,0 +1,51 @@
+backend/src/benchmark/keys-backfill.service.spec.ts
+  s_39fb64af9f44e1::t_f5d2e9b8b7b6aa 392-409
+  s_39fb64af9f44e1::t_1196dfd139de0e 340,344-347,357-390
+  s_39fb64af9f44e1::t_58c38ac34a98d5 64-65
+  s_39fb64af9f44e1::t_286113ebdcd4aa 391
+backend/scripts/dump-keys-docs.mjs
+  s_7e7e741a721ae5::t_3050fefa76c045 1-35
+backend/scripts/fetch-keys-doc.mjs
+  s_7e7e741a721ae5::t_aa3bdf30e1d4f2 1-24
+backend/src/benchmark/keys-backfill.service.ts
+  s_39fb64af9f44e1::t_4790b55d77f757 426-454
+  s_39fb64af9f44e1::t_0ffaa50b2b1c74 345-355
+  s_39fb64af9f44e1::t_5627a6338aca68 356-358
+backend/src/config/configuration.ts
+  s_39fb64af9f44e1::t_6250e4e2a52db4 161-167
+  s_39fb64af9f44e1::t_4c0063f600717e 43-44
+backend/src/config/configuration.spec.ts
+  s_39fb64af9f44e1::t_f9201ccfabcd2b 96-98,100-101,109-110,115-116
+CLAUDE.md
+  s_39fb64af9f44e1::t_374bda3eba4030 80-94
+backend/scripts/list-keys-days.mjs
+  s_39fb64af9f44e1::t_76c1265af63f67 1-18
+backend/scripts/fetch-trader-doc.mjs
+  s_39fb64af9f44e1::t_ea94b6c42c5086 1-18
+backend/scripts/check-pin-drift.mjs
+  s_39fb64af9f44e1::t_99c88a8b44bfb5 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6303c94cfba18ce70fda73d4148c2306c8c64376",
+  "prompts": {},
+  "sessions": {
+    "s_39fb64af9f44e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab8bac97-03c2-4abe-94a2-79494e889f85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    },
+    "s_7e7e741a721ae5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "28a496ed-dc63-4742-9f28-0621677caa45",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
