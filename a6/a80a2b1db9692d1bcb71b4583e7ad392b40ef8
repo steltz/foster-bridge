@@ -1,0 +1,29 @@
+backend/src/benchmark/scoreboard/scoreboard.ts
+  s_39fb64af9f44e1::t_c32e1e4e57bf90 61-63,66-68,70-79
+backend/src/benchmark/scoreboard.service.spec.ts
+  s_39fb64af9f44e1::t_504bf56139f2a2 50-59
+backend/scripts/live-scoreboard-count.mjs
+  s_39fb64af9f44e1::t_70a0ffbc78689f 1-12
+backend/scripts/live-missing-cells.mjs
+  s_39fb64af9f44e1::t_35890b5c763260 1-17
+backend/src/benchmark/scoreboard.service.ts
+  s_39fb64af9f44e1::t_1ab4778ec85ea8 22-27
+backend/src/benchmark/scoreboard/scoreboard.spec.ts
+  s_39fb64af9f44e1::t_c45f580fe2cf88 34-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a6a80a2b1db9692d1bcb71b4583e7ad392b40ef8",
+  "prompts": {},
+  "sessions": {
+    "s_39fb64af9f44e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ab8bac97-03c2-4abe-94a2-79494e889f85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "nic stelter <nicholas.stelter@gmail.com>"
+    }
+  }
+}
